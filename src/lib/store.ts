@@ -1,10 +1,28 @@
 import { writable, derived } from 'svelte/store';
 import type { BlogPost, Category } from './types';
+import { createLibp2p } from 'libp2p'
+import { createHelia } from 'helia'
+import { createOrbitDB } from '@orbitdb/core'
+import { LevelDatastore } from 'datastore-level'
+import { LevelBlockstore } from 'blockstore-level'
+import { Libp2pOptions } from './config'
+// Initialize storage
+let blockstore = new LevelBlockstore('./helia-blocks');
+let datastore = new LevelDatastore('./helia-data');
+// Initialize Helia and OrbitDB
+const libp2p = await createLibp2p(Libp2pOptions)
+const helia = await createHelia({libp2p, datastore, blockstore})
+
+const orbitdb = await createOrbitDB({ 
+  ipfs: helia,
+  storage: blockstore,
+  directory: './orbitdb',
+});
 
 // Load initial data from localStorage or use sample data
 const getSamplePosts = (): BlogPost[] => [
   {
-    id: '1',
+    _id: '1',
     title: 'Getting Started with Svelte',
     content: '# Getting Started with Svelte\n\nSvelte is a radical new approach to building user interfaces...\n\n## Key Features\n- No Virtual DOM\n- True reactivity\n- Less code',
     author: 'John Doe',
@@ -16,7 +34,7 @@ const getSamplePosts = (): BlogPost[] => [
     ]
   },
   {
-    id: '2',
+    _id: '2',
     title: 'Why I Love TypeScript',
     content: '# TypeScript Benefits\n\nTypeScript adds optional static types to JavaScript...\n\n## Advantages\n- Type safety\n- Better tooling\n- Enhanced productivity',
     author: 'Jane Smith',
@@ -27,7 +45,7 @@ const getSamplePosts = (): BlogPost[] => [
     ]
   },
   {
-    id: '3',
+    _id: '3',
     title: 'Web Development Best Practices',
     content: '# Web Development Best Practices\n\nHere are some essential best practices for modern web development...\n\n## Best Practices\n1. Write semantic HTML\n2. Optimize performance\n3. Follow accessibility guidelines',
     author: 'Mike Johnson',
@@ -40,10 +58,12 @@ const getSamplePosts = (): BlogPost[] => [
   }
 ];
 
-const storedPosts = localStorage.getItem('blog-posts');
-const initialPosts = storedPosts ? JSON.parse(storedPosts) : getSamplePosts();
+// Create stores
+export const heliaStore = writable(helia)
+export const orbitStore = writable(orbitdb)
+export const postsDB = writable(null)
+export const posts = writable<BlogPost[]>(getSamplePosts());
 
-export const posts = writable<BlogPost[]>(initialPosts);
 export const searchQuery = writable('');
 export const selectedCategory = writable<Category | 'All'>('All');
 
@@ -51,20 +71,17 @@ export const selectedCategory = writable<Category | 'All'>('All');
 export const filteredPosts = derived(
   [posts, searchQuery, selectedCategory],
   ([$posts, $searchQuery, $selectedCategory]) => {
-    return $posts.filter(post => {
-      const matchesSearch = 
-        post.title.toLowerCase().includes($searchQuery.toLowerCase()) ||
-        post.content.toLowerCase().includes($searchQuery.toLowerCase()) ||
-        post.author.toLowerCase().includes($searchQuery.toLowerCase());
-      
-      const matchesCategory = $selectedCategory === 'All' || post.category === $selectedCategory;
-      
-      return matchesSearch && matchesCategory;
-    });
+    return $posts
+      .filter(post => {
+        const matchesSearch = 
+          post.title.toLowerCase().includes($searchQuery.toLowerCase()) ||
+          post.content.toLowerCase().includes($searchQuery.toLowerCase()) ||
+          post.author.toLowerCase().includes($searchQuery.toLowerCase());
+        
+        const matchesCategory = $selectedCategory === 'All' || post.category === $selectedCategory;
+        
+        return matchesSearch && matchesCategory;
+      })
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 );
-
-// Subscribe to changes and update localStorage
-posts.subscribe(value => {
-  localStorage.setItem('blog-posts', JSON.stringify(value));
-});

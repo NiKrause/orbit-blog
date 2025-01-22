@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { posts } from './store';
+  import { postsDB } from './store';
   import type { Category } from './types';
 
   let title = '';
@@ -9,22 +9,20 @@
 
   const categories: Category[] = ['Technology', 'Programming', 'Design', 'Other'];
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!title.trim() || !content.trim() || !author.trim()) return;
 
-    posts.update(currentPosts => [
-      {
-        id: crypto.randomUUID(),
-        title,
-        content,
-        author,
-        category,
-        createdAt: new Date().toISOString().split('T')[0],
-        comments: []
-      },
-      ...currentPosts
-    ]);
-
+    await $postsDB.put({
+      _id: crypto.randomUUID(),
+      title,
+      content,
+      author,
+      category,
+      createdAt: new Date().toISOString().split('T')[0],
+      comments: []
+    });
+    const all = await $postsDB.all()
+    console.log("all",all)
     title = '';
     content = '';
     author = '';
@@ -88,5 +86,26 @@
 
   button {
     align-self: flex-start;
+    background-color: #4CAF50; /* Green background */
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+  }
+
+  button:hover {
+    background-color: #45a049; /* Darker green on hover */
+  }
+
+  button:active {
+    background-color: #3d8b40; /* Even darker when clicked */
+  }
+
+  button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
   }
 </style>

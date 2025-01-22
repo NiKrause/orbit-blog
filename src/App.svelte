@@ -1,9 +1,48 @@
 <script lang="ts">
-  import { filteredPosts, searchQuery, selectedCategory } from './lib/store';
+  import { onMount, onDestroy } from 'svelte'
+  import { IPFSAccessController } from '@orbitdb/core';
+  import { heliaStore, orbitStore, postsDB, filteredPosts, searchQuery, selectedCategory } from './lib/store';
   import BlogPost from './lib/BlogPost.svelte';
   import NewPost from './lib/NewPost.svelte';
-
+  
+  import { posts } from './lib/store';
   const categories = ['All', 'Technology', 'Programming', 'Design', 'Other'];
+  $:console.log("posts", $posts)
+  $:console.log("filteredPosts", $filteredPosts)
+  
+  onMount(async () => {
+    $postsDB = await $orbitStore.open('blog-posts', { 
+      type: 'documents',
+      create: true,
+      overwrite: false,
+      directory: './orbitdb/nameops',
+      AccessController: IPFSAccessController({
+          // write: [this.orbitdb.identity.id],
+          write: ["*"]
+      }),
+    })
+    let currentPosts = await $postsDB.all()
+    if(currentPosts.length === 0){
+     for(const post of $posts){
+      await $postsDB.put(post)
+     }
+    }
+    else $posts = currentPosts.map(entry => entry.value)
+    
+    $postsDB?.events.on('update', async (entry) => {
+      if(entry?.payload?.op === 'PUT'){
+        $posts = [...$posts, entry.payload.value]
+      }else if(entry?.payload?.op === 'DEL'){
+        $posts = $posts.filter(post => post._id !== entry.payload.key)
+      }
+  })
+  })  
+
+  onDestroy(async () => {
+    await $postsDB.close()
+    await $orbitStore.close()
+    await $heliaStore.close()
+  })
 </script>
 
 <main>
@@ -27,7 +66,7 @@
   <NewPost />
   
   <section class="blog-posts">
-    {#each $filteredPosts as post (post.id)}
+    {#each $filteredPosts as post (post._id)}
       <BlogPost {post} />
     {/each}
   </section>

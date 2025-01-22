@@ -1,9 +1,12 @@
 <script lang="ts">
   import { marked } from 'marked';
+  import { postsDB } from './store';
   import type { BlogPost, Comment } from './types';
-  import { posts } from './store';
+  
+
 
   export let post: BlogPost;
+  export let onDelete: () => void;
 
   let newComment = '';
   let commentAuthor = '';
@@ -17,35 +20,40 @@
     sanitize: false // Allow HTML
   });
 
-  function addComment() {
+  async function addComment() {
     if (!newComment.trim() || !commentAuthor.trim()) return;
 
-    const comment: Comment = {
+    const comment = {
       id: crypto.randomUUID(),
       content: newComment,
       author: commentAuthor,
       createdAt: new Date().toISOString().split('T')[0]
     };
 
-    posts.update(currentPosts => {
-      const updatedPosts = currentPosts.map(p => {
-        if (p.id === post.id) {
-          return { ...p, comments: [...p.comments, comment] };
-        }
-        return p;
-      });
-      return updatedPosts;
+    await $postsDB.put(post.id, {
+      ...post,
+      comments: [...post.comments, comment]
     });
 
     newComment = '';
     commentAuthor = '';
   }
 
+  async function deletePost() {
+    if (confirm('Are you sure you want to delete this post?')) {
+      await $postsDB.del(post._id)
+      onDelete?.()
+    }
+  }
+
   $: renderedContent = marked(post.content);
 </script>
 
 <article class="blog-post">
-  <h2>{post.title}</h2>
+  <div class="post-header">
+    <h2>{post.title}</h2>
+    <button on:click={deletePost} class="delete-button">Delete Post</button>
+  </div>
   <div class="metadata">
     <span>By {post.author}</span>
     <span>Posted on {post.createdAt}</span>
@@ -179,5 +187,25 @@
 
   textarea {
     min-height: 100px;
+  }
+
+  .post-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .delete-button {
+    background-color: #ff4444;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .delete-button:hover {
+    background-color: #cc0000;
   }
 </style>
