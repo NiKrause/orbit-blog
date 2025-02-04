@@ -1,6 +1,6 @@
 # OrbitDB-Blog
 
-A Local-First & Peer-To-Peer Blog with OrbitDB
+A Local-First & Peer-To-Peer Blog with OrbitDB which replicates between browsers and mobile apps without a server. Hosted on IPFS. 
 
 Features
 - UI related
