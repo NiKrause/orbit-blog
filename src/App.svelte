@@ -7,6 +7,8 @@
   import { heliaStore, orbitStore, postsDB, posts, remoteDBsDatabase, remoteDBs } from './lib/store';
   import { IPFSAccessController } from '@orbitdb/core';
 
+  let showDBManager = false;
+
   onMount(async () => {
     console.log('Initializing OrbitDB...');
     try {
@@ -104,7 +106,16 @@
   <div class="max-w-7xl mx-auto py-8 px-4">
     <h1 class="text-4xl font-bold text-center mb-8 text-gray-900 dark:text-white">Orbit Blog</h1>
     
-    <DBManager />
+    <button 
+      class="mb-4 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors"
+      on:click={() => showDBManager = !showDBManager}
+    >
+      {showDBManager ? 'Hide' : 'Show'} Database Manager
+    </button>
+    
+    {#if showDBManager}
+      <DBManager />
+    {/if}
     
     <div class="grid gap-8">
       <PostList />

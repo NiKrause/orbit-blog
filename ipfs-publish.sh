@@ -14,6 +14,7 @@ ipfs name publish --key=orbitblog $cid
 
 # Execute the docker-compose command on the remote server
 ssh root@ipfs.le-space.de "docker-compose exec ipfs ipfs add $cid"
+ssh root@ipfs.le-space.de "docker-compose exec ipfs ipfs pin add --follow follow /ipns/k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g"
 echo "IPFS CID $cid published on ipfs.le-space.de and vercel.json updated"
 # Get the current version from package.json
 version=$(node -p "require('./package.json').version")
