@@ -1,6 +1,21 @@
 # Orbit-Blog
 
+<img src="./public/orbitbloglogo-700.png" width="300" alt="Orbit Blog Logo">
+
 A local-first & peer-to-peer blog powered by OrbitDB which replicates between browsers and mobile apps. Hosted on IPFS (only)
+
+## Try it out
+
+Visit [orbit-blog.ipfs.page](https://orbit-blog.ipfs.page) or scan the QR code below:
+
+<img src="./public/qr-code.png" width="200" alt="QR Code to PWA">
+
+### Install as Progressive Web App (PWA)
+
+#### Desktop
+1. Open [orbit-blog.ipfs.page](https://orbit-blog.ipfs.page) in Chrome or Edge
+2. Look for the install icon (⊕) in the address bar
+3. Click "Install" to add the app to your desktop
 
 Features
 - App related

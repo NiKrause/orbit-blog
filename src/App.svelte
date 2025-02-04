@@ -96,6 +96,9 @@
     }
   });
 </script>
+<svelte:head>
+	<title>Orbit Blog {__APP_VERSION__}</title>
+</svelte:head>
 
 <main class="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors">
   <div class="max-w-7xl mx-auto py-8 px-4">
