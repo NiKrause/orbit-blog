@@ -6,9 +6,9 @@ A local-first & peer-to-peer blog powered by OrbitDB which replicates between br
 
 ## Try it out
 
-Visit [orbit-blog.ipfs.page](https://orbit-blog.ipfs.page) or scan the QR code below:
+Visit [orbit-blog @ ipns  ](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g) or scan the QR code below:
 
-<img src="./public/qr-code.png" width="200" alt="QR Code to PWA">
+<img src="/public/ipns.dweb.link.png" width="200" alt="QR Code to PWA">
 
 ### Install as Progressive Web App (PWA)
 
