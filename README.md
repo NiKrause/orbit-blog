@@ -36,9 +36,6 @@ Features
 
 ### Install as Progressive Web App (PWA)
 
-<table border="0" cellspacing="0" cellpadding="0">
-  <tr>
-    <td>Visit <a href="ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g">orbit-blog @ ipns</a></td>
-    <td><a href="https://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g.ipns.dweb.link/"><img src="/public/ipns.dweb.link.png" width="200" alt="QR Code to PWA"></a></td>
-  </tr>
-</table>
+Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g) [IPFS Companion needed](https://docs.ipfs.tech/install/ipfs-companion/)
+
+[![QR Code to PWA](/public/ipns.dweb.link.png)](https://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g.ipns.dweb.link/)
