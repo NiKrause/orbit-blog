@@ -2,6 +2,7 @@
 .idea
 .vscode
 .env[]¶
+dev-dist/
 # Logs
 logs
 *.log
