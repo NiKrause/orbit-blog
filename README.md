@@ -5,7 +5,7 @@ A Local-First & Peer-To-Peer Blog powered by OrbitDB which replicates between br
 Features
 - App related
     - [ ] deploy to IPFS
-    - [ ] run as PWA
+    - [x] run as PWA
         - [x] vite-plugin-pwa
         - [x] orbitlogo ai generated
 - UI related
