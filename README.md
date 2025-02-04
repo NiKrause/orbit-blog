@@ -6,7 +6,13 @@
   </tr>
 </table>
 
-Features
+### Install as Progressive Web App (PWA)
+
+Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g) [IPFS Companion needed](https://docs.ipfs.tech/install/ipfs-companion/)
+
+[![QR Code to PWA](/public/ipns.dweb.link.png)](https://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g.ipns.dweb.link/)
+
+### Features
 - App related
     - [x] deployable to IPFS
     - [x] run as PWA
@@ -33,9 +39,3 @@ Features
     - [ ] create RaspberryPi pinning - relay
     - [ ] demonstrate webrtc-direct connections without relay-server but SDP-QR-Codes or SDP - Voice
     - [ ] upload & replicate images / integrate ipfs images cids into markdown
-
-### Install as Progressive Web App (PWA)
-
-Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g) [IPFS Companion needed](https://docs.ipfs.tech/install/ipfs-companion/)
-
-[![QR Code to PWA](/public/ipns.dweb.link.png)](https://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g.ipns.dweb.link/)
