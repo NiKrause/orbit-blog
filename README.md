@@ -1,8 +1,7 @@
-# Orbit-Blog
-
 <table border="0" cellspacing="0" cellpadding="0">
   <tr>
-      <td>A local-first & peer-to-peer blog powered by OrbitDB which replicates between browsers and mobile apps. Hosted on IPFS (only)</td>
+      <td>
+      <h1>Orbit-Blog</h1>A local-first & peer-to-peer blog powered by OrbitDB which replicates between browsers and mobile apps. Hosted on IPFS (only)</td>
     <td><img src="./public/orbitbloglogo-700.png" width="300" alt="Orbit Blog Logo"></td>
   </tr>
 </table>
@@ -40,6 +39,6 @@ Features
 <table border="0" cellspacing="0" cellpadding="0">
   <tr>
     <td>Visit <a href="ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g">orbit-blog @ ipns</a></td>
-    <td><img src="/public/ipns.dweb.link.png" width="200" alt="QR Code to PWA"></td>
+    <td><a href="https://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g.ipns.dweb.link/"><img src="/public/ipns.dweb.link.png" width="200" alt="QR Code to PWA"></a></td>
   </tr>
 </table>
