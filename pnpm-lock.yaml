@@ -134,6 +134,9 @@ importers:
       uint8arrays:
         specifier: ^5.1.0
         version: 5.1.0
+      version:
+        specifier: ^0.1.2
+        version: 0.1.2
       vite-plugin-node-polyfills:
         specifier: ^0.23.0
         version: 0.23.0(rollup@2.79.2)(vite@5.4.14(@types/node@22.13.1)(terser@5.37.0))
@@ -4036,6 +4039,14 @@ packages:
     resolution: {integrity: sha512-cnE+y8bz4NhMjISKbgeVJtqNbtf5QpjZP+Bslo+UqkIt9QPnX9q095eiRRASJG1/tz6dlNr6Z5NsBiWYokp6EQ==}
     hasBin: true
 
+  request@2.12.0:
+    resolution: {integrity: sha512-GcOI9NyUw2lRke4kdbrjQFxu+cLugShENHvcb9QCSLLc/yH3lP7I/7RESxVbYS+AxC/r9rwzks52MRHVoZdb5w==}
+    engines: {'0': node >= 0.3.6}
+    deprecated: request has been deprecated, see https://github.com/request/request/issues/3142
+    bundledDependencies:
+      - form-data
+      - mime
+
   require-directory@2.1.1:
     resolution: {integrity: sha512-fGxEI7+wsG9xrvdjsrlmL22OMTTiHRwAMroiEeMgq8gzoLC/PQr7RsRDSTLUg/bZAZtF+TVIkHc6/4RIKrui+Q==}
     engines: {node: '>=0.10.0'}
@@ -4657,6 +4668,10 @@ packages:
 
   varint@5.0.2:
     resolution: {integrity: sha512-lKxKYG6H03yCZUpAGOPOsMcGxd1RHCu1iKvEHYDPmTyq2HueGhD73ssNBqqQWfvYs04G9iUFRvmAVLW20Jw6ow==}
+
+  version@0.1.2:
+    resolution: {integrity: sha512-pU32BxnlMpDnyR8SsRR8amiAmhBZQdTevjYFAMZ9W3eT2wWIJzfjKOH39O1eiCAW4brhyaXe3NpZNFpBAJR56Q==}
+    engines: {node: '>= 0.8.0'}
 
   vite-plugin-node-polyfills@0.23.0:
     resolution: {integrity: sha512-4n+Ys+2bKHQohPBKigFlndwWQ5fFKwaGY6muNDMTb0fSQLyBzS+jjUNRZG9sKF0S/Go4ApG6LFnUGopjkILg3w==}
@@ -10125,6 +10140,8 @@ snapshots:
     dependencies:
       jsesc: 3.0.2
 
+  request@2.12.0: {}
+
   require-directory@2.1.1: {}
 
   require-from-string@2.0.2: {}
@@ -10851,6 +10868,10 @@ snapshots:
   utils-merge@1.0.1: {}
 
   varint@5.0.2: {}
+
+  version@0.1.2:
+    dependencies:
+      request: 2.12.0
 
   vite-plugin-node-polyfills@0.23.0(rollup@2.79.2)(vite@5.4.14(@types/node@22.13.1)(terser@5.37.0)):
     dependencies:

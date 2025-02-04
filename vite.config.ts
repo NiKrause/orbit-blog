@@ -4,6 +4,7 @@ import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  base: './',
   plugins: [
     svelte(),
     nodePolyfills(),
@@ -19,12 +20,12 @@ export default defineConfig({
         theme_color: '#ffffff',
         icons: [
           {
-            src: '/orbit192.png',
+            src: './orbit192.png',
             sizes: '192x192',
             type: 'image/png'
           },
           {
-            src: '/orbit512.png',
+            src: './orbit512.png',
             sizes: '512x512',
             type: 'image/png'
           }
@@ -34,5 +35,11 @@ export default defineConfig({
   ],
   build: {
     target: 'esnext',
+    assetsDir: 'assets',
+    rollupOptions: {
+      output: {
+        assetFileNames: 'assets/[name].[ext]'
+      }
+    }
   }
 })

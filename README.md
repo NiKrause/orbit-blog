@@ -1,6 +1,6 @@
 # Orbit-Blog
 
-A Local-First & Peer-To-Peer Blog powered by OrbitDB which replicates between browsers and mobile apps without a server. Hosted on IPFS (only)
+A local-first & peer-to-peer blog powered by OrbitDB which replicates between browsers and mobile apps. Hosted on IPFS (only)
 
 Features
 - App related
@@ -19,7 +19,7 @@ Features
     - [ ] search comments
 - OrbitDB related
     - [ ] blog settings centrally via settings db
-    - [ ] implement One-Time-Access-Controller 
+    - [ ] implement OneTimeAccessController 
         - keep temporary private key / peer-id on laptop 
         - keep secure private key / persistant peer-id on phone
         - implement One-Time-Access-Controller with own stream protocol and qr-code peering (phone accepts simple pubsub peering messages with simple pin code comparison)

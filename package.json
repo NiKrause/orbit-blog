@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "ipfs-publish": "npm version patch && npm run build && ./ipfs-publish.sh",
     "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.node.json"
   },
   "devDependencies": {
@@ -67,6 +68,7 @@
     "marked": "^12.0.2",
     "qrcode": "^1.5.3",
     "uint8arrays": "^5.1.0",
+    "version": "^0.1.2",
     "vite-plugin-node-polyfills": "^0.23.0"
   }
 }
