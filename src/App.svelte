@@ -99,7 +99,7 @@
 
 <main class="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors">
   <div class="max-w-7xl mx-auto py-8 px-4">
-    <h1 class="text-4xl font-bold text-center mb-8 text-gray-900 dark:text-white">Crypto Blog</h1>
+    <h1 class="text-4xl font-bold text-center mb-8 text-gray-900 dark:text-white">Orbit Blog</h1>
     
     <DBManager />
     

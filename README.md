@@ -1,10 +1,10 @@
-# OrbitDB-Blog
+# Orbit-Blog
 
 A Local-First & Peer-To-Peer Blog powered by OrbitDB which replicates between browsers and mobile apps without a server. Hosted on IPFS (only)
 
 Features
 - App related
-    - [ ] deploy to IPFS
+    - [ ] deployable to IPFS
     - [x] run as PWA
         - [x] vite-plugin-pwa
         - [x] orbitlogo ai generated
@@ -17,4 +17,6 @@ Features
 - OrbitDB related
     - [ ] connect & replicated remote blogs
     - [ ] demonstrate webrtc-direct connections without relay-server but SDP-QR-Codes or SDP - Voice
-    - [ ] upload & replicate images / integrate ipfs images cids into markdown 
+    - [ ] upload & replicate images / integrate ipfs images cids into markdown
+
+
