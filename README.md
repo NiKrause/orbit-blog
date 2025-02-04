@@ -1,6 +1,6 @@
 # OrbitDB-Blog
 
-A Local-First & Peer-To-Peer Blog
+A Local-First & Peer-To-Peer Blog with OrbitDB
 
 Features
 - UI related
