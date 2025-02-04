@@ -4,11 +4,11 @@ A local-first & peer-to-peer blog powered by OrbitDB which replicates between br
 
 Features
 - App related
-    - [ ] deployable to IPFS
+    - [x] deployable to IPFS
     - [x] run as PWA
         - [x] vite-plugin-pwa
         - [x] orbitlogo ai generated
-    - [ ] version management
+    - [x] version management
     - [ ] e2e tests
     - [ ] ci / cd
 - UI related
