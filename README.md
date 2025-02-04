@@ -1,12 +1,11 @@
 # Orbit-Blog
 
-| <img src="./public/orbitbloglogo-700.png" width="300" alt="Orbit Blog Logo"> | A local-first & peer-to-peer blog powered by OrbitDB which replicates between browsers and mobile apps. Hosted on IPFS (only) |
-|---|---|
-
-### Install as Progressive Web App (PWA)
-
-| Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g) | <img src="/public/ipns.dweb.link.png" width="200" alt="QR Code to PWA"> |
-|---|---|
+<table border="0" cellspacing="0" cellpadding="0">
+  <tr>
+      <td>A local-first & peer-to-peer blog powered by OrbitDB which replicates between browsers and mobile apps. Hosted on IPFS (only)</td>
+    <td><img src="./public/orbitbloglogo-700.png" width="300" alt="Orbit Blog Logo"></td>
+  </tr>
+</table>
 
 Features
 - App related
@@ -34,4 +33,11 @@ Features
     - [ ] demonstrate webrtc-direct connections without relay-server but SDP-QR-Codes or SDP - Voice
     - [ ] upload & replicate images / integrate ipfs images cids into markdown
 
+### Install as Progressive Web App (PWA)
 
+<table border="0" cellspacing="0" cellpadding="0">
+  <tr>
+    <td>Visit <a href="ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g">orbit-blog @ ipns</a></td>
+    <td><img src="/public/ipns.dweb.link.png" width="200" alt="QR Code to PWA"></td>
+  </tr>
+</table>
