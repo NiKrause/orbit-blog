@@ -30,32 +30,32 @@ export const selectedDBAddress = writable<string | null>(null)
 export const remoteDBsDatabase = writable(null)
 // Sample data
 const samplePosts: Post[] = [
-  {
-    _id: '1',
-    title: 'Understanding Bitcoin Fundamentals',
-    content: `# Bitcoin Basics
+//   {
+//     _id: '1',
+//     title: 'Understanding Bitcoin Fundamentals',
+//     content: `# Bitcoin Basics
     
-Bitcoin is the first and most well-known cryptocurrency. Here's what you need to know:
+// Bitcoin is the first and most well-known cryptocurrency. Here's what you need to know:
 
-* Decentralized digital currency
-* Limited supply of 21 million
-* Proof of Work consensus mechanism
+// * Decentralized digital currency
+// * Limited supply of 21 million
+// * Proof of Work consensus mechanism
 
-## Why Bitcoin Matters
+// ## Why Bitcoin Matters
 
-Bitcoin represents financial freedom and sovereignty.`,
-    category: 'Bitcoin',
-    date: '2024-03-15',
-    comments: [
-      {
-        _id: '1',
-        postId: '1',
-        content: 'Great introduction to Bitcoin!',
-        author: 'CryptoEnthusiast',
-        date: '2024-03-15'
-      }
-    ]
-  },
+// Bitcoin represents financial freedom and sovereignty.`,
+//     category: 'Bitcoin',
+//     date: '2024-03-15',
+//     comments: [
+//       {
+//         _id: '1',
+//         postId: '1',
+//         content: 'Great introduction to Bitcoin!',
+//         author: 'CryptoEnthusiast',
+//         date: '2024-03-15'
+//       }
+//     ]
+//   },
 ];
 
 export const posts = writable<Post[]>(samplePosts);

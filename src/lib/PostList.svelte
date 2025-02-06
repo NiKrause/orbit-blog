@@ -50,6 +50,10 @@
       console.error('Error deleting post:', error);
     }
   }
+
+  function truncateTitle(title: string, maxLength: number): string {
+    return title.length > maxLength ? title.slice(0, maxLength) + '...' : title;
+  }
 </script>
 
 <div class="space-y-6">
@@ -89,8 +93,8 @@
           >
             <div class="flex justify-between items-start">
               <div class="flex-1">
-                <h3 class="font-medium truncate text-gray-900 dark:text-white overflow-hidden whitespace-nowrap" title={post.title}>
-                  {post.title}
+                <h3 class="font-medium text-gray-900 dark:text-white overflow-hidden whitespace-nowrap" title={post.title}>
+                  {truncateTitle(post.title, 40)}
                 </h3>
                 <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-1">
                   <span>{post.date}</span>
@@ -141,7 +145,21 @@
 
 
 <style>
-  h3 {
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  /* Ensure the parent container has enough width */
+  .title-container {
+    max-width: 100%;
+  }
+
+  /* Ensure the title is styled correctly */
+  h3 {
+    max-width: 100%; /* Adjust as needed */
   }
 </style>
