@@ -8,7 +8,7 @@ cid=$(echo "$output" | tail -n 1 | awk '{print $2}')
 echo "latest IPFS CID $cid"
 
 # Run the ipfs name publish command with the extracted CID
-ipfs name publish --key=orbitblog $cid
+ipfs name publish --key=orbitblog /ipfs/$cid
 echo "IPFS name orbitblog updated with CID $cid"
 
 # Update the vercel.json file with the new CID

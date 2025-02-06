@@ -106,7 +106,8 @@
 
 <main class="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors">
   <div class="max-w-7xl mx-auto py-8 px-4">
-    <h1 class="text-4xl font-bold text-center mb-8 text-gray-900 dark:text-white">Orbit Blog</h1>
+    <h1 class="text-4xl font-bold text-center mb-8 text-gray-900 dark:text-white">Orbit Blog</h1> 
+    <h6>{__APP_VERSION__}</h6>
     
     <button 
       class="mb-4 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors"

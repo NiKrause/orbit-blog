@@ -26,7 +26,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [x] markdown support for posts 
     - [?] markdown support for comments
     - [x] search in posts 
-    - [ ] search comments
+    - [ ] search in comments
 - OrbitDB related
     - [ ] AcccessController: blog can only write local peer-id
         - [ ] hide delete posts / comments button if not owner  
