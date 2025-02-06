@@ -83,12 +83,15 @@
       <div class="space-y-2">
         {#each filteredPosts as post, index (post._id || index)}
           <button
-            class="w-full text-left p-3 rounded-md transition-colors {selectedPostId === post._id ? 'bg-indigo-50 dark:bg-indigo-900/50 border-indigo-500' : 'hover:bg-gray-50 dark:hover:bg-gray-700'}"
+            class="w-full text-left p-3 rounded-md transition-colors
+              {selectedPostId === post._id ? 'bg-indigo-50 dark:bg-indigo-900/50 border-indigo-500' : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'}"
             on:click={() => selectedPostId = post._id}
           >
             <div class="flex justify-between items-start">
               <div class="flex-1">
-                <h3 class="font-medium truncate text-gray-900 dark:text-white">{post.title}</h3>
+                <h3 class="font-medium truncate text-gray-900 dark:text-white overflow-hidden whitespace-nowrap" title={post.title}>
+                  {post.title}
+                </h3>
                 <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-1">
                   <span>{post.date}</span>
                   <span class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full text-xs">
@@ -135,3 +138,10 @@
     </div>
   </div>
 </div>
+
+
+<style>
+  h3 {
+    text-overflow: ellipsis;
+  }
+</style>

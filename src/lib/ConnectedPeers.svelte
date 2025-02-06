@@ -147,7 +147,7 @@
               >
                 <span>{peer.id}</span>
                 <!-- Tooltip -->
-                <div class="invisible group-hover:visible absolute left-0 top-full mt-2 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
+                <div class="invisible group-hover:visible absolute left-0 bottom-full mb-2 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
                   {peer.multiaddr}
                 </div>
               </td>

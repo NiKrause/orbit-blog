@@ -116,11 +116,11 @@
     </button>
 
     <button 
-        class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-md transition-colors"
-        on:click={() => showPeers = !showPeers}
-      >
-        {showPeers ? 'Hide' : 'Show'} Connected Peers
-      </button> 
+      class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-md transition-colors"
+      on:click={() => showPeers = !showPeers}
+    >
+      {showPeers ? 'Hide' : 'Show'} Connected Peers
+    </button> 
 
     {#if showDBManager}
       <DBManager />
@@ -144,5 +144,22 @@
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
       Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  }
+
+  button {
+    /* background-color: inherit;  ensure buttons inherit the background color */
+    color: inherit; /* ensure buttons inherit the text color */
+    border: none; /* remove default button border */
+    cursor: pointer; /* change cursor to pointer on hover */
+  }
+
+  button:hover {
+    opacity: 0.9; /* Slightly reduce opacity on hover for visual feedback */
+  }
+
+  /* Ensure dark mode styles are applied correctly */
+  .dark button {
+    background-color: inherit;
+    color: inherit;
   }
 </style>

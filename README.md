@@ -24,8 +24,8 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 - UI related
     - [x] deploy to IPFS
     - [x] markdown support for posts 
-    - [ ] markdown support for comments
-    - [ ] search in posts 
+    - [?] markdown support for comments
+    - [x] search in posts 
     - [ ] search comments
 - OrbitDB related
     - [ ] AcccessController: blog can only write local peer-id
