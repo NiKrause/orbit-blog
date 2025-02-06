@@ -8,12 +8,19 @@ cid=$(echo "$output" | tail -n 1 | awk '{print $2}')
 
 # Run the ipfs name publish command with the extracted CID
 ipfs name publish --key=orbitblog $cid
+echo "IPFS name orbitblog updated with CID $cid"
 
 # Update the vercel.json file with the new CID
 # sed -i '' "s|/ipfs/[^\"}]*|/ipfs/$cid|g" vercel.json
 
 # Execute the docker-compose command on the remote server
 ssh root@ipfs.le-space.de "docker-compose exec ipfs ipfs add $cid"
+echo "IPFS CID $cid added to ipfs.le-space.de"
+# Pin the CID to ipfs.le-space.de
+ssh root@ipfs.le-space.de "docker-compose exec ipfs ipfs pin add $cid"
+echo "IPFS CID $cid pinned to ipfs.le-space.de"
+
+
 ssh root@ipfs.le-space.de "docker-compose exec ipfs ipfs pin add --follow follow /ipns/k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g"
 echo "IPFS CID $cid published on ipfs.le-space.de and vercel.json updated"
 # Get the current version from package.json
