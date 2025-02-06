@@ -28,7 +28,6 @@ export const bootstrapConfig = {list: multiaddrs};
 
 export const Libp2pOptions = {
     addresses: {
-        // swarm: [address],
         listen: [
             "/webrtc",
             "/webtransport",
@@ -73,22 +72,9 @@ export const Libp2pOptions = {
         })
     ],
     services: {
-/*        ping: ping({
-            protocolPrefix: 'dContact', // default
-        }),*/
         identify: identify(),
         autoNAT: autoNAT(),
         dcutr: dcutr(),
-        pubsub: gossipsub({ allowPublishToZeroTopicPeers: true, canRelayMessage: true }),
-/*        aminoDHT: kadDHT({
-            protocol: '/ipfs/kad/1.0.0',
-            peerInfoMapper: removePrivateAddressesMapper
-        })*/
-        // dht: kadDHT({
-        //     protocolPrefix: "/svelte-pubsub",
-        //     maxInboundStreams: 5000,
-        //     maxOutboundStreams: 5000,
-        //     clientMode: true,
-        // })
+        pubsub: gossipsub({ allowPublishToZeroTopicPeers: true, canRelayMessage: true })
     }
 }

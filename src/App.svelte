@@ -4,10 +4,12 @@
   import PostList from './lib/PostList.svelte';
   import ThemeToggle from './lib/ThemeToggle.svelte';
   import DBManager from './lib/DBManager.svelte';
+  import ConnectedPeers from './lib/ConnectedPeers.svelte';
   import { heliaStore, orbitStore, postsDB, posts, remoteDBsDatabase, remoteDBs } from './lib/store';
   import { IPFSAccessController } from '@orbitdb/core';
 
   let showDBManager = false;
+  let showPeers = false;
 
   onMount(async () => {
     console.log('Initializing OrbitDB...');
@@ -112,9 +114,20 @@
     >
       {showDBManager ? 'Hide' : 'Show'} Database Manager
     </button>
-    
+
+    <button 
+        class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-md transition-colors"
+        on:click={() => showPeers = !showPeers}
+      >
+        {showPeers ? 'Hide' : 'Show'} Connected Peers
+      </button> 
+
     {#if showDBManager}
       <DBManager />
+    {/if}
+    
+    {#if showPeers}
+      <ConnectedPeers />
     {/if}
     
     <div class="grid gap-8">
