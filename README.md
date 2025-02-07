@@ -23,17 +23,18 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [x] blog settings via private settings db
         - [x] blog name
         - [x] blog description
-        - [ ] username
+        - [ ] username by blockchain (Bitcoin Ordinals, Runes, Namcoin, Doichain)
         - [x] did 
         - [x] seed phrase
     - [x] generate seed phrase, masterseed
-    - [ ] generate libp2p peerid from seed phrase / masterseed  
-    - [ ] switch between temporary identity & peerId (default for browsers) and persistent identity & peerId (for mobiles)
+    - [x] generate libp2p peerid from seed phrase / masterseed  
+    - [x] switch between temporary identity & peerId (default for browsers) and persistent identity & peerId (for mobiles)
         - if temporary, always create new seed phrase & identity for orbitdb on app start
             - https://github.com/silkroadnomad/deContact/blob/main/src/lib/network/getIdendityAndCreateOrbitDB.js
             - https://github.com/silkroadnomad/deContact/blob/main/src/lib/network/identityProvider.js
             - https://github.com/silkroadnomad/deContact/blob/main/src/utils/utils.js#L34
         - [ ] encrypted seed phrase in localstorage (if persistent)
+    - [ ] add posts and remote dbs addresses to settings db  
     - [ ] enable pubsub ipfs pinning of posts and comments
         - every post results into a new CID which needs to be published to pubsub pinning service
         - every CID needs to be packaged into a metadata.json name, description, media (CID) 

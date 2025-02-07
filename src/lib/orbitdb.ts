@@ -5,7 +5,6 @@ import { heliaStore, orbitStore, settings, posts, remoteDBs, settingsDB, postsDB
 import { convertTo32BitSeed, generateMasterSeed } from './utils';
 import createIdentityProvider from './identityProvider';
 
-
 /**
  * Initialize OrbitDB
  * @returns {Promise<{settingsDB: OrbitDB, postsDB: OrbitDB, remoteDBsDatabase: OrbitDB}>}
@@ -13,8 +12,9 @@ import createIdentityProvider from './identityProvider';
 export async function initializeOrbitDB() {
   try {
       console.log('_settings.seedPhrase', _settings.seedPhrase)
-      const masterSeed = generateMasterSeed(_settings.seedPhrase,"password")  
+      const masterSeed = generateMasterSeed(_settings.seedPhrase, "password")  
       console.log('masterSeed', masterSeed)
+
       const identitySeed = convertTo32BitSeed(masterSeed)
       console.log('identitySeed', identitySeed)
       const type = 'ed25519' 

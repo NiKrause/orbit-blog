@@ -6,95 +6,35 @@ import { LevelDatastore } from 'datastore-level'
 import { LevelBlockstore } from 'blockstore-level'
 import { Libp2pOptions } from './config'
 import type { Post, Category, RemoteDB } from './types';
-
-// Utility function to create a store that syncs with localStorage
-function localStorageStore(key, initialValue) {
-  const storedValue = localStorage.getItem(key);
-  const store = writable(storedValue !== null ? JSON.parse(storedValue) : initialValue);
-
-  store.subscribe(value => {
-    localStorage.setItem(key, JSON.stringify(value));
-  });
-
-  return store;
-}
-
+import { generateMasterSeed, convertTo32BitSeed } from './utils';
+import { generateKeyPairFromSeed } from '@libp2p/crypto/keys';;
+import { localStorageStore } from './utils';
+import { generateMnemonic } from 'bip39';
 // Initialize storage
 let blockstore = new LevelBlockstore('./helia-blocks');
 let datastore = new LevelDatastore('./helia-data');
 
-// Initialize Helia and OrbitDB
-const libp2p = await createLibp2p(Libp2pOptions)
-const helia = await createHelia({libp2p, datastore, blockstore})
-
-const orbitdb = await createOrbitDB({
-   ipfs: helia,
-   identity: libp2p.identity,
-   storage: blockstore,
-   directory: './orbitdb',
-});
-
+export const persistentSeedPhrase = writable(false);
 // Create writable stores
-export const heliaStore = writable(helia)
-export const orbitStore = writable(orbitdb)
 export const settingsDB = writable(null)
 export const postsDB = writable(null)
 export const remoteDBs = writable<RemoteDB[]>([])
 export const selectedDBAddress = writable<string | null>(null)
 export const remoteDBsDatabase = writable(null)
+
 export const settings = writable({
   blogName: 'Orbit Blog',
   blogDescription: 'A peer-to-peer blog system on IPFS running a Svelte and OrbitDB',
 });
-export const persistentSeedPhrase = writable(false);
 
-// Local storage-backed UI state stores
-export const showDBManager = localStorageStore('showDBManager', false);
-export const showPeers = localStorageStore('showPeers', false);
-export const showSettings = localStorageStore('showSettings', false);
-
-// Sample data
-const samplePosts: Post[] = [
-//   {
-//     _id: '1',
-//     title: 'Understanding Bitcoin Fundamentals',
-//     content: `# Bitcoin Basics
-    
-// Bitcoin is the first and most well-known cryptocurrency. Here's what you need to know:
-
-// * Decentralized digital currency
-// * Limited supply of 21 million
-// * Proof of Work consensus mechanism
-
-// ## Why Bitcoin Matters
-
-// Bitcoin represents financial freedom and sovereignty.`,
-//     category: 'Bitcoin',
-//     date: '2024-03-15',
-//     comments: [
-//       {
-//         _id: '1',
-//         postId: '1',
-//         content: 'Great introduction to Bitcoin!',
-//         author: 'CryptoEnthusiast',
-//         date: '2024-03-15'
-//       }
-//     ]
-//   },
-];
-
-export const posts = writable<Post[]>(samplePosts);
-export const searchQuery = writable('');
-export const selectedCategory = writable<Category | 'All'>('All');
-  
 // Synchronize settings with settingsDB
 let _settingsDB = null;
-
 settingsDB.subscribe(async (_settingsDB) => {
   _settingsDB = _settingsDB;
 })
-
-settings.subscribe(async (newSettings) => {
+let _settings = null;
+settings.subscribe(async (newSettings) => { //seedPhrase not in orbitdb since we cannot find it without it
+    _settings = newSettings;
     if (_settingsDB) {
       for (const key in newSettings) {
         if (newSettings[key] !== previousSettings[key]) {
@@ -108,6 +48,63 @@ settings.subscribe(async (newSettings) => {
       console.log('settingsDB updated',await _settingsDB.all());
     }
   });
+// Initialize the seed phrase
+settings.update(currentSettings => {
+  if (!currentSettings.seedPhrase) {
+    // Check localStorage for existing seed phrase
+    let seedPhrase = localStorage.getItem('seedPhrase');
+    persistentSeedPhrase.set(true);
+    if (!seedPhrase) {
+      // Generate a new mnemonic if no seed phrase is found
+      seedPhrase = generateMnemonic();
+      console.log('Generated new mnemonic:', seedPhrase);
+    }
+    return { ...currentSettings, seedPhrase };
+  }
+  return currentSettings;
+});
+// Synchronize seed phrase with localStorage based on persistence
+persistentSeedPhrase.subscribe((isPersistent) => {
+  if (isPersistent) {
+    settings.subscribe((currentSettings) => {
+      localStorage.setItem('seedPhrase', currentSettings.seedPhrase);
+    });
+  } else {
+    localStorage.removeItem('seedPhrase');
+  }
+});
+console.log('settings', _settings)
+const masterSeed = generateMasterSeed(_settings.seedPhrase, "password");
+console.log('masterSeed', masterSeed)
+const keyPair = generateKeyPairFromSeed('Ed25519', convertTo32BitSeed(masterSeed));
+// const keyPair = await createKeyPairFromPrivateKey(privateKey);
+// Initialize Helia and OrbitDB
+const libp2p = await createLibp2p({keyPair, ...Libp2pOptions})
+const helia = await createHelia({libp2p, datastore, blockstore})
+
+const orbitdb = await createOrbitDB({
+   ipfs: helia,
+   identity: libp2p.identity,
+   storage: blockstore,
+   directory: './orbitdb',
+});
+
+
+export const heliaStore = writable(helia)
+export const orbitStore = writable(orbitdb)
+// Local storage-backed UI state stores
+export const showDBManager = localStorageStore('showDBManager', false);
+export const showPeers = localStorageStore('showPeers', false);
+export const showSettings = localStorageStore('showSettings', false);
+
+// Sample data
+const samplePosts: Post[] = [ ];
+
+export const posts = writable<Post[]>(samplePosts);
+export const searchQuery = writable('');
+export const selectedCategory = writable<Category | 'All'>('All');
+  
+
 
 // Add event listeners to the libp2p instance after Helia is created
 helia.libp2p.addEventListener('peer:discovery', (evt) => {
@@ -129,20 +126,3 @@ helia.libp2p.addEventListener('peer:disconnect', (evt) => {
     console.log('Peer disconnected:', evt.detail.toString());
 });
 
-// Check localStorage for existing seed phrase
-const storedSeedPhrase = localStorage.getItem('seedPhrase');
-if (storedSeedPhrase) {
-  settings.update(current => ({ ...current, seedPhrase: storedSeedPhrase }));
-  persistentSeedPhrase.set(true);
-}
-
-// Synchronize seed phrase with localStorage based on persistence
-persistentSeedPhrase.subscribe((isPersistent) => {
-  if (isPersistent) {
-    settings.subscribe((currentSettings) => {
-      localStorage.setItem('seedPhrase', currentSettings.seedPhrase);
-    });
-  } else {
-    localStorage.removeItem('seedPhrase');
-  }
-});

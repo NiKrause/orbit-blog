@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
+import wasm from 'vite-plugin-wasm';
 import { VitePWA } from 'vite-plugin-pwa'
 import { fileURLToPath } from 'url';
 import { readFileSync } from 'fs';
@@ -14,6 +15,7 @@ export default defineConfig({
   base: './',
   plugins: [
     svelte(),
+    wasm(),
     nodePolyfills(),
     VitePWA({ 
       registerType: 'autoUpdate',

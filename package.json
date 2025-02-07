@@ -32,6 +32,7 @@
     "@libp2p/autonat": "1.0.13",
     "@libp2p/bootstrap": "10.0.16",
     "@libp2p/circuit-relay-v2": "1.0.16",
+    "@libp2p/crypto": "^5.0.10",
     "@libp2p/dcutr": "1.0.13",
     "@libp2p/identify": "1.0.15",
     "@libp2p/interface-internal": "1.0.9",
@@ -50,6 +51,7 @@
     "@orbitdb/identity-provider-ethereum": "1.0.2",
     "@types/dompurify": "^3.0.5",
     "@types/qrcode": "^1.5.5",
+    "bip32": "5.0.0-rc.0",
     "bip39": "^3.1.0",
     "blockstore-level": "1.1.8",
     "carbon-icons-svelte": "^12.4.2",
@@ -68,10 +70,13 @@
     "key-did-provider-ed25519": "^4.0.2",
     "key-did-resolver": "^4.0.0",
     "libp2p": "1.3.0",
+    "libp2p-crypto": "^0.21.2",
     "marked": "^12.0.2",
     "qrcode": "^1.5.3",
+    "tiny-secp256k1": "^2.2.3",
     "uint8arrays": "^5.1.0",
     "version": "^0.1.2",
-    "vite-plugin-node-polyfills": "^0.23.0"
+    "vite-plugin-node-polyfills": "^0.23.0",
+    "vite-plugin-wasm": "^3.4.1"
   }
 }
