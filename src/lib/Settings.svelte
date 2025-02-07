@@ -1,13 +1,6 @@
 <script lang="ts">
   import { settings, persistentSeedPhrase } from './store';
   import { updateSettings } from './orbitdb';
-
-  // Watch for changes in persistence toggle
-  $: if ($persistentSeedPhrase) {
-    localStorage.setItem('seedPhrase', $settings.seedPhrase);
-  } else {
-    localStorage.removeItem('seedPhrase');
-  }
 </script>
 
 <div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
