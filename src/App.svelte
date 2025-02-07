@@ -5,84 +5,19 @@
   import ThemeToggle from './lib/ThemeToggle.svelte';
   import DBManager from './lib/DBManager.svelte';
   import ConnectedPeers from './lib/ConnectedPeers.svelte';
-  import { heliaStore, orbitStore, postsDB, posts, remoteDBsDatabase, remoteDBs } from './lib/store';
+  import { heliaStore, orbitStore, settingsDB, settings, postsDB, posts, remoteDBsDatabase, remoteDBs, showDBManager, showPeers } from './lib/store';
   import { IPFSAccessController } from '@orbitdb/core';
-
-  let showDBManager = false;
-  let showPeers = false;
+  import { initializeOrbitDB } from './lib/orbitdb';
 
   onMount(async () => {
     console.log('Initializing OrbitDB...');
     try {
-      
-      $postsDB = await $orbitStore.open('posts', {
-        type: 'documents',
-        create: true,
-        overwrite: false,
-        directory: './orbitdb/posts',
-        AccessController: IPFSAccessController({
-          write: ["*"]
-        }),
-      });
-
-      $remoteDBsDatabase = await $orbitStore.open('remote-dbs', {
-        type: 'documents',
-        create: true,
-        overwrite: false,
-        directory: './orbitdb/remote-dbs',
-        AccessController: IPFSAccessController({
-          write: ["*"]
-        }),
-      });
-
-      $remoteDBsDatabase.events.on('update', async (entry) => {
-        console.log('Remote DBs update:', entry);
-        const savedDBs = await $remoteDBsDatabase.all();
-        $remoteDBs = savedDBs.map(entry => entry.value);
-      });
-
-      const savedDBs = await $remoteDBsDatabase.all();
-      $remoteDBs = savedDBs.map(entry => entry.value);
-      console.info('Remote DBs list:', $remoteDBs);
-
-      console.info('OrbitDB initialized successfully', $orbitStore);
-      console.info('Postsdb initialized successfully', $postsDB);
-      let currentPosts = await $postsDB.all();
-      console.log('Current posts:', currentPosts);
-
-      if (currentPosts.length === 0) {
-        console.info('No existing posts found, initializing with sample data');
-        for (const post of $posts) {
-          console.log('Adding post:', post);
-          const postWithId = {
-            ...post,
-            _id: post._id // Add _id field while keeping the original id
-          };
-          console.log('Adding post with _id:', postWithId);
-          await $postsDB.put(postWithId);
-        }
-      } else {
-        console.info('Loading existing posts from OrbitDB');
-        $posts = currentPosts.map(entry => {
-          const { _id, ...rest } = entry.value;
-          return { ...rest, _id: _id }; // Convert _id back to id
-        });
-      }
-      
-      $postsDB?.events.on('join', async (peerId, heads) => {
-        // The peerId of the ipfs1 node.
-        console.log("peerId", peerId)
-      })
-
-      $postsDB?.events.on('update', async (entry) => {
-        console.log('Database update:', entry);
-        if (entry?.payload?.op === 'PUT') {
-          const { _id, ...rest } = entry.payload.value;
-          $posts = [...$posts, { ...rest, _id: _id }];
-        } else if (entry?.payload?.op === 'DEL') {
-          $posts = $posts.filter(post => post._id !== entry.payload.key);
-        }
-      });
+      const { settingsDB, postsDB, remoteDBsDatabase } = await initializeOrbitDB();
+      $settingsDB = settingsDB;
+      console.log('settingsDB', $settingsDB);
+      $postsDB = postsDB;
+      $remoteDBsDatabase = remoteDBsDatabase;
+      console.info('OrbitDB initialized successfully');
     } catch (error) {
       console.error('Error initializing OrbitDB:', error);
     }
@@ -111,23 +46,23 @@
     
     <button 
       class="mb-4 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors"
-      on:click={() => showDBManager = !showDBManager}
+      on:click={() => showDBManager.update(value => !value)}
     >
-      {showDBManager ? 'Hide' : 'Show'} Database Manager
+      {$showDBManager ? 'Hide' : 'Show'} Database Manager
     </button>
 
     <button 
       class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-md transition-colors"
-      on:click={() => showPeers = !showPeers}
+      on:click={() => showPeers.update(value => !value)}
     >
-      {showPeers ? 'Hide' : 'Show'} Connected Peers
+      {$showPeers ? 'Hide' : 'Show'} Connected Peers
     </button> 
 
-    {#if showDBManager}
+    {#if $showDBManager}
       <DBManager />
     {/if}
     
-    {#if showPeers}
+    {#if $showPeers}
       <ConnectedPeers />
     {/if}
     

@@ -7,6 +7,18 @@ import { LevelBlockstore } from 'blockstore-level'
 import { Libp2pOptions } from './config'
 import type { Post, Category, RemoteDB } from './types';
 
+// Utility function to create a store that syncs with localStorage
+function localStorageStore(key, initialValue) {
+  const storedValue = localStorage.getItem(key);
+  const store = writable(storedValue !== null ? JSON.parse(storedValue) : initialValue);
+
+  store.subscribe(value => {
+    localStorage.setItem(key, JSON.stringify(value));
+  });
+
+  return store;
+}
+
 // Initialize storage
 let blockstore = new LevelBlockstore('./helia-blocks');
 let datastore = new LevelDatastore('./helia-data');
@@ -17,6 +29,7 @@ const helia = await createHelia({libp2p, datastore, blockstore})
 
 const orbitdb = await createOrbitDB({
    ipfs: helia,
+   identity: libp2p.identity,
    storage: blockstore,
    directory: './orbitdb',
 });
@@ -24,10 +37,17 @@ const orbitdb = await createOrbitDB({
 // Create stores
 export const heliaStore = writable(helia)
 export const orbitStore = writable(orbitdb)
+export const settingsDB = writable(null)
+export const settings = writable(null)
 export const postsDB = writable(null)
 export const remoteDBs = writable<RemoteDB[]>([])
 export const selectedDBAddress = writable<string | null>(null)
 export const remoteDBsDatabase = writable(null)
+
+// Local storage-backed stores
+export const showDBManager = localStorageStore('showDBManager', false);
+export const showPeers = localStorageStore('showPeers', false);
+
 // Sample data
 const samplePosts: Post[] = [
 //   {
