@@ -24,8 +24,8 @@ const pubSubPeerDiscoveryTopics =
 		? import.meta.env.VITE_P2P_PUPSUB_DEV.replace('\n','').split(',')
         : import.meta.env.VITE_P2P_PUPSUB.replace('\n','').split(',')
 
-export const bootstrapConfig = {list: multiaddrs};
 
+export const bootstrapConfig = {list: multiaddrs};
 export const Libp2pOptions = {
     addresses: {
         listen: [

@@ -1,8 +1,14 @@
 // src/lib/orbitdb.ts
-
+import { generateMnemonic } from 'bip39'
 import { IPFSAccessController } from '@orbitdb/core';
-import { orbitStore, settings, posts, remoteDBs, settingsDB, postsDB, remoteDBsDatabase } from './store';
+import { heliaStore, orbitStore, settings, posts, remoteDBs, settingsDB, postsDB, remoteDBsDatabase } from './store';
+import { convertTo32BitSeed, generateMasterSeed } from './utils';
+import createIdentityProvider from './identityProvider';
 
+let _heliaStore
+heliaStore.subscribe(async (heliaStore) => {
+  _heliaStore = heliaStore
+});
 let _orbitStore
 orbitStore.subscribe(async (orbitStore) => {
   _orbitStore = orbitStore
@@ -35,29 +41,59 @@ remoteDBsDatabase.subscribe(async (remoteDBsDatabase) => {
   _remoteDBsDatabase = remoteDBsDatabase
 });
 
+export function updateSettings(newSettings: Partial<typeof _settings>) {
+  settings.update(currentSettings => ({
+    ...currentSettings,
+    ...newSettings
+  }));
+}
+
 export async function initializeOrbitDB() {
+
   try {
 
-    settingsDB.set(await _orbitStore.open('settings', {
-      type: 'documents',
-      create: true,
-      overwrite: false,
-      directory: './orbitdb/settings',
-      AccessController: IPFSAccessController({
-        write: [_orbitStore.identity.id],
-      }),
-    }))
-    _settingsDB.put({_id: 'blogName', value: 'Test Blog'})
+      const masterSeed = generateMasterSeed(_settings.seedPhrase,"password")  
+      console.log('masterSeed', masterSeed)
+      const identitySeed = convertTo32BitSeed(masterSeed)
+      console.log('identitySeed', identitySeed)
+      const type = 'ed25519' 
+      const idProvider = await createIdentityProvider(type, identitySeed, _heliaStore)
+      console.log('idProvider', idProvider)
+      const _ourIdentity = idProvider.identity
+      console.log('ourIdentity.did', _ourIdentity.id)
 
-    const __settings = await _remoteDBsDatabase.all();
-    remoteDBs.set(__settings.map(entry => entry.value));
+      const _identities =  idProvider.identities
+      
+      settingsDB.set(await _orbitStore.open('settings', {
+        type: 'documents',
+        create: true,
+        overwrite: false,
+        directory: './orbitdb/settings',
+        identity: _ourIdentity,
+        identities: _identities,
+        AccessController: IPFSAccessController({
+          write: [_orbitStore.identity.id],
+        }),
+      }))
 
-    console.info('Remote DBs list:', _remoteDBs);
+    const __settings = await _settingsDB.all();
+    settings.set(__settings.map(entry => entry.value));
+    if(!_settings.seedPhrase) {
+      console.log('No seed phrase found, generating new one');
+      settings.set({seedPhrase: generateMnemonic()})  // settings.seedPhrase = generateMnemonic(); //256 (will be 24 words)
+    }
+
+    if(!_settings.blogName) updateSettings({ blogName: 'Orbit Blog' });
+    if(!_settings.blogDescription) updateSettings({ blogDescription: 'A peer-to-peer blog system on IPFS running a Svelte and OrbitDB' });
+    updateSettings({did: _ourIdentity.id}) 
+    
     postsDB.set(await _orbitStore.open('posts', {
       type: 'documents',
       create: true,
       overwrite: false,
       directory: './orbitdb/posts',
+      identity: _ourIdentity,
+      identities: _identities,
       AccessController: IPFSAccessController({
         write: [_orbitStore.identity.id],
       }),
@@ -68,6 +104,8 @@ export async function initializeOrbitDB() {
       create: true,
       overwrite: false,
       directory: './orbitdb/remote-dbs',
+      identity: _ourIdentity,
+      identities: _identities,
       AccessController: IPFSAccessController({
         write: [_orbitStore.identity.id],
       }),

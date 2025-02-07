@@ -33,12 +33,15 @@ const orbitdb = await createOrbitDB({
    storage: blockstore,
    directory: './orbitdb',
 });
-//const orbitdb = null
+
 // Create stores
 export const heliaStore = writable(helia)
 export const orbitStore = writable(orbitdb)
 export const settingsDB = writable(null)
-export const settings = writable(null)
+export const settings = writable({
+  blogName: 'Orbit Blog',
+  blogDescription: 'A peer-to-peer blog system on IPFS running a Svelte and OrbitDB',
+});
 export const postsDB = writable(null)
 export const remoteDBs = writable<RemoteDB[]>([])
 export const selectedDBAddress = writable<string | null>(null)
@@ -47,7 +50,7 @@ export const remoteDBsDatabase = writable(null)
 // Local storage-backed stores
 export const showDBManager = localStorageStore('showDBManager', false);
 export const showPeers = localStorageStore('showPeers', false);
-
+export const showSettings = localStorageStore('showSettings', false);
 // Sample data
 const samplePosts: Post[] = [
 //   {
@@ -81,6 +84,28 @@ const samplePosts: Post[] = [
 export const posts = writable<Post[]>(samplePosts);
 export const searchQuery = writable('');
 export const selectedCategory = writable<Category | 'All'>('All');
+  
+// Synchronize settings with settingsDB
+let _settingsDB = null;
+
+settingsDB.subscribe(async (_settingsDB) => {
+  _settingsDB = _settingsDB;
+})
+
+settings.subscribe(async (newSettings) => {
+    if (_settingsDB) {
+      for (const key in newSettings) {
+        if (newSettings[key] !== previousSettings[key]) {
+            console.log('settings change', key, newSettings[key]);
+          // Remove existing entry
+          await _settingsDB.del(key);
+          // Add new entry
+          await _settingsDB.put({ _id: key, value: newSettings[key] });
+        }
+      }
+      console.log('settingsDB updated',await _settingsDB.all());
+    }
+  });
 
 // Add event listeners to the libp2p instance after Helia is created
 helia.libp2p.addEventListener('peer:discovery', (evt) => {

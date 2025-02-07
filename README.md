@@ -13,31 +13,17 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 [![QR Code to PWA](/public/ipns.dweb.link.png)](https://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g.ipns.dweb.link/)
 
 ### Features
-- App related
-    - [x] deployable to IPFS
-    - [x] run as PWA
-        - [x] vite-plugin-pwa
-        - [x] orbitlogo ai generated
-    - [x] version management
-    - [ ] e2e tests
-    - [ ] ci / cd
 - UI related
     - [x] deploy to IPFS
     - [x] markdown support for posts 
     - [?] markdown support for comments
     - [x] search in posts 
     - [ ] search in comments
-- OrbitDB related
-    - [ ] enable pubsub pinning of posts and comments
-        - every post results into a new CID which needs to be published to pubsub pinning service
-        - every CID needs to be packaged into a metadata.json name, description, media (CID) 
-        - signature and public key from arriving pubsub message (if available)
-        - pinning must be pre-paid (FIAT/Crypto) for a public-key
-        - setup own hosted pinning-relay
-        - run your own pinning RaspberryPi       - [ ] blog settings via private settings db
-        - [ ] blog name
-        - [ ] blog description
-        - [ ] username
+- OrbitDB related    
+    - [x] blog settings via private settings db
+        - [x] blog name
+        - [x] blog description
+        - [ ] username/did
         - [ ] generate seed phrase, masterseed
     - [ ] switch between temporary identity & peerId (default for browsers) and persistent identity & peerId (for mobiles)
         - if temporary, always create new seed phrase & identity for orbitdb on app start
@@ -62,3 +48,11 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [ ] DBManager connect & replicated remote blogs
     - [ ] demonstrate webrtc-direct connections without relay-server but SDP-QR-Codes or SDP - Voice
     - [ ] upload & replicate images / integrate ipfs images cids into markdown
+- App related
+    - [x] deployable to IPFS
+    - [x] run as PWA
+        - [x] vite-plugin-pwa
+        - [x] orbitlogo ai generated
+    - [x] version management
+    - [ ] e2e tests
+    - [ ] ci / cd

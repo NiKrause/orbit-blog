@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { settingsDB, postsDB, orbitStore, remoteDBs, selectedDBAddress, posts, remoteDBsDatabase, heliaStore } from './store';
+  import { settings, settingsDB, postsDB, orbitStore, remoteDBs, selectedDBAddress, posts, remoteDBsDatabase, heliaStore } from './store';
   import { IPFSAccessController } from '@orbitdb/core';
   import type { RemoteDB } from './types';
   import QRCode from 'qrcode';
@@ -17,7 +17,9 @@
   let currentPosts: any[] = [];
   let isModalOpen = false;
   let dbContents = [];
+  let did = '';
   $:peerId = $heliaStore.libp2p.peerId.toString();
+  $:console.log('settings', $settings)
   
   $: if ($postsDB) {
         currentDBAddress = $postsDB.address;
@@ -206,6 +208,14 @@
       console.error('Error during drop and sync:', error);
     }
   }
+
+  function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text).then(() => {
+      console.log('Text copied to clipboard:', text);
+    }).catch(err => {
+      console.error('Error copying text to clipboard:', err);
+    });
+  }
 </script>
 
 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6">
@@ -221,11 +231,24 @@
           value={peerId}
           class="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm"
         />
-        <button
-          on:click={() => navigator.clipboard.writeText(peerId)}
-          class="px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
-        >
-          Copy
+        <button on:click={() => copyToClipboard(peerId)} class="text-gray-500 hover:text-gray-700">
+          📋
+        </button>
+      </div>
+    </div>
+
+    <div class="mb-4 text-sm">
+      <div class="flex items-center space-x-2">
+        <span class="text-gray-600 dark:text-gray-400">DID:</span>
+        <input
+          type="text"
+          size={60}
+          readonly
+          value={$settings.did}
+          class="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm"
+        />
+        <button on:click={() => copyToClipboard($settings.did)} class="text-gray-500 hover:text-gray-700">
+          📋
         </button>
       </div>
     </div>
@@ -240,11 +263,8 @@
             value={$settingsDB?.address}
             class="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm"
           />
-          <button
-            on:click={() => navigator.clipboard.writeText(currentDBAddress)}
-            class="px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
-          >
-            Copy
+          <button on:click={() => copyToClipboard($settingsDB?.address || '')} class="text-gray-500 hover:text-gray-700">
+            📋
           </button>
         </div>
         <div class="flex flex-col md:flex-row justify-center items-center gap-4">
