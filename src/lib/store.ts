@@ -34,23 +34,25 @@ const orbitdb = await createOrbitDB({
    directory: './orbitdb',
 });
 
-// Create stores
+// Create writable stores
 export const heliaStore = writable(helia)
 export const orbitStore = writable(orbitdb)
 export const settingsDB = writable(null)
-export const settings = writable({
-  blogName: 'Orbit Blog',
-  blogDescription: 'A peer-to-peer blog system on IPFS running a Svelte and OrbitDB',
-});
 export const postsDB = writable(null)
 export const remoteDBs = writable<RemoteDB[]>([])
 export const selectedDBAddress = writable<string | null>(null)
 export const remoteDBsDatabase = writable(null)
+export const settings = writable({
+  blogName: 'Orbit Blog',
+  blogDescription: 'A peer-to-peer blog system on IPFS running a Svelte and OrbitDB',
+});
+export const persistentSeedPhrase = writable(false);
 
-// Local storage-backed stores
+// Local storage-backed UI state stores
 export const showDBManager = localStorageStore('showDBManager', false);
 export const showPeers = localStorageStore('showPeers', false);
 export const showSettings = localStorageStore('showSettings', false);
+
 // Sample data
 const samplePosts: Post[] = [
 //   {
@@ -125,4 +127,22 @@ helia.libp2p.addEventListener('peer:connect', (evt) => {
 
 helia.libp2p.addEventListener('peer:disconnect', (evt) => {
     console.log('Peer disconnected:', evt.detail.toString());
+});
+
+// Check localStorage for existing seed phrase
+const storedSeedPhrase = localStorage.getItem('seedPhrase');
+if (storedSeedPhrase) {
+  settings.update(current => ({ ...current, seedPhrase: storedSeedPhrase }));
+  persistentSeedPhrase.set(true);
+}
+
+// Synchronize seed phrase with localStorage based on persistence
+persistentSeedPhrase.subscribe((isPersistent) => {
+  if (isPersistent) {
+    settings.subscribe((currentSettings) => {
+      localStorage.setItem('seedPhrase', currentSettings.seedPhrase);
+    });
+  } else {
+    localStorage.removeItem('seedPhrase');
+  }
 });

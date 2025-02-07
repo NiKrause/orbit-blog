@@ -5,53 +5,14 @@ import { heliaStore, orbitStore, settings, posts, remoteDBs, settingsDB, postsDB
 import { convertTo32BitSeed, generateMasterSeed } from './utils';
 import createIdentityProvider from './identityProvider';
 
-let _heliaStore
-heliaStore.subscribe(async (heliaStore) => {
-  _heliaStore = heliaStore
-});
-let _orbitStore
-orbitStore.subscribe(async (orbitStore) => {
-  _orbitStore = orbitStore
-});
 
-let _settingsDB
-settingsDB.subscribe(async (settingsDB) => {
-  _settingsDB = settingsDB
-});
-let _settings
-settings.subscribe(async (settings) => {
-  _settings = settings
-});
-let _posts
-posts.subscribe(async (posts) => {
-  _posts = posts
-});
-let _postsDB
-postsDB.subscribe(async (postsDB) => {
-  _postsDB = postsDB
-});
-
-let _remoteDBs
-remoteDBs.subscribe(async (remoteDBs) => {
-  _remoteDBs = remoteDBs
-});
-
-let _remoteDBsDatabase
-remoteDBsDatabase.subscribe(async (remoteDBsDatabase) => {
-  _remoteDBsDatabase = remoteDBsDatabase
-});
-
-export function updateSettings(newSettings: Partial<typeof _settings>) {
-  settings.update(currentSettings => ({
-    ...currentSettings,
-    ...newSettings
-  }));
-}
-
+/**
+ * Initialize OrbitDB
+ * @returns {Promise<{settingsDB: OrbitDB, postsDB: OrbitDB, remoteDBsDatabase: OrbitDB}>}
+ */
 export async function initializeOrbitDB() {
-
   try {
-
+      console.log('_settings.seedPhrase', _settings.seedPhrase)
       const masterSeed = generateMasterSeed(_settings.seedPhrase,"password")  
       console.log('masterSeed', masterSeed)
       const identitySeed = convertTo32BitSeed(masterSeed)
@@ -77,10 +38,28 @@ export async function initializeOrbitDB() {
       }))
 
     const __settings = await _settingsDB.all();
-    settings.set(__settings.map(entry => entry.value));
-    if(!_settings.seedPhrase) {
+    const currentSettings = _settings; // Get the current settings
+
+    // Map the entries from OrbitDB to a settings object
+    const newSettings = __settings.reduce((acc, entry) => {
+      acc[entry._id] = entry.value;
+      return acc;
+    }, {});
+
+    // Preserve the existing seed phrase if it exists
+    if (currentSettings.seedPhrase) {
+      newSettings.seedPhrase = currentSettings.seedPhrase;
+    }
+
+    settings.set(newSettings);
+    console.log('_settingsDB.all();', newSettings);
+
+    if (newSettings.seedPhrase) {
+      console.log('seedPhrase found, using existing one');
+    }
+    else {
       console.log('No seed phrase found, generating new one');
-      settings.set({seedPhrase: generateMnemonic()})  // settings.seedPhrase = generateMnemonic(); //256 (will be 24 words)
+      updateSettings({ seedPhrase: generateMnemonic()})  // settings.seedPhrase = generateMnemonic(); //256 (will be 24 words)
     }
 
     if(!_settings.blogName) updateSettings({ blogName: 'Orbit Blog' });
@@ -160,4 +139,47 @@ export async function initializeOrbitDB() {
     console.error('Error initializing OrbitDB:', error);
     throw error;
   }
+}
+
+let _heliaStore
+heliaStore.subscribe(async (heliaStore) => {
+  _heliaStore = heliaStore
+});
+let _orbitStore
+orbitStore.subscribe(async (orbitStore) => {
+  _orbitStore = orbitStore
+});
+
+let _settingsDB
+settingsDB.subscribe(async (settingsDB) => {
+  _settingsDB = settingsDB
+});
+let _settings
+settings.subscribe(async (settings) => {
+  _settings = settings
+});
+let _posts
+posts.subscribe(async (posts) => {
+  _posts = posts
+});
+let _postsDB
+postsDB.subscribe(async (postsDB) => {
+  _postsDB = postsDB
+});
+
+let _remoteDBs
+remoteDBs.subscribe(async (remoteDBs) => {
+  _remoteDBs = remoteDBs
+});
+
+let _remoteDBsDatabase
+remoteDBsDatabase.subscribe(async (remoteDBsDatabase) => {
+  _remoteDBsDatabase = remoteDBsDatabase
+});
+
+export function updateSettings(newSettings: Partial<typeof _settings>) {
+  settings.update(currentSettings => ({
+    ...currentSettings,
+    ...newSettings
+  }));
 }

@@ -1,6 +1,13 @@
 <script lang="ts">
-  import { settings } from './store';
+  import { settings, persistentSeedPhrase } from './store';
   import { updateSettings } from './orbitdb';
+
+  // Watch for changes in persistence toggle
+  $: if ($persistentSeedPhrase) {
+    localStorage.setItem('seedPhrase', $settings.seedPhrase);
+  } else {
+    localStorage.removeItem('seedPhrase');
+  }
 </script>
 
 <div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
@@ -15,7 +22,13 @@
   </div>
   <div class="mb-4">
     <label class="block text-gray-700 dark:text-gray-300">Seed Phrase</label>
-    <input type="text" class="w-full p-2 border rounded" bind:value={$settings.seedPhrase} on:input={(e) => updateSettings('seedPhrase', e.target.value)} />
+    <div class="flex items-center">
+      <input type="text" class="w-full p-2 border rounded" bind:value={$settings.seedPhrase} on:input={(e) => updateSettings('seedPhrase', e.target.value)} />
+      <label class="ml-2 text-gray-700 dark:text-gray-300">
+        <input type="checkbox" bind:checked={$persistentSeedPhrase} class="mr-1" />
+        Persistent
+      </label>
+    </div>
   </div>
 </div>
 

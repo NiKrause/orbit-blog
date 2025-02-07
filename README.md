@@ -23,8 +23,11 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [x] blog settings via private settings db
         - [x] blog name
         - [x] blog description
-        - [ ] username/did
-        - [ ] generate seed phrase, masterseed
+        - [ ] username
+        - [x] did 
+        - [x] seed phrase
+    - [x] generate seed phrase, masterseed
+    - [ ] generate libp2p peerid from seed phrase / masterseed  
     - [ ] switch between temporary identity & peerId (default for browsers) and persistent identity & peerId (for mobiles)
         - if temporary, always create new seed phrase & identity for orbitdb on app start
             - https://github.com/silkroadnomad/deContact/blob/main/src/lib/network/getIdendityAndCreateOrbitDB.js
