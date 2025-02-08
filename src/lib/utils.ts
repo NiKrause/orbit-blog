@@ -2,8 +2,9 @@ import { mnemonicToSeedSync } from "bip39";
 import HDKey from "hdkey";
 import { createHash } from 'crypto';
 import { writable } from 'svelte/store';
-import { keys } from 'libp2p-crypto';
-
+import { keys }  from 'libp2p-crypto';
+import { fromString as uint8ArrayFromString, toString as uint8ArrayToString } from 'uint8arrays';
+import { createFromPrivKey } from '@libp2p/peer-id-factory'
 /**
  * Make an sha256 hash
  * @param (string) input
@@ -47,7 +48,7 @@ export async function createPeerIdFromSeedPhrase(seedPhrase) {
   const masterSeed = generateMasterSeed(seedPhrase, "password");
   const privKey = await generateAndSerializeKey(masterSeed.subarray(0, 32))
   const encoded = uint8ArrayFromString(privKey, 'hex')
-  const privateKey = await unmarshalPrivateKey(encoded)
+  const privateKey = await keys.unmarshalPrivateKey(encoded)
   const peerId = await createFromPrivKey(privateKey)
   return peerId
 }
@@ -59,10 +60,10 @@ export const createHdKeyFromMasterKey = (masterseed, network) => {
 
 export async function generateAndSerializeKey(seed: Uint8Array): Promise<string> {
   // Generate an Ed25519 key pair from the seed
-  const keyPair = await libp2pCrypto.keys.generateKeyPairFromSeed('Ed25519', seed, 256);
+  const keyPair = await keys.generateKeyPairFromSeed('Ed25519', seed, 256);
 
   // Marshal the private key to a protobuf format
-  const marshalledPrivateKey = await libp2pCrypto.keys.marshalPrivateKey(keyPair);
+  const marshalledPrivateKey = await keys.marshalPrivateKey(keyPair);
 
   // Convert the marshalled private key to a hex string
   return Buffer.from(marshalledPrivateKey).toString('hex');

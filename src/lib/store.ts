@@ -7,13 +7,9 @@ import { LevelDatastore } from 'datastore-level'
 import { LevelBlockstore } from 'blockstore-level'
 import { Libp2pOptions } from './config'
 import type { Post, Category, RemoteDB } from './types';
-
-import { generateMasterSeed, generateAndSerializeKey } from './utils';
-import { unmarshalPrivateKey } from '@libp2p/crypto/keys';
-import { fromString as uint8ArrayFromString, toString as uint8ArrayToString } from 'uint8arrays';
-import { createFromPrivKey } from '@libp2p/peer-id-factory'
-import { localStorageStore } from './utils';
+import { localStorageStore, createPeerIdFromSeedPhrase } from './utils';
 import { generateMnemonic } from 'bip39';
+
 // Initialize storage
 let blockstore = new LevelBlockstore('./helia-blocks');
 let datastore = new LevelDatastore('./helia-data');
