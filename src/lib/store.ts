@@ -78,7 +78,7 @@ persistentSeedPhrase.subscribe((isPersistent) => {
   }
 });
 
-const peerId = createPeerIdFromSeedPhrase(_settings.seedPhrase);
+const peerId = await createPeerIdFromSeedPhrase(_settings.seedPhrase);
 const libp2p = await createLibp2p({peerId, ...Libp2pOptions})
 const helia = await createHelia({libp2p, datastore, blockstore})
 

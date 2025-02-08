@@ -43,7 +43,7 @@ export const generateMasterSeed = (mnemonicSeedphrase, password, toHex = false) 
 /**
  * libp2p needs a PeerId which we generate from a seed phrase  
  */
-export const createPeerIdFromSeedPhrase = (seedPhrase) => {
+export const createPeerIdFromSeedPhrase = async (seedPhrase) => {
   const masterSeed = generateMasterSeed(seedPhrase, "password");
   const privKey = await generateAndSerializeKey(masterSeed.subarray(0, 32))
   const encoded = uint8ArrayFromString(privKey, 'hex')
