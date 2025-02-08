@@ -71,6 +71,7 @@
     "key-did-provider-ed25519": "^4.0.2",
     "key-did-resolver": "^4.0.0",
     "libp2p": "1.3.0",
+    "libp2p-crypto": "^0.21.2",
     "marked": "^12.0.2",
     "qrcode": "^1.5.3",
     "tiny-secp256k1": "^2.2.3",
