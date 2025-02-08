@@ -25,6 +25,7 @@ export const remoteDBsDatabase = writable(null)
 export const settings = writable({
   blogName: 'Orbit Blog',
   blogDescription: 'A peer-to-peer blog system on IPFS running a Svelte and OrbitDB',
+  persistentSeedPhrase: false
 });
 
 // Synchronize settings with settingsDB
@@ -35,6 +36,7 @@ settingsDB.subscribe(async (_settingsDB) => {
 let _settings = null;
 settings.subscribe(async (newSettings) => { //seedPhrase not in orbitdb since we cannot find it without it
     _settings = newSettings;
+    console.log('settings', _settings);
     if (_settingsDB) {
       for (const key in newSettings) {
         if (newSettings[key] !== previousSettings[key]) {
@@ -50,26 +52,35 @@ settings.subscribe(async (newSettings) => { //seedPhrase not in orbitdb since we
   });
 // Initialize the seed phrase
 settings.update(currentSettings => {
-  if (!currentSettings.seedPhrase) {
-    // Check localStorage for existing seed phrase
-    let seedPhrase = localStorage.getItem('seedPhrase');
+  // Always check localStorage for existing seed phrase
+  let seedPhrase = localStorage.getItem('seedPhrase');
+  if (seedPhrase) {
     persistentSeedPhrase.set(true);
-    if (!seedPhrase) {
-      // Generate a new mnemonic if no seed phrase is found
+    // Use the seed phrase from localStorage if not already set
+    if (!currentSettings.seedPhrase) {
+      return { ...currentSettings, seedPhrase };
+    }
+  } else {
+    persistentSeedPhrase.set(false);
+    // Generate a new mnemonic if no seed phrase is found and it's not already set
+    if (!currentSettings.seedPhrase) {
       seedPhrase = generateMnemonic();
       console.log('Generated new mnemonic:', seedPhrase);
+      return { ...currentSettings, seedPhrase };
     }
-    return { ...currentSettings, seedPhrase };
   }
   return currentSettings;
 });
 // Synchronize seed phrase with localStorage based on persistence
 persistentSeedPhrase.subscribe((isPersistent) => {
+  console.log('persistentSeedPhrase', isPersistent);
   if (isPersistent) {
-    settings.subscribe((currentSettings) => {
-      localStorage.setItem('seedPhrase', currentSettings.seedPhrase);
-    });
-  } else {
+   console.log('isPersistent', isPersistent);
+  localStorage.setItem('seedPhrase', _settings.seedPhrase);
+  }
+  else {
+    console.log('is not persistent');
+    localStorage.setItem('seedPhrase', null);
     localStorage.removeItem('seedPhrase');
   }
 });
