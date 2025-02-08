@@ -52,7 +52,6 @@ export async function initializeOrbitDB() {
     }
 
     settings.set(newSettings);
-    console.log('_settingsDB.all();', newSettings);
 
     if (newSettings.seedPhrase) {
       console.log('seedPhrase found, using existing one');

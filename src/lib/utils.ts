@@ -39,10 +39,34 @@ export const generateMasterSeed = (mnemonicSeedphrase, password, toHex = false) 
     return mnemonicToSeedSync(mnemonicSeedphrase, password ? password : "mnemonic")
   }
 }
-export const createHdKeyFromMasterKey = (masterseed,network) => {
+
+/**
+ * libp2p needs a PeerId which we generate from a seed phrase  
+ */
+export const createPeerIdFromSeedPhrase(seedPhrase){
+  const masterSeed = generateMasterSeed(seedPhrase, "password");
+  const privKey = await generateAndSerializeKey(masterSeed.subarray(0, 32))
+  const encoded = uint8ArrayFromString(privKey, 'hex')
+  const privateKey = await unmarshalPrivateKey(encoded)
+  const peerId = await createFromPrivKey(privateKey)
+  return peerId
+}
+
+
+export const createHdKeyFromMasterKey = (masterseed, network) => {
     return HDKey.fromMasterSeed(Buffer.from(masterseed, "hex"), network)
 }
 
+export async function generateAndSerializeKey(seed: Uint8Array): Promise<string> {
+  // Generate an Ed25519 key pair from the seed
+  const keyPair = await libp2pCrypto.keys.generateKeyPairFromSeed('Ed25519', seed, 256);
+
+  // Marshal the private key to a protobuf format
+  const marshalledPrivateKey = await libp2pCrypto.keys.marshalPrivateKey(keyPair);
+
+  // Convert the marshalled private key to a hex string
+  return Buffer.from(marshalledPrivateKey).toString('hex');
+}
 
   
   // Function to create a key pair from a private key

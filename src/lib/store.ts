@@ -1,13 +1,17 @@
 import { writable, derived } from 'svelte/store';
 import { createLibp2p } from 'libp2p'
+
 import { createHelia } from 'helia'
 import { createOrbitDB } from '@orbitdb/core'
 import { LevelDatastore } from 'datastore-level'
 import { LevelBlockstore } from 'blockstore-level'
 import { Libp2pOptions } from './config'
 import type { Post, Category, RemoteDB } from './types';
-import { generateMasterSeed, convertTo32BitSeed } from './utils';
-import { generateKeyPairFromSeed } from '@libp2p/crypto/keys';;
+
+import { generateMasterSeed, generateAndSerializeKey } from './utils';
+import { unmarshalPrivateKey } from '@libp2p/crypto/keys';
+import { fromString as uint8ArrayFromString, toString as uint8ArrayToString } from 'uint8arrays';
+import { createFromPrivKey } from '@libp2p/peer-id-factory'
 import { localStorageStore } from './utils';
 import { generateMnemonic } from 'bip39';
 // Initialize storage
@@ -40,7 +44,7 @@ settings.subscribe(async (newSettings) => { //seedPhrase not in orbitdb since we
         if (newSettings[key] !== previousSettings[key]) {
             console.log('settings change', key, newSettings[key]);
           // Remove existing entry
-          await _settingsDB.del(key);
+          try { await _settingsDB.del(key); } catch {}
           // Add new entry
           await _settingsDB.put({ _id: key, value: newSettings[key] });
         }
@@ -73,13 +77,9 @@ persistentSeedPhrase.subscribe((isPersistent) => {
     localStorage.removeItem('seedPhrase');
   }
 });
-console.log('settings', _settings)
-const masterSeed = generateMasterSeed(_settings.seedPhrase, "password");
-console.log('masterSeed', masterSeed)
-const keyPair = generateKeyPairFromSeed('Ed25519', convertTo32BitSeed(masterSeed));
-// const keyPair = await createKeyPairFromPrivateKey(privateKey);
-// Initialize Helia and OrbitDB
-const libp2p = await createLibp2p({keyPair, ...Libp2pOptions})
+
+const peerId = createPeerIdFromSeedPhrase(_settings.seedPhrase);
+const libp2p = await createLibp2p({peerId, ...Libp2pOptions})
 const helia = await createHelia({libp2p, datastore, blockstore})
 
 const orbitdb = await createOrbitDB({
@@ -88,7 +88,6 @@ const orbitdb = await createOrbitDB({
    storage: blockstore,
    directory: './orbitdb',
 });
-
 
 export const heliaStore = writable(helia)
 export const orbitStore = writable(orbitdb)
@@ -103,8 +102,6 @@ const samplePosts: Post[] = [ ];
 export const posts = writable<Post[]>(samplePosts);
 export const searchQuery = writable('');
 export const selectedCategory = writable<Category | 'All'>('All');
-  
-
 
 // Add event listeners to the libp2p instance after Helia is created
 helia.libp2p.addEventListener('peer:discovery', (evt) => {
