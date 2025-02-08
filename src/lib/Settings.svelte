@@ -19,7 +19,7 @@
       <input type="text" class="w-full p-2 border rounded" bind:value={$settings.seedPhrase} on:input={ (e) => updateSettings('seedPhrase', e.target.value)} />
       <label class="ml-2 text-gray-700 dark:text-gray-300">
         <input type="checkbox" bind:checked={$persistentSeedPhrase} class="mr-1" on:change={ (e) => updateSettings('persistentSeedPhrase', e.target.checked)} />
-        Persistent
+        {$persistentSeedPhrase?'Persistent':'Temporary'}
       </label>
     </div>
   </div>
