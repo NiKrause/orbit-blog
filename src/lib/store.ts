@@ -29,29 +29,41 @@ export const settings = writable({
 });
 
 // Synchronize settings with settingsDB
-let _settingsDB = null;
-settingsDB.subscribe(async (_settingsDB) => {
-  _settingsDB = _settingsDB;
-})
-let _settings = null;
-settings.subscribe(async (newSettings) => { //seedPhrase not in orbitdb since we cannot find it without it
-    _settings = newSettings;
-    console.log('settings', _settings);
-    if (_settingsDB) {
-      for (const key in newSettings) {
-        if (newSettings[key] !== previousSettings[key]) {
-            console.log('settings change', key, newSettings[key]);
-          // Remove existing entry
-          try { await _settingsDB.del(key); } catch {}
-          // Add new entry
-          await _settingsDB.put({ _id: key, value: newSettings[key] });
-        }
-      }
-      console.log('settingsDB updated',await _settingsDB.all());
-    }
-  });
+// let _settingsDB = null;
+// let _settings = null;
+// settingsDB.subscribe(async (_settingsDB) => {
+//   console.log('settingsDB inside store', _settingsDB)
+//   _settingsDB = _settingsDB;
+//   settings.subscribe(async (newSettings) => { //seedPhrase not in orbitdb since we cannot find it without it
+//       _settings = newSettings;
+//       console.log('newSettings', _settings)
+//       if (_settingsDB && _settings) {
+//         Object.keys(_settings).forEach(async key => {
+//           try{
+//             await _settingsDB.del(key);
+//             console.log(`Deleted setting ${key} from database`);
+//           } catch (error) {
+//             console.error(`Error deleting setting ${key}:`, error);
+//           }
+//           try {
+//             await _settingsDB.put({ _id: key, value: _settings[key] });
+//             console.log(`Updated setting ${key} in database`);
+//           } catch (error) {
+//             console.error(`Error updating setting ${key}:`, error);
+//           }
+//         });
+//       }
+//   });
+// })
 // Initialize the seed phrase
+
+let _settings = null
+settings.subscribe(async (newSettings) => { 
+  _settings = newSettings
+})
+
 settings.update(currentSettings => {
+  _settings = currentSettings
   // Always check localStorage for existing seed phrase
   let seedPhrase = localStorage.getItem('seedPhrase');
   if (seedPhrase) {
@@ -73,13 +85,10 @@ settings.update(currentSettings => {
 });
 // Synchronize seed phrase with localStorage based on persistence
 persistentSeedPhrase.subscribe((isPersistent) => {
-  console.log('persistentSeedPhrase', isPersistent);
   if (isPersistent) {
-   console.log('isPersistent', isPersistent);
   localStorage.setItem('seedPhrase', _settings.seedPhrase);
   }
   else {
-    console.log('is not persistent');
     localStorage.setItem('seedPhrase', null);
     localStorage.removeItem('seedPhrase');
   }

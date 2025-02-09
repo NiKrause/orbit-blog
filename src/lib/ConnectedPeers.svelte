@@ -38,7 +38,7 @@
         direction: conn.direction,
         multiaddr: conn.remoteAddr.toString()
       }));
-      console.log('Updated peers list:', peers);
+      // console.log('Updated peers list:', peers);
     }
   }
   
@@ -63,7 +63,7 @@
   }
   
   function hasWebRTCConnection(_peers: PeerInfo[]): boolean {
-    console.log('peers', _peers)
+    // console.log('peers', _peers)
 
     return _peers.some(peer => peer.multiaddr.startsWith('/webrtc'));
   }

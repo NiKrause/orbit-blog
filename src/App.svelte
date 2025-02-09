@@ -6,20 +6,21 @@
   import DBManager from './lib/DBManager.svelte';
   import ConnectedPeers from './lib/ConnectedPeers.svelte';
   import Settings from './lib/Settings.svelte';
-  import { settingsDB, settings, postsDB, posts, remoteDBsDatabase, remoteDBs, showDBManager, showPeers, showSettings} from './lib/store';
   import { initializeOrbitDB } from './lib/orbitdb';
+  import { orbitStore, settings, postsDB, showDBManager, showPeers, showSettings} from './lib/store';
 
-  onMount(async () => {
-    try {
-      const { settingsDB, postsDB, remoteDBsDatabase } = await initializeOrbitDB();
-      $settingsDB = settingsDB;
-      $postsDB = postsDB;
-      $remoteDBsDatabase = remoteDBsDatabase;
-      console.info('OrbitDB initialized successfully');
-    } catch (error) {
-      console.error('Error initializing OrbitDB:', error);
+
+  $:{
+    if($orbitStore) {
+      try {
+          initializeOrbitDB().then(()=>{
+            console.log('OrbitDB initialized successfully')
+          })
+      } catch (error) {
+        console.error('Error initializing OrbitDB:', error);
+      }
     }
-  });
+  }
 
   onDestroy(async () => {
     try {
