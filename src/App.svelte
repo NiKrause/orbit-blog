@@ -6,21 +6,52 @@
   import DBManager from './lib/DBManager.svelte';
   import ConnectedPeers from './lib/ConnectedPeers.svelte';
   import Settings from './lib/Settings.svelte';
-  import { initializeOrbitDB } from './lib/orbitdb';
-  import { orbitStore, settings, postsDB, showDBManager, showPeers, showSettings} from './lib/store';
 
+  import { createLibp2p } from 'libp2p'
+  import { createHelia } from 'helia'
+  import { createOrbitDB } from '@orbitdb/core';
+  import { LevelDatastore } from 'datastore-level'
+  import { LevelBlockstore } from 'blockstore-level'
+  import { Libp2pOptions } from './lib/config'
+  import { createPeerIdFromSeedPhrase } from './lib/utils'
 
-  $:{
-    if($orbitStore) {
-      try {
-          initializeOrbitDB().then(()=>{
-            console.log('OrbitDB initialized successfully')
-          })
-      } catch (error) {
-        console.error('Error initializing OrbitDB:', error);
-      }
-    }
+  import { generateMnemonic } from 'bip39';
+  import { getIdentity } from './lib/orbitdb';
+
+  import { postsDB, showDBManager, showPeers, showSettings, blogName, libp2p, helia, orbitdb, identity, identities} from './lib/store';
+  // Initialize storage
+  let blockstore = new LevelBlockstore('./helia-blocks');
+  let datastore = new LevelDatastore('./helia-data');
+
+  // Check if seed phrase is stored in localStorage, if not generate a new one
+  let seedPhrase = localStorage.getItem('seedPhrase');
+  if (!seedPhrase) {
+      seedPhrase = generateMnemonic(); // Generate a new mnemonic
+      localStorage.setItem('seedPhrase', seedPhrase); // Store the new seed phrase in localStorage
   }
+
+  onMount(async () => {
+
+    console.log('App mounted')
+    const peerId = await createPeerIdFromSeedPhrase(seedPhrase);
+    console.log('peerId', peerId)
+    $libp2p = await createLibp2p({peerId, ...Libp2pOptions})
+    console.log('libp2p', $libp2p)
+    $helia = await createHelia({libp2p: $libp2p, datastore, blockstore})
+    console.log('helia', $helia)
+    const ret = await getIdentity()
+    $identity = ret.identity
+    $identities = ret.identities
+    $orbitdb = await createOrbitDB({
+      ipfs: $helia,
+      identity: ret.identity,
+      storage: blockstore,
+      directory: './orbitdb',
+    })
+    console.log('orbitdb', $orbitdb)
+    // await initializeDBs(ret.identity, ret.identities)
+
+  })
 
   onDestroy(async () => {
     try {
@@ -32,12 +63,12 @@
   });
 </script>
 <svelte:head>
-	<title>Orbit Blog {__APP_VERSION__}</title>
+	<title>{$blogName} {__APP_VERSION__}</title>
 </svelte:head>
 
 <main class="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors">
   <div class="max-w-7xl mx-auto py-8 px-4">
-    <h1 class="text-4xl font-bold text-center mb-8 text-gray-900 dark:text-white">{$settings?.blogName}</h1> 
+    <h1 class="text-4xl font-bold text-center mb-8 text-gray-900 dark:text-white">{$blogName}</h1> 
     <h6>{__APP_VERSION__}</h6>
     
     <button 

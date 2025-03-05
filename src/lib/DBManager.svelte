@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { settings, settingsDB, postsDB, orbitStore, remoteDBs, selectedDBAddress, posts, remoteDBsDatabase, heliaStore } from './store';
+  import { settingsDB, postsDB, remoteDBs, selectedDBAddress, posts, remoteDBsDatabase, orbitdb, helia,identity,libp2p } from './store';
   import { IPFSAccessController } from '@orbitdb/core';
   import type { RemoteDB } from './types';
   import QRCode from 'qrcode';
@@ -18,55 +18,57 @@
   let isModalOpen = false;
   let dbContents = [];
   let did = '';
-  $:peerId = $heliaStore.libp2p.peerId.toString();
-  $:console.log('settings', $settings)
-  
-  $: if ($postsDB) {
-        currentDBAddress = $postsDB.address;
-        $selectedDBAddress = currentDBAddress;
-        console.info('Current DB address:', currentDBAddress);
-        generateQRCode(currentDBAddress);
-        
-        try {
-          currentPosts = $postsDB.all().then((posts)=>{
-            $posts = posts.map(entry => {
-              const { _id, ...rest } = entry.value;
-              return { ...rest, id: _id };
-            })
-          })
 
-        } catch (error) {
-          console.error('Error loading current DB posts:', error);
-        }
+
+  $: {
+    peerId = $libp2p?.peerId.toString();
+    did = $identity?.id;
   }
 
-  onMount(async () => {
-    // Get peerId on mount
-    // peerId = $heliaStore.libp2p.peerId.toString();
+  // $: if ($postsDB) {
+  //       currentDBAddress = $postsDB.address;
+  //       $selectedDBAddress = currentDBAddress;
+  //       console.info('Current DB address:', currentDBAddress);
+  //       generateQRCode(currentDBAddress);
+        
+  //       try {
+  //         currentPosts = $postsDB.all().then((posts)=>{
+  //           $posts = posts.map(entry => {
+  //             const { _id, ...rest } = entry.value;
+  //             return { ...rest, id: _id };
+  //           })
+  //         })
 
-    // Initialize remote DBs store
-    try {
-      $remoteDBsDatabase = await $orbitStore.open('remote-dbs', {
-        type: 'documents',
-        create: true,
-        overwrite: false,
-        AccessController: IPFSAccessController({
-          write: ["*"]
-        }),
-      });
-      console.info('Remote DBs database opened successfully:', $remoteDBsDatabase);
-      const savedDBs = await $remoteDBsDatabase.all();
-      remoteDBsList = savedDBs.map(entry => entry.value);
-      $remoteDBs = remoteDBsList;
-      console.info('Remote DBs list:', remoteDBsList);
-    } catch (error) {
-      console.error('Error loading remote DBs:', error);
-    }
+  //       } catch (error) {
+  //         console.error('Error loading current DB posts:', error);
+  //       }
+  // }
 
+  // $: if($orbitdb) {
 
-  });
+  //   // Initialize remote DBs store
+  //   $orbitdb.open('remote-dbs', {
+  //     type: 'documents',
+  //     create: true,
+  //     overwrite: false,
+  //     AccessController: IPFSAccessController({
+  //       write: ["*"]
+  //     }),
+  //   }).then(remoteDBsDatabase => {
+  //     console.info('Remote DBs database opened successfully:', remoteDBsDatabase);
+  //     $remoteDBsDatabase = remoteDBsDatabase;
+  //     return remoteDBsDatabase.all();
+  //   }).then(savedDBs => {
+  //     remoteDBsList = savedDBs.map(entry => entry.value);
+  //     $remoteDBs = remoteDBsList;
+  //     console.info('Remote DBs list:', remoteDBsList);
+  //   }).catch(error => {
+  //     console.error('Error loading remote DBs:', error);
+  //   });
+  // }
 
   async function generateQRCode(text: string) {
+
     try {
       qrCodeDataUrl = await QRCode.toDataURL(text, {
         width: 200,
@@ -96,6 +98,7 @@
   }
 
   async function stopScanner() {
+
     if (videoElement && videoElement.srcObject) {
       const stream = videoElement.srcObject as MediaStream;
       stream.getTracks().forEach(track => track.stop());
@@ -105,6 +108,7 @@
   }
 
   async function scanQRCode() {
+    
     if (!showScanner || !videoElement) return;
 
     try {
@@ -151,7 +155,7 @@
           date: new Date().toISOString().split('T')[0]
         };
 
-        const remoteDBsDatabase = await $orbitStore.open('remote-dbs', {
+        const remoteDBsDatabase = await $orbitdb.open('remote-dbs', {
           type: 'documents',
           create: true,
           overwrite: false
@@ -178,15 +182,15 @@
 
   async function switchToRemoteDB(address: string) {
     try {
-      // Open the selected database using OrbitDB
-      const db = await $orbitStore.open(address, {
-        type: 'documents', // Ensure this matches the type of your database
-        create: false, // Do not create if it doesn't exist
-      });
+        // Open the selected database using OrbitDB
+        const db = await $orbitdb.open(address, {
+          type: 'documents', // Ensure this matches the type of your database
+          create: false, // Do not create if it doesn't exist
+        });
 
-      // Fetch all contents of the DB
-      dbContents = await db.all();
-      isModalOpen = true; // Open the modal to show contents
+        // Fetch all contents of the DB
+        dbContents = await db.all();
+        isModalOpen = true; // Open the modal to show contents
     } catch (error) {
       console.error('Failed to switch to remote DB:', error);
     }
@@ -244,10 +248,10 @@
           type="text"
           size={60}
           readonly
-          value={$settings.did}
+          value={did}
           class="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm"
         />
-        <button on:click={() => copyToClipboard($settings.did)} class="text-gray-500 hover:text-gray-700">
+        <button on:click={() => copyToClipboard(did)} class="text-gray-500 hover:text-gray-700">
           📋
         </button>
       </div>

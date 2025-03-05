@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { heliaStore } from './store';
-  import { onMount, onDestroy } from 'svelte';
+  import { helia } from './store';
+  import { onMount } from 'svelte';
   import type { Connection } from '@libp2p/interface-connection'
+  
   interface PeerInfo {
     id: string;
     connected: boolean;
@@ -28,8 +29,8 @@
   }
   
   function updatePeersList() {
-    if ($heliaStore?.libp2p) {
-      const connections = $heliaStore.libp2p.getConnections();
+    if ($helia?.libp2p) {
+      const connections = $helia.libp2p.getConnections();
       peers = connections.map(conn => ({
         id: conn.remotePeer.toString(),
         connected: conn.status === 'open',
@@ -43,15 +44,15 @@
   }
   
   async function disconnectPeer(peerId: string) {
-    if ($heliaStore?.libp2p) {
-      const connection = $heliaStore.libp2p.getConnections().find(conn => conn.remotePeer.toString() === peerId);
+    if ($helia?.libp2p) {
+      const connection = $helia.libp2p.getConnections().find(conn => conn.remotePeer.toString() === peerId);
       if (connection) {
         try {
           await connection.close();
           console.log(`Disconnected from peer: ${peerId}`);
           
           // Remove the peer from the peer store
-          await $heliaStore.libp2p.peerStore.delete(connection.remotePeer);
+          await $helia.libp2p.peerStore.delete(connection.remotePeer);
           console.log(`Removed peer from peer store: ${peerId}`);
           
           updatePeersList();
@@ -69,8 +70,8 @@
   }
 
   async function disconnectNonWebRTC() {
-    if ($heliaStore?.libp2p) {
-      const nonWebRTCConnections = $heliaStore.libp2p.getConnections().filter(conn => !conn.remoteAddr.toString().startsWith('/webrtc'));
+    if ($helia?.libp2p) {
+      const nonWebRTCConnections = $helia.libp2p.getConnections().filter(conn => !conn.remoteAddr.toString().startsWith('/webrtc'));
       
       for (const connection of nonWebRTCConnections) {
         try {
@@ -78,7 +79,7 @@
           console.log(`Disconnected from non-WebRTC peer: ${connection.remotePeer.toString()}`);
           
           // Remove the peer from the peer store
-          await $heliaStore.libp2p.peerStore.delete(connection.remotePeer);
+          await $helia.libp2p.peerStore.delete(connection.remotePeer);
           console.log(`Removed non-WebRTC peer from peer store: ${connection.remotePeer.toString()}`);
         } catch (err) {
           console.error(`Failed to disconnect from non-WebRTC peer: ${connection.remotePeer.toString()}`, err);
@@ -90,17 +91,17 @@
   }
   
   onMount(() => {
-    if ($heliaStore?.libp2p) {
+    if ($helia?.libp2p) {
       // Initial peers list
       updatePeersList();
       
       // Listen for peer connection events
-      $heliaStore.libp2p.addEventListener('peer:connect', (event) => {
-        console.log('Peer connected:', event.detail);
+      $helia.libp2p.addEventListener('peer:connect', (event) => {
+        // console.log('Peer connected:', event.detail);
         updatePeersList();
       });
       
-      $heliaStore.libp2p.addEventListener('peer:disconnect', (event) => {
+      $helia.libp2p.addEventListener('peer:disconnect', (event) => {
         console.log('Peer disconnected:', event.detail);
         updatePeersList();
       });
