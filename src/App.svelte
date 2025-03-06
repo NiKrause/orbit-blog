@@ -1,25 +1,23 @@
 <script lang="ts">
+
   import { onMount, onDestroy } from 'svelte';
+  import { createOrbitDB, IPFSAccessController } from '@orbitdb/core';
+  import { createLibp2p } from 'libp2p'
+  import { createHelia } from 'helia'
+  import { LevelDatastore } from 'datastore-level'
+  import { LevelBlockstore } from 'blockstore-level'
   import PostForm from './lib/PostForm.svelte';
   import PostList from './lib/PostList.svelte';
   import ThemeToggle from './lib/ThemeToggle.svelte';
   import DBManager from './lib/DBManager.svelte';
   import ConnectedPeers from './lib/ConnectedPeers.svelte';
   import Settings from './lib/Settings.svelte';
-  import { IPFSAccessController } from '@orbitdb/core';
-  import { createLibp2p } from 'libp2p'
-  import { createHelia } from 'helia'
-  import { createOrbitDB } from '@orbitdb/core';
-  import { LevelDatastore } from 'datastore-level'
-  import { LevelBlockstore } from 'blockstore-level'
   import { Libp2pOptions } from './lib/config'
   import { createPeerIdFromSeedPhrase } from './lib/utils'
-
   import { generateMnemonic } from 'bip39';
-  import { getIdentity } from './lib/orbitdb';
+  import { getIdentity, initializeDBs } from './lib/orbitdb';
+  import { postsDB, showDBManager, showPeers, showSettings, blogName, libp2p, helia, orbitdb, identity, identities, settingsDB, blogDescription } from './lib/store';
 
-  import { postsDB, showDBManager, showPeers, showSettings, blogName, libp2p, helia, orbitdb, identity, identities, settingsDB, blogDescription} from './lib/store';
-  // Initialize storage
   let blockstore = new LevelBlockstore('./helia-blocks');
   let datastore = new LevelDatastore('./helia-data');
 
@@ -35,9 +33,9 @@
     console.log('App mounted')
     const peerId = await createPeerIdFromSeedPhrase(seedPhrase);
     console.log('peerId', peerId)
-    $libp2p = await createLibp2p({peerId, ...Libp2pOptions})
+    $libp2p = await createLibp2p({ peerId, ...Libp2pOptions })
     console.log('libp2p', $libp2p)
-    $helia = await createHelia({libp2p: $libp2p, datastore, blockstore})
+    $helia = await createHelia({ libp2p: $libp2p, datastore, blockstore })
     console.log('helia', $helia)
     const ret = await getIdentity()
     $identity = ret.identity
@@ -49,18 +47,17 @@
       directory: './orbitdb',
     })
     console.log('orbitdb', $orbitdb)
-    // await initializeDBs(ret.identity, ret.identities)
-
+    await initializeDBs(ret.identity, ret.identities)
   })
 
   onDestroy(async () => {
     try {
+      await $settingsDB?.close();
       await $postsDB?.close();
-      console.info('OrbitDB connections closed successfully');
     } catch (error) {
       console.error('Error closing OrbitDB connections:', error);
     }
-  });
+  })
 
   $:if($orbitdb){
         $orbitdb.open('settings', {
@@ -73,28 +70,19 @@
           AccessController: IPFSAccessController({
             write: ["*"],
           }),
-        }).then(_db => {
-          console.log('settingsDB', _db)
-          $settingsDB = _db;
-        }).catch(err => {
-          console.log('error', err)
-        })
+        }).then(_db => $settingsDB = _db).catch( err => console.log('error', err))
   }
 
   $:if($settingsDB) {
-
     $settingsDB.get('blogName').then(( _ ) => $blogName = _?.value?.value);
     $settingsDB.get('blogDescription').then( _  => $blogDescription = _?.value?.value);
-
-    $settingsDB.events.on('update', async (entry) => {
-      console.log('Database update:', entry);
+    $settingsDB.events.on('update', 
+    async (entry) => {
       if (entry?.payload?.op === 'PUT') {
         const { _id, ...rest } = entry.payload.value;
         if(entry.payload.key==='blogName') $blogName = rest.value;
         if(entry.payload.key==='blogDescription') $blogDescription = rest.value;
-       } else if (entry?.payload?.op === 'DEL') {
-    //      posts.update(current => current.filter(post => post._id !== entry.payload.key));
-      }
+       } else if (entry?.payload?.op === 'DEL') { }
     });
   }
 </script>

@@ -1,8 +1,8 @@
 // src/lib/orbitdb.ts
-
-import { libp2p, helia, orbitdb, posts, remoteDBs, settingsDB, postsDB, remoteDBsDatabase, identity, identities } from './store';
+import { libp2p, helia, orbitdb, posts, remoteDBs, postsDB, remoteDBsDatabase, identity, identities } from './store';
 import { convertTo32BitSeed, generateMasterSeed } from './utils';
 import createIdentityProvider from './identityProvider';
+import { IPFSAccessController } from '@orbitdb/core';
 
 export async function getIdentity() {
   let seedPhrase = localStorage.getItem('seedPhrase');
@@ -20,37 +20,44 @@ export async function getIdentity() {
  * @returns {Promise<{settingsDB: OrbitDB, postsDB: OrbitDB, remoteDBsDatabase: OrbitDB}>}
  */
 export async function initializeDBs(identity, identities) {
-  
   console.log('initializeDBs', identity, identities)
   try {
-    console.log('identity', identity)
-    // const __settingsDB = await _orbitdb.open('settings', {
-    //     type: 'documents',
-    //     create: true,
-    //     overwrite: false,
-    //     directory: './orbitdb/settings',
-    //     identity: identity,
-    //     identities: identities,
-    //     AccessController: IPFSAccessController({
-    //       write: ["*"],
-    //     }),
-    //   })
-    console.log('settingsDB', __settingsDB)
-    settingsDB.set(__settingsDB)
+      postsDB.set(await _orbitdb.open('posts', {
+        type: 'documents',
+        create: true,
+        overwrite: false,
+        directory: './orbitdb/posts',
+        identity: identity,
+        identities: identities,
+        AccessController: IPFSAccessController({write: [identity.id]}),
+      }))
 
-      // settings.set(newSettings)
-    // postsDB.set(await _orbitdb.open('posts', {
-    //   type: 'documents',
-    //   create: true,
-    //   overwrite: false,
-    //   directory: './orbitdb/posts',
-    //   identity: ret.identity,
-    //   identities: ret.identities,
-    //   AccessController: IPFSAccessController({
-    //     write: [ret.identity.id],
-    //   }),
-    // }))
+      let currentPosts = await _postsDB.all();
+      console.log('Current posts:', currentPosts);
 
+      if (currentPosts.length === 0) {
+        console.info('No existing posts found, initializing with sample data');
+        // for (const post of currentPosts) {
+        //   const postWithId = { ...post, _id: post._id };
+        //   await _postsDB.put(postWithId);
+        // }
+    } else {
+      console.info('Loading existing posts from OrbitDB');
+      posts.set(currentPosts.map(entry => {
+        const { _id, ...rest } = entry.value;
+        return { ...rest, _id: _id };
+      }));
+    }
+
+    _postsDB.events.on('update', async (entry) => {
+      console.log('Database update:', entry);
+      if (entry?.payload?.op === 'PUT') {
+        const { _id, ...rest } = entry.payload.value;
+        posts.update(current => [...current, { ...rest, _id: _id }]);
+      } else if (entry?.payload?.op === 'DEL') {
+        posts.update(current => current.filter(post => post._id !== entry.payload.key));
+      }
+    });
 
     //   remoteDBsDatabase.set(await _orbitdb.open('remote-dbs', {
     //   type: 'documents',
@@ -76,37 +83,7 @@ export async function initializeDBs(identity, identities) {
 
       // console.info('OrbitDB initialized successfully', _orbitdb);
       // console.info('Postsdb initialized successfully', _postsDB);
-      // let currentPosts = await _postsDB.all();
-      // console.log('Current posts:', currentPosts);
 
-    // if (currentPosts.length === 0) {
-    //   console.info('No existing posts found, initializing with sample data');
-    //   for (const post of currentPosts) {
-    //     console.log('Adding post:', post);
-    //     const postWithId = {
-    //       ...post,
-    //       _id: post._id,
-    //     };
-    //     console.log('Adding post with _id:', postWithId);
-    //     await _postsDB.put(postWithId);
-    //   }
-    // } else {
-    //   console.info('Loading existing posts from OrbitDB');
-    //   posts.set(currentPosts.map(entry => {
-    //     const { _id, ...rest } = entry.value;
-    //     return { ...rest, _id: _id };
-    //   }));
-    // }
-
-    // _postsDB.events.on('update', async (entry) => {
-    //   console.log('Database update:', entry);
-    //   if (entry?.payload?.op === 'PUT') {
-    //     const { _id, ...rest } = entry.payload.value;
-    //     posts.update(current => [...current, { ...rest, _id: _id }]);
-    //   } else if (entry?.payload?.op === 'DEL') {
-    //     posts.update(current => current.filter(post => post._id !== entry.payload.key));
-    //   }
-    // });
 
         // Add event listeners to the libp2p instance after Helia is created
       // _helia.libp2p.addEventListener('peer:discovery', (evt) => {
@@ -147,11 +124,6 @@ orbitdb.subscribe(async (orbitdb) => {
   _orbitdb = orbitdb
 });
 
-let _settingsDB
-settingsDB.subscribe(async (settingsDB) => {
-  console.log('subscribed to settingsDB', settingsDB)
-  _settingsDB = settingsDB
-});
 let _posts
 posts.subscribe(async (posts) => {
   _posts = posts
