@@ -1,9 +1,9 @@
 // src/lib/orbitdb.ts
 
-import { IPFSAccessController, createOrbitDB } from '@orbitdb/core';
 import { libp2p, helia, orbitdb, posts, remoteDBs, settingsDB, postsDB, remoteDBsDatabase, identity, identities } from './store';
 import { convertTo32BitSeed, generateMasterSeed } from './utils';
 import createIdentityProvider from './identityProvider';
+
 export async function getIdentity() {
   let seedPhrase = localStorage.getItem('seedPhrase');
   const masterSeed = generateMasterSeed(seedPhrase, "password")  
@@ -20,6 +20,7 @@ export async function getIdentity() {
  * @returns {Promise<{settingsDB: OrbitDB, postsDB: OrbitDB, remoteDBsDatabase: OrbitDB}>}
  */
 export async function initializeDBs(identity, identities) {
+  
   console.log('initializeDBs', identity, identities)
   try {
     console.log('identity', identity)

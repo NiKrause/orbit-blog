@@ -6,7 +6,7 @@
   import DBManager from './lib/DBManager.svelte';
   import ConnectedPeers from './lib/ConnectedPeers.svelte';
   import Settings from './lib/Settings.svelte';
-
+  import { IPFSAccessController } from '@orbitdb/core';
   import { createLibp2p } from 'libp2p'
   import { createHelia } from 'helia'
   import { createOrbitDB } from '@orbitdb/core';
@@ -18,7 +18,7 @@
   import { generateMnemonic } from 'bip39';
   import { getIdentity } from './lib/orbitdb';
 
-  import { postsDB, showDBManager, showPeers, showSettings, blogName, libp2p, helia, orbitdb, identity, identities} from './lib/store';
+  import { postsDB, showDBManager, showPeers, showSettings, blogName, libp2p, helia, orbitdb, identity, identities, settingsDB, blogDescription} from './lib/store';
   // Initialize storage
   let blockstore = new LevelBlockstore('./helia-blocks');
   let datastore = new LevelDatastore('./helia-data');
@@ -61,6 +61,42 @@
       console.error('Error closing OrbitDB connections:', error);
     }
   });
+
+  $:if($orbitdb){
+        $orbitdb.open('settings', {
+          type: 'documents',
+          create: true,
+          overwrite: false,
+          directory: './orbitdb/settings',
+          identity: identity,
+          identities: identities,
+          AccessController: IPFSAccessController({
+            write: ["*"],
+          }),
+        }).then(_db => {
+          console.log('settingsDB', _db)
+          $settingsDB = _db;
+        }).catch(err => {
+          console.log('error', err)
+        })
+  }
+
+  $:if($settingsDB) {
+
+    $settingsDB.get('blogName').then(( _ ) => $blogName = _?.value?.value);
+    $settingsDB.get('blogDescription').then( _  => $blogDescription = _?.value?.value);
+
+    $settingsDB.events.on('update', async (entry) => {
+      console.log('Database update:', entry);
+      if (entry?.payload?.op === 'PUT') {
+        const { _id, ...rest } = entry.payload.value;
+        if(entry.payload.key==='blogName') $blogName = rest.value;
+        if(entry.payload.key==='blogDescription') $blogDescription = rest.value;
+       } else if (entry?.payload?.op === 'DEL') {
+    //      posts.update(current => current.filter(post => post._id !== entry.payload.key));
+      }
+    });
+  }
 </script>
 <svelte:head>
 	<title>{$blogName} {__APP_VERSION__}</title>
@@ -69,6 +105,7 @@
 <main class="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors">
   <div class="max-w-7xl mx-auto py-8 px-4">
     <h1 class="text-4xl font-bold text-center mb-8 text-gray-900 dark:text-white">{$blogName}</h1> 
+    <h6 class="text-sm text-center mb-8 text-gray-900 dark:text-white">{$blogDescription}</h6>
     <h6>{__APP_VERSION__}</h6>
     
     <button 
