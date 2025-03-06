@@ -26,6 +26,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
         - [ ] username by blockchain (Bitcoin Ordinals, Runes, Namcoin, Doichain)
         - [x] did 
         - [x] seed phrase
+        - [ ] seed phrase encrypted
     - [x] generate seed phrase, masterseed
     - [x] generate libp2p peerid from seed phrase / masterseed  
     - [x] switch between temporary identity & peerId (default for browsers) and persistent identity & peerId (for mobiles)

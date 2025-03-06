@@ -19,53 +19,46 @@
   let dbContents = [];
   let did = '';
 
-
   $: {
     peerId = $libp2p?.peerId.toString();
     did = $identity?.id;
   }
 
-  // $: if ($postsDB) {
-  //       currentDBAddress = $postsDB.address;
-  //       $selectedDBAddress = currentDBAddress;
-  //       console.info('Current DB address:', currentDBAddress);
-  //       generateQRCode(currentDBAddress);
-        
-  //       try {
-  //         currentPosts = $postsDB.all().then((posts)=>{
-  //           $posts = posts.map(entry => {
-  //             const { _id, ...rest } = entry.value;
-  //             return { ...rest, id: _id };
-  //           })
-  //         })
+   $:if($orbitdb){ 
+    try {
+        $remoteDBsDatabase = await $orbitdb.open('remote-dbs', {
+          type: 'documents',
+          create: true,
+          overwrite: false,
+          AccessController: IPFSAccessController({
+            write: ["*"]
+          }),
+        });
+        console.info('Remote DBs database opened successfully:', $remoteDBsDatabase);
+        const savedDBs = await $remoteDBsDatabase.all();
+        remoteDBsList = savedDBs.map(entry => entry.value);
+        $remoteDBs = remoteDBsList;
+        console.info('Remote DBs list:', remoteDBsList);
+    } catch (error) {
+      console.error('Error loading remote DBs:', error);
+    }
+  }
 
-  //       } catch (error) {
-  //         console.error('Error loading current DB posts:', error);
-  //       }
-  // }
-
-  // $: if($orbitdb) {
-
-  //   // Initialize remote DBs store
-  //   $orbitdb.open('remote-dbs', {
-  //     type: 'documents',
-  //     create: true,
-  //     overwrite: false,
-  //     AccessController: IPFSAccessController({
-  //       write: ["*"]
-  //     }),
-  //   }).then(remoteDBsDatabase => {
-  //     console.info('Remote DBs database opened successfully:', remoteDBsDatabase);
-  //     $remoteDBsDatabase = remoteDBsDatabase;
-  //     return remoteDBsDatabase.all();
-  //   }).then(savedDBs => {
-  //     remoteDBsList = savedDBs.map(entry => entry.value);
-  //     $remoteDBs = remoteDBsList;
-  //     console.info('Remote DBs list:', remoteDBsList);
-  //   }).catch(error => {
-  //     console.error('Error loading remote DBs:', error);
-  //   });
-  // }
+  $:if ($postsDB) {
+    currentDBAddress = $postsDB.address;
+    $selectedDBAddress = currentDBAddress;
+    generateQRCode(currentDBAddress);
+    
+    try {
+      const currentPosts = await $postsDB.all();
+      $posts = currentPosts.map(entry => {
+        const { _id, ...rest } = entry.value;
+        return { ...rest, id: _id };
+      });
+    } catch (error) {
+      console.error('Error loading current DB posts:', error);
+    }
+  }
 
   async function generateQRCode(text: string) {
 
