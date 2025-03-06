@@ -16,7 +16,7 @@
   import { createPeerIdFromSeedPhrase } from './lib/utils'
   import { generateMnemonic } from 'bip39';
   import { getIdentity, initializeDBs } from './lib/orbitdb';
-  import { postsDB, showDBManager, showPeers, showSettings, blogName, libp2p, helia, orbitdb, identity, identities, settingsDB, blogDescription } from './lib/store';
+  import { postsDB, remoteDBs, remoteDBsDatabase, showDBManager, showPeers, showSettings, blogName, libp2p, helia, orbitdb, identity, identities, settingsDB, blogDescription } from './lib/store';
 
   let blockstore = new LevelBlockstore('./helia-blocks');
   let datastore = new LevelDatastore('./helia-data');
@@ -60,17 +60,24 @@
   })
 
   $:if($orbitdb){
+    
         $orbitdb.open('settings', {
           type: 'documents',
           create: true,
           overwrite: false,
           directory: './orbitdb/settings',
-          identity: identity,
-          identities: identities,
-          AccessController: IPFSAccessController({
-            write: ["*"],
-          }),
+          identity: $identity,
+          identities: $identities,
+          // AccessController: IPFSAccessController({write: ["*"]}),
+          AccessController: IPFSAccessController({write: [$identity.id]}),
         }).then(_db => $settingsDB = _db).catch( err => console.log('error', err))
+
+        $orbitdb.open('remote-dbs', {
+          type: 'documents',
+          create: true,
+          overwrite: false,
+          AccessController: IPFSAccessController({write: [$identity.id]}),
+        }).then(db => $remoteDBsDatabase = db).catch(err => console.error('Error opening remote DBs database:', err));
   }
 
   $:if($settingsDB) {
@@ -85,6 +92,16 @@
        } else if (entry?.payload?.op === 'DEL') { }
     });
   }
+
+  $:if($remoteDBsDatabase){
+    console.info('Remote DBs database opened successfully:', $remoteDBsDatabase);
+    $remoteDBsDatabase.all().then(savedDBs => {
+      const _remoteDBs = savedDBs.map(entry => entry.value);
+      console.info('Remote DBs list:', _remoteDBs);
+      $remoteDBs = _remoteDBs;
+    })
+  }
+
 </script>
 <svelte:head>
 	<title>{$blogName} {__APP_VERSION__}</title>

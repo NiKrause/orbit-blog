@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { settingsDB, postsDB, remoteDBs, selectedDBAddress, posts, remoteDBsDatabase, orbitdb, helia,identity,libp2p } from './store';
+  import { settingsDB, postsDB, remoteDBs, remoteDBsDatabase, selectedDBAddress, posts, orbitdb, identity, identities, libp2p } from './store';
   import { IPFSAccessController } from '@orbitdb/core';
   import type { RemoteDB } from './types';
   import QRCode from 'qrcode';
@@ -8,13 +7,11 @@
 
   let dbAddress = '';
   let dbName = '';
-  let currentDBAddress = '';
   let remoteDBsList: RemoteDB[] = [];
   let qrCodeDataUrl = '';
   let showScanner = false;
   let videoElement: HTMLVideoElement;
   let peerId = '';
-  let currentPosts: any[] = [];
   let isModalOpen = false;
   let dbContents = [];
   let did = '';
@@ -24,44 +21,24 @@
     did = $identity?.id;
   }
 
-   $:if($orbitdb){ 
-    try {
-        $remoteDBsDatabase = await $orbitdb.open('remote-dbs', {
-          type: 'documents',
-          create: true,
-          overwrite: false,
-          AccessController: IPFSAccessController({
-            write: ["*"]
-          }),
-        });
-        console.info('Remote DBs database opened successfully:', $remoteDBsDatabase);
-        const savedDBs = await $remoteDBsDatabase.all();
-        remoteDBsList = savedDBs.map(entry => entry.value);
-        $remoteDBs = remoteDBsList;
-        console.info('Remote DBs list:', remoteDBsList);
-    } catch (error) {
-      console.error('Error loading remote DBs:', error);
-    }
-  }
-
-  $:if ($postsDB) {
-    currentDBAddress = $postsDB.address;
-    $selectedDBAddress = currentDBAddress;
-    generateQRCode(currentDBAddress);
+  $:if ($settingsDB) {
+    
+    $selectedDBAddress = $settingsDB.address;
+    generateQRCode($selectedDBAddress);
     
     try {
-      const currentPosts = await $postsDB.all();
-      $posts = currentPosts.map(entry => {
-        const { _id, ...rest } = entry.value;
-        return { ...rest, id: _id };
-      });
+      $postsDB.all().then(currentPosts => {
+        $posts = currentPosts.map(entry => {
+          const { _id, ...rest } = entry.value;
+          return { ...rest, id: _id };
+        });
+      }).catch(err => console.error('Error loading current DB posts:', err));
     } catch (error) {
       console.error('Error loading current DB posts:', error);
     }
   }
 
   async function generateQRCode(text: string) {
-
     try {
       qrCodeDataUrl = await QRCode.toDataURL(text, {
         width: 200,
@@ -80,8 +57,6 @@
       if (videoElement) {
         videoElement.srcObject = stream;
         videoElement.play();
-        
-        // Start scanning frames
         requestAnimationFrame(scanQRCode);
       }
     } catch (error) {
@@ -139,35 +114,43 @@
 
   async function addRemoteDB() {
     console.log('Adding DB:', { dbAddress, dbName });
-    if (dbAddress && dbName) {
-      try {
-        const newDB: RemoteDB = {
-          id: crypto.randomUUID(),
-          name: dbName,
-          address: dbAddress,
-          date: new Date().toISOString().split('T')[0]
-        };
+    if (dbAddress) {
+      
+      $orbitdb.open(dbAddress).then( _db => {
+        // $orbitdb.open(dbAddress, {
+        //     type: 'documents',
+        //     create: true,
+        //     overwrite: false,
+        //     directory: './orbitdb/settings',
+        //     identity: $identity,
+        //     identities: $identities,
+        //     AccessController: IPFSAccessController({write: ["*"]}),
+        //     // AccessController: IPFSAccessController({write: [$identity.id]}),
+        //   }).then(_db => {
+            console.log('DB opened successfully:', _db);
 
-        const remoteDBsDatabase = await $orbitdb.open('remote-dbs', {
-          type: 'documents',
-          create: true,
-          overwrite: false
-        });
+            _db.get('blogName').then( _ => {
 
-        console.log('Database opened successfully:', remoteDBsDatabase);
-        
-        await remoteDBsDatabase.put({ _id: newDB.id, ...newDB });
-        console.log('Database entry added:', newDB);
-        remoteDBsList = [...remoteDBsList, newDB];
-        $remoteDBs = remoteDBsList;
-        console.log('Updated remoteDBsList:', remoteDBsList);
-        console.log('Store value:', $remoteDBs);
+              dbName = _?.value?.value;
+              console.log('dbName opened successfully:  ', dbName, dbAddress);
 
-        dbAddress = '';
-        dbName = '';
-      } catch (error) {
-        console.error('Error adding remote DB:', error);
-      }
+              const newDB: RemoteDB = {
+                id: crypto.randomUUID(),
+                name: dbName,
+                address: dbAddress,
+                date: new Date().toISOString().split('T')[0]
+              };
+
+              $remoteDBsDatabase.put({ _id: newDB.id, ...newDB });
+              console.log('Database entry added:', newDB);
+              remoteDBsList = [...remoteDBsList, newDB];
+              $remoteDBs = remoteDBsList;
+              console.log('Updated remoteDBsList:', remoteDBsList);
+              console.log('Store value:', $remoteDBs);
+              dbAddress = '';
+              dbName = '';
+            });   
+          }).catch( err => console.log('error', err))
     } else {
       console.log('Missing required fields');
     }
@@ -189,8 +172,15 @@
     }
   }
 
-  function removeRemoteDB(id: string) {
-    remoteDBsList = remoteDBsList.filter(db => db.id !== id);
+  async function removeRemoteDB(id: string) {
+    console.log('Removing DB:', id);
+    await $remoteDBsDatabase.del(id);
+    remoteDBsList = remoteDBsList.filter(db => {
+      console.log('db', db);
+      console.log('id', id);
+      return db.id !== id;
+    });
+    console.log('Updated remoteDBsList:', remoteDBsList);
     $remoteDBs = remoteDBsList;
   }
 
@@ -345,15 +335,15 @@
     </div>
   {/if}
 
-  {#if remoteDBsList.length > 0}
-    <div>Number of databases: {remoteDBsList.length}</div>
+  {#if $remoteDBs.length > 0}
+    <div>Number of databases: {$remoteDBs.length}</div>
     <div class="border-t dark:border-gray-700 mt-6 pt-4">
       <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Available Databases</h3>
       <div class="space-y-2">
-        {#each remoteDBsList as db}
+        {#each $remoteDBs as db}
           <div class="flex items-center space-x-2">
             <button
-              class="flex-1 text-left p-3 rounded-md transition-colors {$selectedDBAddress === db.address ? 'bg-indigo-50 dark:bg-indigo-900/50 border-2 border-indigo-500' : 'hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600'}"
+              class="flex-1 text-left p-3 rounded-md transition-all duration-300 ease-in-out transform hover:scale-105 {$selectedDBAddress === db.address ? 'bg-gradient-to-r from-indigo-500 to-indigo-300 dark:from-indigo-800 dark:to-indigo-600 border-2 border-indigo-500' : 'bg-gradient-to-r from-gray-200 to-gray-100 dark:from-gray-700 dark:to-gray-600 hover:bg-gradient-to-r from-gray-300 to-gray-200 dark:from-gray-600 dark:to-gray-500 border border-gray-200 dark:border-gray-600'}"
               on:click={() => switchToRemoteDB(db.address)}
             >
               <div class="flex justify-between items-center">
