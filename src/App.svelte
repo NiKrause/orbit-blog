@@ -15,21 +15,19 @@
   import { Libp2pOptions } from './lib/config'
   import { createPeerIdFromSeedPhrase } from './lib/utils'
   import { generateMnemonic } from 'bip39';
-  import { getIdentity, initializeDBs } from './lib/orbitdb';
-  import { postsDB, remoteDBs, remoteDBsDatabase, showDBManager, showPeers, showSettings, blogName, libp2p, helia, orbitdb, identity, identities, settingsDB, blogDescription } from './lib/store';
+  import { getIdentity } from './lib/orbitdb';
+  import { postsDB, postsDBAddress, posts, remoteDBs, remoteDBsDatabases, showDBManager, showPeers, showSettings, blogName, libp2p, helia, orbitdb, identity, identities, settingsDB, blogDescription } from './lib/store';
 
   let blockstore = new LevelBlockstore('./helia-blocks');
   let datastore = new LevelDatastore('./helia-data');
 
-  // Check if seed phrase is stored in localStorage, if not generate a new one
   let seedPhrase = localStorage.getItem('seedPhrase');
   if (!seedPhrase) {
-      seedPhrase = generateMnemonic(); // Generate a new mnemonic
-      localStorage.setItem('seedPhrase', seedPhrase); // Store the new seed phrase in localStorage
+      seedPhrase = generateMnemonic(); 
+      localStorage.setItem('seedPhrase', seedPhrase);
   }
 
   onMount(async () => {
-
     console.log('App mounted')
     const peerId = await createPeerIdFromSeedPhrase(seedPhrase);
     console.log('peerId', peerId)
@@ -37,7 +35,7 @@
     console.log('libp2p', $libp2p)
     $helia = await createHelia({ libp2p: $libp2p, datastore, blockstore })
     console.log('helia', $helia)
-    const ret = await getIdentity()
+    const ret = await getIdentity($helia)
     $identity = ret.identity
     $identities = ret.identities
     $orbitdb = await createOrbitDB({
@@ -47,7 +45,6 @@
       directory: './orbitdb',
     })
     console.log('orbitdb', $orbitdb)
-    await initializeDBs(ret.identity, ret.identities)
   })
 
   onDestroy(async () => {
@@ -60,7 +57,7 @@
   })
 
   $:if($orbitdb){
-    
+
         $orbitdb.open('settings', {
           type: 'documents',
           create: true,
@@ -68,21 +65,39 @@
           directory: './orbitdb/settings',
           identity: $identity,
           identities: $identities,
-          // AccessController: IPFSAccessController({write: ["*"]}),
           AccessController: IPFSAccessController({write: [$identity.id]}),
         }).then(_db => $settingsDB = _db).catch( err => console.log('error', err))
+        
+        $orbitdb.open('posts', {
+          type: 'documents',
+          create: true,
+          overwrite: false,
+          directory: './orbitdb/posts',
+          identity: $identity,
+          identities: $identities,
+          AccessController: IPFSAccessController({write: [$identity.id]}),
+        }).then(_db => {
+          $postsDB = _db;
+          console.log('postsDB', _db.address.toString())
+          $postsDBAddress = _db.address.toString()
+          // $settingsDB.drop()
+          // 
+        }).catch( err => console.log('error', err))
 
         $orbitdb.open('remote-dbs', {
           type: 'documents',
           create: true,
           overwrite: false,
+          identities: $identities,
+          identity: $identity,
           AccessController: IPFSAccessController({write: [$identity.id]}),
-        }).then(db => $remoteDBsDatabase = db).catch(err => console.error('Error opening remote DBs database:', err));
+        }).then(_db => $remoteDBsDatabases = _db).catch(err => console.error('Error opening remote DBs database:', err));
   }
 
   $:if($settingsDB) {
     $settingsDB.get('blogName').then(( _ ) => $blogName = _?.value?.value);
     $settingsDB.get('blogDescription').then( _  => $blogDescription = _?.value?.value);
+    
     $settingsDB.events.on('update', 
     async (entry) => {
       if (entry?.payload?.op === 'PUT') {
@@ -93,9 +108,22 @@
     });
   }
 
-  $:if($remoteDBsDatabase){
-    console.info('Remote DBs database opened successfully:', $remoteDBsDatabase);
-    $remoteDBsDatabase.all().then(savedDBs => {
+  $:if($postsDB){
+    $postsDB.all().then(posts => $posts = posts.map(entry => entry.value)).catch(err => console.error('Error opening posts database:', err));
+    $postsDB.events.on('update', async (entry) => {
+      console.log('Database update:', entry);
+      if (entry?.payload?.op === 'PUT') {
+        const { _id, ...rest } = entry.payload.value;
+        posts.update(current => [...current, { ...rest, _id: _id }]);
+      } else if (entry?.payload?.op === 'DEL') {
+        posts.update(current => current.filter(post => post._id !== entry.payload.key));
+      }
+    });
+  }
+
+  $:if($remoteDBsDatabases){
+    console.info('Remote DBs database opened successfully:', $remoteDBsDatabases);
+    $remoteDBsDatabases.all().then(savedDBs => {
       const _remoteDBs = savedDBs.map(entry => entry.value);
       console.info('Remote DBs list:', _remoteDBs);
       $remoteDBs = _remoteDBs;

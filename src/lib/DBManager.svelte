@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { settingsDB, postsDB, remoteDBs, remoteDBsDatabase, selectedDBAddress, posts, orbitdb, identity, identities, libp2p } from './store';
-  import { IPFSAccessController } from '@orbitdb/core';
+  import { settingsDB, postsDB, remoteDBs, selectedDBAddress, posts, orbitdb, identity, remoteDBsDatabases, libp2p, blogName, blogDescription, postsDBAddress } from './store';
   import type { RemoteDB } from './types';
   import QRCode from 'qrcode';
   import Modal from './Modal.svelte';
@@ -15,27 +14,18 @@
   let isModalOpen = false;
   let dbContents = [];
   let did = '';
+  let modalMessage = "Loading data from the remote database...";
+  let cancelOperation = false;
 
   $: {
     peerId = $libp2p?.peerId.toString();
     did = $identity?.id;
   }
 
-  $:if ($settingsDB) {
-    
+  $:if ($settingsDB) {  
     $selectedDBAddress = $settingsDB.address;
     generateQRCode($selectedDBAddress);
-    
-    try {
-      $postsDB.all().then(currentPosts => {
-        $posts = currentPosts.map(entry => {
-          const { _id, ...rest } = entry.value;
-          return { ...rest, id: _id };
-        });
-      }).catch(err => console.error('Error loading current DB posts:', err));
-    } catch (error) {
-      console.error('Error loading current DB posts:', error);
-    }
+    console.log('selectedDBAddress', $selectedDBAddress)
   }
 
   async function generateQRCode(text: string) {
@@ -117,16 +107,6 @@
     if (dbAddress) {
       
       $orbitdb.open(dbAddress).then( _db => {
-        // $orbitdb.open(dbAddress, {
-        //     type: 'documents',
-        //     create: true,
-        //     overwrite: false,
-        //     directory: './orbitdb/settings',
-        //     identity: $identity,
-        //     identities: $identities,
-        //     AccessController: IPFSAccessController({write: ["*"]}),
-        //     // AccessController: IPFSAccessController({write: [$identity.id]}),
-        //   }).then(_db => {
             console.log('DB opened successfully:', _db);
 
             _db.get('blogName').then( _ => {
@@ -141,7 +121,7 @@
                 date: new Date().toISOString().split('T')[0]
               };
 
-              $remoteDBsDatabase.put({ _id: newDB.id, ...newDB });
+              $remoteDBsDatabases.put({ _id: newDB.id, ...newDB });
               console.log('Database entry added:', newDB);
               remoteDBsList = [...remoteDBsList, newDB];
               $remoteDBs = remoteDBsList;
@@ -157,24 +137,51 @@
   }
 
   async function switchToRemoteDB(address: string) {
-    try {
-        // Open the selected database using OrbitDB
-        const db = await $orbitdb.open(address, {
-          type: 'documents', // Ensure this matches the type of your database
-          create: false, // Do not create if it doesn't exist
-        });
+    let retry = true;
+    isModalOpen = true;
+    cancelOperation = false;
 
-        // Fetch all contents of the DB
+    try {
+      while (retry && !cancelOperation) {
+        const db = await $orbitdb.open(address);
         dbContents = await db.all();
-        isModalOpen = true; // Open the modal to show contents
+        console.log('dbContents', dbContents);
+
+        // Set blogName from dbContents
+        $blogName = dbContents.find(content => content.key === 'blogName')?.value?.value;
+        // Set blogDescription from dbContents
+        $blogDescription = dbContents.find(content => content.key === 'blogDescription')?.value?.value;
+        // Set postsDBAddress from dbContents
+        $postsDBAddress = dbContents.find(content => content.key === 'postsDBAddress')?.value?.value;
+
+        // Check if all required data is available
+        if ($blogName && $blogDescription && $postsDBAddress) {
+          // Load posts from postsDBAddress
+          $postsDB = await $orbitdb.open($postsDBAddress);
+          $posts = (await $postsDB.all()).map(post => {
+            const { _id, ...rest } = post.value;
+            return { ...rest, id: _id };
+          });
+          retry = false; // Stop retrying if all data is fetched
+        } else {
+          await new Promise(resolve => setTimeout(resolve, 500)); // Wait for 500ms before retrying
+        }
+      }
     } catch (error) {
       console.error('Failed to switch to remote DB:', error);
+    } finally {
+      isModalOpen = false; // Close the modal regardless of the outcome
     }
+  }
+
+  function closeModal() {
+    cancelOperation = true;
+    isModalOpen = false;
   }
 
   async function removeRemoteDB(id: string) {
     console.log('Removing DB:', id);
-    await $remoteDBsDatabase.del(id);
+    await $remoteDBsDatabases.del(id);
     remoteDBsList = remoteDBsList.filter(db => {
       console.log('db', db);
       console.log('id', id);
@@ -371,13 +378,11 @@
     </div>
   {/if}
 
-  <Modal isOpen={isModalOpen} onClose={() => isModalOpen = false}>
-    <h2 class="text-xl font-bold mb-4">Database Contents</h2>
-    <ul>
-      {#each dbContents as content}
-        <li class="mb-2">{JSON.stringify(content)}</li>
-      {/each}
-    </ul>
+  <Modal isOpen={isModalOpen} onClose={closeModal}>
+    <h2 class="text-xl font-bold mb-4">Switching Database</h2>
+    <p>{modalMessage}</p>
+    <div class="progress-bar">Loading...</div>
+    <button on:click={closeModal} class="cancel-button">Cancel</button>
   </Modal>
 </div>
 

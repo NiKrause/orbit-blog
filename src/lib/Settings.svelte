@@ -1,14 +1,12 @@
 <script lang="ts">
 
   import { generateMnemonic } from 'bip39'
-  import { identity, identities, orbitdb, settingsDB, blogName, blogDescription} from './store';
+  import { settingsDB, blogName, blogDescription, postsDBAddress } from './store';
 
   let seedPhrase = localStorage.getItem('seedPhrase') || generateMnemonic() //please don't put the seedphrase in the db
   let persistentSeedPhrase = localStorage.getItem('seedPhrase')?true:false;
   $: localStorage.setItem('seedPhrase', seedPhrase);
   $: (!persistentSeedPhrase)?localStorage.removeItem('seedPhrase'):null;
-  
-
 </script>
 
 <div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
@@ -32,6 +30,17 @@
         {persistentSeedPhrase ? 'Persistent' : 'Temporary'}
       </label>
     </div>
+  </div>
+  <div class="mb-4">
+    <label class="block text-gray-700 dark:text-gray-300">Posts DB Address</label>
+    <input type="text" class="w-full p-2 border rounded" value={$postsDBAddress} readonly />
+    <button class="bg-blue-500 text-white p-2 rounded" on:click={() => {
+        $settingsDB?.put({ _id: 'postsDBAddress', value: $postsDBAddress })
+        console.log('stored postsDBAddress in settingsDB', $postsDBAddress)
+        $settingsDB?.all().then(contents => {
+          console.log('contents', contents)
+        })
+      }}>Store Posts DB Address</button>
   </div>
 </div>
 
