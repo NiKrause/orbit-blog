@@ -93,8 +93,13 @@
   }
 
   $:if($settingsDB) {
-    $settingsDB.get('blogName').then(( _ ) => $blogName = _?.value?.value);
-    $settingsDB.get('blogDescription').then( _  => $blogDescription = _?.value?.value);
+    $settingsDB.get('blogName').then(result => 
+      result?.value?.value !== undefined ? ($blogName = result.value.value) : null
+    );
+    
+    $settingsDB.get('blogDescription').then(result => 
+      result?.value?.value !== undefined ? ($blogDescription = result.value.value) : null
+    );
     
     $settingsDB.events.on('update', 
     async (entry) => {
