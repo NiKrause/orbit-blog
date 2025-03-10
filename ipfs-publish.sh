@@ -15,15 +15,15 @@ echo "IPFS name orbitblog updated with CID $cid"
 # sed -i '' "s|/ipfs/[^\"}]*|/ipfs/$cid|g" vercel.json
 
 # Execute the docker-compose command on the remote server
-ssh root@ipfs.le-space.de "docker-compose exec ipfs ipfs add $cid"
-echo "IPFS CID $cid added to ipfs.le-space.de"
+# ssh -t root@ipfs.le-space.de "cd docker/ipfs/willschenk && docker-compose exec ipfs ipfs add $cid"
+# echo "IPFS CID $cid added to ipfs.le-space.de"
 # Pin the CID to ipfs.le-space.de
-ssh root@ipfs.le-space.de "docker-compose exec ipfs ipfs pin add $cid"
+ssh -t root@ipfs.le-space.de "cd docker/ipfs/willschenk && docker-compose exec ipfs ipfs pin add $cid"
 echo "IPFS CID $cid pinned to ipfs.le-space.de"
 
 
-ssh root@ipfs.le-space.de "docker-compose exec ipfs ipfs pin add --follow follow /ipns/k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g"
-echo "IPFS CID $cid published on ipfs.le-space.de and vercel.json updated"
+ssh -t root@ipfs.le-space.de "cd docker/ipfs/willschenk && docker-compose exec ipfs ipfs pin add --follow /ipns/k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g"
+echo "IPFS PIN added to follow ipns"
 # Get the current version from package.json
 version=$(node -p "require('./package.json').version")
 
