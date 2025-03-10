@@ -28,9 +28,12 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
         - [x] postsdb address
         - [ ] commentsdb address  
         - [ ] username/did by blockchain (Bitcoin Ordinals, Runes, Namcoin, Doichain)
-        - [x] did 
+        - [x] did
+        - [ ] did / id by Nostr-Chrome-Extension
+        - [ ] did / id by metmask extension
         - [x] seed phrase
-        - [ ] seed phrase encrypted
+        - [x] seed phrase encrypted by password
+        - [ ] seed phrase encrypted by passkey
     - [x] generate seed phrase, masterseed
     - [x] generate libp2p peerid from seed phrase / masterseed  
     - [x] switch between temporary identity & peerId (default for browsers) and persistent identity & peerId (for mobiles)
@@ -38,8 +41,9 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
             - https://github.com/silkroadnomad/deContact/blob/main/src/lib/network/getIdendityAndCreateOrbitDB.js
             - https://github.com/silkroadnomad/deContact/blob/main/src/lib/network/identityProvider.js
             - https://github.com/silkroadnomad/deContact/blob/main/src/utils/utils.js#L34
-        - [ ] encrypted seed phrase in localstorage (if persistent)
-    - [ ] add posts and remote dbs addresses to settings db  
+    - [x] add posts settings db  
+    - [ ] create encrypted backup & restore of posts, settings, remoteDBs and store on Filecoin, Arweave etc.
+    - [ ] setup your own relay
     - [ ] enable pubsub ipfs pinning of posts and comments
         - every post results into a new CID which needs to be published to pubsub pinning service
         - every CID needs to be packaged into a metadata.json name, description, media (CID) 
@@ -54,9 +58,10 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
         - keep temporary private key / peer-id on laptop 
         - keep secure private key / persistent peer-id on phone
         - implement One-Time-Access-Controller with own stream protocol and qr-code peering (phone accepts simple pubsub peering messages with simple pin code comparison)
-    - [ ] DBManager connect & replicated remote blogs
+    - [x] DBManager connect & replicated remote blogs
     - [ ] demonstrate webrtc-direct connections without relay-server but SDP-QR-Codes or SDP - Voice
     - [ ] upload & replicate images / integrate ipfs images cids into markdown
+    - [ ] implement svelte components into markdown so they they can be executed / upload svelte code as attachment for the post
 - App related
     - [x] deployable to IPFS
     - [x] run as PWA

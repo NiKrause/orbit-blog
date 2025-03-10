@@ -12,23 +12,41 @@
   import DBManager from './lib/DBManager.svelte';
   import ConnectedPeers from './lib/ConnectedPeers.svelte';
   import Settings from './lib/Settings.svelte';
+  import PasswordModal from './lib/PasswordModal.svelte';
   import { Libp2pOptions } from './lib/config'
   import { createPeerIdFromSeedPhrase } from './lib/utils'
   import { generateMnemonic } from 'bip39';
   import { getIdentity } from './lib/orbitdb';
   import { postsDB, postsDBAddress, posts, remoteDBs, remoteDBsDatabases, showDBManager, showPeers, showSettings, blogName, libp2p, helia, orbitdb, identity, identities, settingsDB, blogDescription } from './lib/store';
   import Sidebar from './lib/Sidebar.svelte';
+  import { encryptSeedPhrase, decryptSeedPhrase, isEncryptedSeedPhrase } from './lib/cryptoUtils';
 
   let blockstore = new LevelBlockstore('./helia-blocks');
   let datastore = new LevelDatastore('./helia-data');
 
-  let seedPhrase = localStorage.getItem('seedPhrase');
-  if (!seedPhrase) {
-      seedPhrase = generateMnemonic(); 
-      localStorage.setItem('seedPhrase', seedPhrase);
+  let encryptedSeedPhrase = localStorage.getItem('encryptedSeedPhrase');
+  let seedPhrase: string | null = null;
+  let showPasswordModal = true;
+  let isNewUser = !encryptedSeedPhrase;
+
+  async function handleSeedPhraseCreated(event: CustomEvent) {
+    const newSeedPhrase = generateMnemonic();
+    const encryptedPhrase = await encryptSeedPhrase(newSeedPhrase, event.detail.password);
+    localStorage.setItem('encryptedSeedPhrase', encryptedPhrase);
+    seedPhrase = newSeedPhrase;
+    showPasswordModal = false;
+    initializeApp();
   }
 
-  onMount(async () => {
+  async function handleSeedPhraseDecrypted(event: CustomEvent) {
+    seedPhrase = event.detail.seedPhrase;
+    showPasswordModal = false;
+    initializeApp();
+  }
+
+  async function initializeApp() {
+    if (!seedPhrase) return;
+    
     console.log('App mounted')
     const peerId = await createPeerIdFromSeedPhrase(seedPhrase);
     console.log('peerId', peerId)
@@ -46,6 +64,11 @@
       directory: './orbitdb',
     })
     console.log('orbitdb', $orbitdb)
+  }
+
+  onMount(async () => {
+    // App initialization moved to handleSeedPhrase functions
+    // Modal will show automatically based on showPasswordModal state
   })
 
   onDestroy(async () => {
@@ -135,41 +158,49 @@
 
 </script>
 <svelte:head>
-	<title>{$blogName} {__APP_VERSION__}</title>
+  <title>{$blogName} {__APP_VERSION__}</title>
 </svelte:head>
+{#if showPasswordModal}
+  <PasswordModal 
+    {isNewUser} 
+    encryptedSeedPhrase={encryptedSeedPhrase}
+    on:seedPhraseCreated={handleSeedPhraseCreated}
+    on:seedPhraseDecrypted={handleSeedPhraseDecrypted}
+  />
+{:else}
+  <main class="flex min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors">
+    <!-- Sidebar Component -->
+    <Sidebar />
+    
+    <!-- Main Content -->
+    <div class="flex-1 overflow-x-hidden">
+      <div class="max-w-7xl mx-auto py-8 px-4">
+        <h1 class="text-4xl font-bold text-center mb-8 text-gray-900 dark:text-white">{$blogName}</h1> 
+        <h6 class="text-sm text-center mb-8 text-gray-900 dark:text-white">{$blogDescription}</h6>
+        <h6>{__APP_VERSION__}</h6>
 
-<main class="flex min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors">
-  <!-- Sidebar Component -->
-  <Sidebar />
-  
-  <!-- Main Content -->
-  <div class="flex-1 overflow-x-hidden">
-    <div class="max-w-7xl mx-auto py-8 px-4">
-      <h1 class="text-4xl font-bold text-center mb-8 text-gray-900 dark:text-white">{$blogName}</h1> 
-      <h6 class="text-sm text-center mb-8 text-gray-900 dark:text-white">{$blogDescription}</h6>
-      <h6>{__APP_VERSION__}</h6>
+        {#if $showDBManager}
+          <DBManager />
+        {/if}
+        
+        {#if $showPeers}
+          <ConnectedPeers />
+        {/if}
 
-      {#if $showDBManager}
-        <DBManager />
-      {/if}
-      
-      {#if $showPeers}
-        <ConnectedPeers />
-      {/if}
-
-      {#if $showSettings}
-        <Settings />
-      {/if}
-      
-      <div class="grid gap-8">
-        <PostList />
-        <PostForm />
+        {#if $showSettings}
+          <Settings {seedPhrase} />
+        {/if}
+        
+        <div class="grid gap-8">
+          <PostList />
+          <PostForm />
+        </div>
       </div>
     </div>
-  </div>
-</main>
+  </main>
 
-<ThemeToggle />
+  <ThemeToggle />
+{/if}
 
 <style>
   :global(body) {
