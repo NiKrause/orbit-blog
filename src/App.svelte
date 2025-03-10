@@ -28,6 +28,7 @@
   let seedPhrase: string | null = null;
   let showPasswordModal = true;
   let isNewUser = !encryptedSeedPhrase;
+  let canWrite = false;
 
   async function handleSeedPhraseCreated(event: CustomEvent) {
     const newSeedPhrase = generateMnemonic();
@@ -66,10 +67,13 @@
     console.log('orbitdb', $orbitdb)
   }
 
-  onMount(async () => {
-    // App initialization moved to handleSeedPhrase functions
-    // Modal will show automatically based on showPasswordModal state
-  })
+  /**
+   * Check if the user has write access to the posts database
+  */
+  $:if ($orbitdb && $postsDB && $identity) {
+      const access = $postsDB.access;
+      canWrite = access.write.includes($identity.id) && $postsDB.address === $postsDBAddress
+  }
 
   onDestroy(async () => {
     try {
@@ -192,8 +196,10 @@
         {/if}
         
         <div class="grid gap-8">
+          {#if canWrite}
+            <PostForm />
+          {/if}
           <PostList />
-          <PostForm />
         </div>
       </div>
     </div>

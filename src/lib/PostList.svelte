@@ -10,6 +10,7 @@
   let searchQuery = '';
   let selectedCategory: Category | 'All' = 'All';
   let selectedPostId: string | null = null;
+  let hoveredPostId = null; // Track the ID of the hovered post
 
   $: filteredPosts = $posts.filter(post => {
     const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -33,6 +34,11 @@
   function renderMarkdown(content: string): string {
     const rawHtml = marked(content);
     return DOMPurify.sanitize(rawHtml);
+  }
+
+  function selectPost(postId: string) {
+    selectedPostId = postId;
+    // Additional logic for when a post is selected
   }
 
   async function deletePost(post: Post, event: MouseEvent) {
@@ -86,11 +92,21 @@
       <h2 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Blog Posts</h2>
       <div class="space-y-2">
         {#each filteredPosts as post, index (post._id || index)}
-          <button
-            class="w-full text-left p-3 rounded-md transition-colors
-              {selectedPostId === post._id ? 'bg-indigo-50 dark:bg-indigo-900/50 border-indigo-500' : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700'}"
-            on:click={() => selectedPostId = post._id}
+          <div
+            class="w-full text-left p-3 rounded-md transition-colors cursor-pointer"
+            on:mouseover={() => hoveredPostId = post._id}
+            on:mouseout={() => hoveredPostId = null}
+            on:click={() => selectPost(post._id)}
           >
+            <button
+              class="ml-2 p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 {hoveredPostId === post._id ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300 ease-in-out"
+              on:click={(e) => deletePost(post, e)}
+              title="Delete post"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+              </svg>
+            </button>
             <div class="flex justify-between items-start">
               <div class="flex-1">
                 <h3 class="font-medium text-gray-900 dark:text-white overflow-hidden whitespace-nowrap" title={post.title}>
@@ -103,17 +119,8 @@
                   </span>
                 </div>
               </div>
-              <button
-                on:click={(e) => deletePost(post, e)}
-                class="ml-2 p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                title="Delete post"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-                </svg>
-              </button>
             </div>
-          </button>
+          </div>
         {/each}
       </div>
     </div>
@@ -161,5 +168,10 @@
   /* Ensure the title is styled correctly */
   h3 {
     max-width: 100%; /* Adjust as needed */
+  }
+
+  /* Add transition styles for opacity */
+  .transition-opacity {
+    transition: opacity 0.3s ease-in-out;
   }
 </style>
