@@ -3,6 +3,7 @@
   import type { RemoteDB } from './types';
   import QRCode from 'qrcode';
   import Modal from './Modal.svelte';
+  import { switchToRemoteDB } from './dbUtils';
 
   let dbAddress = '';
   let dbName = '';
@@ -136,42 +137,14 @@
     }
   }
 
-  async function switchToRemoteDB(address: string) {
-    let retry = true;
+  async function handleSwitchToRemoteDB(address: string) {
     isModalOpen = true;
     cancelOperation = false;
-
-    try {
-      while (retry && !cancelOperation) {
-        const db = await $orbitdb.open(address);
-        dbContents = await db.all();
-        console.log('dbContents', dbContents);
-
-        // Set blogName from dbContents
-        $blogName = dbContents.find(content => content.key === 'blogName')?.value?.value;
-        // Set blogDescription from dbContents
-        $blogDescription = dbContents.find(content => content.key === 'blogDescription')?.value?.value;
-        // Set postsDBAddress from dbContents
-        $postsDBAddress = dbContents.find(content => content.key === 'postsDBAddress')?.value?.value;
-
-        // Check if all required data is available
-        if ($blogName && $blogDescription && $postsDBAddress) {
-          // Load posts from postsDBAddress
-          $postsDB = await $orbitdb.open($postsDBAddress);
-          $posts = (await $postsDB.all()).map(post => {
-            const { _id, ...rest } = post.value;
-            return { ...rest, id: _id };
-          });
-          retry = false; // Stop retrying if all data is fetched
-        } else {
-          await new Promise(resolve => setTimeout(resolve, 500)); // Wait for 500ms before retrying
-        }
-      }
-    } catch (error) {
-      console.error('Failed to switch to remote DB:', error);
-    } finally {
-      isModalOpen = false; // Close the modal regardless of the outcome
-    }
+    modalMessage = "Loading data from the remote database...";
+    
+    await switchToRemoteDB(address, true);
+    
+    isModalOpen = false;
   }
 
   function closeModal() {
@@ -351,7 +324,7 @@
           <div class="flex items-center space-x-2">
             <button
               class="flex-1 text-left p-3 rounded-md transition-all duration-300 ease-in-out transform hover:scale-105 {$selectedDBAddress === db.address ? 'bg-gradient-to-r from-indigo-500 to-indigo-300 dark:from-indigo-800 dark:to-indigo-600 border-2 border-indigo-500' : 'bg-gradient-to-r from-gray-200 to-gray-100 dark:from-gray-700 dark:to-gray-600 hover:bg-gradient-to-r from-gray-300 to-gray-200 dark:from-gray-600 dark:to-gray-500 border border-gray-200 dark:border-gray-600'}"
-              on:click={() => switchToRemoteDB(db.address)}
+              on:click={() => handleSwitchToRemoteDB(db.address)}
             >
               <div class="flex justify-between items-center">
                 <div>

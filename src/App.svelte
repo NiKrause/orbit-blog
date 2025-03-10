@@ -17,6 +17,7 @@
   import { generateMnemonic } from 'bip39';
   import { getIdentity } from './lib/orbitdb';
   import { postsDB, postsDBAddress, posts, remoteDBs, remoteDBsDatabases, showDBManager, showPeers, showSettings, blogName, libp2p, helia, orbitdb, identity, identities, settingsDB, blogDescription } from './lib/store';
+  import Sidebar from './lib/Sidebar.svelte';
 
   let blockstore = new LevelBlockstore('./helia-blocks');
   let datastore = new LevelDatastore('./helia-data');
@@ -57,7 +58,6 @@
   })
 
   $:if($orbitdb){
-
         $orbitdb.open('settings', {
           type: 'documents',
           create: true,
@@ -80,8 +80,6 @@
           $postsDB = _db;
           console.log('postsDB', _db.address.toString())
           $postsDBAddress = _db.address.toString()
-          // $settingsDB.drop()
-          // 
         }).catch( err => console.log('error', err))
 
         $orbitdb.open('remote-dbs', {
@@ -135,48 +133,33 @@
 	<title>{$blogName} {__APP_VERSION__}</title>
 </svelte:head>
 
-<main class="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors">
-  <div class="max-w-7xl mx-auto py-8 px-4">
-    <h1 class="text-4xl font-bold text-center mb-8 text-gray-900 dark:text-white">{$blogName}</h1> 
-    <h6 class="text-sm text-center mb-8 text-gray-900 dark:text-white">{$blogDescription}</h6>
-    <h6>{__APP_VERSION__}</h6>
-    
-    <button 
-      class="mb-4 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors"
-      on:click={() => showDBManager.update(value => !value)}
-    >
-      {$showDBManager ? 'Hide' : 'Show'} Database Manager
-    </button>
+<main class="flex min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors">
+  <!-- Sidebar Component -->
+  <Sidebar />
+  
+  <!-- Main Content -->
+  <div class="flex-1 overflow-x-hidden">
+    <div class="max-w-7xl mx-auto py-8 px-4">
+      <h1 class="text-4xl font-bold text-center mb-8 text-gray-900 dark:text-white">{$blogName}</h1> 
+      <h6 class="text-sm text-center mb-8 text-gray-900 dark:text-white">{$blogDescription}</h6>
+      <h6>{__APP_VERSION__}</h6>
 
-    <button 
-      class="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-md transition-colors"
-      on:click={() => showPeers.update(value => !value)}
-    >
-      {$showPeers ? 'Hide' : 'Show'} Connected Peers
-    </button> 
+      {#if $showDBManager}
+        <DBManager />
+      {/if}
+      
+      {#if $showPeers}
+        <ConnectedPeers />
+      {/if}
 
-    <button 
-      class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors"
-      on:click={() => showSettings.update(value => !value)}
-    >
-      {$showSettings ? 'Hide' : 'Show'} Settings
-    </button> 
-
-    {#if $showDBManager}
-      <DBManager />
-    {/if}
-    
-    {#if $showPeers}
-      <ConnectedPeers />
-    {/if}
-
-    {#if $showSettings}
-      <Settings />
-    {/if}
-    
-    <div class="grid gap-8">
-      <PostList />
-      <PostForm />
+      {#if $showSettings}
+        <Settings />
+      {/if}
+      
+      <div class="grid gap-8">
+        <PostList />
+        <PostForm />
+      </div>
     </div>
   </div>
 </main>
