@@ -64,8 +64,8 @@
     
     <p class="mb-4 text-gray-700 dark:text-gray-300">
       {isNewUser 
-        ? 'Please create a password to encrypt your seed phrase. You will need this password to access your account in the future.'
-        : 'Please enter your password to decrypt your seed phrase and access your account.'}
+        ? 'Please create a password to encrypt your seed phrase. You will need this password to access your account in the future. The password is not transmitted over the network. You can switch off the network to proof that the password is not transmitted.'
+        : 'Please enter your password to decrypt your seed phrase and access your account. The password is not transmitted over the network. You can switch off the network to proof that the password is not transmitted.'}
     </p>
     
     <form on:submit|preventDefault={handleSubmit} class="space-y-4">

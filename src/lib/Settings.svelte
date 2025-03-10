@@ -1,7 +1,7 @@
 <script lang="ts">
 
   import { generateMnemonic } from 'bip39'
-  import { settingsDB, blogName, blogDescription, postsDBAddress } from './store';
+  import { settingsDB, blogName, blogDescription, postsDBAddress, categories } from './store';
   import { encryptSeedPhrase } from './cryptoUtils';
 
   export let seedPhrase: string | null = localStorage.getItem('seedPhrase') || generateMnemonic();
@@ -13,6 +13,7 @@
   let errorMessage = '';
   let successMessage = '';
   let showSeedPhrase = false; // State to toggle visibility
+  let newCategory = ''; // For adding new categories
   
   async function changePassword() {
     errorMessage = '';
@@ -50,6 +51,19 @@
   function toggleSeedVisibility() {
     showSeedPhrase = !showSeedPhrase;
   }
+
+  function addCategory() {
+    if (newCategory.trim() && !$categories.includes(newCategory.trim())) {
+      $categories = [...$categories, newCategory.trim()];
+      $settingsDB?.put({ _id: 'categories', value: $categories });
+      newCategory = '';
+    }
+  }
+
+  function removeCategory(category: string) {
+    $categories = $categories.filter(c => c !== category);
+    $settingsDB?.put({ _id: 'categories', value: $categories });
+  }
 </script>
 
 <div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
@@ -64,6 +78,39 @@
     <label class="block text-gray-700 dark:text-gray-300">Blog Description</label>
       <input type="text" class="w-full p-2 border rounded" value={$blogDescription} on:input={ event => $settingsDB?.put({ _id: 'blogDescription', value: event.target.value })}/>
   </div>
+
+  <!-- New categories section -->
+  <div class="mb-4">
+    <label class="block text-gray-700 dark:text-gray-300 mb-2">Post Categories</label>
+    <div class="flex mb-2">
+      <input 
+        type="text" 
+        class="flex-grow p-2 border rounded-l" 
+        placeholder="New category" 
+        bind:value={newCategory} 
+      />
+      <button 
+        class="bg-blue-500 text-white p-2 rounded-r"
+        on:click={addCategory}
+      >
+        Add
+      </button>
+    </div>
+    <div class="flex flex-wrap gap-2 mt-2">
+      {#each $categories as category}
+        <div class="bg-gray-200 dark:bg-gray-700 rounded-full px-3 py-1 flex items-center">
+          <span class="mr-2">{category}</span>
+          <button 
+            class="text-red-500 hover:text-red-700"
+            on:click={() => removeCategory(category)}
+          >
+            ×
+          </button>
+        </div>
+      {/each}
+    </div>
+  </div>
+
   <div class="mb-4">
     <label class="block text-gray-700 dark:text-gray-300">Seed Phrase (Encrypted and Stored Securely)</label>
     <div class="flex items-center">

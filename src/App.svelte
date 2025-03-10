@@ -17,7 +17,7 @@
   import { createPeerIdFromSeedPhrase } from './lib/utils'
   import { generateMnemonic } from 'bip39';
   import { getIdentity } from './lib/orbitdb';
-  import { postsDB, postsDBAddress, posts, remoteDBs, remoteDBsDatabases, showDBManager, showPeers, showSettings, blogName, libp2p, helia, orbitdb, identity, identities, settingsDB, blogDescription } from './lib/store';
+  import { postsDB, postsDBAddress, posts, remoteDBs, remoteDBsDatabases, showDBManager, showPeers, showSettings, blogName, libp2p, helia, orbitdb, identity, identities, settingsDB, blogDescription, categories } from './lib/store';
   import Sidebar from './lib/Sidebar.svelte';
   import { encryptSeedPhrase, decryptSeedPhrase, isEncryptedSeedPhrase } from './lib/cryptoUtils';
 
@@ -128,12 +128,17 @@
       result?.value?.value !== undefined ? ($blogDescription = result.value.value) : null
     );
     
+    $settingsDB.get('categories').then(result => 
+      result?.value?.value !== undefined ? ($categories = result.value.value) : null
+    );
+    
     $settingsDB.events.on('update', 
     async (entry) => {
       if (entry?.payload?.op === 'PUT') {
         const { _id, ...rest } = entry.payload.value;
         if(entry.payload.key==='blogName') $blogName = rest.value;
         if(entry.payload.key==='blogDescription') $blogDescription = rest.value;
+        if(entry.payload.key==='categories') $categories = rest.value;
        } else if (entry?.payload?.op === 'DEL') { }
     });
   }
@@ -196,10 +201,11 @@
         {/if}
         
         <div class="grid gap-8">
+          <PostList />
           {#if canWrite}
             <PostForm />
           {/if}
-          <PostList />
+
         </div>
       </div>
     </div>

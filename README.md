@@ -14,12 +14,17 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 ### Features
 - UI related
+    - [ ] internationalize the UI (en,de,fr,es,it,ru,...)
+    - [x] editable / flexible categories
     - [x] deploy to IPFS
     - [x] markdown support for posts 
     - [?] markdown support for comments
     - [x] search in posts 
     - [ ] search in comments
 - OrbitDB related
+    - [ ] when clicking on a peerId, open a modal to show information about the peer and request information such as (public blog names, impressum, etc.)
+    - [ ] publish blog on request
+    - [ ] enter optional imprint in settings 
     - [ ] when adding a blog address think about optionally adding and dialing peerId too (at least when scanning?)
         - [ ] sometimes the db cannot be found nor opened then data like blogName, blogAddress can't be read, in such case it might be interesting to implmenent a retry mechanism, e.g. adding it to a queue and try every 20 seconds and remove it from the queue as soon it could connect       
     - [x] blog settings via private settings db
