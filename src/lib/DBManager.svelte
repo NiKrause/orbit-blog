@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import { settingsDB, postsDB, remoteDBs, selectedDBAddress, posts, orbitdb, identity, remoteDBsDatabases, libp2p, blogName, blogDescription, postsDBAddress } from './store';
   import type { RemoteDB } from './types';
   import QRCode from 'qrcode';
@@ -7,7 +8,6 @@
 
   let dbAddress = '';
   let dbName = '';
-  let remoteDBsList: RemoteDB[] = [];
   let qrCodeDataUrl = '';
   let showScanner = false;
   let videoElement: HTMLVideoElement;
@@ -17,16 +17,21 @@
   let did = '';
   let modalMessage = "Loading data from the remote database...";
   let cancelOperation = false;
+  let queueCheckInterval: number;
+  let isQueueRunning = false;
 
   $: {
     peerId = $libp2p?.peerId.toString();
     did = $identity?.id;
+    if ($remoteDBs && !queueCheckInterval) {
+      queueCheckInterval = window.setInterval(processQueue, 30 * 1000); //every 30 seconds
+      processQueue();
+    }
   }
 
   $:if ($settingsDB) {  
     $selectedDBAddress = $settingsDB.address;
     generateQRCode($selectedDBAddress);
-    console.log('selectedDBAddress', $selectedDBAddress)
   }
 
   async function generateQRCode(text: string) {
@@ -103,35 +108,156 @@
     }
   }
 
+  async function processQueue() {
+    if (isQueueRunning) return;
+    
+    try {
+      isQueueRunning = true;
+      console.log('Processing database queue...');
+      
+      const dbsToFetch = $remoteDBs.filter(db => db.fetchLater);
+      
+      if (dbsToFetch.length === 0) {
+        console.log('No databases in the queue.');
+        return;
+      }
+      
+      console.log(`Found ${dbsToFetch.length} database(s) in the queue.`);
+      
+      for (const db of dbsToFetch) {
+        try {
+          console.log(`Processing queued database: ${db.name} (${db.address})`);
+          
+          const settingsDb = await $orbitdb.open(db.address);
+          const settingsData = await settingsDb.all()
+          console.log('settingsData', settingsData);
+          console.log('settingsDb', settingsDb);
+          if (!db.name || db.name === 'Unknown Blog') {
+            console.log('db.name', db.name);
+            const blogNameEntry = await settingsDb.get('blogName');
+            console.log('blogNameEntry', blogNameEntry);
+            if (blogNameEntry?.value?.value) {
+              db.name = blogNameEntry.value.value;
+              db.fetchLater = false;
+            }else db.fetchLater = true;
+          }
+          
+          if (!db.postsAddress) {
+            console.log('db.postsAddress', db.postsAddress);
+            const postsAddressEntry = await settingsDb.get('postsDBAddress');
+            console.log('postsAddressEntry', postsAddressEntry);
+            if (postsAddressEntry?.value?.value) {
+              db.postsAddress = postsAddressEntry.value.value;
+              
+              const postsDb = await $orbitdb.open(db.postsAddress);
+              const allPosts = await postsDb.all();
+              db.fetchLater = false;
+              console.log(`Successfully fetched ${allPosts.length} posts from ${db.name}`);
+            }else db.fetchLater = true;
+          }
+          db.lastProcessed = new Date().toISOString();
+          
+          await $remoteDBsDatabases.put({ _id: db.id, ...db });
+          
+          console.log(`Successfully processed queued database: ${db.name}`);
+        } catch (error) {
+          console.error(`Error processing queued database ${db.name}:`, error);
+          db.lastAttempt = new Date().toISOString();
+          await $remoteDBsDatabases.put({ _id: db.id, ...db });
+        }
+      }
+      
+      $remoteDBs = [...$remoteDBs];
+      
+    } catch (error) {
+      console.error('Error processing database queue:', error);
+    } finally {
+      isQueueRunning = false;
+    }
+  }
+
+  onDestroy(() => {
+    if (queueCheckInterval) {
+      clearInterval(queueCheckInterval);
+    }
+  });
+
   async function addRemoteDB() {
     console.log('Adding DB:', { dbAddress, dbName });
     if (dbAddress) {
+      isModalOpen = true;
+      modalMessage = "Opening remote database...";
       
-      $orbitdb.open(dbAddress).then( _db => {
-            console.log('DB opened successfully:', _db);
-
-            _db.get('blogName').then( _ => {
-
-              dbName = _?.value?.value;
-              console.log('dbName opened successfully:  ', dbName, dbAddress);
-
-              const newDB: RemoteDB = {
-                id: crypto.randomUUID(),
-                name: dbName,
-                address: dbAddress,
-                date: new Date().toISOString().split('T')[0]
-              };
-
-              $remoteDBsDatabases.put({ _id: newDB.id, ...newDB });
-              console.log('Database entry added:', newDB);
-              remoteDBsList = [...remoteDBsList, newDB];
-              $remoteDBs = remoteDBsList;
-              console.log('Updated remoteDBsList:', remoteDBsList);
-              console.log('Store value:', $remoteDBs);
-              dbAddress = '';
-              dbName = '';
-            });   
-          }).catch( err => console.log('error', err))
+      try {
+        const newDB: RemoteDB = {
+          id: crypto.randomUUID(),
+          name: dbName || 'Unknown Blog',
+          address: dbAddress,
+          fetchLater: true,
+          date: new Date().toISOString().split('T')[0]
+        };
+        
+        const settingsDb = await $orbitdb.open(dbAddress);
+        console.log('DB opened successfully:', settingsDb);
+        const settingsData = await settingsDb.all()
+        console.log('settingsData', settingsData);
+        
+        const blogNameEntry = await settingsDb.get('blogName');
+        if (blogNameEntry?.value?.value) {
+          newDB.name = blogNameEntry.value.value;
+        }
+        
+        const postsAddressEntry = await settingsDb.get('postsDBAddress');
+        console.log('postsAddressEntry', postsAddressEntry);
+        if (postsAddressEntry?.value?.value) {
+          newDB.postsAddress = postsAddressEntry.value.value;
+          
+          try {
+            console.log('Opening remote posts database...', newDB.postsAddress);
+            modalMessage = "Opening remote posts database...";
+            const postsDb = await $orbitdb.open(newDB.postsAddress);
+            console.log('Remote posts DB opened successfully:', postsDb);
+            
+            modalMessage = "Fetching remote posts...";
+            const allPosts = await postsDb.all();
+            console.log('Remote posts:', allPosts);
+            
+            newDB.fetchLater = false;
+          } catch (error) {
+            console.error('Error opening posts database, will try later:', error);
+          }
+        }
+        
+        await $remoteDBsDatabases.put({ _id: newDB.id, ...newDB });
+        console.log('Database entry added:', newDB);
+        $remoteDBs = [...$remoteDBs, newDB];
+        
+        dbAddress = '';
+        dbName = '';
+        isModalOpen = false;
+      } catch (err) {
+        console.error('Error opening remote database:', err);
+        modalMessage = `Error: ${err.message || 'Unknown error'} - Adding to queue for later.`;
+        
+        const newDB: RemoteDB = {
+          id: crypto.randomUUID(),
+          name: dbName || 'Unknown Blog',
+          address: dbAddress,
+          fetchLater: true,
+          date: new Date().toISOString().split('T')[0]
+        };
+        
+        await $remoteDBsDatabases.put({ _id: newDB.id, ...newDB });
+        console.log('Database entry added to queue:', newDB);
+        $remoteDBs = [...$remoteDBs, newDB];
+        
+        dbAddress = '';
+        dbName = '';
+        
+        setTimeout(() => {
+          isModalOpen = false;
+        }, 3000);
+      }
     } else {
       console.log('Missing required fields');
     }
@@ -155,13 +281,30 @@
   async function removeRemoteDB(id: string) {
     console.log('Removing DB:', id);
     await $remoteDBsDatabases.del(id);
-    remoteDBsList = remoteDBsList.filter(db => {
-      console.log('db', db);
-      console.log('id', id);
+    $remoteDBs = $remoteDBs.filter(db => {
+
+      if(db.id === id) { //drop while filtering
+        $orbitdb.open(db.address).then(remotedb => {
+          console.log('remotedb', remotedb);
+          remotedb.get('postsDBAddress').then(postsAddressEntry => {
+            console.log('postsAddressEntry', postsAddressEntry);
+            if (postsAddressEntry?.value?.value) {
+              $orbitdb.open(postsAddressEntry.value.value).then(postsDb => {
+                postsDb.drop();
+                console.log('dropped posts db', postsAddressEntry.value.value);
+                remotedb.drop()
+                console.log('dropped db', remotedb.address);
+              })
+            } else {
+              remotedb.drop()
+              console.log('no postsAddressEntry dropped db anyways', remotedb.address);
+            }
+          })
+      })
+      }
       return db.id !== id;
     });
-    console.log('Updated remoteDBsList:', remoteDBsList);
-    $remoteDBs = remoteDBsList;
+    console.log('Updated remoteDBs:', $remoteDBs);
   }
 
   async function dropAndSync() {

@@ -77,6 +77,7 @@
           class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
           placeholder="Enter your password"
           autocomplete="current-password"
+          autofocus
         />
       </div>
       

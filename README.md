@@ -15,8 +15,10 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 ### Features
 - Issues:
+    - [ ] Scan QR-Code isn't fully implemented
     - [x] peer-to-peer via WebRTC between two browsers doesn't work
-    - [ ] adding & deleting blog databases works only with reloading the page
+    - [ ] disable DID as orbit.id since not yet supported by voyager  
+    - [x] adding & deleting blog databases works only with reloading the page
     - [ ] in settings the storing the posts db address should happen somewhat automatically, because if forgotten, others cannot add it to there saved blogs
     - [ ] relay not accessible - renew ssl certifcate
     - [x] password should only be asked if a seed phrase is in local storage and we have chose persistent identity 
@@ -68,7 +70,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [x] add posts settings db  
     - [ ] create encrypted backup & restore of posts, settings, remoteDBs and store on Filecoin, Arweave etc.  (Dropbox, Google Drive, Apple Cloud, Yandex Cloud etc.)
     - [ ] setup your own relay / voyager
-    - [ ] enable pubsub ipfs pinning of posts and comments 
+    - [?] enable pubsub ipfs pinning of posts and comments 
         - every post results into a new CID which needs to be published to pubsub pinning service
         - every CID needs to be packaged into a metadata.json name, description, media (CID) 
         - signature and public key from arriving pubsub message (if available)
