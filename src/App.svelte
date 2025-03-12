@@ -3,6 +3,10 @@
   import { onMount, onDestroy } from 'svelte';
   import { createOrbitDB, IPFSAccessController } from '@orbitdb/core';
   import { createLibp2p } from 'libp2p'
+  import { multiaddr } from '@multiformats/multiaddr'
+  import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string';
+  import { privateKeyFromProtobuf } from '@libp2p/crypto/keys';
+
   import { createHelia } from 'helia'
   import { LevelDatastore } from 'datastore-level'
   import { LevelBlockstore } from 'blockstore-level'
@@ -13,34 +17,43 @@
   import ConnectedPeers from './lib/ConnectedPeers.svelte';
   import Settings from './lib/Settings.svelte';
   import PasswordModal from './lib/PasswordModal.svelte';
-  import { Libp2pOptions } from './lib/config'
-  import { createPeerIdFromSeedPhrase } from './lib/utils'
+  import { Libp2pOptions, multiaddrs } from './lib/config'
   import { generateMnemonic } from 'bip39';
   import { getIdentity } from './lib/orbitdb';
-  import { postsDB, postsDBAddress, posts, remoteDBs, remoteDBsDatabases, showDBManager, showPeers, showSettings, blogName, libp2p, helia, orbitdb, identity, identities, settingsDB, blogDescription, categories } from './lib/store';
+  import { postsDB, postsDBAddress, posts, remoteDBs, remoteDBsDatabases, showDBManager, showPeers, showSettings, blogName, libp2p, helia, orbitdb, identity, identities, settingsDB, blogDescription, categories, seedPhrase } from './lib/store';
   import Sidebar from './lib/Sidebar.svelte';
   import { encryptSeedPhrase, decryptSeedPhrase, isEncryptedSeedPhrase } from './lib/cryptoUtils';
+  import { Voyager } from '@orbitdb/voyager'
+  import { generateMasterSeed, generateAndSerializeKey } from './lib/utils';
 
   let blockstore = new LevelBlockstore('./helia-blocks');
   let datastore = new LevelDatastore('./helia-data');
 
   let encryptedSeedPhrase = localStorage.getItem('encryptedSeedPhrase');
-  let seedPhrase: string | null = null;
-  let showPasswordModal = true;
+
+  // let seedPhrase: string | null = null;
+  let showPasswordModal = encryptedSeedPhrase ? true : false;
   let isNewUser = !encryptedSeedPhrase;
   let canWrite = false;
+  let voyager: Voyager | null = null;
+
+  if(!encryptedSeedPhrase) {
+      console.log('no seed phrase, generating new one')
+      $seedPhrase = generateMnemonic();
+      initializeApp();
+  }
 
   async function handleSeedPhraseCreated(event: CustomEvent) {
     const newSeedPhrase = generateMnemonic();
     const encryptedPhrase = await encryptSeedPhrase(newSeedPhrase, event.detail.password);
     localStorage.setItem('encryptedSeedPhrase', encryptedPhrase);
-    seedPhrase = newSeedPhrase;
+    $seedPhrase = newSeedPhrase;
     showPasswordModal = false;
     initializeApp();
   }
 
   async function handleSeedPhraseDecrypted(event: CustomEvent) {
-    seedPhrase = event.detail.seedPhrase;
+    $seedPhrase = event.detail.seedPhrase;
     showPasswordModal = false;
     initializeApp();
   }
@@ -48,23 +61,67 @@
   async function initializeApp() {
     if (!seedPhrase) return;
     
-    console.log('App mounted')
-    const peerId = await createPeerIdFromSeedPhrase(seedPhrase);
-    console.log('peerId', peerId)
-    $libp2p = await createLibp2p({ peerId, ...Libp2pOptions })
+    console.log('initializeApp',)
+    const masterSeed = generateMasterSeed($seedPhrase, "password");
+    const { hex } = await generateAndSerializeKey(masterSeed.subarray(0, 32))
+    const privKeyBuffer = uint8ArrayFromString(hex, 'hex');
+    const _keyPair = await privateKeyFromProtobuf(privKeyBuffer);
+    console.log('_keyPair', _keyPair)
+    $libp2p = await createLibp2p({ privateKey: _keyPair, ...Libp2pOptions })
     console.log('libp2p', $libp2p)
     $helia = await createHelia({ libp2p: $libp2p, datastore, blockstore })
     console.log('helia', $helia)
-    const ret = await getIdentity($helia)
+    const ret = await getIdentity($helia, $seedPhrase)
     $identity = ret.identity
     $identities = ret.identities
+    
     $orbitdb = await createOrbitDB({
       ipfs: $helia,
       identity: ret.identity,
       storage: blockstore,
       directory: './orbitdb',
     })
-    console.log('orbitdb', $orbitdb)
+
+    const addr = multiaddr(multiaddrs[0])
+    voyager = await Voyager({ orbitdb: $orbitdb, address: addr})
+    console.log('voyager', voyager)
+    $libp2p?.addEventListener('peer:discovery', async (evt) => {
+      const peer = evt.detail
+      // console.log('peer', peer)
+      console.log(`Peer ${$libp2p?.peerId.toString()} discovered: ${peer.id.toString()}`)
+      console.log('peer.multiaddrs', peer)
+      // Check if we're already connected to this peer
+      const connections = $libp2p?.getConnections(peer.id)
+      if (!connections || connections.length === 0) {
+        console.log(`Dialing new peer: ${peer.id.toString()}`)
+        
+        // Try each multiaddr until one succeeds
+        let connected = false
+        for (const addr of peer.multiaddrs) {
+          try {
+              console.log('dialing', addr.toString())
+              await $libp2p?.dial(addr)
+              console.log('Successfully dialed:', addr.toString())
+              connected = true
+            break // Exit the loop once successfully connected
+          } catch (error) {
+            console.warn(`Failed to dial ${addr.toString()}:`, error.message)
+          }
+        }
+        
+        if (!connected) {
+          console.error(`Failed to connect to peer ${peer.id.toString()} on all addresses`)
+        }
+      } else {
+        console.log(`Already connected to peer: ${peer.id.toString()}`)
+      }
+    })
+
+    $libp2p?.addEventListener('peer:connect', (evt) => {
+      console.log('evt', evt.detail.toString())
+      console.log('Connected to %s', evt.detail.toString()) // Log connected peer
+    })
+
   }
 
   /**
@@ -84,8 +141,8 @@
     }
   })
 
-  $:if($orbitdb){
-        $orbitdb.open('settings', {
+  $:if($orbitdb && voyager){
+    voyager?.orbitdb.open('settings', {
           type: 'documents',
           create: true,
           overwrite: false,
@@ -93,9 +150,12 @@
           identity: $identity,
           identities: $identities,
           AccessController: IPFSAccessController({write: [$identity.id]}),
-        }).then(_db => $settingsDB = _db).catch( err => console.log('error', err))
+        }).then(_db => {
+          $settingsDB = _db;
+          // voyager?.add(_db.address).then((ret) => console.log('voyager added', ret))
+        }).catch( err => console.log('error', err))
         
-        $orbitdb.open('posts', {
+        voyager?.orbitdb.open('posts', {
           type: 'documents',
           create: true,
           overwrite: false,
@@ -105,18 +165,22 @@
           AccessController: IPFSAccessController({write: [$identity.id]}),
         }).then(_db => {
           $postsDB = _db;
+          // voyager?.add(_db.address)
           console.log('postsDB', _db.address.toString())
           $postsDBAddress = _db.address.toString()
         }).catch( err => console.log('error', err))
 
-        $orbitdb.open('remote-dbs', {
+        voyager?.orbitdb.open('remote-dbs', {
           type: 'documents',
           create: true,
           overwrite: false,
           identities: $identities,
           identity: $identity,
           AccessController: IPFSAccessController({write: [$identity.id]}),
-        }).then(_db => $remoteDBsDatabases = _db).catch(err => console.error('Error opening remote DBs database:', err));
+        }).then(_db => {
+          $remoteDBsDatabases = _db;
+          // voyager?.add(_db.address)
+        }).catch(err => console.error('Error opening remote DBs database:', err));
   }
 
   $:if($settingsDB) {

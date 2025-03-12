@@ -6,14 +6,15 @@ import { noise } from "@chainsafe/libp2p-noise";
 import { bootstrap } from '@libp2p/bootstrap'
 import { circuitRelayTransport } from '@libp2p/circuit-relay-v2'
 import { yamux } from "@chainsafe/libp2p-yamux";
-import { identify } from "@libp2p/identify"
+import { identify, identifyPush } from "@libp2p/identify"
 import { autoNAT } from "@libp2p/autonat"
 import { dcutr } from '@libp2p/dcutr'
 import { gossipsub } from "@chainsafe/libp2p-gossipsub"
+import { ping } from '@libp2p/ping'
 import { pubsubPeerDiscovery } from '@libp2p/pubsub-peer-discovery'
 /*import { FaultTolerance } from '@libp2p/interface-transport'*/
 
-const multiaddrs =
+export const multiaddrs =
     import.meta.env.MODE === 'development'
         ? import.meta.env.VITE_SEED_NODES_DEV.replace('\n','').split(',')
         : import.meta.env.VITE_SEED_NODES.replace('\n','').split(',')
@@ -29,6 +30,7 @@ export const bootstrapConfig = {list: multiaddrs};
 export const Libp2pOptions = {
     addresses: {
         listen: [
+            '/p2p-circuit',
             "/webrtc",
             "/webtransport",
             "/wss", "/ws",
@@ -37,7 +39,7 @@ export const Libp2pOptions = {
     transports: [
         webTransport(),
         webSockets({filter: filters.all}),
-         webRTC({
+        webRTC({
              rtcConfiguration: {
                  iceServers:[{
                      urls: [
@@ -51,10 +53,7 @@ export const Libp2pOptions = {
         circuitRelayTransport({ discoverRelays: 1 })
         // kadDHT({}),
     ],
-    connectionEncryption: [noise()],
-/*    transportManager: {
-        faultTolerance: FaultTolerance.NO_FATAL
-    },*/
+    connectionEncrypters: [noise()],
     streamMuxers: [
         yamux(),
     ],
@@ -68,13 +67,19 @@ export const Libp2pOptions = {
         pubsubPeerDiscovery({
             interval: 10000,
             topics: pubSubPeerDiscoveryTopics, // defaults to ['_peer-discovery._p2p._pubsub']
-            listenOnly: false
+            listenOnly: false,
         })
     ],
     services: {
         identify: identify(),
+        identifyPush: identifyPush(),
+        ping: ping(),
         autoNAT: autoNAT(),
         dcutr: dcutr(),
         pubsub: gossipsub({ allowPublishToZeroTopicPeers: true, canRelayMessage: true })
-    }
+    },
+    connectionManager: {
+        autoDial: true,
+        minConnections: 3,
+    },
 }

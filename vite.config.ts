@@ -16,7 +16,14 @@ export default defineConfig({
   plugins: [
     svelte(),
     wasm(),
-    nodePolyfills(),
+    nodePolyfills({
+      include: ['path', 'util', 'buffer', 'process', 'events','crypto','os', 'stream', 'string_decoder'],
+      globals: {
+        Buffer: true,
+        global: true,
+        process: true,
+      },
+    }),
     VitePWA({ 
       registerType: 'autoUpdate',
       devOptions: {

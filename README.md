@@ -5,6 +5,7 @@
     <td><img src="./public/orbitbloglogo-700.png" width="300" alt="Orbit Blog Logo"></td>
   </tr>
 </table>
+Note! This software is currently in alpha version status and thus may change, break backwards compatibility or contain major issues. It has not been security audited. Use it accordingly.
 
 ### Install as Progressive Web App (PWA)
 
@@ -13,15 +14,33 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 [![QR Code to PWA](/public/ipns.dweb.link.png)](https://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g.ipns.dweb.link/)
 
 ### Features
+- Issues:
+    - [x] peer-to-peer via WebRTC between two browsers doesn't work
+    - [ ] adding & deleting blog databases works only with reloading the page
+    - [ ] in settings the storing the posts db address should happen somewhat automatically, because if forgotten, others cannot add it to there saved blogs
+    - [ ] relay not accessible - renew ssl certifcate
+    - [x] password should only be asked if a seed phrase is in local storage and we have chose persistent identity 
+    - [x] peerId is a new one after each page load even if we have a persistent identity
+    - [?] can it be useful to have a new peerId even if identity is persistent? What would be the draw back?   
 - UI related
-    - [ ] internationalize the UI (en,de,fr,es,it,ru,...)
+    - [ ] internationalize the UI (en,de,fr,es,it,ru,...) 
+    - [ ] orbitdb address (blog address) should be possible to be given over the url in hash router /#/orbitdb/xyz
     - [x] editable / flexible categories
+    - [ ] editable posts
     - [x] deploy to IPFS
     - [x] markdown support for posts 
     - [?] markdown support for comments
     - [x] search in posts 
     - [ ] search in comments
+    - [ ] add about
 - OrbitDB related
+    - [ ] overwrite seedPhrase and generate new peerId and identity (did)
+    - [ ] Voyager evaluation
+        - [x] install voyager as pinning service https://github.com/orbitdb/voyager/tree/main
+        - [x] add db addresses to voyager
+        - [ ] support DID on voyager 
+        - [ ] make voyager support pubsub peer discovery
+    - [ ] add first production blog 
     - [ ] when clicking on a peerId, open a modal to show information about the peer and request information such as (public blog names, impressum, etc.)
     - [ ] publish blog on request
     - [ ] enter optional imprint in settings 
@@ -47,9 +66,9 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
             - https://github.com/silkroadnomad/deContact/blob/main/src/lib/network/identityProvider.js
             - https://github.com/silkroadnomad/deContact/blob/main/src/utils/utils.js#L34
     - [x] add posts settings db  
-    - [ ] create encrypted backup & restore of posts, settings, remoteDBs and store on Filecoin, Arweave etc.
-    - [ ] setup your own relay
-    - [ ] enable pubsub ipfs pinning of posts and comments
+    - [ ] create encrypted backup & restore of posts, settings, remoteDBs and store on Filecoin, Arweave etc.  (Dropbox, Google Drive, Apple Cloud, Yandex Cloud etc.)
+    - [ ] setup your own relay / voyager
+    - [ ] enable pubsub ipfs pinning of posts and comments 
         - every post results into a new CID which needs to be published to pubsub pinning service
         - every CID needs to be packaged into a metadata.json name, description, media (CID) 
         - signature and public key from arriving pubsub message (if available)
@@ -64,7 +83,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
         - keep secure private key / persistent peer-id on phone
         - implement One-Time-Access-Controller with own stream protocol and qr-code peering (phone accepts simple pubsub peering messages with simple pin code comparison)
     - [x] DBManager connect & replicated remote blogs
-    - [ ] demonstrate webrtc-direct connections without relay-server but SDP-QR-Codes or SDP - Voice
+    - [ ] demonstrate webrtc-direct connections without relay-server but SDP-QR-Codes, SDP-voice or browser bluetooth
     - [ ] upload & replicate images / integrate ipfs images cids into markdown
     - [ ] implement svelte components into markdown so they they can be executed / upload svelte code as attachment for the post
 - App related
@@ -75,3 +94,9 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [x] version management
     - [ ] e2e tests
     - [ ] ci / cd
+        - build project inside docker
+        - publish to ipfs inside docker
+        - extract CID of build folder
+        - pin build cid on pinning service
+        - tag version on github with CID
+        - display version and CID inside settings / about 

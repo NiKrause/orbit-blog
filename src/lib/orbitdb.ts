@@ -2,8 +2,8 @@
 import { convertTo32BitSeed, generateMasterSeed } from './utils';
 import createIdentityProvider from './identityProvider';
 
-export async function getIdentity(_helia) {
-  let seedPhrase = localStorage.getItem('seedPhrase');
+export async function getIdentity(_helia, seedPhrase: string) {
+  // let seedPhrase = localStorage.getItem('seedPhrase');
   const masterSeed = generateMasterSeed(seedPhrase, "password")  
   const identitySeed = convertTo32BitSeed(masterSeed)
   const type = 'ed25519' 

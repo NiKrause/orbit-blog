@@ -2,14 +2,13 @@
   import type { Category } from './types';
   import { marked } from 'marked';
   import DOMPurify from 'dompurify';
-  import { postsDB } from './store';
+  import { postsDB, categories } from './store';
 
   let title = '';
   let content = '';
   let category: Category = 'Bitcoin';
   let showPreview = false;
 
-  const categories: Category[] = ['Bitcoin', 'Ethereum', 'DeFi', 'NFTs', 'Trading'];
 
   async function handleSubmit() {
     console.log('Creating new post:', { title, category });
@@ -67,7 +66,7 @@
       bind:value={category}
       class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
     >
-      {#each categories as cat}
+      {#each $categories as cat}
         <option value={cat}>{cat}</option>
       {/each}
     </select>

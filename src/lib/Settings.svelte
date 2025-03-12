@@ -1,12 +1,12 @@
 <script lang="ts">
 
-  import { generateMnemonic } from 'bip39'
-  import { settingsDB, blogName, blogDescription, postsDBAddress, categories } from './store';
+  // import { generateMnemonic } from 'bip39'
+  import { settingsDB, blogName, blogDescription, postsDBAddress, categories, seedPhrase } from './store';
   import { encryptSeedPhrase } from './cryptoUtils';
 
-  export let seedPhrase: string | null = localStorage.getItem('seedPhrase') || generateMnemonic();
+  // export let seedPhrase: string | null = localStorage.getItem('encryptedSeedPhrase') || generateMnemonic();
   
-  let persistentSeedPhrase = true; // Default to true since we're always encrypting now
+  let persistentSeedPhrase = false; // Default to true since we're always encrypting now
   let showChangePasswordModal = false;
   let newPassword = '';
   let confirmNewPassword = '';
@@ -114,7 +114,7 @@
   <div class="mb-4">
     <label class="block text-gray-700 dark:text-gray-300">Seed Phrase (Encrypted and Stored Securely)</label>
     <div class="flex items-center">
-      <input type="{showSeedPhrase ? 'text' : 'password'}" class="w-full p-2 border rounded" value={seedPhrase || ''} readonly />
+      <input type="{showSeedPhrase ? 'text' : 'password'}" class="w-full p-2 border rounded" value={$seedPhrase || ''} />
       <button 
         class="ml-2 p-2 rounded"
         on:click={toggleSeedVisibility}

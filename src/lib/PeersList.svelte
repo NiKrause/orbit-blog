@@ -32,10 +32,12 @@
   function updatePeersList() {
     if ($helia?.libp2p) {
       const connections = $helia.libp2p.getConnections();
+      // console.log('connections', connections)
       peers = connections.map(conn => ({
         id: conn.remotePeer.toString(),
         shortId: getShortPeerId(conn.remotePeer.toString()),
         connected: conn.status === 'open',
+        address: conn.remoteAddr.toString(),
         transport: getTransportFromMultiaddr(conn)
       }));
     }
@@ -71,10 +73,10 @@
   {#if peers.length === 0}
     <p class="text-[8px] text-gray-500 dark:text-gray-400">No peers connected</p>
   {:else}
-    {#each peers as peer (peer.id)}
+    {#each peers as peer (peer.address)}
       <div 
         class="flex items-center py-0.5 px-1 rounded text-[8px] text-gray-800 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700"
-        title={peer.id}
+        title={peer.address}
       >
         <span class="mr-1">{peer.shortId}</span>
         <span class={`h-1.5 w-1.5 rounded-full mr-1 ${peer.connected ? 'bg-green-500' : 'bg-red-500'}`}></span>

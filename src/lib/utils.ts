@@ -46,11 +46,11 @@ export const generateMasterSeed = (mnemonicSeedphrase, password, toHex = false) 
  */
 export async function createPeerIdFromSeedPhrase(seedPhrase) { 
   const masterSeed = generateMasterSeed(seedPhrase, "password");
-  const privKey = await generateAndSerializeKey(masterSeed.subarray(0, 32))
-  const encoded = uint8ArrayFromString(privKey, 'hex')
+  const {keyPair, hex} = await generateAndSerializeKey(masterSeed.subarray(0, 32))
+  const encoded = uint8ArrayFromString(hex, 'hex')
   const privateKey = await keys.unmarshalPrivateKey(encoded)
   const peerId = await createFromPrivKey(privateKey)
-  return peerId
+  return {peerId, privateKey}
 }
 
 
@@ -60,13 +60,15 @@ export const createHdKeyFromMasterKey = (masterseed, network) => {
 
 export async function generateAndSerializeKey(seed: Uint8Array): Promise<string> {
   // Generate an Ed25519 key pair from the seed
-  const keyPair = await keys.generateKeyPairFromSeed('Ed25519', seed, 256);
+  // const keyPair = await keys.generateKeyPairFromSeed('Ed25519', seed);
+  const keyPair = await keys.generateKeyPairFromSeed('Ed25519', seed)
+  console.log('keyPair', keyPair)
 
   // Marshal the private key to a protobuf format
   const marshalledPrivateKey = await keys.marshalPrivateKey(keyPair);
 
   // Convert the marshalled private key to a hex string
-  return Buffer.from(marshalledPrivateKey).toString('hex');
+  return {keyPair, hex: Buffer.from(marshalledPrivateKey).toString('hex')}
 }
 
   

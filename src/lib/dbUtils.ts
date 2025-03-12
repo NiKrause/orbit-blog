@@ -40,7 +40,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
           return { ...rest, id: _id };
         });
         posts.set(allPosts);
-        
+        console.log('allPosts', allPosts.length)
         retry = false; // Stop retrying if all data is fetched
       } else {
         await new Promise(resolve => setTimeout(resolve, 500)); // Wait for 500ms before retrying
