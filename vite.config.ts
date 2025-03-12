@@ -56,6 +56,14 @@ export default defineConfig({
     target: 'esnext',
     assetsDir: 'assets',
     rollupOptions: {
+      external: [
+        // Exclude Node.js built-ins that are used by @orbitdb/voyager but not needed in browser
+        'fs',
+        'path',
+        'node:fs/promises',
+        'node:fs',
+        'vm'
+      ],
       output: {
         assetFileNames: 'assets/[name].[ext]'
       }
