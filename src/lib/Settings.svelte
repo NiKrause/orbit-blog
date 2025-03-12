@@ -15,6 +15,7 @@
   let showSeedPhrase = false; // State to toggle visibility
   let newCategory = ''; // For adding new categories
   
+  $: $settingsDB?.all().then(result => console.log('settingsDB.all()', result))
   async function changePassword() {
     errorMessage = '';
     successMessage = '';
@@ -88,6 +89,11 @@
         class="flex-grow p-2 border rounded-l" 
         placeholder="New category" 
         bind:value={newCategory} 
+        on:keydown={(event) => {
+          if (event.key === 'Enter') {
+            addCategory();
+          }
+        }}
       />
       <button 
         class="bg-blue-500 text-white p-2 rounded-r"

@@ -19,6 +19,7 @@
   import PasswordModal from './lib/PasswordModal.svelte';
   import { Libp2pOptions, multiaddrs } from './lib/config'
   import { generateMnemonic } from 'bip39';
+  import { Identities } from '@orbitdb/core'
   import { getIdentity } from './lib/orbitdb';
   import { postsDB, postsDBAddress, posts, remoteDBs, remoteDBsDatabases, showDBManager, showPeers, showSettings, blogName, libp2p, helia, orbitdb, identity, identities, settingsDB, blogDescription, categories, seedPhrase } from './lib/store';
   import Sidebar from './lib/Sidebar.svelte';
@@ -71,13 +72,17 @@
     console.log('libp2p', $libp2p)
     $helia = await createHelia({ libp2p: $libp2p, datastore, blockstore })
     console.log('helia', $helia)
-    const ret = await getIdentity($helia, $seedPhrase)
-    $identity = ret.identity
-    $identities = ret.identities
+    // const ret = await getIdentity($helia, $seedPhrase) //DID idntity
+      // = ret.identity
+    // $identities = ret.identities
+    $identities = await Identities({ ipfs: $helia })
+    $identity = await $identities.createIdentity({ id: 'me' })
+  
     
     $orbitdb = await createOrbitDB({
       ipfs: $helia,
-      identity: ret.identity,
+      //identity: ret.identity,
+      identity: $identity,
       storage: blockstore,
       directory: './orbitdb',
     })
@@ -142,6 +147,7 @@
   })
 
   $:if($orbitdb && voyager){
+    console.log('connecting to voyager')
     voyager?.orbitdb.open('settings', {
           type: 'documents',
           create: true,
@@ -152,7 +158,8 @@
           AccessController: IPFSAccessController({write: [$identity.id]}),
         }).then(_db => {
           $settingsDB = _db;
-          // voyager?.add(_db.address).then((ret) => console.log('voyager added', ret))
+          window.settingsDB = _db;
+          voyager?.add(_db.address).then((ret) => console.log('voyager added settingsDB', ret))
         }).catch( err => console.log('error', err))
         
         voyager?.orbitdb.open('posts', {
@@ -165,8 +172,10 @@
           AccessController: IPFSAccessController({write: [$identity.id]}),
         }).then(_db => {
           $postsDB = _db;
-          // voyager?.add(_db.address)
+          window.postsDB = _db;
+          voyager?.add(_db.address).then((ret) => console.log('voyager added postsDB', ret))
           console.log('postsDB', _db.address.toString())
+// $settingsDB.put('postsDBAddress', _db.address.toString())
           $postsDBAddress = _db.address.toString()
         }).catch( err => console.log('error', err))
 
@@ -179,11 +188,13 @@
           AccessController: IPFSAccessController({write: [$identity.id]}),
         }).then(_db => {
           $remoteDBsDatabases = _db;
-          // voyager?.add(_db.address)
+          window.remoteDBsDatabases = _db;
+          voyager?.add(_db.address).then((ret) => console.log('voyager added remoteDBsDatabases', ret))
         }).catch(err => console.error('Error opening remote DBs database:', err));
   }
 
-  $:if($settingsDB) {
+  $:if($settingsDB && (!$blogName || !$blogDescription || !$categories || !$postsDBAddress)) {
+    console.log('settingsDB', $settingsDB)
     $settingsDB.get('blogName').then(result => 
       result?.value?.value !== undefined ? ($blogName = result.value.value) : null
     );
@@ -195,11 +206,25 @@
     $settingsDB.get('categories').then(result => 
       result?.value?.value !== undefined ? ($categories = result.value.value) : null
     );
+    $settingsDB.get('postsDBAddress').then(result => {
+        if(result?.value?.value !== undefined){
+          console.log("postsDBAddress is defined", result.value.value)
+          $postsDBAddress = result.value.value
+        } else {
+          const postsDBAddress = $postsDB?.address.toString()
+          console.log("postsDBAddress is not defined - but storing it now!", postsDBAddress)
+          $settingsDB?.put({ _id: 'postsDBAddress', value: postsDBAddress});
+          $settingsDB?.all().then(result => console.log('settingsDB.all()', result))
+        }
+      }
+    )
     
-    $settingsDB.events.on('update', 
+  $settingsDB.events.on('update', 
     async (entry) => {
+      console.log('settingsDB.update', entry)
       if (entry?.payload?.op === 'PUT') {
         const { _id, ...rest } = entry.payload.value;
+        console.log('settingsDB.update', entry.payload.key, rest)
         if(entry.payload.key==='blogName') $blogName = rest.value;
         if(entry.payload.key==='blogDescription') $blogDescription = rest.value;
         if(entry.payload.key==='categories') $categories = rest.value;

@@ -19,8 +19,11 @@ export async function switchToRemoteDB(address: string, showModal = false) {
 
       // Set values from dbContents
       const blogNameValue = dbContents.find(content => content.key === 'blogName')?.value?.value;
+      console.log('blogNameValue', blogNameValue)
       const blogDescriptionValue = dbContents.find(content => content.key === 'blogDescription')?.value?.value;
+      console.log('blogDescriptionValue', blogDescriptionValue)
       const postsDBAddressValue = dbContents.find(content => content.key === 'postsDBAddress')?.value?.value;
+      console.log('postsDBAddressValue', postsDBAddressValue)
       
       if (blogNameValue) blogName.set(blogNameValue);
       if (blogDescriptionValue) blogDescription.set(blogDescriptionValue);

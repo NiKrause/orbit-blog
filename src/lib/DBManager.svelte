@@ -22,7 +22,8 @@
 
   $: {
     peerId = $libp2p?.peerId.toString();
-    did = $identity?.id;
+    // did = $identity?.id;
+    did = $orbitdb?.identity?.id;
     if ($remoteDBs && !queueCheckInterval) {
       queueCheckInterval = window.setInterval(processQueue, 30 * 1000); //every 30 seconds
       processQueue();

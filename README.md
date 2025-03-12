@@ -17,9 +17,9 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 - Issues:
     - [ ] Scan QR-Code isn't fully implemented
     - [x] peer-to-peer via WebRTC between two browsers doesn't work
-    - [ ] disable DID as orbit.id since not yet supported by voyager  
+    - [x] disable DID and enable default orbitdb.id, DID not yet supported by voyager  
     - [x] adding & deleting blog databases works only with reloading the page
-    - [ ] in settings the storing the posts db address should happen somewhat automatically, because if forgotten, others cannot add it to there saved blogs
+    - [x] in settings the storing the posts db address should happen somewhat automatically, because if forgotten, others cannot add it to there saved blogs
     - [ ] relay not accessible - renew ssl certifcate
     - [x] password should only be asked if a seed phrase is in local storage and we have chose persistent identity 
     - [x] peerId is a new one after each page load even if we have a persistent identity
