@@ -5,7 +5,6 @@ import wasm from 'vite-plugin-wasm';
 import { VitePWA } from 'vite-plugin-pwa'
 import { fileURLToPath } from 'url';
 import { readFileSync } from 'fs';
-import path from 'path';
 
 const file = fileURLToPath(new URL('package.json', import.meta.url));
 const json = readFileSync(file, 'utf8');
@@ -87,6 +86,11 @@ export default defineConfig({
     alias: {
       path: 'path-browserify',
       'node:path': 'path-browserify',
+      stream: 'readable-stream',
+      'node:stream': 'readable-stream',
+      'readable-stream': 'readable-stream',
+      util: 'util/',
+      'node:util': 'util/',
       buffer: 'buffer/',
       'safe-buffer': 'safe-buffer'
     }
@@ -101,9 +105,17 @@ export default defineConfig({
     },
     include: [
       'path-browserify', 
+      'path-browserify', 'stream-browserify', 'util',
+      'readable-stream',
+      'safe-buffer',
+      'buffer'
     ]
   },
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
+    // Define global variables that might be expected by Node.js modules
+    // 'process.env': {},
+    // 'global': 'window',
+    // 'Buffer': ['buffer', 'Buffer'],
   }
 })
