@@ -82,6 +82,7 @@
     "libp2p-crypto": "^0.21.2",
     "marked": "^12.0.2",
     "qrcode": "^1.5.4",
+    "svelte-icons": "^2.1.0",
     "tiny-secp256k1": "^2.2.3",
     "uint8arrays": "^5.1.0",
     "version": "^0.1.2",

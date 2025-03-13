@@ -27,6 +27,7 @@
   import { generateMasterSeed, generateAndSerializeKey } from './lib/utils';
   import { fly, fade } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
+  import { FaBars, FaTimes } from 'svelte-icons/fa';
 
   let blockstore = new LevelBlockstore('./helia-blocks');
   let datastore = new LevelDatastore('./helia-data');
@@ -102,7 +103,6 @@
     const { hex } = await generateAndSerializeKey(masterSeed.subarray(0, 32))
     const privKeyBuffer = uint8ArrayFromString(hex, 'hex');
     const _keyPair = await privateKeyFromProtobuf(privKeyBuffer);
-    console.log('_keyPair', _keyPair)
     $libp2p = await createLibp2p({ privateKey: _keyPair, ...Libp2pOptions })
     console.log('libp2p', $libp2p)
     $helia = await createHelia({ libp2p: $libp2p, datastore, blockstore })
@@ -335,21 +335,39 @@
     on:touchmove={handleTouchMove}
     on:touchend={handleTouchEnd}>
     
-    <!-- Sidebar trigger area - always visible -->
-    {#if !sidebarVisible}
+    <!-- Sidebar Component with animation -->
+    {#if sidebarVisible}
+      <div in:fly={{ x: -300, duration: 400, easing: cubicOut }} 
+           out:fly={{ x: -300, duration: 400, easing: cubicOut }}
+           class="relative">
+        <!-- Add the toggle button inside the sidebar instead of fixed -->
+        <button 
+          class="absolute top-2 right-1 z-50 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-full p-1 shadow-sm transition-all duration-300 focus:outline-none"
+          on:click={toggleSidebar}
+          aria-label="Hide sidebar">
+          <div class="w-4 h-4 text-gray-800 dark:text-gray-200">
+            <FaTimes />
+          </div>
+        </button>
+        <Sidebar />
+      </div>
+    {:else}
+      <!-- Fixed toggle button when sidebar is hidden -->
+      <button 
+        class="fixed top-4 left-4 z-50 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-full p-1 shadow-sm transition-all duration-300 focus:outline-none"
+        on:click={toggleSidebar}
+        aria-label="Show sidebar">
+        <div class="w-4 h-4 text-gray-800 dark:text-gray-200">
+          <FaBars />
+        </div>
+      </button>
+      
+      <!-- Sidebar trigger area for edge detection -->
       <div 
         class="w-8 h-full fixed top-0 left-0 z-10 cursor-pointer" 
         on:click={toggleSidebar}
         on:mouseenter={handleMouseEnter}
         aria-label="Show sidebar">
-      </div>
-    {/if}
-
-    <!-- Sidebar Component with animation -->
-    {#if sidebarVisible}
-      <div in:fly={{ x: -300, duration: 400, easing: cubicOut }} 
-           out:fly={{ x: -300, duration: 400, easing: cubicOut }}>
-        <Sidebar />
       </div>
     {/if}
     
@@ -437,5 +455,10 @@
   
   .cursor-pointer {
     cursor: pointer;
+  }
+
+  /* Make sure the sidebar takes appropriate space */
+  :global(.sidebar) {
+    padding-top: 3.5rem; /* Add space at the top of the sidebar for the toggle button */
   }
 </style>
