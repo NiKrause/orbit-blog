@@ -71,7 +71,6 @@ export default defineConfig({
     assetsDir: 'assets',
     rollupOptions: {
       external: [
-        // Exclude Node.js built-ins that are used by @orbitdb/voyager but not needed in browser
         'fs',
         'node:fs/promises',
         'node:fs',
