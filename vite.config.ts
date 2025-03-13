@@ -5,6 +5,7 @@ import wasm from 'vite-plugin-wasm';
 import { VitePWA } from 'vite-plugin-pwa'
 import { fileURLToPath } from 'url';
 import { readFileSync } from 'fs';
+import path from 'path';
 
 const file = fileURLToPath(new URL('package.json', import.meta.url));
 const json = readFileSync(file, 'utf8');
@@ -23,6 +24,7 @@ export default defineConfig({
         global: true,
         process: true,
       },
+      protocolImports: true,
     }),
     VitePWA({ 
       registerType: 'autoUpdate',
@@ -59,17 +61,45 @@ export default defineConfig({
       external: [
         // Exclude Node.js built-ins that are used by @orbitdb/voyager but not needed in browser
         'fs',
-        'path',
         'node:fs/promises',
         'node:fs',
-        'vm'
+        'vm',
+        'os'
       ],
       output: {
         assetFileNames: 'assets/[name].[ext]'
       }
     }
   },
+  resolve: {
+    alias: {
+      // More explicit aliasing for path
+      path: 'path-browserify',
+      // Add these additional aliases to ensure all import forms are covered
+      'node:path': 'path-browserify',
+      stream: 'stream-browserify',
+      'node:stream': 'stream-browserify',
+      util: 'util/',
+      'node:util': 'util/',
+    }
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      // Define global variables for Node polyfills
+      define: {
+        global: 'globalThis',
+      },
+      // Enable format conversion to turn CommonJS into ESM
+      format: 'esm',
+      plugins: [],
+    },
+    // Pre-bundle these dependencies
+    include: ['path-browserify', 'stream-browserify', 'util']
+  },
   define: {
-		__APP_VERSION__: JSON.stringify(pkg.version)
-	}
+    __APP_VERSION__: JSON.stringify(pkg.version),
+    // Define global variables that might be expected by Node.js modules
+    'process.env': {},
+    'global': 'window',
+  }
 })

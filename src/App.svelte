@@ -20,7 +20,6 @@
   import { Libp2pOptions, multiaddrs } from './lib/config'
   import { generateMnemonic } from 'bip39';
   import { Identities } from '@orbitdb/core'
-  import { getIdentity } from './lib/orbitdb';
   import { postsDB, postsDBAddress, posts, remoteDBs, remoteDBsDatabases, showDBManager, showPeers, showSettings, blogName, libp2p, helia, orbitdb, identity, identities, settingsDB, blogDescription, categories, seedPhrase } from './lib/store';
   import Sidebar from './lib/Sidebar.svelte';
   import { encryptSeedPhrase, decryptSeedPhrase, isEncryptedSeedPhrase } from './lib/cryptoUtils';
