@@ -63,6 +63,41 @@ export default defineConfig({
       },
       workbox: {
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // Set to 5 MiB
+        navigationPreload: true,
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/.*$/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache',
+              networkTimeoutSeconds: 10,
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60, // Short cache lifetime
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            urlPattern: /\/api\//,
+            handler: 'NetworkOnly'
+          },
+          {
+            urlPattern: /\/(.*)/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'pages-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 300 // 5 minutes
+              }
+            }
+          }
+        ],
+        skipWaiting: true,
+        clientsClaim: true
       }
     })
   ],
