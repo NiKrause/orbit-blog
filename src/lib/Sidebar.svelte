@@ -26,6 +26,25 @@
       Blogs
     </h5>
     <div class="space-y-1">
+      <div 
+        class="text-[8px] text-gray-800 dark:text-gray-300 bg-gray-300 dark:bg-gray-600 p-1 rounded cursor-pointer hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+        on:click={async () => {
+          // Get the address from settingsDB
+          if ($settingsDB.address) {
+            try {   
+                switchToRemoteDB($settingsDB.address);
+            } catch (error) {
+              console.error('Error retrieving postsDBAddress from settingsDB:', error);
+            }
+          }
+        }}  
+        title="Click to load your own blog"
+      >
+        <p class="truncate"><strong>Blog:</strong> {$blogName || 'Not set'}</p>
+        <p class="truncate"><strong>ID:</strong> {$identity?.id ? $identity.id.substring(0, 18) + '...' : 'Not connected'}</p>
+      </div>
+    </div>
+    <div class="space-y-1">
       {#if $remoteDBs?.length > 0}
         {#each $remoteDBs as db}
           <button 
@@ -71,25 +90,6 @@
     >
       Settings
     </h5>
-    <div class="space-y-1">
-      <div 
-        class="text-[8px] text-gray-800 dark:text-gray-300 bg-gray-300 dark:bg-gray-600 p-1 rounded cursor-pointer hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
-        on:click={async () => {
-          // Get the address from settingsDB
-          if ($settingsDB.address) {
-            try {   
-                switchToRemoteDB($settingsDB.address);
-            } catch (error) {
-              console.error('Error retrieving postsDBAddress from settingsDB:', error);
-            }
-          }
-        }}  
-        title="Click to load your own blog"
-      >
-        <p class="truncate"><strong>Blog:</strong> {$blogName || 'Not set'}</p>
-        <p class="truncate"><strong>ID:</strong> {$identity?.id ? $identity.id.substring(0, 18) + '...' : 'Not connected'}</p>
-        <p class="text-[7px] text-blue-500 dark:text-blue-400 mt-1">(Click to load your blog)</p>
-      </div>
-    </div>
+
   </div>
 </div> 

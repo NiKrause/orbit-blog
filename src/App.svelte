@@ -1,6 +1,6 @@
 <script lang="ts">
 
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy, tick } from 'svelte';
   import { createOrbitDB, IPFSAccessController } from '@orbitdb/core';
   import { createLibp2p } from 'libp2p'
   import { multiaddr } from '@multiformats/multiaddr'
@@ -25,6 +25,8 @@
   import { encryptSeedPhrase, decryptSeedPhrase, isEncryptedSeedPhrase } from './lib/cryptoUtils';
   import { Voyager } from '@orbitdb/voyager'
   import { generateMasterSeed, generateAndSerializeKey } from './lib/utils';
+  import { fly, fade } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
 
   let blockstore = new LevelBlockstore('./helia-blocks');
   let datastore = new LevelDatastore('./helia-data');
@@ -37,10 +39,44 @@
   let canWrite = false;
   let voyager: Voyager | null = null;
 
+  // Add sidebar state variables
+  let sidebarVisible = true;
+  $:console.log('sidebarVisible', sidebarVisible)
+  let touchStartX = 0;
+  let touchEndX = 0;
+  const SWIPE_THRESHOLD = 50;
+  let sidebarTimer = null;
+
   if(!encryptedSeedPhrase) {
       console.log('no seed phrase, generating new one')
       $seedPhrase = generateMnemonic();
       initializeApp();
+  }
+
+  // Function to toggle sidebar visibility
+  function toggleSidebar() {
+    sidebarVisible = !sidebarVisible;
+  }
+
+  // Start the sidebar auto-hide timer when appropriate
+  function startSidebarTimer() {
+    // Clear any existing timer
+    if (sidebarTimer) clearTimeout(sidebarTimer);
+    
+    console.log('Starting sidebar auto-hide timer');
+    sidebarTimer = setTimeout(async () => {
+      console.log('Timer triggered');
+      await tick();
+      sidebarVisible = false;
+      console.log('Sidebar hidden');
+    }, 15000);
+  }
+
+  // Watch for password modal changes
+  $: if (!showPasswordModal && sidebarVisible) {
+    // This runs when password is successfully entered or no password is needed
+    console.log('Password modal closed, sidebar visible - starting timer');
+    startSidebarTimer();
   }
 
   async function handleSeedPhraseCreated(event: CustomEvent) {
@@ -48,13 +84,13 @@
     const encryptedPhrase = await encryptSeedPhrase(newSeedPhrase, event.detail.password);
     localStorage.setItem('encryptedSeedPhrase', encryptedPhrase);
     $seedPhrase = newSeedPhrase;
-    showPasswordModal = false;
+    showPasswordModal = false; // This will trigger the reactive statement above
     initializeApp();
   }
 
   async function handleSeedPhraseDecrypted(event: CustomEvent) {
     $seedPhrase = event.detail.seedPhrase;
-    showPasswordModal = false;
+    showPasswordModal = false; // This will trigger the reactive statement above
     initializeApp();
   }
 
@@ -143,6 +179,7 @@
     } catch (error) {
       console.error('Error closing OrbitDB connections:', error);
     }
+    if (sidebarTimer) clearTimeout(sidebarTimer);
   })
 
   $:if($orbitdb && voyager){
@@ -253,6 +290,34 @@
     })
   }
 
+  // Handle touch events for sidebar gestures
+  function handleTouchStart(e) {
+    touchStartX = e.touches[0].clientX;
+  }
+
+  function handleTouchMove(e) {
+    touchEndX = e.touches[0].clientX;
+  }
+
+  function handleTouchEnd() {
+    if (touchStartX - touchEndX > SWIPE_THRESHOLD && sidebarVisible) {
+      // Swipe left - hide sidebar
+      sidebarVisible = false;
+    } else if (touchEndX - touchStartX > SWIPE_THRESHOLD && !sidebarVisible) {
+      // Swipe right - show sidebar
+      sidebarVisible = true;
+    }
+  }
+
+  // Add mouse-related functions
+  function handleMouseEnter() {
+    if (!sidebarVisible) {
+      sidebarVisible = true;
+      // Start the auto-hide timer when sidebar is shown via mouse hover
+      startSidebarTimer();
+    }
+  }
+
 </script>
 <svelte:head>
   <title>{$blogName} {__APP_VERSION__}</title>
@@ -265,9 +330,28 @@
     on:seedPhraseDecrypted={handleSeedPhraseDecrypted}
   />
 {:else}
-  <main class="flex min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors">
-    <!-- Sidebar Component -->
-    <Sidebar />
+  <main class="flex min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors"
+    on:touchstart={handleTouchStart}
+    on:touchmove={handleTouchMove}
+    on:touchend={handleTouchEnd}>
+    
+    <!-- Sidebar trigger area - always visible -->
+    {#if !sidebarVisible}
+      <div 
+        class="w-8 h-full fixed top-0 left-0 z-10 cursor-pointer" 
+        on:click={toggleSidebar}
+        on:mouseenter={handleMouseEnter}
+        aria-label="Show sidebar">
+      </div>
+    {/if}
+
+    <!-- Sidebar Component with animation -->
+    {#if sidebarVisible}
+      <div in:fly={{ x: -300, duration: 400, easing: cubicOut }} 
+           out:fly={{ x: -300, duration: 400, easing: cubicOut }}>
+        <Sidebar />
+      </div>
+    {/if}
     
     <!-- Main Content -->
     <div class="flex-1 overflow-x-hidden">
@@ -324,5 +408,34 @@
   .dark button {
     background-color: inherit;
     color: inherit;
+  }
+
+  /* Add styles for sidebar interaction */
+  .w-4 {
+    width: 1rem;
+  }
+  
+  .h-full {
+    height: 100%;
+  }
+  
+  .fixed {
+    position: fixed;
+  }
+  
+  .top-0 {
+    top: 0;
+  }
+  
+  .left-0 {
+    left: 0;
+  }
+  
+  .z-10 {
+    z-index: 10;
+  }
+  
+  .cursor-pointer {
+    cursor: pointer;
   }
 </style>

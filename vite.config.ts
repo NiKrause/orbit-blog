@@ -18,7 +18,19 @@ export default defineConfig({
     svelte(),
     wasm(),
     nodePolyfills({
-      include: ['path', 'util', 'buffer', 'process', 'events','crypto','os', 'stream', 'string_decoder'],
+      include: [
+        'path', 
+        'util', 
+        'buffer', 
+        'process', 
+        'events',
+        'crypto',
+        'os', 
+        'stream', 
+        'string_decoder',
+        'readable-stream',
+        'safe-buffer'
+      ],
       globals: {
         Buffer: true,
         global: true,
@@ -73,33 +85,25 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      // More explicit aliasing for path
       path: 'path-browserify',
-      // Add these additional aliases to ensure all import forms are covered
       'node:path': 'path-browserify',
-      stream: 'stream-browserify',
-      'node:stream': 'stream-browserify',
-      util: 'util/',
-      'node:util': 'util/',
+      buffer: 'buffer/',
+      'safe-buffer': 'safe-buffer'
     }
   },
   optimizeDeps: {
     esbuildOptions: {
-      // Define global variables for Node polyfills
       define: {
         global: 'globalThis',
       },
-      // Enable format conversion to turn CommonJS into ESM
       format: 'esm',
       plugins: [],
     },
-    // Pre-bundle these dependencies
-    include: ['path-browserify', 'stream-browserify', 'util']
+    include: [
+      'path-browserify', 
+    ]
   },
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
-    // Define global variables that might be expected by Node.js modules
-    'process.env': {},
-    'global': 'window',
   }
 })

@@ -198,12 +198,18 @@ importers:
       autoprefixer:
         specifier: ^10.4.21
         version: 10.4.21(postcss@8.5.3)
+      buffer:
+        specifier: ^6.0.3
+        version: 6.0.3
       path-browserify:
         specifier: ^1.0.1
         version: 1.0.1
       postcss:
         specifier: ^8.5.3
         version: 8.5.3
+      safe-buffer:
+        specifier: ^5.2.1
+        version: 5.2.1
       svelte:
         specifier: ^4.2.19
         version: 4.2.19
