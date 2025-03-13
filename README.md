@@ -44,8 +44,9 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
         - [x] install voyager as pinning service https://github.com/orbitdb/voyager/tree/main
         - [x] add db addresses to voyager
         - [ ] support DID on voyager
-        - [ ] allow persistent peerId
+        - [x] allow persistent peerId
         - [ ] make voyager support pubsub peer discovery
+        - [ ] make voyager websocket wss run with nginx & certbot
         - [ ] test voyager replication
     - [ ] add first production blog 
     - [ ] when clicking on a peerId, open a modal to show information about the peer and request information such as (public blog names, impressum, etc.)
