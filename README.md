@@ -25,7 +25,9 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [x] peerId is a new one after each page load even if we have a persistent identity
     - [?] can it be useful to have a new peerId even if identity is persistent? What would be the draw back?   
 - UI related
-    - [ ] internationalize the UI (en,de,fr,es,it,ru,...) 
+    - [ ] internationalize the UI (en,de,fr,es,it,ru,...)
+        - [ ] use AI for transaltion
+        - [ ] use translation services
     - [ ] orbitdb address (blog address) should be possible to be given over the url in hash router /#/orbitdb/xyz
     - [x] editable / flexible categories
     - [x] editable posts
@@ -40,7 +42,8 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [ ] Voyager evaluation
         - [x] install voyager as pinning service https://github.com/orbitdb/voyager/tree/main
         - [x] add db addresses to voyager
-        - [ ] support DID on voyager 
+        - [ ] support DID on voyager
+        - [ ] allow persistent peerId
         - [ ] make voyager support pubsub peer discovery
         - [ ] test voyager replication
     - [ ] add first production blog 
