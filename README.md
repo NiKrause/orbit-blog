@@ -25,6 +25,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [x] peerId is a new one after each page load even if we have a persistent identity
     - [?] can it be useful to have a new peerId even if identity is persistent? What would be the draw back?   
 - UI related
+    - [ ] configure your own voyager 
     - [ ] internationalize the UI (en,de,fr,es,it,ru,...)
         - [ ] use AI for transaltion
         - [ ] use translation services
