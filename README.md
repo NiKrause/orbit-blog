@@ -20,7 +20,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [x] disable DID and enable default orbitdb.id, DID not yet supported by voyager  
     - [x] adding & deleting blog databases works only with reloading the page
     - [x] in settings the storing the posts db address should happen somewhat automatically, because if forgotten, others cannot add it to there saved blogs
-    - [ ] relay not accessible - renew ssl certifcate
+    - [x] relay not accessible - renew ssl certifcate
     - [x] password should only be asked if a seed phrase is in local storage and we have chose persistent identity 
     - [x] peerId is a new one after each page load even if we have a persistent identity
     - [?] can it be useful to have a new peerId even if identity is persistent? What would be the draw back?   
@@ -28,7 +28,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [ ] internationalize the UI (en,de,fr,es,it,ru,...) 
     - [ ] orbitdb address (blog address) should be possible to be given over the url in hash router /#/orbitdb/xyz
     - [x] editable / flexible categories
-    - [ ] editable posts
+    - [x] editable posts
     - [x] deploy to IPFS
     - [x] markdown support for posts 
     - [?] markdown support for comments
@@ -42,10 +42,11 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
         - [x] add db addresses to voyager
         - [ ] support DID on voyager 
         - [ ] make voyager support pubsub peer discovery
+        - [ ] test voyager replication
     - [ ] add first production blog 
     - [ ] when clicking on a peerId, open a modal to show information about the peer and request information such as (public blog names, impressum, etc.)
     - [ ] publish blog on request
-    - [ ] enter optional imprint in settings 
+    - [ ] enter optional imprint in settings (optional for public blogs) 
     - [ ] when adding a blog address think about optionally adding and dialing peerId too (at least when scanning?)
         - [ ] sometimes the db cannot be found nor opened then data like blogName, blogAddress can't be read, in such case it might be interesting to implmenent a retry mechanism, e.g. adding it to a queue and try every 20 seconds and remove it from the queue as soon it could connect       
     - [x] blog settings via private settings db

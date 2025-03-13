@@ -5,12 +5,16 @@
   import type { Post, Category } from './types';
   import CommentSection from './CommentSection.svelte';
   import { onMount } from 'svelte';
-  import { postsDB } from './store';
+  import { postsDB, categories } from './store';
 
   let searchQuery = '';
   let selectedCategory: Category | 'All' = 'All';
   let selectedPostId: string | null = null;
   let hoveredPostId = null; // Track the ID of the hovered post
+  let editMode = false; // Track if we're in edit mode
+  let editedTitle = '';
+  let editedContent = '';
+  let editedCategory: Category;
 
   $: filteredPosts = $posts.filter(post => {
     const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -38,7 +42,35 @@
 
   function selectPost(postId: string) {
     selectedPostId = postId;
+    editMode = false; // Exit edit mode when selecting a different post
     // Additional logic for when a post is selected
+  }
+
+  function editPost(post: Post, event: MouseEvent) {
+    event.stopPropagation(); // Prevent triggering the post selection
+    editedTitle = post.title;
+    editedContent = post.content;
+    editedCategory = post.category;
+    editMode = true;
+  }
+
+  async function saveEditedPost() {
+    if (selectedPost && editedTitle && editedContent) {
+      try {
+        const updatedPost = {
+          ...selectedPost,
+          title: editedTitle,
+          content: editedContent,
+          category: editedCategory,
+        };
+        
+        await $postsDB.put(updatedPost);
+        console.info('Post updated successfully');
+        editMode = false;
+      } catch (error) {
+        console.error('Error updating post:', error);
+      }
+    }
   }
 
   async function deletePost(post: Post, event: MouseEvent) {
@@ -98,15 +130,26 @@
             on:mouseout={() => hoveredPostId = null}
             on:click={() => selectPost(post._id)}
           >
-            <button
-              class="ml-2 p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 {hoveredPostId === post._id ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300 ease-in-out"
-              on:click={(e) => deletePost(post, e)}
-              title="Delete post"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-              </svg>
-            </button>
+            <div class="flex justify-end space-x-2 {hoveredPostId === post._id ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300 ease-in-out">
+              <button
+                class="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                on:click={(e) => editPost(post, e)}
+                title="Edit post"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                </svg>
+              </button>
+              <button
+                class="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                on:click={(e) => deletePost(post, e)}
+                title="Delete post"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+              </button>
+            </div>
             <div class="flex justify-between items-start">
               <div class="flex-1">
                 <h3 class="font-medium text-gray-900 dark:text-white overflow-hidden whitespace-nowrap" title={post.title}>
@@ -128,19 +171,81 @@
     <!-- Selected Post Content -->
     <div class="col-span-8">
       {#if selectedPost}
-        <article class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-          <h2 class="text-2xl font-bold mb-2 text-gray-900 dark:text-white">{selectedPost.title}</h2>
-          <div class="flex space-x-4 text-sm text-gray-500 dark:text-gray-400 mb-4">
-            <span>{selectedPost.date}</span>
-            <span class="px-2 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full">
-              {selectedPost.category}
-            </span>
+        {#if editMode}
+          <!-- Edit Form -->
+          <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Edit Post</h2>
+            
+            <div class="space-y-4">
+              <div>
+                <label for="edit-title" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Title</label>
+                <input
+                  id="edit-title"
+                  type="text"
+                  bind:value={editedTitle}
+                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label for="edit-category" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
+                <select
+                  id="edit-category"
+                  bind:value={editedCategory}
+                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                >
+                  {#each $categories as cat}
+                    <option value={cat}>{cat}</option>
+                  {/each}
+                </select>
+              </div>
+
+              <div>
+                <label for="edit-content" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Content (Markdown)</label>
+                <textarea
+                  id="edit-content"
+                  bind:value={editedContent}
+                  rows="10"
+                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  required
+                ></textarea>
+              </div>
+
+              <div class="flex space-x-4 justify-end">
+                <button
+                  type="button"
+                  on:click={() => editMode = false}
+                  class="bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-100 py-2 px-4 rounded-md hover:bg-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  on:click={saveEditedPost}
+                  class="bg-indigo-600 dark:bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
           </div>
-          <div class="prose dark:prose-invert max-w-none mb-6">
-            {@html renderMarkdown(selectedPost.content)}
-          </div>
-          <CommentSection post={selectedPost} />
-        </article>
+        {:else}
+          <!-- View Mode -->
+          <article class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-bold mb-2 text-gray-900 dark:text-white">{selectedPost.title}</h2>
+            <div class="flex space-x-4 text-sm text-gray-500 dark:text-gray-400 mb-4">
+              <span>{selectedPost.date}</span>
+              <span class="px-2 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full">
+                {selectedPost.category}
+              </span>
+            </div>
+            <div class="prose dark:prose-invert max-w-none mb-6">
+              {@html renderMarkdown(selectedPost.content)}
+            </div>
+            <CommentSection post={selectedPost} />
+          </article>
+        {/if}
       {:else}
         <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center text-gray-500 dark:text-gray-400">
           <p>Select a post to view its content</p>
