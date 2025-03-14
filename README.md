@@ -13,8 +13,12 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 [![QR Code to PWA](/public/ipns.dweb.link.png)](https://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g.ipns.dweb.link/)
 
-### Features
+### Todos & Features
 - Issues:
+    - [ ] improve usability mobile
+        - [ ] remote blogs not clickable
+        - [ ] disable zoom
+        - [ ] sidebar destroys layout
     - [ ] Scan QR-Code isn't fully implemented
     - [x] peer-to-peer via WebRTC between two browsers doesn't work
     - [x] disable DID and enable default orbitdb.id, DID not yet supported by voyager  
@@ -43,10 +47,16 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [ ] Voyager evaluation
         - [x] install voyager as pinning service https://github.com/orbitdb/voyager/tree/main
         - [x] add db addresses to voyager
-        - [ ] support DID on voyager
         - [x] allow persistent peerId
+        - [ ] make voyager websocket wss e.g. 
+            - [ ] autotls 
+                - http://bafybeihxl3cwxwh3lwbjhryxv7anf7lfbk2ynqobu55r54po73ds2csrti.ipfs.localhost:8081/autotls/
+                - https://www.npmjs.com/package/@libp2p/auto-tls
+            - [ ] docker compose + nginx + certbot
+                - https://github.com/silkroadnomad/libp2p-relay/blob/main/docker-compose.yml
+                - https://github.com/silkroadnomad/libp2p-relay/blob/main/init-letsencrypt.sh
         - [ ] make voyager support pubsub peer discovery
-        - [ ] make voyager websocket wss run with nginx & certbot
+        - [ ] support DID on voyager
         - [ ] test voyager replication
     - [ ] add first production blog 
     - [ ] when clicking on a peerId, open a modal to show information about the peer and request information such as (public blog names, impressum, etc.)
