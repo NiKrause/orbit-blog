@@ -34,7 +34,6 @@
 
   let encryptedSeedPhrase = localStorage.getItem('encryptedSeedPhrase');
 
-  // let seedPhrase: string | null = null;
   let showPasswordModal = encryptedSeedPhrase ? true : false;
   let isNewUser = !encryptedSeedPhrase;
   let canWrite = false;
@@ -42,7 +41,6 @@
 
   // Add sidebar state variables
   let sidebarVisible = true;
-  $:console.log('sidebarVisible', sidebarVisible)
   let touchStartX = 0;
   let touchEndX = 0;
   const SWIPE_THRESHOLD = 50;
@@ -59,17 +57,12 @@
     sidebarVisible = !sidebarVisible;
   }
 
-  // Start the sidebar auto-hide timer when appropriate
   function startSidebarTimer() {
-    // Clear any existing timer
     if (sidebarTimer) clearTimeout(sidebarTimer);
     
-    console.log('Starting sidebar auto-hide timer');
     sidebarTimer = setTimeout(async () => {
-      console.log('Timer triggered');
       await tick();
       sidebarVisible = false;
-      console.log('Sidebar hidden');
     }, 15000);
   }
 
