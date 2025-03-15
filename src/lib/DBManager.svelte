@@ -21,9 +21,6 @@
   let isQueueRunning = false;
 
   $: {
-    peerId = $libp2p?.peerId.toString();
-    // did = $identity?.id;
-    did = $orbitdb?.identity?.id;
     if ($remoteDBs && !queueCheckInterval) {
       queueCheckInterval = window.setInterval(processQueue, 30 * 1000); //every 30 seconds
       processQueue();
@@ -332,37 +329,7 @@
 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6">
   <div class="mb-4">
     <h3 class="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Current Database</h3>
-    <div class="mb-4 text-sm">
-      <div class="flex items-center space-x-2">
-        <span class="text-gray-600 dark:text-gray-400">Peer ID:</span>
-        <input
-          type="text"
-          size={60}
-          readonly
-          value={peerId}
-          class="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm"
-        />
-        <button on:click={() => copyToClipboard(peerId)} class="text-gray-500 hover:text-gray-700">
-          📋
-        </button>
-      </div>
-    </div>
-
-    <div class="mb-4 text-sm">
-      <div class="flex items-center space-x-2">
-        <span class="text-gray-600 dark:text-gray-400">DID:</span>
-        <input
-          type="text"
-          size={60}
-          readonly
-          value={did}
-          class="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm"
-        />
-        <button on:click={() => copyToClipboard(did)} class="text-gray-500 hover:text-gray-700">
-          📋
-        </button>
-      </div>
-    </div>
+   
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="space-y-2">
@@ -384,7 +351,7 @@
               <img src={qrCodeDataUrl} alt="Database QR Code" class="w-48 h-48" />
             </div>
           {/if}
-          <button
+          <!-- <button
             on:click={dropAndSync}
             class="bg-purple-600 dark:bg-purple-500 text-white py-2 px-4 rounded-md hover:bg-purple-700 dark:hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors flex items-center gap-2"
           >
@@ -392,7 +359,7 @@
               <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
             </svg>
             Drop Posts & Sync from Network
-          </button>
+          </button> -->
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 <script lang="ts">
 
   // import { generateMnemonic } from 'bip39'
-  import { settingsDB, blogName, blogDescription, postsDBAddress, categories, seedPhrase } from './store';
+  import { settingsDB, blogName, blogDescription, postsDBAddress, categories, seedPhrase, libp2p, orbitdb, identity } from './store';
   import { encryptSeedPhrase } from './cryptoUtils';
 
   // export let seedPhrase: string | null = localStorage.getItem('encryptedSeedPhrase') || generateMnemonic();
@@ -14,7 +14,13 @@
   let successMessage = '';
   let showSeedPhrase = false; // State to toggle visibility
   let newCategory = ''; // For adding new categories
-  
+  let peerId = '';
+  let did = '';
+  $:{
+    peerId = $libp2p?.peerId.toString();
+    // did = $identity?.id;
+    did = $orbitdb?.identity?.id;
+  }
   $: $settingsDB?.all().then(result => console.log('settingsDB.all()', result))
   async function changePassword() {
     errorMessage = '';
@@ -117,29 +123,39 @@
     </div>
   </div>
 
-  <div class="mb-4">
-    <label class="block text-gray-700 dark:text-gray-300">Seed Phrase (Encrypted and Stored Securely)</label>
-    <div class="flex items-center">
-      <input type="{showSeedPhrase ? 'text' : 'password'}" class="w-full p-2 border rounded" value={$seedPhrase || ''} />
-      <button 
-        class="ml-2 p-2 rounded"
-        on:click={toggleSeedVisibility}
-        style="background-color: {!showSeedPhrase ? '#4CAF50' : '#f44336'}; color: white;"
-      >
-        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-          <!-- Eye Icon -->
-          <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
-        </svg>
-      </button>
-      <button 
-        class="ml-2 bg-blue-500 text-white p-2 rounded"
-        on:click={() => showChangePasswordModal = true}
-      >
-        Change Password
+
+  <div class="mb-4 text-sm">
+    <div class="flex items-center space-x-2">
+      <span class="text-gray-600 dark:text-gray-400">Peer ID:</span>
+      <input
+        type="text"
+        size={60}
+        readonly
+        value={peerId}
+        class="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm"
+      />
+      <button on:click={() => copyToClipboard(peerId)} class="text-gray-500 hover:text-gray-700">
+        📋
       </button>
     </div>
   </div>
-  <div class="mb-4">
+
+  <div class="mb-4 text-sm">
+    <div class="flex items-center space-x-2">
+      <span class="text-gray-600 dark:text-gray-400">DID:</span>
+      <input
+        type="text"
+        size={60}
+        readonly
+        value={did}
+        class="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm"
+      />
+      <button on:click={() => copyToClipboard(did)} class="text-gray-500 hover:text-gray-700">
+        📋
+      </button>
+    </div>
+  </div>
+  <!-- <div class="mb-4">
     <label class="block text-gray-700 dark:text-gray-300">Posts DB Address</label>
     <input type="text" class="w-full p-2 border rounded" value={$postsDBAddress} readonly />
     <button class="bg-blue-500 text-white p-2 rounded" on:click={() => {
@@ -149,9 +165,30 @@
           console.log('contents', contents)
         })
       }}>Store Posts DB Address</button>
+  </div>-->
+</div> 
+<div class="mb-4">
+  <label class="block text-gray-700 dark:text-gray-300">Seed Phrase (Encrypted and Stored Securely)</label>
+  <div class="flex items-center">
+    <input type="{showSeedPhrase ? 'text' : 'password'}" class="w-full p-2 border rounded" value={$seedPhrase || ''} />
+    <button 
+      class="ml-2 p-2 rounded"
+      on:click={toggleSeedVisibility}
+      style="background-color: {!showSeedPhrase ? '#4CAF50' : '#f44336'}; color: white;"
+    >
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+        <!-- Eye Icon -->
+        <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+      </svg>
+    </button>
+    <button 
+      class="ml-2 bg-blue-500 text-white p-2 rounded"
+      on:click={() => showChangePasswordModal = true}
+    >
+      Change Password
+    </button>
   </div>
 </div>
-
 {#if showChangePasswordModal}
   <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full">
