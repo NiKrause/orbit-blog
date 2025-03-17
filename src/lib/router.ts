@@ -1,7 +1,6 @@
-import { readable, derived, writable } from 'svelte/store';
+import { readable, derived, writable, get} from 'svelte/store';
 import { switchToRemoteDB } from './dbUtils';
-
-// Replace the SvelteKit import with a direct browser check
+import { initialAddress, postsDBAddress, postsDB } from './store';
 const isBrowser = typeof window !== 'undefined';
 
 // Add a loading state store
@@ -52,11 +51,13 @@ export function initHashRouter() {
   let previousAddress = '';
   
   // Initial check for URL hash on page load
-  const initialAddress = extractOrbitDBAddress(getHash());
-  if (initialAddress) {
+  const _initialAddress = extractOrbitDBAddress(getHash())
+
+  if (_initialAddress) {
     // Keep isLoadingRemoteBlog as true since we found an address
-    switchToRemoteDB(initialAddress, true)
+    switchToRemoteDB(_initialAddress, true)
       .then(success => {
+        initialAddress.set(_initialAddress);
         console.log('Initial remote blog load:', success ? 'success' : 'failed');
       })
       .catch(error => console.error('Error loading initial remote blog:', error))

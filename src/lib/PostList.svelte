@@ -95,8 +95,6 @@
 </script>
 
 <div class="space-y-6">
-
-
   <div class="flex space-x-4 mb-6">
     <input
       type="text"
@@ -104,18 +102,16 @@
       bind:value={searchQuery}
       class="flex-1 rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
     />
-    
+    <label for="edit-category" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
     <select
+      id="edit-category"
       bind:value={selectedCategory}
       class="rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
     >
-      <option value="All">All Categories</option>
-      <option value="Bitcoin">Bitcoin</option>
-      <option value="Ethereum">Ethereum</option>
-      <option value="DeFi">DeFi</option>
-      <option value="NFTs">NFTs</option>
-      <option value="Trading">Trading</option>
-    </select>
+      {#each $categories as cat}
+        <option value={cat}>{cat}</option>
+      {/each}
+    </select> 
   </div>
 
   <div class="grid grid-cols-12 gap-6">

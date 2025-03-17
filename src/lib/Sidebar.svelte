@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { 
+  import {
+    postsDB,
     remoteDBs, 
     libp2p, 
     postsDBAddress, 
@@ -9,13 +10,47 @@
     showPeers,
     showSettings,
     settingsDB,
+    initialAddress,
   } from './store';
+  import { get } from 'svelte/store';
   import { switchToRemoteDB } from './dbUtils';
   import PeersList from './PeersList.svelte';
   import { connectedPeersCount } from './peerConnections';
-  
-  $: if(settingsDB){
-    console.log('settingsDB', settingsDB)
+  $: console.log("settingsDB", settingsDB) 
+  let _settingsDB: any
+  settingsDB.subscribe(_ => {
+    _settingsDB = _
+    console.log('settingsDB', _settingsDB)
+  })
+
+  let _identity: any
+  identity.subscribe(_ => {
+    _identity = _
+    console.log('identity', _identity)
+  })
+  let _postsDB: any
+  postsDB.subscribe(_ => {
+    _postsDB = _
+    console.log('postsDB', _postsDB)
+  })
+  let _postsDBAddress: any
+  postsDBAddress.subscribe(_ => {
+    _postsDBAddress = _
+    console.log('postsDBAddress', _postsDBAddress)
+  })
+  let canWrite = false
+  $: if(_settingsDB && _identity && _postsDB && _postsDBAddress){
+    const access = _settingsDB?.access;
+    canWrite = access?.write.includes(_identity?.id)
+    console.log('canWrite', canWrite)
+    console.log('_  postsDB', _postsDB)
+    console.log('_postsDBAddress', _postsDBAddress)
+    console.log('initialAddress', get(initialAddress))
+    canWrite = access.write.includes(_identity.id) && get(initialAddress) === _postsDBAddress
+    console.log('canWrite', canWrite)
+    // const access = settingsDBInstance?.access;
+    // const canWrite = access?.write.includes(identityInstance?.id)
+    // console.log('canWrite', canWrite)
   }
 </script>
 
@@ -49,8 +84,8 @@
           <!-- Pin indicator next to blog name -->
           {#if $settingsDB && $settingsDB.pinnedToVoyager !== undefined}
             <span 
-              class="inline-block ml-1 w-2 h-2 rounded-full {$settingsDB.pinnedToVoyager ? 'bg-green-500' : 'bg-orange-500'}"
-              title={$settingsDB.pinnedToVoyager ? "Pinned to Voyager" : "Not pinned to Voyager"}
+              class="inline-block ml-1 w-2 h-2 rounded-full {$settingsDB.pinnedToVoyager ? 'bg-green-500' : canWrite ? 'bg-orange-500' : 'bg-red-500'}"
+              title={$settingsDB.pinnedToVoyager ? "Pinned to Voyager" : canWrite ? "Not pinned to Voyager" : "No Write Access"}
             ></span>
           {/if}
         </p>
