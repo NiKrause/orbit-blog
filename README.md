@@ -15,9 +15,13 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 # Orbit-Blog: Local-First P2P Blogging Platform
 
-Orbit-Blog is a decentralized blogging platform that leverages the power of OrbitDB and IPFS to create a truly peer-to-peer experience. This innovative application allows content to replicate seamlessly between browsers and mobile devices without relying on traditional centralized servers. Built as a Progressive Web App (PWA), Orbit-Blog can be installed directly from your browser for a native-like experience.
+Orbit-Blog is a decentralized blogging platform that leverages the power of OrbitDB and IPFS to create a truly peer-to-peer experience. This innovative application allows content to replicate seamlessly between browsers and mobile devices without relying on traditional centralized servers. Built as a Progressive Web App (PWA), Orbit-Blog can be installed directly from your desktop or mobile browser for a native-like experience.
 
 ## Current Features
+- Create a personal peer-to-peer blog with categories and comments
+- Share the blog privately via a blog address via social media 
+- Publish a blog onto the blogging network
+- Subscribe to another blog 
 
 ### Core Functionality
 - Local-first data storage with peer-to-peer replication
@@ -48,6 +52,8 @@ Orbit-Blog is a decentralized blogging platform that leverages the power of Orbi
    - Disable zoom for better mobile UX
 
 2. **UI Improvements**
+   - [x] Fix / Enable Voyager Blog Pinning
+   - Add remote database together with the peerId (in 'one string')
    - Implement QR code scanning functionality
    - Add internationalization support (en, de, fr, es, it, ru)
    - Enable blog address sharing via URL hash routing

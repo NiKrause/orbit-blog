@@ -4,10 +4,11 @@
   import type { RemoteDB } from './types';
   import QRCode from 'qrcode';
   import Modal from './Modal.svelte';
-  import { switchToRemoteDB } from './dbUtils';
+  import { switchToRemoteDB, addRemoteDBToStore } from './dbUtils';
 
   let dbAddress = '';
   let dbName = '';
+  let dbPeerId = '';
   let qrCodeDataUrl = '';
   let showScanner = false;
   let videoElement: HTMLVideoElement;
@@ -21,9 +22,18 @@
   let isQueueRunning = false;
 
   $: {
-    if ($remoteDBs && !queueCheckInterval) {
-      queueCheckInterval = window.setInterval(processQueue, 30 * 1000); //every 30 seconds
-      processQueue();
+    if ($remoteDBs) {
+      const hasQueuedDBs = $remoteDBs.some(db => db.fetchLater);
+      
+      if (hasQueuedDBs && !queueCheckInterval) {
+        console.log('Starting queue checking - databases found in queue');
+        queueCheckInterval = window.setInterval(processQueue, 30 * 1000); // every 30 seconds
+        processQueue(); // Process immediately on setup
+      } else if (!hasQueuedDBs && queueCheckInterval) {
+        console.log('Clearing queue checking - no databases in queue');
+        clearInterval(queueCheckInterval);
+        queueCheckInterval = null;
+      }
     }
   }
 
@@ -117,6 +127,14 @@
       
       if (dbsToFetch.length === 0) {
         console.log('No databases in the queue.');
+        
+        // Clear the interval since there's nothing to process
+        if (queueCheckInterval) {
+          clearInterval(queueCheckInterval);
+          queueCheckInterval = null;
+          console.log('Queue checking stopped - no databases in queue');
+        }
+        
         return;
       }
       
@@ -181,73 +199,36 @@
   });
 
   async function addRemoteDB() {
-    console.log('Adding DB:', { dbAddress, dbName });
+    console.log('Adding DB:', { dbAddress, dbName , dbPeerId});
     if (dbAddress) {
       isModalOpen = true;
       modalMessage = "Opening remote database...";
       
       try {
-        const newDB: RemoteDB = {
-          id: crypto.randomUUID(),
-          name: dbName || 'Unknown Blog',
-          address: dbAddress,
-          fetchLater: true,
-          date: new Date().toISOString().split('T')[0]
-        };
+        // Use the utility function instead of duplicating logic
+        const success = await addRemoteDBToStore(dbAddress, dbPeerId, dbName);
         
-        const settingsDb = await $orbitdb.open(dbAddress);
-        console.log('DB opened successfully:', settingsDb);
-        const settingsData = await settingsDb.all()
-        console.log('settingsData', settingsData);
-        
-        const blogNameEntry = await settingsDb.get('blogName');
-        if (blogNameEntry?.value?.value) {
-          newDB.name = blogNameEntry.value.value;
+        if (success) {
+          console.log('Database added successfully:', dbAddress);
+        } else {
+          console.log('Failed to add database, but it was queued for later');
         }
-        
-        const postsAddressEntry = await settingsDb.get('postsDBAddress');
-        console.log('postsAddressEntry', postsAddressEntry);
-        if (postsAddressEntry?.value?.value) {
-          newDB.postsAddress = postsAddressEntry.value.value;
-          
-          try {
-            console.log('Opening remote posts database...', newDB.postsAddress);
-            modalMessage = "Opening remote posts database...";
-            const postsDb = await $orbitdb.open(newDB.postsAddress);
-            console.log('Remote posts DB opened successfully:', postsDb);
-            
-            modalMessage = "Fetching remote posts...";
-            const allPosts = await postsDb.all();
-            console.log('Remote posts:', allPosts);
-            
-            newDB.fetchLater = false;
-          } catch (error) {
-            console.error('Error opening posts database, will try later:', error);
-          }
-        }
-        
-        await $remoteDBsDatabases.put({ _id: newDB.id, ...newDB });
-        console.log('Database entry added:', newDB);
-        $remoteDBs = [...$remoteDBs, newDB];
         
         dbAddress = '';
         dbName = '';
         isModalOpen = false;
+        
+        // If any databases need to be fetched later and there's no queue interval running, start it
+        if ($remoteDBs.some(db => db.fetchLater) && !queueCheckInterval) {
+          console.log('Starting queue checking - new database added to queue');
+          queueCheckInterval = window.setInterval(processQueue, 30 * 1000);
+          processQueue(); // Process immediately
+        }
       } catch (err) {
         console.error('Error opening remote database:', err);
         modalMessage = `Error: ${err.message || 'Unknown error'} - Adding to queue for later.`;
         
-        const newDB: RemoteDB = {
-          id: crypto.randomUUID(),
-          name: dbName || 'Unknown Blog',
-          address: dbAddress,
-          fetchLater: true,
-          date: new Date().toISOString().split('T')[0]
-        };
-        
-        await $remoteDBsDatabases.put({ _id: newDB.id, ...newDB });
-        console.log('Database entry added to queue:', newDB);
-        $remoteDBs = [...$remoteDBs, newDB];
+        await addRemoteDBToStore(dbAddress, dbName);
         
         dbAddress = '';
         dbName = '';
@@ -255,6 +236,13 @@
         setTimeout(() => {
           isModalOpen = false;
         }, 3000);
+        
+        // Same check here for the error case where we queue the DB
+        if (!queueCheckInterval) {
+          console.log('Starting queue checking - new database added to queue after error');
+          queueCheckInterval = window.setInterval(processQueue, 30 * 1000);
+          processQueue(); // Process immediately
+        }
       }
     } else {
       console.log('Missing required fields');
@@ -328,13 +316,11 @@
 
 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6">
   <div class="mb-4">
-    <h3 class="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Current Database</h3>
-   
-
+    <h3 class="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Our Blog DB</h3>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="space-y-2">
         <div class="flex items-center space-x-2">
-          <span class="text-gray-600 dark:text-gray-400">Our Settings DB:</span>
+          <span class="text-gray-600 dark:text-gray-400">DB Address:</span>
           <input
             type="text"
             size={70}
@@ -379,7 +365,7 @@
         />
       </div>
       <div>
-        <label for="dbAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Database Address</label>
+        <label for="dbAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Blog OrbitDB Address</label>
         <div class="flex space-x-2">
           <input
             id="dbAddress"

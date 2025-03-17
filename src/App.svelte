@@ -28,6 +28,9 @@
   import { fly, fade } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import { FaBars, FaTimes } from 'svelte-icons/fa';
+  import { initHashRouter, isLoadingRemoteBlog } from './lib/router';
+  import LoadingBlog from './lib/LoadingBlog.svelte';
+  import { setupPeerEventListeners } from './lib/peerConnections';
 
   let blockstore = new LevelBlockstore('./helia-blocks');
   let datastore = new LevelDatastore('./helia-data');
@@ -46,6 +49,9 @@
   const SWIPE_THRESHOLD = 50;
   let sidebarTimer = null;
 
+  // Add router unsubscribe variable
+  let routerUnsubscribe;
+
   if(!encryptedSeedPhrase) {
       console.log('no seed phrase, generating new one')
       $seedPhrase = generateMnemonic();
@@ -57,20 +63,11 @@
     sidebarVisible = !sidebarVisible;
   }
 
-  function startSidebarTimer() {
-    if (sidebarTimer) clearTimeout(sidebarTimer);
-    
-    sidebarTimer = setTimeout(async () => {
-      await tick();
-      sidebarVisible = false;
-    }, 15000);
-  }
-
   // Watch for password modal changes
   $: if (!showPasswordModal && sidebarVisible) {
     // This runs when password is successfully entered or no password is needed
-    console.log('Password modal closed, sidebar visible - starting timer');
-    startSidebarTimer();
+    // console.log('Password modal closed, sidebar visible - starting timer');
+    // startSidebarTimer();
   }
 
   async function handleSeedPhraseCreated(event: CustomEvent) {
@@ -91,7 +88,7 @@
   async function initializeApp() {
     if (!seedPhrase) return;
     
-    console.log('initializeApp',)
+    console.log('initializeApp')
     const masterSeed = generateMasterSeed($seedPhrase, "password");
     const { hex } = await generateAndSerializeKey(masterSeed.subarray(0, 32))
     const privKeyBuffer = uint8ArrayFromString(hex, 'hex');
@@ -106,7 +103,6 @@
     $identities = await Identities({ ipfs: $helia })
     $identity = await $identities.createIdentity({ id: 'me' })
   
-    
     $orbitdb = await createOrbitDB({
       ipfs: $helia,
       //identity: ret.identity,
@@ -114,47 +110,13 @@
       storage: blockstore,
       directory: './orbitdb',
     })
-
+    routerUnsubscribe = initHashRouter();
     const addr = multiaddr(multiaddrs[0])
     voyager = await Voyager({ orbitdb: $orbitdb, address: addr})
     console.log('voyager', voyager)
-    $libp2p?.addEventListener('peer:discovery', async (evt) => {
-      const peer = evt.detail
-      // console.log('peer', peer)
-      console.log(`Peer ${$libp2p?.peerId.toString()} discovered: ${peer.id.toString()}`)
-      console.log('peer.multiaddrs', peer)
-      // Check if we're already connected to this peer
-      const connections = $libp2p?.getConnections(peer.id)
-      if (!connections || connections.length === 0) {
-        console.log(`Dialing new peer: ${peer.id.toString()}`)
-        
-        // Try each multiaddr until one succeeds
-        let connected = false
-        for (const addr of peer.multiaddrs) {
-          try {
-              console.log('dialing', addr.toString())
-              await $libp2p?.dial(addr)
-              console.log('Successfully dialed:', addr.toString())
-              connected = true
-            break // Exit the loop once successfully connected
-          } catch (error) {
-            console.warn(`Failed to dial ${addr.toString()}:`, error.message)
-          }
-        }
-        
-        if (!connected) {
-          console.error(`Failed to connect to peer ${peer.id.toString()} on all addresses`)
-        }
-      } else {
-        console.log(`Already connected to peer: ${peer.id.toString()}`)
-      }
-    })
-
-    $libp2p?.addEventListener('peer:connect', (evt) => {
-      console.log('evt', evt.detail.toString())
-      console.log('Connected to %s', evt.detail.toString()) // Log connected peer
-    })
-
+    
+    // Set up peer event listeners from the separate module
+    setupPeerEventListeners($libp2p);
   }
 
   /**
@@ -166,13 +128,16 @@
   }
 
   onDestroy(async () => {
+    // Clean up router subscription
+    if (routerUnsubscribe) routerUnsubscribe();
+    
     try {
       await $settingsDB?.close();
       await $postsDB?.close();
     } catch (error) {
       console.error('Error closing OrbitDB connections:', error);
     }
-    if (sidebarTimer) clearTimeout(sidebarTimer);
+    // if (sidebarTimer) clearTimeout(sidebarTimer);
   })
 
   $:if($orbitdb && voyager){
@@ -188,7 +153,12 @@
         }).then(_db => {
           $settingsDB = _db;
           window.settingsDB = _db;
-          voyager?.add(_db.address).then((ret) => console.log('voyager added settingsDB', ret))
+          voyager?.add(_db.address).then((ret) => {
+            //flag success to svelte store
+            $settingsDB.pinnedToVoyager = ret;
+            
+            console.log('voyager added settingsDB', ret)
+          }).catch( err => console.log('voyager error', err))
         }).catch( err => console.log('error', err))
         
         voyager?.orbitdb.open('posts', {
@@ -277,6 +247,7 @@
   $:if($remoteDBsDatabases){
     console.info('Remote DBs database opened successfully:', $remoteDBsDatabases);
     $remoteDBsDatabases.all().then(savedDBs => {
+      console.log("")
       const _remoteDBs = savedDBs.map(entry => entry.value);
       console.info('Remote DBs list:', _remoteDBs);
       $remoteDBs = _remoteDBs;
@@ -306,14 +277,13 @@
   function handleMouseEnter() {
     if (!sidebarVisible) {
       sidebarVisible = true;
-      // Start the auto-hide timer when sidebar is shown via mouse hover
-      startSidebarTimer();
     }
   }
 
 </script>
 <svelte:head>
   <title>{$blogName} {__APP_VERSION__}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 </svelte:head>
 {#if showPasswordModal}
   <PasswordModal 
@@ -366,31 +336,34 @@
     
     <!-- Main Content -->
     <div class="flex-1 overflow-x-hidden">
-      <div class="max-w-7xl mx-auto py-8 px-4">
-        <h1 class="text-4xl font-bold text-center mb-8 text-gray-900 dark:text-white">{$blogName}</h1> 
-        <h6 class="text-sm text-center mb-8 text-gray-900 dark:text-white">{$blogDescription}</h6>
-        <h6>{__APP_VERSION__}</h6>
+      {#if $isLoadingRemoteBlog}
+        <LoadingBlog />
+      {:else}
+        <div class="max-w-7xl mx-auto py-8 px-4">
+          <h1 class="text-4xl font-bold text-center mb-8 text-gray-900 dark:text-white">{$blogName}</h1> 
+          <h6 class="text-sm text-center mb-8 text-gray-900 dark:text-white">{$blogDescription}</h6>
+          <h6>{__APP_VERSION__}</h6>
 
-        {#if $showDBManager}
-          <DBManager />
-        {/if}
-        
-        {#if $showPeers}
-          <ConnectedPeers />
-        {/if}
-
-        {#if $showSettings}
-          <Settings {seedPhrase} />
-        {/if}
-        
-        <div class="grid gap-8">
-          <PostList />
-          {#if canWrite}
-            <PostForm />
+          {#if $showDBManager}
+            <DBManager />
+          {/if}
+          
+          {#if $showPeers}
+            <ConnectedPeers />
           {/if}
 
+          {#if $showSettings}
+            <Settings {seedPhrase} />
+          {/if}
+          
+          <div class="grid gap-8">
+            <PostList />
+            {#if canWrite}
+              <PostForm />
+            {/if}
+          </div>
         </div>
-      </div>
+      {/if}
     </div>
   </main>
 

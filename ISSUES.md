@@ -33,32 +33,35 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [ ] internationalize the UI (en,de,fr,es,it,ru,...)
         - [ ] use AI for transaltion
         - [ ] use translation services
-    - [ ] orbitdb address (blog address) should be possible to be given over the url in hash router /#/orbitdb/xyz
+    - [x] orbitdb address (blog address) should be possible to be given over the url in hash router /#/orbitdb/xyz
     - [x] editable / flexible categories
     - [x] editable posts
     - [x] deploy to IPFS
     - [x] markdown support for posts 
     - [?] markdown support for comments
     - [x] search in posts 
-    - [ ] search in comments
+    - [ ] search in comments (put comments into own db - but take care with access rights (*/OneTimeAccessController))
     - [ ] add about
 - OrbitDB related
+    - [ ] if libp2 looses all peers try to reconnect periodically (first faster then less frequent)
     - [ ] overwrite seedPhrase and generate new peerId and identity (did)
-    - [ ] Voyager evaluation
+    - [x] Voyager evaluation
         - [x] install voyager as pinning service https://github.com/orbitdb/voyager/tree/main
         - [x] add db addresses to voyager
         - [x] allow persistent peerId
-        - [ ] make voyager websocket wss e.g. 
+        - [x] make voyager websocket wss e.g. 
             - [ ] autotls 
                 - http://bafybeihxl3cwxwh3lwbjhryxv7anf7lfbk2ynqobu55r54po73ds2csrti.ipfs.localhost:8081/autotls/
                 - https://www.npmjs.com/package/@libp2p/auto-tls
-            - [ ] docker compose + nginx + certbot
+            - [x] docker compose + nginx + certbot
                 - https://github.com/silkroadnomad/libp2p-relay/blob/main/docker-compose.yml
                 - https://github.com/silkroadnomad/libp2p-relay/blob/main/init-letsencrypt.sh
         - [ ] make voyager support pubsub peer discovery
         - [ ] support DID on voyager
-        - [ ] test voyager replication
+        - [x] test voyager replication
     - [ ] add first production blog 
+        - [ ] le-space.de
+        - [ ] nicokrause.com
     - [ ] when clicking on a peerId, open a modal to show information about the peer and request information such as (public blog names, impressum, etc.)
     - [ ] publish blog on request
     - [ ] enter optional imprint in settings (optional for public blogs) 
@@ -72,7 +75,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
         - [ ] username/did by blockchain (Bitcoin Ordinals, Runes, Namcoin, Doichain)
         - [x] did
         - [ ] did / id by Nostr-Chrome-Extension
-        - [ ] did / id by metmask extension
+        - [ ] did / id by Metmask extension
         - [x] seed phrase
         - [x] seed phrase encrypted by password
         - [ ] seed phrase encrypted by passkey

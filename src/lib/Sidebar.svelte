@@ -1,6 +1,5 @@
 <script lang="ts">
   import { 
-    postsDB,
     remoteDBs, 
     libp2p, 
     postsDBAddress, 
@@ -9,10 +8,15 @@
     showDBManager,
     showPeers,
     showSettings,
-    settingsDB
+    settingsDB,
   } from './store';
   import { switchToRemoteDB } from './dbUtils';
   import PeersList from './PeersList.svelte';
+  import { connectedPeersCount } from './peerConnections';
+  
+  $: if(settingsDB){
+    console.log('settingsDB', settingsDB)
+  }
 </script>
 
 <div class="w-48 bg-gray-200 dark:bg-gray-800 p-2 shadow-md overflow-y-auto">
@@ -40,7 +44,16 @@
         }}  
         title="Click to load your own blog"
       >
-        <p class="truncate"><strong>Blog:</strong> {$blogName || 'Not set'}</p>
+        <p class="truncate">
+          <strong>Blog:</strong> {$blogName || 'Not set'}
+          <!-- Pin indicator next to blog name -->
+          {#if $settingsDB && $settingsDB.pinnedToVoyager !== undefined}
+            <span 
+              class="inline-block ml-1 w-2 h-2 rounded-full {$settingsDB.pinnedToVoyager ? 'bg-green-500' : 'bg-orange-500'}"
+              title={$settingsDB.pinnedToVoyager ? "Pinned to Voyager" : "Not pinned to Voyager"}
+            ></span>
+          {/if}
+        </p>
         <p class="truncate"><strong>ID:</strong> {$identity?.id ? $identity.id.substring(0, 18) + '...' : 'Not connected'}</p>
       </div>
     </div>
@@ -53,6 +66,13 @@
             title={db.name}
           >
             {db.name}
+            <!-- Pin indicator next to database name -->
+            {#if db.pinnedToVoyager !== undefined}
+              <span 
+                class="inline-block ml-1 w-2 h-2 rounded-full {db.pinnedToVoyager ? 'bg-green-500' : 'bg-orange-500'}"
+                title={db.pinnedToVoyager ? "Pinned to Voyager" : "Not pinned to Voyager"}
+              ></span>
+            {/if}
           </button>
         {/each}
       {:else}
@@ -68,7 +88,7 @@
       on:click={() => showPeers.update(value => !value)}
       title={$showPeers ? "Hide Connected Peers" : "Show Connected Peers"}
     >
-      Peers
+      Peers ({$connectedPeersCount})
     </h5>
     <div class="space-y-1">
       {#if $libp2p}
@@ -90,6 +110,5 @@
     >
       Settings
     </h5>
-
   </div>
 </div> 

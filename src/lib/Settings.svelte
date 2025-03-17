@@ -71,6 +71,14 @@
     $categories = $categories.filter(c => c !== category);
     $settingsDB?.put({ _id: 'categories', value: $categories });
   }
+
+  function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text).then(() => {
+      console.log('Text copied to clipboard:', text);
+    }).catch(err => {
+      console.error('Error copying text to clipboard:', err);
+    });
+  }
 </script>
 
 <div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
