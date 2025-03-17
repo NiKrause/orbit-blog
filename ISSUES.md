@@ -46,6 +46,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [ ] search in comments (put comments into own db - but take care with access rights (*/OneTimeAccessController))
     - [ ] add about
 - OrbitDB related
+    - [ ] support multiple blogs per instance
     - [ ] if libp2 looses all peers try to reconnect periodically (first faster then less frequent)
     - [ ] overwrite seedPhrase and generate new peerId and identity (did)
     - [x] Voyager evaluation

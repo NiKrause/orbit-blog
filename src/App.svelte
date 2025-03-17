@@ -284,6 +284,33 @@
 <svelte:head>
   <title>{$blogName} {__APP_VERSION__}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="description" content="{$blogDescription}">
+  <!-- <meta name="author" content="{$blogName}"> -->
+  <meta name="keywords" content="{$categories}">
+  <meta name="author" content="{$blogName}">
+  <meta name="robots" content="index, follow">
+  <meta name="googlebot" content="index, follow">
+  <meta name="bingbot" content="index, follow">
+  <meta name="alexa" content="index, follow">
+  <meta name="yandex" content="index, follow">
+  <meta name="sitemap" content="index, follow">
+  <!--no cache-->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="cache-busting" content="{$cacheBusting}">
+  <meta name="theme-color" content="#000000">
+  <meta name="msapplication-navbutton-color" content="#000000">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="application-name" content="{$blogName}">
+  <meta name="apple-mobile-web-app-title" content="{$blogName}">
+  <meta name="msapplication-TileColor" content="#000000">
+  <meta name="msapplication-TileImage" content="{$blogName}">
+  <meta name="msapplication-config" content="{$blogName}">
+  <meta name="msapplication-starturl" content="{$blogName}">
+  <meta name="msapplication-navbutton-color" content="#000000">
+  <meta name="msapplication-TileColor" content="#000000">
+  <meta name="msapplication-TileImage" content="{$blogName}">
 </svelte:head>
 {#if showPasswordModal}
   <PasswordModal 

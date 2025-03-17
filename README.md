@@ -47,7 +47,6 @@ Orbit-Blog is a decentralized blogging platform that leverages the power of Orbi
 
 ### Short-Term Goals
 1. **Mobile Experience Enhancement**
-   - Improve remote blog interaction on mobile
    - Fix sidebar layout issues
    - Disable zoom for better mobile UX
 
