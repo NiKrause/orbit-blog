@@ -15,6 +15,8 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 ### Todos & Features
 - Issues:
+    - [ ] green/orange indication doesn't work for new local blogs
+    - [ ] toggle button temporary persistent seed phrase suddenly missing 
     - [ ] if url isn't the main url - show warning
     - [x] improve usability mobile
         - [x] remote blogs not clickable

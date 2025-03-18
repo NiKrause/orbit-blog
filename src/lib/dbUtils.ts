@@ -150,7 +150,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       console.log('blogDescriptionValue', blogDescriptionValue);
       const postsDBAddressValue = dbContents.find(content => content.key === 'postsDBAddress')?.value?.value;
       console.log('postsDBAddressValue', postsDBAddressValue);
-      categoriesValue = dbContents.find(content => content.key === 'categories')?.value?.value; // Fetch categories
+      categoriesValue = dbContents.find(content => content.key === 'categories')?.value?.value || ['please add categories']; // Fetch categories
       console.log('categoriesValue', categoriesValue);
 
       if (blogNameValue) blogName.set(blogNameValue);
@@ -163,7 +163,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         console.log('blogNameValue', blogNameValue);
         console.log('blogDescriptionValue', blogDescriptionValue);
         console.log('postsDBAddressValue', postsDBAddressValue);
-        console.log('categoriesValue', categoriesValue);
+        // console.log('categoriesValue', categoriesValue);
         // Load posts from postsDBAddress
         const postsDBInstance = await orbitdbInstance.open(postsDBAddressValue);
         postsDB.set(postsDBInstance);
