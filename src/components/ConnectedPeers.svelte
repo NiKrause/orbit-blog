@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { helia } from './store';
+  import { helia } from '../lib/store';
   import { onMount } from 'svelte';
   import type { Connection } from '@libp2p/interface-connection'
   

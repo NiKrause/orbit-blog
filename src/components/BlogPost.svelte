@@ -1,7 +1,7 @@
 <script lang="ts">
   import { marked } from 'marked';
-  import type { BlogPost, Comment } from './types';
-  import { posts } from './store';
+  import type { BlogPost, Comment } from '../lib/types';
+  import { posts } from '../lib/store';
 
   export let post: BlogPost;
 

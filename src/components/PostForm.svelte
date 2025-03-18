@@ -1,8 +1,8 @@
 <script lang="ts">
-  import type { Category } from './types';
+  import type { Category } from '../lib/types';
   import { marked } from 'marked';
   import DOMPurify from 'dompurify';
-  import { postsDB, categories } from './store';
+  import { postsDB, categories } from '../lib/store';
 
   let title = '';
   let content = '';

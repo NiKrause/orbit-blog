@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { postsDB } from './store';
-  import type { Post } from './types';
+  import { postsDB } from '../lib/store';
+  import type { Post } from '../lib/types';
 
   export let post: Post;
 

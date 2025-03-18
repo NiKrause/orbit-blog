@@ -1,8 +1,8 @@
 <script lang="ts">
 
   // import { generateMnemonic } from 'bip39'
-  import { settingsDB, blogName, blogDescription, postsDBAddress, categories, seedPhrase, libp2p, orbitdb, identity } from './store';
-  import { encryptSeedPhrase } from './cryptoUtils';
+  import { settingsDB, blogName, blogDescription, postsDBAddress, categories, seedPhrase, libp2p, orbitdb, identity } from '../lib/store';
+  import { encryptSeedPhrase } from '../lib/cryptoUtils';
 
   // export let seedPhrase: string | null = localStorage.getItem('encryptedSeedPhrase') || generateMnemonic();
   

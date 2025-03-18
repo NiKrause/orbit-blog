@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { posts } from './store';
+  import { posts } from '../lib/store';
   import { marked } from 'marked';
   import DOMPurify from 'dompurify';
-  import type { Post, Category } from './types';
+  import type { Post, Category } from '../lib/types';
   import CommentSection from './CommentSection.svelte';
   import { onMount } from 'svelte';
-  import { postsDB, categories } from './store';
+  import { postsDB, categories } from '../lib/store';
 
   let searchQuery = '';
   let selectedCategory: Category | 'All' = 'All';

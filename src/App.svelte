@@ -10,18 +10,18 @@
   import { createHelia } from 'helia'
   import { LevelDatastore } from 'datastore-level'
   import { LevelBlockstore } from 'blockstore-level'
-  import PostForm from './lib/PostForm.svelte';
-  import PostList from './lib/PostList.svelte';
-  import ThemeToggle from './lib/ThemeToggle.svelte';
-  import DBManager from './lib/DBManager.svelte';
-  import ConnectedPeers from './lib/ConnectedPeers.svelte';
-  import Settings from './lib/Settings.svelte';
-  import PasswordModal from './lib/PasswordModal.svelte';
+  import PostForm from './components/PostForm.svelte';
+  import PostList from './components/PostList.svelte';
+  import ThemeToggle from './components/ThemeToggle.svelte';
+  import DBManager from './components/DBManager.svelte';
+  import ConnectedPeers from './components/ConnectedPeers.svelte';
+  import Settings from './components/Settings.svelte';
+  import PasswordModal from './components/PasswordModal.svelte';
   import { Libp2pOptions, multiaddrs } from './lib/config'
   import { generateMnemonic } from 'bip39';
   import { Identities } from '@orbitdb/core'
   import { postsDB, postsDBAddress, posts, remoteDBs, remoteDBsDatabases, showDBManager, showPeers, showSettings, blogName, libp2p, helia, orbitdb, identity, identities, settingsDB, blogDescription, categories, seedPhrase } from './lib/store';
-  import Sidebar from './lib/Sidebar.svelte';
+  import Sidebar from './components/Sidebar.svelte';
   import { encryptSeedPhrase, decryptSeedPhrase, isEncryptedSeedPhrase } from './lib/cryptoUtils';
   import { Voyager } from '@orbitdb/voyager'
   import { generateMasterSeed, generateAndSerializeKey } from './lib/utils';
@@ -29,7 +29,7 @@
   import { cubicOut } from 'svelte/easing';
   import { FaBars, FaTimes } from 'svelte-icons/fa';
   import { initHashRouter, isLoadingRemoteBlog } from './lib/router';
-  import LoadingBlog from './lib/LoadingBlog.svelte';
+  import LoadingBlog from './components/LoadingBlog.svelte';
   import { setupPeerEventListeners } from './lib/peerConnections';
 
   let blockstore = new LevelBlockstore('./helia-blocks');

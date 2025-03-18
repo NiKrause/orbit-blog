@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
-  import { encryptSeedPhrase, decryptSeedPhrase } from './cryptoUtils';
+  import { encryptSeedPhrase, decryptSeedPhrase } from '../lib/cryptoUtils';
   
   export let isNewUser = false;
   export let encryptedSeedPhrase: string | null = null;

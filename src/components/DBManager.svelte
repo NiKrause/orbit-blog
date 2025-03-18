@@ -1,10 +1,10 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
-  import { settingsDB, postsDB, remoteDBs, selectedDBAddress, posts, orbitdb, identity, remoteDBsDatabases, libp2p, blogName, blogDescription, postsDBAddress } from './store';
-  import type { RemoteDB } from './types';
+  import { settingsDB, postsDB, remoteDBs, selectedDBAddress, posts, orbitdb, identity, remoteDBsDatabases, libp2p, blogName, blogDescription, postsDBAddress } from '../lib/store';
+  import type { RemoteDB } from '../lib/types';
   import QRCode from 'qrcode';
   import Modal from './Modal.svelte';
-  import { switchToRemoteDB, addRemoteDBToStore } from './dbUtils';
+  import { switchToRemoteDB, addRemoteDBToStore } from '../lib/dbUtils';
 
   let dbAddress = '';
   let dbName = '';

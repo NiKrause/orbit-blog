@@ -11,11 +11,11 @@
     showSettings,
     settingsDB,
     initialAddress,
-  } from './store';
+  } from '../lib/store';
   import { get } from 'svelte/store';
-  import { switchToRemoteDB } from './dbUtils';
+  import { switchToRemoteDB } from '../lib/dbUtils';
   import PeersList from './PeersList.svelte';
-  import { connectedPeersCount } from './peerConnections';
+  import { connectedPeersCount } from '../lib/peerConnections';
   $: console.log("settingsDB", settingsDB) 
   let _settingsDB: any
   settingsDB.subscribe(_ => {

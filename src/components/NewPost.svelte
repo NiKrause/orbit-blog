@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { posts } from './store';
-  import type { Category } from './types';
+  import { posts } from '../lib/store';
+  import type { Category } from '../lib/types';
 
   let title = '';
   let content = '';
