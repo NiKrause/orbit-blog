@@ -1,7 +1,7 @@
 <table border="0" cellspacing="0" cellpadding="0">
   <tr>
       <td>
-      <h1>Orbit-Blog</h1>A local-first & peer-to-peer blog powered by OrbitDB which replicates between browsers and mobile apps. IPFS (only)</td>
+      <h1>Orbit-Blog</h1>A local-first & peer-to-peer blog powered by OrbitDB which replicates between browsers and mobile apps. It is hosted on IPFS.</td>
     <td><img src="./public/orbitbloglogo-700.png" width="300" alt="Orbit Blog Logo"></td>
   </tr>
 </table>
@@ -15,7 +15,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 # Orbit-Blog: Local-First P2P Blogging Platform
 
-Orbit-Blog is a decentralized blogging platform that leverages the power of OrbitDB and IPFS to create a truly peer-to-peer experience. This innovative application allows content to replicate seamlessly between browsers and mobile devices without relying on traditional centralized servers. Built as a Progressive Web App (PWA), Orbit-Blog can be installed directly from your desktop or mobile browser for a native-like experience.
+Orbit-Blog is a decentralized blogging platform that leverages the power of OrbitDB and IPFS to create a truly peer-to-peer experience. This web and mobile application allows content to replicate seamlessly between browsers and mobile devices without relying on centralized servers. Built as a Progressive Web App (PWA), Orbit-Blog can be installed directly to your desktop or mobile browser experience.
 
 ## Current Features
 - Create a personal peer-to-peer blog with categories and comments
