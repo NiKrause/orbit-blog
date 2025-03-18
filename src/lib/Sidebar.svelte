@@ -42,23 +42,15 @@
   $: if(_settingsDB && _identity && _postsDB && _postsDBAddress){
     const access = _settingsDB?.access;
     canWrite = access?.write.includes(_identity?.id)
-    console.log('canWrite', canWrite)
-    console.log('_  postsDB', _postsDB)
-    console.log('_postsDBAddress', _postsDBAddress)
-    console.log('initialAddress', get(initialAddress))
     canWrite = access.write.includes(_identity.id) && get(initialAddress) === _postsDBAddress
-    console.log('canWrite', canWrite)
-    // const access = settingsDBInstance?.access;
-    // const canWrite = access?.write.includes(identityInstance?.id)
-    // console.log('canWrite', canWrite)
   }
 </script>
 
-<div class="w-48 bg-gray-200 dark:bg-gray-800 p-2 shadow-md overflow-y-auto">
+<div class="w-48 md:w-64 bg-gray-200 dark:bg-gray-800 p-2 shadow-md overflow-y-auto">
   <!-- DBs Section -->
   <div class="mb-3">
     <h5 
-      class="text-[10px] font-bold uppercase tracking-wider text-white dark:text-white bg-blue-500 rounded py-1 px-2 mb-1 cursor-pointer hover:bg-blue-600"
+      class="text-xs md:text-sm font-bold uppercase tracking-wider text-white dark:text-white bg-blue-500 rounded py-1 px-2 mb-1 cursor-pointer hover:bg-blue-600"
       on:click={() => showDBManager.update(value => !value)}
       title={$showDBManager ? "Hide Database Manager" : "Show Database Manager"}
     >
@@ -66,7 +58,7 @@
     </h5>
     <div class="space-y-1">
       <div 
-        class="text-[8px] text-gray-800 dark:text-gray-300 bg-gray-300 dark:bg-gray-600 p-1 rounded cursor-pointer hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+        class="text-[10px] md:text-xs text-gray-800 dark:text-gray-300 bg-gray-300 dark:bg-gray-600 p-1 rounded cursor-pointer hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
         on:click={async () => {
           // Get the address from settingsDB
           if ($settingsDB.address) {
@@ -96,7 +88,7 @@
       {#if $remoteDBs?.length > 0}
         {#each $remoteDBs as db}
           <button 
-            class="w-full text-left py-0.5 px-1 rounded text-[8px] truncate {$postsDBAddress === db.address ? 'bg-blue-500 text-white' : 'bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-400 dark:hover:bg-gray-500'}"
+            class="w-full text-left py-0.5 px-1 rounded text-[10px] md:text-xs truncate {$postsDBAddress === db.address ? 'bg-blue-500 text-white' : 'bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-400 dark:hover:bg-gray-500'}"
             on:click={() => switchToRemoteDB(db.address)}
             title={db.name}
           >
@@ -111,7 +103,7 @@
           </button>
         {/each}
       {:else}
-        <p class="text-[8px] text-gray-500 dark:text-gray-400">No databases</p>
+        <p class="text-[10px] md:text-xs text-gray-500 dark:text-gray-400">No databases</p>
       {/if}
     </div>
   </div>
@@ -119,7 +111,7 @@
   <!-- Peers Section -->
   <div class="mb-3">
     <h5 
-      class="text-[10px] font-bold uppercase tracking-wider text-white dark:text-white bg-yellow-500 rounded py-1 px-2 mb-1 cursor-pointer hover:bg-yellow-600"
+      class="text-xs md:text-sm font-bold uppercase tracking-wider text-white dark:text-white bg-yellow-500 rounded py-1 px-2 mb-1 cursor-pointer hover:bg-yellow-600"
       on:click={() => showPeers.update(value => !value)}
       title={$showPeers ? "Hide Connected Peers" : "Show Connected Peers"}
     >
@@ -131,7 +123,7 @@
           <PeersList />
         {/key}
       {:else}
-        <p class="text-[8px] text-gray-500 dark:text-gray-400">Not connected</p>
+        <p class="text-[10px] md:text-xs text-gray-500 dark:text-gray-400">Not connected</p>
       {/if}
     </div>
   </div>
@@ -139,7 +131,7 @@
   <!-- Settings Section -->
   <div>
     <h5 
-      class="text-[10px] font-bold uppercase tracking-wider text-white dark:text-white bg-green-500 rounded py-1 px-2 mb-1 cursor-pointer hover:bg-green-600"
+      class="text-xs md:text-sm font-bold uppercase tracking-wider text-white dark:text-white bg-green-500 rounded py-1 px-2 mb-1 cursor-pointer hover:bg-green-600"
       on:click={() => showSettings.update(value => !value)}
       title={$showSettings ? "Hide Settings" : "Show Settings"}
     >

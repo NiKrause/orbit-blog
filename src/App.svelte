@@ -298,7 +298,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <meta name="cache-busting" content="{$cacheBusting}">
+  <!-- <meta name="cache-busting" content="{$cacheBusting}"> -->
   <meta name="theme-color" content="#000000">
   <meta name="msapplication-navbutton-color" content="#000000">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -327,10 +327,16 @@
     
     <!-- Sidebar Component with animation -->
     {#if sidebarVisible}
-      <div in:fly={{ x: -300, duration: 400, easing: cubicOut }} 
-           out:fly={{ x: -300, duration: 400, easing: cubicOut }}
-           class="relative">
-        <!-- Add the toggle button inside the sidebar instead of fixed -->
+      <!-- Add overlay -->
+      <div 
+        class="fixed inset-0 bg-black bg-opacity-50 z-30"
+        on:click={toggleSidebar}
+        transition:fade
+      ></div>
+      
+      <div in:fly={{ x: -400, duration: 400, easing: cubicOut }} 
+           out:fly={{ x: -400, duration: 400, easing: cubicOut }}
+           class="fixed top-0 left-0 h-full z-40 max-w-[80vw]">
         <button 
           class="absolute top-2 right-1 z-50 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-full p-1 shadow-sm transition-all duration-300 focus:outline-none"
           on:click={toggleSidebar}
