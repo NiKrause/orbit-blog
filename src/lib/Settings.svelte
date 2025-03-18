@@ -130,24 +130,6 @@
       {/each}
     </div>
   </div>
-
-
-  <div class="mb-4 text-sm">
-    <div class="flex items-center space-x-2">
-      <span class="text-gray-600 dark:text-gray-400">Peer ID:</span>
-      <input
-        type="text"
-        size={60}
-        readonly
-        value={peerId}
-        class="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm"
-      />
-      <button on:click={() => copyToClipboard(peerId)} class="text-gray-500 hover:text-gray-700">
-        📋
-      </button>
-    </div>
-  </div>
-
   <div class="mb-4 text-sm">
     <div class="flex items-center space-x-2">
       <span class="text-gray-600 dark:text-gray-400">DID:</span>

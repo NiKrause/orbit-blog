@@ -59,7 +59,7 @@
 <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
   <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full">
     <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">
-      {isNewUser ? 'Create Password & Generate Seed Phrase' : 'Enter Password & Decrypt Seed Phrase'}
+      {isNewUser ? 'Create Password & Generate Seed Phrase' : 'Enter Password & Decrypt Seed Phrase'} ( {__APP_VERSION__} )
     </h2>
     
     <p class="mb-4 text-gray-700 dark:text-gray-300">

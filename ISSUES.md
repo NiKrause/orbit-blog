@@ -17,8 +17,8 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 - Issues:
     - [ ] improve usability mobile
         - [x] remote blogs not clickable
-        - [ ] disable zoom
-        - [ ] sidebar destroys layout
+        - [x] disable zoom
+        - [x] sidebar destroys layout
     - [ ] Scan QR-Code isn't fully implemented
     - [x] peer-to-peer via WebRTC between two browsers doesn't work
     - [x] disable DID and enable default orbitdb.id, DID not yet supported by voyager  
@@ -34,7 +34,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [ ] create PoE for blog post on several blockchains (e.g. Bitcoin, Namecoin etc.)
     - [ ] configure your own voyager 
     - [ ] internationalize the UI (en,de,fr,es,it,ru,...)
-        - [ ] use AI for transaltion
+        - [ ] use AI for translation
         - [ ] use translation services
     - [x] orbitdb address (blog address) should be possible to be given over the url in hash router /#/orbitdb/xyz
     - [x] editable / flexible categories
