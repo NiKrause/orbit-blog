@@ -16,7 +16,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 ### Todos & Features
 - Issues:
     - [ ] improve usability mobile
-        - [ ] remote blogs not clickable
+        - [x] remote blogs not clickable
         - [ ] disable zoom
         - [ ] sidebar destroys layout
     - [ ] Scan QR-Code isn't fully implemented

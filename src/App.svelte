@@ -47,9 +47,7 @@
   let touchStartX = 0;
   let touchEndX = 0;
   const SWIPE_THRESHOLD = 50;
-  let sidebarTimer = null;
 
-  // Add router unsubscribe variable
   let routerUnsubscribe;
 
   if(!encryptedSeedPhrase) {
@@ -61,13 +59,6 @@
   // Function to toggle sidebar visibility
   function toggleSidebar() {
     sidebarVisible = !sidebarVisible;
-  }
-
-  // Watch for password modal changes
-  $: if (!showPasswordModal && sidebarVisible) {
-    // This runs when password is successfully entered or no password is needed
-    // console.log('Password modal closed, sidebar visible - starting timer');
-    // startSidebarTimer();
   }
 
   async function handleSeedPhraseCreated(event: CustomEvent) {
@@ -137,7 +128,6 @@
     } catch (error) {
       console.error('Error closing OrbitDB connections:', error);
     }
-    // if (sidebarTimer) clearTimeout(sidebarTimer);
   })
 
   $:if($orbitdb && voyager){
@@ -174,7 +164,6 @@
           window.postsDB = _db;
           voyager?.add(_db.address).then((ret) => console.log('voyager added postsDB', ret))
           console.log('postsDB', _db.address.toString())
-// $settingsDB.put('postsDBAddress', _db.address.toString())
           $postsDBAddress = _db.address.toString()
         }).catch( err => console.log('error', err))
 
@@ -193,7 +182,6 @@
   }
 
   $:if($settingsDB && (!$blogName || !$blogDescription || !$categories || !$postsDBAddress)) {
-    console.log('settingsDB', $settingsDB)
     $settingsDB.get('blogName').then(result => 
       result?.value?.value !== undefined ? ($blogName = result.value.value) : null
     );
@@ -207,11 +195,9 @@
     );
     $settingsDB.get('postsDBAddress').then(result => {
         if(result?.value?.value !== undefined){
-          console.log("postsDBAddress is defined", result.value.value)
           $postsDBAddress = result.value.value
         } else {
           const postsDBAddress = $postsDB?.address.toString()
-          console.log("postsDBAddress is not defined - but storing it now!", postsDBAddress)
           $settingsDB?.put({ _id: 'postsDBAddress', value: postsDBAddress});
           $settingsDB?.all().then(result => console.log('settingsDB.all()', result))
         }
@@ -220,10 +206,8 @@
     
   $settingsDB.events.on('update', 
     async (entry) => {
-      console.log('settingsDB.update', entry)
       if (entry?.payload?.op === 'PUT') {
         const { _id, ...rest } = entry.payload.value;
-        console.log('settingsDB.update', entry.payload.key, rest)
         if(entry.payload.key==='blogName') $blogName = rest.value;
         if(entry.payload.key==='blogDescription') $blogDescription = rest.value;
         if(entry.payload.key==='categories') $categories = rest.value;
@@ -375,7 +359,7 @@
         <div class="max-w-7xl mx-auto py-8 px-4">
           <h1 class="text-4xl font-bold text-center mb-8 text-gray-900 dark:text-white">{$blogName}</h1> 
           <h6 class="text-sm text-center mb-8 text-gray-900 dark:text-white">{$blogDescription}</h6>
-          <h6>{__APP_VERSION__}</h6>
+          <h6 class="text-xs text-center mb-8 text-gray-900 dark:text-white">{__APP_VERSION__}</h6>
 
           {#if $showDBManager}
             <DBManager />

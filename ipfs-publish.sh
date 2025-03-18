@@ -22,8 +22,8 @@ ssh -t root@ipfs.le-space.de "cd docker/ipfs/willschenk && docker-compose exec i
 echo "IPFS CID $cid pinned to ipfs.le-space.de"
 
 
-ssh -t root@ipfs.le-space.de "cd docker/ipfs/willschenk && docker-compose exec ipfs ipfs pin add --follow /ipns/k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g"
-echo "IPFS PIN added to follow ipns"
+# ssh -t root@ipfs.le-space.de "cd docker/ipfs/willschenk && docker-compose exec ipfs ipfs pin add --follow /ipns/k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g"
+# echo "IPFS PIN added to follow ipns"
 # Get the current version from package.json
 version=$(node -p "require('./package.json').version")
 

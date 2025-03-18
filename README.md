@@ -20,21 +20,20 @@ Orbit-Blog is a decentralized blogging platform that leverages the power of Orbi
 ## Current Features
 - Create a personal peer-to-peer blog with categories and comments
 - Share the blog privately via a blog address via social media 
-- Publish a blog onto the blogging network
-- Subscribe to another blog 
+- Publish a blog onto the peer-to-peer blogging network 
+- Subscribe and replicate other blogs 
 
 ### Core Functionality
 - Local-first data storage with peer-to-peer replication
-- Persistent or temporary identity management
+- Restore blog data from replicating nodes with your seed phrase only (MetaMask & Nostr planed)
+- Persistent or temporary identity management (store seed persistently securely on your mobile - leave the temporary in your desktop browser)
 - Encrypted seed phrase storage with password protection
-- Blog settings via private settings database
 - Editable and flexible post categories
 - Markdown support for rich content creation
 - Search functionality within posts
 
 ### OrbitDB Integration
 - Connection and replication with remote blogs
-- Blog settings database with customizable properties
 - Persistent peer ID generation from seed phrases
 - Identity switching between temporary and persistent modes
 
