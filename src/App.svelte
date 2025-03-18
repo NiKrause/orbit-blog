@@ -339,11 +339,11 @@
     
     <!-- Add the sharing button with an icon -->
     <button 
-      class="fixed top-4 right-16 z-50 bg-blue-500 text-white hover:bg-blue-600 rounded-full p-2 shadow-sm transition-all duration-300 focus:outline-none w-9 h-9"
+      class="fixed top-4 right-20 z-50 bg-blue-500 text-white hover:bg-blue-600 rounded-full p-1 shadow-sm transition-all duration-300 focus:outline-none w-6 h-6"
       on:click={copySettingsDBAddress}
       aria-label="Share blog address">
       <FaShare  />
-    </button>
+    </button> 
     
     <!-- Notification -->
     {#if showNotification}
