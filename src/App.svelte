@@ -20,14 +20,14 @@
   import { Libp2pOptions, multiaddrs } from './lib/config'
   import { generateMnemonic } from 'bip39';
   import { Identities } from '@orbitdb/core'
-  import { postsDB, postsDBAddress, posts, remoteDBs, remoteDBsDatabases, showDBManager, showPeers, showSettings, blogName, libp2p, helia, orbitdb, identity, identities, settingsDB, blogDescription, categories, seedPhrase } from './lib/store';
+  import { postsDB, postsDBAddress, posts, remoteDBs, remoteDBsDatabases, showDBManager, showPeers, showSettings, blogName, libp2p, helia, orbitdb, identity, identities, settingsDB, blogDescription, categories, seedPhrase, voyager } from './lib/store';
   import Sidebar from './components/Sidebar.svelte';
   import { encryptSeedPhrase, decryptSeedPhrase, isEncryptedSeedPhrase } from './lib/cryptoUtils';
   import { Voyager } from '@orbitdb/voyager'
   import { generateMasterSeed, generateAndSerializeKey } from './lib/utils';
   import { fly, fade } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
-  import { FaBars, FaTimes } from 'svelte-icons/fa';
+  import { FaBars, FaTimes, FaShare } from 'svelte-icons/fa';
   import { initHashRouter, isLoadingRemoteBlog } from './lib/router';
   import LoadingBlog from './components/LoadingBlog.svelte';
   import { setupPeerEventListeners } from './lib/peerConnections';
@@ -40,7 +40,6 @@
   let showPasswordModal = encryptedSeedPhrase ? true : false;
   let isNewUser = !encryptedSeedPhrase;
   let canWrite = false;
-  let voyager: Voyager | null = null;
 
   // Add sidebar state variables
   let sidebarVisible = true;
@@ -49,6 +48,8 @@
   const SWIPE_THRESHOLD = 50;
 
   let routerUnsubscribe;
+
+  let showNotification = false;
 
   if(!encryptedSeedPhrase) {
       console.log('no seed phrase, generating new one')
@@ -88,7 +89,7 @@
     console.log('libp2p', $libp2p)
     $helia = await createHelia({ libp2p: $libp2p, datastore, blockstore })
     console.log('helia', $helia)
-    // const ret = await getIdentity($helia, $seedPhrase) //DID idntity
+    // const ret = await getIdentity($helia, $seedPhrase) //DID identity
       // = ret.identity
     // $identities = ret.identities
     $identities = await Identities({ ipfs: $helia })
@@ -103,7 +104,7 @@
     })
     routerUnsubscribe = initHashRouter();
     const addr = multiaddr(multiaddrs[0])
-    voyager = await Voyager({ orbitdb: $orbitdb, address: addr})
+    $voyager = await Voyager({ orbitdb: $orbitdb, address: addr})
     console.log('voyager', voyager)
     
     // Set up peer event listeners from the separate module
@@ -132,7 +133,7 @@
 
   $:if($orbitdb && voyager){
     console.log('connecting to voyager')
-    voyager?.orbitdb.open('settings', {
+    $voyager?.orbitdb.open('settings', {
           type: 'documents',
           create: true,
           overwrite: false,
@@ -143,7 +144,7 @@
         }).then(_db => {
           $settingsDB = _db;
           window.settingsDB = _db;
-          voyager?.add(_db.address).then((ret) => {
+          $voyager?.add(_db.address).then((ret) => {
             //flag success to svelte store
             $settingsDB.pinnedToVoyager = ret;
             
@@ -151,7 +152,7 @@
           }).catch( err => console.log('voyager error', err))
         }).catch( err => console.log('error', err))
         
-        voyager?.orbitdb.open('posts', {
+        $voyager?.orbitdb.open('posts', {
           type: 'documents',
           create: true,
           overwrite: false,
@@ -162,12 +163,12 @@
         }).then(_db => {
           $postsDB = _db;
           window.postsDB = _db;
-          voyager?.add(_db.address).then((ret) => console.log('voyager added postsDB', ret))
+          $voyager?.add(_db.address).then((ret) => console.log('voyager added postsDB', ret))
           console.log('postsDB', _db.address.toString())
           $postsDBAddress = _db.address.toString()
         }).catch( err => console.log('error', err))
 
-        voyager?.orbitdb.open('remote-dbs', {
+        $voyager?.orbitdb.open('remote-dbs', {
           type: 'documents',
           create: true,
           overwrite: false,
@@ -177,7 +178,7 @@
         }).then(_db => {
           $remoteDBsDatabases = _db;
           window.remoteDBsDatabases = _db;
-          voyager?.add(_db.address).then((ret) => console.log('voyager added remoteDBsDatabases', ret))
+          $voyager?.add(_db.address).then((ret) => console.log('voyager added remoteDBsDatabases', ret))
         }).catch(err => console.error('Error opening remote DBs database:', err));
   }
 
@@ -236,6 +237,17 @@
       console.info('Remote DBs list:', _remoteDBs);
       $remoteDBs = _remoteDBs;
     })
+    $settingsDB.events.on('update', async (entry) => {
+      console.log('Database update:', entry);
+      if (entry?.payload?.op === 'PUT') {
+        const { _id, ...rest } = entry.payload.value;
+        console.log('settingsDB update:', rest);
+        // posts.update(current => [...current, { ...rest, _id: _id }]);
+      } else if (entry?.payload?.op === 'DEL') {
+        console.log('settingsDB delete:', entry.payload.key);
+        // posts.update(current => current.filter(post => post._id !== entry.payload.key));
+      }
+    });
   }
 
   // Handle touch events for sidebar gestures
@@ -261,6 +273,22 @@
   function handleMouseEnter() {
     if (!sidebarVisible) {
       sidebarVisible = true;
+    }
+  }
+
+  // Function to copy the settingsDB address to clipboard
+  async function copySettingsDBAddress() {
+    if ($settingsDB) {
+      try {
+        const address = $settingsDB.address.toString();
+        await navigator.clipboard.writeText(address);
+        showNotification = true;
+        setTimeout(() => showNotification = false, 3000); // Hide notification after 3 seconds
+      } catch (err) {
+        console.error('Failed to copy address: ', err);
+      }
+    } else {
+      alert('Settings database is not available.');
     }
   }
 
@@ -308,6 +336,21 @@
     on:touchstart={handleTouchStart}
     on:touchmove={handleTouchMove}
     on:touchend={handleTouchEnd}>
+    
+    <!-- Add the sharing button with an icon -->
+    <button 
+      class="fixed top-4 right-16 z-50 bg-blue-500 text-white hover:bg-blue-600 rounded-full p-2 shadow-sm transition-all duration-300 focus:outline-none w-9 h-9"
+      on:click={copySettingsDBAddress}
+      aria-label="Share blog address">
+      <FaShare  />
+    </button>
+    
+    <!-- Notification -->
+    {#if showNotification}
+      <div class="fixed top-16 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded shadow-lg transition-all duration-300">
+        Blog address copied to clipboard!
+      </div>
+    {/if}
     
     <!-- Sidebar Component with animation -->
     {#if sidebarVisible}

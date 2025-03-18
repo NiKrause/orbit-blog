@@ -1,12 +1,12 @@
 <script lang="ts">
   import { onMount } from 'svelte';
 
-  let darkMode = false;
+  let darkMode = true;
 
   onMount(() => {
     // Check system preference or stored preference
-    darkMode = localStorage.getItem('theme') === 'dark' || 
-               (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    darkMode = localStorage.getItem('theme') === 'light' || 
+               (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: light)').matches);
     updateTheme();
   });
 

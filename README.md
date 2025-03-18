@@ -51,10 +51,10 @@ Orbit-Blog is a decentralized blogging platform that leverages the power of Orbi
 
 2. **UI Improvements**
    - [x] Fix / Enable Voyager Blog Pinning
-   - Add remote database together with the peerId (in 'one string')
-   - Implement QR code scanning functionality
+   - [ ] Add remote database together with the peerId (in 'one string')
+   - [ ] Implement QR code scanning functionality (necessary together with the OneTimeAccessController)
    - Add internationalization support (en, de, fr, es, it, ru)
-   - Enable blog address sharing via URL hash routing
+   - [x] Enable blog address sharing via URL hash routing
 
 ### Mid-Term Goals
 1. **Search & Content Enhancements**

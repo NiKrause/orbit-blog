@@ -1,7 +1,7 @@
 <script lang="ts">
 
   // import { generateMnemonic } from 'bip39'
-  import { settingsDB, blogName, blogDescription, postsDBAddress, categories, seedPhrase, libp2p, orbitdb, identity } from '../lib/store';
+  import { settingsDB, blogName, blogDescription, categories, seedPhrase, libp2p, orbitdb } from '../lib/store';
   import { encryptSeedPhrase } from '../lib/cryptoUtils';
 
   // export let seedPhrase: string | null = localStorage.getItem('encryptedSeedPhrase') || generateMnemonic();
@@ -63,6 +63,10 @@
     if (newCategory.trim() && !$categories.includes(newCategory.trim())) {
       $categories = [...$categories, newCategory.trim()];
       $settingsDB?.put({ _id: 'categories', value: $categories });
+      //log the settingsDB address
+      //log settingsdb name
+      console.log('settingsDB address', $settingsDB?.address.toString())
+      console.log('settingsDB name', $settingsDB?.name)
       newCategory = '';
     }
   }

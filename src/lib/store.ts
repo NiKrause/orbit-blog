@@ -20,6 +20,7 @@ export const seedPhrase = writable<string | null>(null)
 export const helia = writable()
 export const libp2p = writable()
 export const orbitdb = writable()
+export const voyager = writable()
 // Local storage-backed UI state stores
 export const showDBManager = localStorageStore('showDBManager', false);
 export const showPeers = localStorageStore('showPeers', false);

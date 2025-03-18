@@ -1,10 +1,10 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
-  import { settingsDB, postsDB, remoteDBs, selectedDBAddress, posts, orbitdb, identity, remoteDBsDatabases, libp2p, blogName, blogDescription, postsDBAddress } from '../lib/store';
-  import type { RemoteDB } from '../lib/types';
+  import { settingsDB, postsDB, remoteDBs, selectedDBAddress, orbitdb, remoteDBsDatabases, identity, identities } from '../lib/store';
   import QRCode from 'qrcode';
   import Modal from './Modal.svelte';
   import { switchToRemoteDB, addRemoteDBToStore } from '../lib/dbUtils';
+  import { IPFSAccessController } from '@orbitdb/core';
 
   let dbAddress = '';
   let dbName = '';
@@ -12,14 +12,13 @@
   let qrCodeDataUrl = '';
   let showScanner = false;
   let videoElement: HTMLVideoElement;
-  let peerId = '';
   let isModalOpen = false;
-  let dbContents = [];
   let did = '';
   let modalMessage = "Loading data from the remote database...";
   let cancelOperation = false;
   let queueCheckInterval: number;
   let isQueueRunning = false;
+  let isLocalDB = false;
 
   $: {
     if ($remoteDBs) {
@@ -200,12 +199,11 @@
 
   async function addRemoteDB() {
     console.log('Adding DB:', { dbAddress, dbName , dbPeerId});
-    if (dbAddress) {
+    if (dbAddress || dbName) {
       isModalOpen = true;
-      modalMessage = "Opening remote database...";
+      modalMessage = `${isLocalDB ? 'Creating local' : 'Connecting to remote'} database...`;
       
       try {
-        // Use the utility function instead of duplicating logic
         const success = await addRemoteDBToStore(dbAddress, dbPeerId, dbName);
         
         if (success) {
@@ -327,16 +325,20 @@
             value={$settingsDB?.address}
             class="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm"
           />
-          <button on:click={() => copyToClipboard($settingsDB?.address || '')} class="text-gray-500 hover:text-gray-700">
+          <button 
+            title="Copy to clipboard"
+              on:touchstart={() => copyToClipboard($settingsDB?.address || '')} 
+              on:click={() => copyToClipboard($settingsDB?.address || '')} 
+            class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
             📋
           </button>
         </div>
         <div class="flex flex-col md:flex-row justify-center items-center gap-4">
-          {#if qrCodeDataUrl}
+          <!-- {#if qrCodeDataUrl}
             <div class="flex justify-center bg-white p-4 rounded-lg">
               <img src={qrCodeDataUrl} alt="Database QR Code" class="w-48 h-48" />
             </div>
-          {/if}
+          {/if} -->
           <!-- <button
             on:click={dropAndSync}
             class="bg-purple-600 dark:bg-purple-500 text-white py-2 px-4 rounded-md hover:bg-purple-700 dark:hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors flex items-center gap-2"
@@ -352,41 +354,60 @@
   </div>
 
   <div class="border-t dark:border-gray-700 pt-4">
-    <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Add Remote Database</h3>
+    <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Add {isLocalDB ? 'Local' : 'Remote'} Database</h3>
+    
+    <div class="mb-4">
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" bind:checked={isLocalDB} class="sr-only peer">
+        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+        <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">
+          {isLocalDB ? 'Local Database' : 'Remote Database'}
+        </span>
+      </label>
+    </div>
+
     <div class="space-y-4">
-      <div>
-        <label for="dbName" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Database Name</label>
-        <input
-          id="dbName"
-          type="text"
-          bind:value={dbName}
-          placeholder="My Friend's Blog"
-          class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-        />
-      </div>
-      <div>
-        <label for="dbAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Blog OrbitDB Address</label>
-        <div class="flex space-x-2">
+      {#if isLocalDB}
+        <div>
+          <label for="dbName" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Database Name</label>
           <input
-            id="dbAddress"
+            id="dbName"
             type="text"
-            bind:value={dbAddress}
-            placeholder="Paste database address here"
-            class="flex-1 mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            bind:value={dbName}
+            placeholder="My New Blog"
+            class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           />
-          <button
-            on:click={startScanner}
-            class="mt-1 px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
-          >
-            Scan QR
-          </button>
         </div>
-      </div>
+      {:else}
+        <div>
+          <label for="dbAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Blog OrbitDB Address</label>
+          <div class="flex space-x-2">
+            <input
+              id="dbAddress"
+              type="text"
+              bind:value={dbAddress}
+              placeholder="Paste database address here"
+              class="flex-1 mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            />
+            <button
+              title="Scan QR Code"
+              on:touchstart={startScanner}
+              on:click={startScanner}
+              class="mt-1 px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+            >
+              Scan QR
+            </button>
+          </div>
+        </div>
+      {/if}
+
       <button
+        title="Add {isLocalDB ? 'Local' : 'Remote'} Database"
+        on:touchstart={addRemoteDB}
         on:click={addRemoteDB}
         class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors"
       >
-        Add Remote Database
+        Add {isLocalDB ? 'Local' : 'Remote'} Database
       </button>
     </div>
   </div>
@@ -413,7 +434,7 @@
   {/if}
 
   {#if $remoteDBs.length > 0}
-    <div>Number of databases: {$remoteDBs.length}</div>
+    <div class="text-gray-900 dark:text-white">Number of databases: {$remoteDBs.length}</div>
     <div class="border-t dark:border-gray-700 mt-6 pt-4">
       <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Available Databases</h3>
       <div class="space-y-2">

@@ -15,11 +15,12 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 ### Todos & Features
 - Issues:
-    - [ ] improve usability mobile
+    - [ ] if url isn't the main url - show warning
+    - [x] improve usability mobile
         - [x] remote blogs not clickable
         - [x] disable zoom
         - [x] sidebar destroys layout
-    - [ ] Scan QR-Code isn't fully implemented
+    - [ ] Scan QR-Code isn't fully implemented - make invisible
     - [x] peer-to-peer via WebRTC between two browsers doesn't work
     - [x] disable DID and enable default orbitdb.id, DID not yet supported by voyager  
     - [x] adding & deleting blog databases works only with reloading the page
@@ -29,10 +30,12 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [x] peerId is a new one after each page load even if we have a persistent identity
     - [?] can it be useful to have a new peerId even if identity is persistent? What would be the draw back?   
 - UI related
-    - [ ] fork a blog to own blog
+    - [ ] fork a blog to become an own blog
         - [ ] PR possible? How? 
     - [ ] create PoE for blog post on several blockchains (e.g. Bitcoin, Namecoin etc.)
-    - [ ] configure your own voyager 
+    - [ ] configure your own voyager
+        - [ ] via Electron for desktop
+        - [ ] on RaspberryPi 
     - [ ] internationalize the UI (en,de,fr,es,it,ru,...)
         - [ ] use AI for translation
         - [ ] use translation services
@@ -46,9 +49,10 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [ ] search in comments (put comments into own db - but take care with access rights (*/OneTimeAccessController))
     - [ ] add about
 - OrbitDB related
-    - [ ] support multiple blogs per instance
-    - [ ] if libp2 looses all peers try to reconnect periodically (first faster then less frequent)
+    - [x] support multiple blogs per instance
+    - [ ] if libp2p disconnects because of wifi network disconnects, try to reconnect periodically (first faster then less frequent)
     - [ ] overwrite seedPhrase and generate new peerId and identity (did)
+    - [ ] generateMasterSeed should be generated with another password at some point
     - [x] Voyager evaluation
         - [x] install voyager as pinning service https://github.com/orbitdb/voyager/tree/main
         - [x] add db addresses to voyager
@@ -67,8 +71,12 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
         - [ ] le-space.de
         - [ ] nicokrause.com
     - [ ] when clicking on a peerId, open a modal to show information about the peer and request information such as (public blog names, impressum, etc.)
-    - [ ] publish blog on request
-    - [ ] enter optional imprint in settings (optional for public blogs) 
+    - [ ] 'publish' blog on request 
+        - make it visible when clicking on peerId
+        - pubsub blog(s) via network
+        - display tag cloud 
+        - display blog cloud
+    - [ ] enter optional imprint in settings (for public blogs) 
     - [ ] when adding a blog address think about optionally adding and dialing peerId too (at least when scanning?)
         - [ ] sometimes the db cannot be found nor opened then data like blogName, blogAddress can't be read, in such case it might be interesting to implmenent a retry mechanism, e.g. adding it to a queue and try every 20 seconds and remove it from the queue as soon it could connect       
     - [x] blog settings via private settings db
@@ -91,7 +99,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
             - https://github.com/silkroadnomad/deContact/blob/main/src/lib/network/identityProvider.js
             - https://github.com/silkroadnomad/deContact/blob/main/src/utils/utils.js#L34
     - [x] add posts settings db  
-    - [ ] create encrypted backup & restore of posts, settings, remoteDBs and store on Filecoin, Arweave etc.  (Dropbox, Google Drive, Apple Cloud, Yandex Cloud etc.)
+    - [ ] create encrypted backup & restore of posts, settings, remoteDBs and store on Aleph IM, Filecoin, Arweave etc.  (Dropbox, Google Drive, Apple Cloud, Yandex Cloud etc.)
     - [ ] setup your own relay / voyager
     - [?] enable pubsub ipfs pinning of posts and comments 
         - every post results into a new CID which needs to be published to pubsub pinning service

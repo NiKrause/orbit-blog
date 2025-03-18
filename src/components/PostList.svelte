@@ -35,6 +35,10 @@
     selectedPostId = filteredPosts[0]._id;
   }
 
+  $: {
+    console.log('filteredPosts', filteredPosts);
+  }
+
   function renderMarkdown(content: string): string {
     const rawHtml = marked(content);
     return DOMPurify.sanitize(rawHtml);
@@ -120,7 +124,7 @@
     <div class="col-span-4 bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 h-fit">
       <h2 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Blog Posts</h2>
       <div class="space-y-2">
-        {#each filteredPosts as post, index (post._id || index)}
+        {#each filteredPosts as post, index (post._id || post.title + index)}
           <div
             class="w-full text-left p-3 rounded-md transition-colors cursor-pointer"
             on:mouseover={() => hoveredPostId = post._id}
@@ -276,5 +280,15 @@
   /* Add transition styles for opacity */
   .transition-opacity {
     transition: opacity 0.3s ease-in-out;
+  }
+
+  /* Ensure buttons are hidden by default */
+  .post-buttons {
+    opacity: 0;
+  }
+
+  /* Show buttons on hover */
+  .post:hover .post-buttons {
+    opacity: 1;
   }
 </style>
