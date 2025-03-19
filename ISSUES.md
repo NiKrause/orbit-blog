@@ -13,8 +13,9 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 [![QR Code to PWA](/public/ipns.dweb.link.png)](https://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g.ipns.dweb.link/)
 
-### Todos & Features
-- Issues:
+### Todos, Features, Issues
+- Todos:
+    - [ ] add lock / unlock icon's for blocks which are writable / locked
     - [ ] upload media (images / videos / audio) to each post and make them show up on the right side next to the post relative to a certain position in the text
     - [ ] LATEX & PDF export from a post content
     - [ ] private / private + link / public 
