@@ -2,7 +2,7 @@
   import type { Category } from '../lib/types';
   import { marked } from 'marked';
   import DOMPurify from 'dompurify';
-  import { postsDB, categories } from '../lib/store';
+  import { postsDB, categories, selectedPostId } from '../lib/store';
 
   let title = '';
   let content = '';
@@ -33,6 +33,8 @@
         content = '';
         category = 'Bitcoin';
         showPreview = false;
+        
+        $selectedPostId = _id;
       } catch (error) {
         console.error('Error creating post:', error);
       }

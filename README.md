@@ -46,21 +46,22 @@ Orbit-Blog is a decentralized blogging platform that leverages the power of Orbi
 
 ### Short-Term Goals
 1. **Mobile Experience Enhancement**
-   - Fix sidebar layout issues
-   - Disable zoom for better mobile UX
+   - [x] Fix sidebar layout issues
+   - [x] Disable zoom for better mobile UX
 
 2. **UI Improvements**
    - [x] Fix / Enable Voyager Blog Pinning
    - [ ] Add remote database together with the peerId (in 'one string')
    - [ ] Implement QR code scanning functionality (necessary together with the OneTimeAccessController)
-   - Add internationalization support (en, de, fr, es, it, ru)
+   - [ ] Add internationalization support (en, de, fr, es, it, ru)
    - [x] Enable blog address sharing via URL hash routing
 
 ### Mid-Term Goals
 1. **Search & Content Enhancements**
-   - Add search functionality for comments
-   - Implement markdown support for comments
-   - Create an "About" section
+   - [ ] make comments a separate OrbitDB table with separate AccessControler
+   - [ ] Add search functionality for comments
+   - [ ] Implement markdown support for comments
+   - [ ] Create an "About" section
 
 2. **Identity & Security**
    - Implement overwrite functionality for seed phrases
@@ -68,9 +69,14 @@ Orbit-Blog is a decentralized blogging platform that leverages the power of Orbi
    - Support various identity providers (Nostr, Metamask)
 
 3. **Voyager Integration**
-   - Configure custom Voyager instances
-   - Implement secure WebSocket connections (WSS)
-   - Add pubsub peer discovery support
+   - Configure custom Voyager instances via 
+      - [ ] One-Time-Click-Hosting (e.g. Hetzner)
+      - [ ] Self-hosted via Docker
+      - [ ] Desktop via Electron 
+      - [ ] Raspberry Pi
+   - [ ] Implement secure WebSocket connections (WSS)
+   - [ ] Add pubsub peer discovery support
+   - [ ] Add monitoring with Prometheus & Grafana
 
 ### Long-Term Goals
 1. **Advanced Data Management**

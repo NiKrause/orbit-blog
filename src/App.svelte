@@ -44,6 +44,7 @@
     postsDB, 
     postsDBAddress, 
     posts, 
+    selectedPostId,
     remoteDBs, 
     remoteDBsDatabases, 
     showDBManager, 

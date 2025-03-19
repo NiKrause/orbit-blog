@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { posts } from '../lib/store';
+  import { posts, selectedPostId } from '../lib/store';
+
   import { marked } from 'marked';
   import DOMPurify from 'dompurify';
   import type { Post, Category } from '../lib/types';
@@ -9,7 +10,7 @@
 
   let searchQuery = '';
   let selectedCategory: Category | 'All' = 'All';
-  let selectedPostId: string | null = null;
+  // let selectedPostId: string | null = null;
   let hoveredPostId = null; // Track the ID of the hovered post
   let editMode = false; // Track if we're in edit mode
   let editedTitle = '';
@@ -23,16 +24,16 @@
     return matchesSearch && matchesCategory;
   });
 
-  $: selectedPost = selectedPostId ? filteredPosts.find(post => post._id === selectedPostId) : null;
+  $: selectedPost = $selectedPostId ? filteredPosts.find(post => post._id === $selectedPostId) : null;
 
   onMount(() => {
-    if (filteredPosts.length > 0 && !selectedPostId) {
-      selectedPostId = filteredPosts[0].id;
+    if (filteredPosts.length > 0 && !$selectedPostId) {
+      $selectedPostId = filteredPosts[0].id;
     }
   });
 
-  $: if (filteredPosts.length > 0 && (!selectedPostId || !filteredPosts.find(post => post._id === selectedPostId))) {
-    selectedPostId = filteredPosts[0]._id;
+  $: if (filteredPosts.length > 0 && (!$selectedPostId || !filteredPosts.find(post => post._id === $selectedPostId))) {
+    $selectedPostId = filteredPosts[0]._id;
   }
 
   $: {
@@ -45,7 +46,7 @@
   }
 
   function selectPost(postId: string) {
-    selectedPostId = postId;
+    $selectedPostId = postId;
     editMode = false; // Exit edit mode when selecting a different post
     // Additional logic for when a post is selected
   }
@@ -67,10 +68,15 @@
           content: editedContent,
           category: editedCategory,
         };
-        
+        await $postsDB.del(selectedPost._id);
         await $postsDB.put(updatedPost);
-        console.info('Post updated successfully');
+        // Update the posts store with the new data
+        $posts = $posts.map(post => 
+          post._id === selectedPost._id ? updatedPost : post
+        );
+        console.info('Post updated successfully', updatedPost);
         editMode = false;
+        $selectedPostId = updatedPost._id;
       } catch (error) {
         console.error('Error updating post:', error);
       }
@@ -85,8 +91,8 @@
       await $postsDB.del(postId);
       console.info('Post deleted successfully');
       // If the deleted post was selected, select another post
-      if (selectedPostId === postId && filteredPosts.length > 1) {
-        selectedPostId = filteredPosts[0]._id;
+      if ($selectedPostId === postId && filteredPosts.length > 1) {
+        $selectedPostId = filteredPosts[0]._id;
       }
     } catch (error) {
       console.error('Error deleting post:', error);
