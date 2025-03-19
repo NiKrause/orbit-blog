@@ -1,15 +1,25 @@
 <script lang="ts">
-
+  // Svelte core
   import { onMount, onDestroy, tick } from 'svelte';
-  import { createOrbitDB, IPFSAccessController } from '@orbitdb/core';
-  import { createLibp2p } from 'libp2p'
-  import { multiaddr } from '@multiformats/multiaddr'
+  import { fly, fade } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
+
+  // IPFS & OrbitDB
+  import { createHelia } from 'helia';
+  import { createLibp2p } from 'libp2p';
+  import { createOrbitDB, IPFSAccessController, Identities } from '@orbitdb/core';
+  import { Voyager } from '@orbitdb/voyager';
+  import { multiaddr } from '@multiformats/multiaddr';
+  
+  // Storage & Crypto
+  import { LevelDatastore } from 'datastore-level';
+  import { LevelBlockstore } from 'blockstore-level';
   import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string';
   import { privateKeyFromProtobuf } from '@libp2p/crypto/keys';
+  import { generateMnemonic } from 'bip39';
 
-  import { createHelia } from 'helia'
-  import { LevelDatastore } from 'datastore-level'
-  import { LevelBlockstore } from 'blockstore-level'
+  // Components
+  import Sidebar from './components/Sidebar.svelte';
   import PostForm from './components/PostForm.svelte';
   import PostList from './components/PostList.svelte';
   import ThemeToggle from './components/ThemeToggle.svelte';
@@ -17,20 +27,40 @@
   import ConnectedPeers from './components/ConnectedPeers.svelte';
   import Settings from './components/Settings.svelte';
   import PasswordModal from './components/PasswordModal.svelte';
-  import { Libp2pOptions, multiaddrs } from './lib/config'
-  import { generateMnemonic } from 'bip39';
-  import { Identities } from '@orbitdb/core'
-  import { postsDB, postsDBAddress, posts, remoteDBs, remoteDBsDatabases, showDBManager, showPeers, showSettings, blogName, libp2p, helia, orbitdb, identity, identities, settingsDB, blogDescription, categories, seedPhrase, voyager } from './lib/store';
-  import Sidebar from './components/Sidebar.svelte';
-  import { encryptSeedPhrase, decryptSeedPhrase, isEncryptedSeedPhrase } from './lib/cryptoUtils';
-  import { Voyager } from '@orbitdb/voyager'
-  import { generateMasterSeed, generateAndSerializeKey } from './lib/utils';
-  import { fly, fade } from 'svelte/transition';
-  import { cubicOut } from 'svelte/easing';
-  import { FaBars, FaTimes, FaShare } from 'svelte-icons/fa';
-  import { initHashRouter, isLoadingRemoteBlog } from './lib/router';
   import LoadingBlog from './components/LoadingBlog.svelte';
+
+  // Icons
+  import { FaBars, FaTimes, FaShare } from 'svelte-icons/fa';
+
+  // Local utilities and config
+  import { Libp2pOptions, multiaddrs } from './lib/config';
+  import { encryptSeedPhrase, decryptSeedPhrase, isEncryptedSeedPhrase } from './lib/cryptoUtils';
+  import { generateMasterSeed, generateAndSerializeKey } from './lib/utils';
+  import { initHashRouter, isLoadingRemoteBlog } from './lib/router';
   import { setupPeerEventListeners } from './lib/peerConnections';
+
+  // Store imports
+  import { 
+    postsDB, 
+    postsDBAddress, 
+    posts, 
+    remoteDBs, 
+    remoteDBsDatabases, 
+    showDBManager, 
+    showPeers, 
+    showSettings, 
+    blogName, 
+    libp2p, 
+    helia, 
+    orbitdb, 
+    identity, 
+    identities, 
+    settingsDB, 
+    blogDescription, 
+    categories, 
+    seedPhrase, 
+    voyager 
+  } from './lib/store';
 
   let blockstore = new LevelBlockstore('./helia-blocks');
   let datastore = new LevelDatastore('./helia-data');
@@ -102,15 +132,20 @@
       storage: blockstore,
       directory: './orbitdb',
     })
-    routerUnsubscribe = initHashRouter();
     const addr = multiaddr(multiaddrs[0])
-    $voyager = await Voyager({ orbitdb: $orbitdb, address: addr})
     console.log('voyager', voyager)
+    $voyager = await Voyager({ orbitdb: $orbitdb, address: addr})
+
+    routerUnsubscribe = initHashRouter();
+    
     
     // Set up peer event listeners from the separate module
     setupPeerEventListeners($libp2p);
   }
 
+  $:if(window.location.hash.includes('#/orbitdb/')) {
+    sidebarVisible = false;
+  }
   /**
    * Check if the user has write access to the posts database
   */

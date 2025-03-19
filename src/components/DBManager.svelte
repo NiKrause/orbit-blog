@@ -14,7 +14,7 @@
   let videoElement: HTMLVideoElement;
   let isModalOpen = false;
   let did = '';
-  let modalMessage = "Loading data from the remote database...";
+  let modalMessage = "Loading database from the peer-to-peer network...";
   let cancelOperation = false;
   let queueCheckInterval: number;
   let isQueueRunning = false;

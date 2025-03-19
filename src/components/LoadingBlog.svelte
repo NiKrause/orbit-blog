@@ -4,7 +4,7 @@
 
 <div class="loading-overlay">
   <div class="loading-container">
-    <h2 class="loading-title">Loading Remote Blog</h2>
+    <h2 class="loading-title">Loading Peer-to-Peer Blog</h2>
     <p class="loading-message">{message}</p>
     <div class="progress-container">
       <div class="progress-bar"></div>
