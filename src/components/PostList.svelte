@@ -119,7 +119,7 @@
     </select> 
   </div>
 
-  <div class="grid grid-cols-12 gap-6">
+  <div class="grid grid-cols-12 gap-6 responsive-grid">
     <!-- Post List -->
     <div class="col-span-4 bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 h-fit">
       <h2 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Blog Posts</h2>
@@ -290,5 +290,11 @@
   /* Show buttons on hover */
   .post:hover .post-buttons {
     opacity: 1;
+  }
+
+  @media (max-width: 768px) {
+    .responsive-grid {
+      grid-template-columns: 1fr; /* Stack the columns on smaller screens */
+    }
   }
 </style>

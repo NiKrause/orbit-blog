@@ -16,7 +16,7 @@
   import { switchToRemoteDB } from '../lib/dbUtils';
   import PeersList from './PeersList.svelte';
   import { connectedPeersCount } from '../lib/peerConnections';
-  $: console.log("settingsDB", settingsDB) 
+  
   let _settingsDB: any
   settingsDB.subscribe(_ => {
     _settingsDB = _

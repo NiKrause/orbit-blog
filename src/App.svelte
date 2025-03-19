@@ -145,9 +145,7 @@
           $settingsDB = _db;
           window.settingsDB = _db;
           $voyager?.add(_db.address).then((ret) => {
-            //flag success to svelte store
             $settingsDB.pinnedToVoyager = ret;
-            
             console.log('voyager added settingsDB', ret)
           }).catch( err => console.log('voyager error', err))
         }).catch( err => console.log('error', err))
@@ -337,21 +335,7 @@
     on:touchmove={handleTouchMove}
     on:touchend={handleTouchEnd}>
     
-    <!-- Add the sharing button with an icon -->
-    <button 
-      class="fixed top-4 right-20 z-50 bg-blue-500 text-white hover:bg-blue-600 rounded-full p-1 shadow-sm transition-all duration-300 focus:outline-none w-6 h-6"
-      on:click={copySettingsDBAddress}
-      aria-label="Share blog address">
-      <FaShare  />
-    </button> 
-    
-    <!-- Notification -->
-    {#if showNotification}
-      <div class="fixed top-16 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded shadow-lg transition-all duration-300">
-        Blog address copied to clipboard!
-      </div>
-    {/if}
-    
+
     <!-- Sidebar Component with animation -->
     {#if sidebarVisible}
       <!-- Add overlay -->
@@ -426,7 +410,21 @@
       {/if}
     </div>
   </main>
-
+    <!-- Add the sharing button with an icon -->
+    <button 
+      class="fixed top-4 right-20 z-50 bg-blue-500 text-white hover:bg-blue-600 rounded-full p-1 shadow-sm transition-all duration-300 focus:outline-none w-6 h-6"
+      on:click={copySettingsDBAddress}
+      aria-label="Share blog address">
+      <FaShare  />
+    </button> 
+    
+    <!-- Notification -->
+    {#if showNotification}
+      <div class="fixed top-16 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded shadow-lg transition-all duration-300">
+        Blog address copied to clipboard!
+      </div>
+    {/if}
+    
   <ThemeToggle />
 {/if}
 

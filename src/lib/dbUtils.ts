@@ -132,14 +132,19 @@ export async function switchToRemoteDB(address: string, showModal = false) {
   let isModalOpen = showModal;
   let blogNameValue;
   let categoriesValue; // New variable to store categories
-
+  const voyagerInstance = get(voyager);
   try {
     while (retry && !cancelOperation) {
       const orbitdbInstance = get(orbitdb);
       if (!orbitdbInstance) throw new Error("OrbitDB not initialized");
       
-      const db = await orbitdbInstance.open(address);
+      const db = await voyagerInstance.orbitdb.open(address);
+     
+      const added = await voyagerInstance.add(db.address)
+      db.pinnedToVoyager = added;
+      console.log(`${address} added to voyager`, added)
       settingsDB.set(db);
+     
       const dbContents = await db.all();
       console.log('try to switch to remote dbContents', dbContents);
 
@@ -165,7 +170,9 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         console.log('postsDBAddressValue', postsDBAddressValue);
         // console.log('categoriesValue', categoriesValue);
         // Load posts from postsDBAddress
-        const postsDBInstance = await orbitdbInstance.open(postsDBAddressValue);
+        const postsDBInstance = await voyagerInstance.orbitdb.open(postsDBAddressValue);
+        const addedPosts = await voyagerInstance.add(postsDBInstance.address)
+        console.log(`${postsDBAddressValue} added to voyager`, addedPosts)
         postsDB.set(postsDBInstance);
         
         const allPosts = (await postsDBInstance.all()).map(post => {
