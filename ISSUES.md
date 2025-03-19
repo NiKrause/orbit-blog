@@ -15,6 +15,8 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 ### Todos & Features
 - Issues:
+    - [ ] upload media (images / videos / audio) to each post and make them show up on the right side next to the post relative to a certain position in the text
+    - [ ] LATEX & PDF export from a post content
     - [ ] private / private + link / public 
     - [ ] AI templates + file upload e.g. 
         - [ ] create a CV
