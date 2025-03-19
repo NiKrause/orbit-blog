@@ -16,6 +16,8 @@
   let editedTitle = '';
   let editedContent = '';
   let editedCategory: Category;
+  let showHistory = false;
+  let postHistory = [];
 
   $: filteredPosts = $posts.filter(post => {
     const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -67,6 +69,7 @@
           title: editedTitle,
           content: editedContent,
           category: editedCategory,
+          dateUpdated: new Date().toUTCString()
         };
         await $postsDB.del(selectedPost._id);
         await $postsDB.put(updatedPost);
@@ -101,6 +104,34 @@
 
   function truncateTitle(title: string, maxLength: number): string {
     return title.length > maxLength ? title.slice(0, maxLength) + '...' : title;
+  }
+
+  async function viewPostHistory(post: Post, event: MouseEvent) {
+    event.stopPropagation();
+    showHistory = true;
+    
+    // Get all operations for this post
+    const history = [];
+    for await (const entry of $postsDB.log.iterator({ reverse: true })) {
+      console.log('entry', entry.payload.value);
+      console.log('post', post._id);
+      // history.push(entry.payload.value);
+      if (entry?.payload?.value?._id === post._id) {
+        history.push({
+          ...entry.payload.value,
+          timestamp: new Date(entry.timestamp).toLocaleString()
+        });
+      }
+    }
+    postHistory = history;
+  }
+
+  function restoreVersion(historicalPost: Post) {
+    editedTitle = historicalPost.title;
+    editedContent = historicalPost.content;
+    editedCategory = historicalPost.category;
+    editMode = true;
+    showHistory = false;
   }
 </script>
 
@@ -154,6 +185,15 @@
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+              </button>
+              <button
+                class="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
+                on:click={(e) => viewPostHistory(post, e)}
+                title="View history"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"/>
                 </svg>
               </button>
             </div>
@@ -263,6 +303,46 @@
   </div>
 </div>
 
+<!-- Add this modal for showing history -->
+{#if showHistory}
+  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+      <h3 class="text-xl font-bold mb-4">Post History</h3>
+      <div class="space-y-4">
+        {#each postHistory as version}
+          <div class="border dark:border-gray-700 p-4 rounded">
+            <div class="flex justify-between mb-2">
+              <span class="text-sm text-gray-500">{version.date}</span>
+              <button
+                class="text-blue-600 hover:text-blue-800"
+                on:click={() => restoreVersion(version)}
+              >
+                Restore this version
+              </button>
+            </div>
+            <h4 class="font-bold">{version.title}</h4>
+            <div class="relative">
+              <p class="text-sm text-gray-600 dark:text-gray-400 cursor-help">{version.content ? version.content.substring(0, version.content.length > 100 ? 100 : version.content.length) : 'No content'}...</p>
+              {#if version.content && version.content.length > 100}
+                <div class="content-tooltip">
+                  <div class="tooltip-content">
+                    {version.content}
+                  </div>
+                </div>
+              {/if}
+            </div>
+          </div>
+        {/each}
+      </div>
+      <button
+        class="mt-4 bg-gray-200 dark:bg-gray-700 px-4 py-2 rounded"
+        on:click={() => showHistory = false}
+      >
+        Close
+      </button>
+    </div>
+  </div>
+{/if}
 
 <style>
   .line-clamp-2 {
@@ -302,5 +382,43 @@
     .responsive-grid {
       grid-template-columns: 1fr; /* Stack the columns on smaller screens */
     }
+  }
+
+  /* Tooltip styles */
+  .relative {
+    position: relative;
+  }
+  
+  .content-tooltip .tooltip-content {
+    visibility: hidden;
+    position: absolute;
+    z-index: 100;
+    width: 300px;
+    max-height: 200px;
+    overflow-y: auto;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #fff;
+    color: #333;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    opacity: 0;
+    transition: opacity 0.3s, visibility 0.3s;
+  }
+  
+  /* Dark mode support */
+  @media (prefers-color-scheme: dark) {
+    .content-tooltip .tooltip-content {
+      background-color: #374151;
+      color: #e5e7eb;
+    }
+  }
+  
+  /* Show tooltip on hover */
+  .relative:hover .content-tooltip .tooltip-content {
+    visibility: visible;
+    opacity: 1;
   }
 </style>

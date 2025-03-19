@@ -15,14 +15,16 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 ### Todos & Features
 - Issues:
+    - [ ] Settings: Configure a logo
     - [ ] green/orange indication doesn't work for new local blogs
     - [ ] toggle button temporary persistent seed phrase suddenly missing 
     - [ ] if url isn't the main url - show warning
+    - [ ] Scan QR-Code isn't fully implemented - make invisible
     - [x] improve usability mobile
         - [x] remote blogs not clickable
         - [x] disable zoom
         - [x] sidebar destroys layout
-    - [ ] Scan QR-Code isn't fully implemented - make invisible
+    - [x] restore old blog posts from OrbitDB log history
     - [x] peer-to-peer via WebRTC between two browsers doesn't work
     - [x] disable DID and enable default orbitdb.id, DID not yet supported by voyager  
     - [x] adding & deleting blog databases works only with reloading the page
@@ -70,7 +72,8 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
         - [ ] support DID on voyager
         - [x] test voyager replication
     - [ ] add first production blog 
-        - [ ] le-space.de
+        - [ ] le-space.de products
+        - [ ] le-space.de how-to's
         - [ ] nicokrause.com
     - [ ] when clicking on a peerId, open a modal to show information about the peer and request information such as (public blog names, impressum, etc.)
     - [ ] 'publish' blog on request 
