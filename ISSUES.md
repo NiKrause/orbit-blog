@@ -15,6 +15,11 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 ### Todos & Features
 - Issues:
+    - [ ] private / private + link / public 
+    - [ ] AI templates + file upload e.g. 
+        - [ ] create a CV
+        - [ ] correct my spelling
+        - [ ] translate to English, Spanish, etc.
     - [ ] Settings: Configure a logo
     - [ ] green/orange indication doesn't work for new local blogs
     - [ ] toggle button temporary persistent seed phrase suddenly missing 

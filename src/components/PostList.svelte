@@ -242,8 +242,8 @@
                   bind:value={editedCategory}
                   class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 >
+                  <option value="All">All</option>
                   {#each [...$categories].sort((a, b) => b.localeCompare(a)) as cat}
-                    <option value="All">All</option>
                     <option value={cat}>{cat}</option>
                   {/each}
                 </select>
