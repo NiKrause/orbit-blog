@@ -541,4 +541,10 @@
       right: 4rem !important;
     }
   }
+
+  /* Add a more specific selector for the share button */
+  .share-button {
+    left: auto !important;
+    right: 20px !important;
+  }
 </style>
