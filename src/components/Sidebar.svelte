@@ -88,27 +88,29 @@
       {#if $remoteDBs?.length > 0}
         {#each $remoteDBs as db}
           <button 
-            class="w-full text-left py-0.5 px-1 rounded text-[10px] md:text-xs truncate {$postsDBAddress === db.address ? 'bg-blue-500 text-white' : db.access?.write?.includes($identity?.id) ? 'bg-green-300 dark:bg-green-600 text-gray-800 dark:text-gray-200 hover:bg-amber-400 dark:hover:bg-amber-500' : 'bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-400 dark:hover:bg-gray-500'}"
+            class="w-full text-left py-0.5 px-1 rounded text-[10px] md:text-xs truncate max-h-8 flex items-center {$postsDBAddress === db.address ? 'bg-blue-500 text-white' : db.access?.write?.includes($identity?.id) ? 'bg-green-300 dark:bg-green-600 text-gray-800 dark:text-gray-200 hover:bg-amber-400 dark:hover:bg-amber-500' : 'bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-400 dark:hover:bg-gray-500'}"
             on:click={() => switchToRemoteDB(db.address)}
             title={db.name}
           >
             {#if db.pinnedToVoyager !== undefined}
               <span 
-                class="inline-block ml-1 w-2 h-2 rounded-full {db.pinnedToVoyager ? 'bg-green-500' : 'bg-orange-500'}"
+                class="inline-block ml-1 w-2 h-2 rounded-full flex-shrink-0 {db.pinnedToVoyager ? 'bg-green-500' : 'bg-orange-500'}"
                 title={db.pinnedToVoyager ? "Pinned to Voyager" : "Not pinned to Voyager"}
               ></span>
             {/if}
-            {db.postsCount || ''}
-            {#if db.access?.write?.includes($identity?.id)}
-              <svg class="inline-block w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-              </svg>
-            {:else}
-              <svg class="inline-block w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            {/if}
-            {db.name}
+            <span class="whitespace-nowrap overflow-hidden overflow-ellipsis">
+              {db.postsCount || ''}
+              {#if db.access?.write?.includes($identity?.id)}
+                <svg class="inline-block w-3 h-3 mr-1 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                </svg>
+              {:else}
+                <svg class="inline-block w-3 h-3 mr-1 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              {/if}
+              {db.name}
+            </span>
           </button>
         {/each}
       {:else}
