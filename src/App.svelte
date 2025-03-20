@@ -1,6 +1,6 @@
 <script lang="ts">
   // Svelte core
-  import { onMount, onDestroy, tick } from 'svelte';
+  import { onDestroy } from 'svelte';
   import { fly, fade } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
 
@@ -266,9 +266,15 @@
   $:if($remoteDBsDatabases){
     console.info('Remote DBs database opened successfully:', $remoteDBsDatabases);
     $remoteDBsDatabases.all().then(savedDBs => {
-      console.log("")
       const _remoteDBs = savedDBs.map(entry => entry.value);
       console.info('Remote DBs list:', _remoteDBs);
+      _remoteDBs.forEach(async db => {
+        const _db = await $orbitdb.open(db.postsAddress,{sync: false});
+        db.access = _db.access
+        _db.all().then(posts => db.postsCount = posts.length).finally(() => {
+          // console.log('db', db)
+        })
+      })
       $remoteDBs = _remoteDBs;
     })
     $settingsDB.events.on('update', async (entry) => {

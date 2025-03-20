@@ -5,8 +5,8 @@
 
   onMount(() => {
     // Check system preference or stored preference
-    darkMode = localStorage.getItem('theme') === 'light' || 
-               (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: light)').matches);
+    darkMode = localStorage.getItem('theme') === 'dark' || 
+               (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
     updateTheme();
   });
 

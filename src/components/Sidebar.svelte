@@ -10,39 +10,24 @@
     showPeers,
     showSettings,
     settingsDB,
-    initialAddress,
   } from '../lib/store';
   import { get } from 'svelte/store';
   import { switchToRemoteDB } from '../lib/dbUtils';
   import PeersList from './PeersList.svelte';
   import { connectedPeersCount } from '../lib/peerConnections';
   
-  let _settingsDB: any
-  settingsDB.subscribe(_ => {
-    _settingsDB = _
-    console.log('settingsDB', _settingsDB)
-  })
-
-  let _identity: any
-  identity.subscribe(_ => {
-    _identity = _
-    console.log('identity', _identity)
-  })
-  let _postsDB: any
-  postsDB.subscribe(_ => {
-    _postsDB = _
-    console.log('postsDB', _postsDB)
-  })
-  let _postsDBAddress: any
-  postsDBAddress.subscribe(_ => {
-    _postsDBAddress = _
-    console.log('postsDBAddress', _postsDBAddress)
-  })
+  let _settingsDB: any, _identity: any, _postsDB: any, _postsDBAddress: any;
+  
+  settingsDB.subscribe(val => _settingsDB = val);
+  identity.subscribe(val => _identity = val);
+  postsDB.subscribe(val => _postsDB = val);
+  postsDBAddress.subscribe(val => _postsDBAddress = val);
+  
   let canWrite = false
   $: if(_settingsDB && _identity && _postsDB && _postsDBAddress){
-    const access = _settingsDB?.access;
-    canWrite = access?.write.includes(_identity?.id)
-    canWrite = access.write.includes(_identity.id) && get(initialAddress) === _postsDBAddress
+    const access = _settingsDB?.access?.write;
+    canWrite = access?.includes(_identity?.id)
+    // canWrite = access.write.includes(_identity.id) && get(initialAddress) === _postsDBAddress
   }
 </script>
 
@@ -60,7 +45,6 @@
       <div 
         class="text-[10px] md:text-xs text-gray-800 dark:text-gray-300 bg-gray-300 dark:bg-gray-600 p-1 rounded cursor-pointer hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
         on:click={async () => {
-          // Get the address from settingsDB
           if ($settingsDB.address) {
             try {   
                 switchToRemoteDB($settingsDB.address);
@@ -72,34 +56,59 @@
         title="Click to load your own blog"
       >
         <p class="truncate">
-          <strong>Blog:</strong> {$blogName || 'Not set'}
-          <!-- Pin indicator next to blog name -->
-          {#if $settingsDB && $settingsDB.pinnedToVoyager !== undefined}
+                {#if $settingsDB && $settingsDB.pinnedToVoyager !== undefined}
             <span 
               class="inline-block ml-1 w-2 h-2 rounded-full {$settingsDB.pinnedToVoyager ? 'bg-green-500' : canWrite ? 'bg-orange-500' : 'bg-red-500'}"
               title={$settingsDB.pinnedToVoyager ? "Pinned to Voyager" : canWrite ? "Not pinned to Voyager" : "No Write Access"}
             ></span>
           {/if}
+          <strong>Blog:</strong> {$blogName || 'Not set'}
         </p>
-        <p class="truncate"><strong>ID:</strong> {$identity?.id ? $identity.id.substring(0, 18) + '...' : 'Not connected'}</p>
+        <p class="truncate">
+          {#if $identity?.id}
+            <span class="inline-block">
+              {#if canWrite}
+                <svg class="inline-block w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                </svg>
+              {:else}
+                <svg class="inline-block w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              {/if}
+            </span>
+            <strong>ID:</strong> {$identity.id.substring(0, 18) + '...'}
+          {:else}
+            Not connected
+          {/if}
+        </p>
       </div>
     </div>
     <div class="space-y-1">
       {#if $remoteDBs?.length > 0}
         {#each $remoteDBs as db}
           <button 
-            class="w-full text-left py-0.5 px-1 rounded text-[10px] md:text-xs truncate {$postsDBAddress === db.address ? 'bg-blue-500 text-white' : 'bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-400 dark:hover:bg-gray-500'}"
+            class="w-full text-left py-0.5 px-1 rounded text-[10px] md:text-xs truncate {$postsDBAddress === db.address ? 'bg-blue-500 text-white' : db.access?.write?.includes($identity?.id) ? 'bg-green-300 dark:bg-green-600 text-gray-800 dark:text-gray-200 hover:bg-amber-400 dark:hover:bg-amber-500' : 'bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-400 dark:hover:bg-gray-500'}"
             on:click={() => switchToRemoteDB(db.address)}
             title={db.name}
           >
-            {db.name}
-            <!-- Pin indicator next to database name -->
             {#if db.pinnedToVoyager !== undefined}
               <span 
                 class="inline-block ml-1 w-2 h-2 rounded-full {db.pinnedToVoyager ? 'bg-green-500' : 'bg-orange-500'}"
                 title={db.pinnedToVoyager ? "Pinned to Voyager" : "Not pinned to Voyager"}
               ></span>
             {/if}
+            {db.postsCount || ''}
+            {#if db.access?.write?.includes($identity?.id)}
+              <svg class="inline-block w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+              </svg>
+            {:else}
+              <svg class="inline-block w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            {/if}
+            {db.name}
           </button>
         {/each}
       {:else}

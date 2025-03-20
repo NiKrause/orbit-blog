@@ -441,14 +441,45 @@
         {#each $remoteDBs as db}
           <div class="flex items-center space-x-2">
             <button
-              class="flex-1 text-left p-3 rounded-md transition-all duration-300 ease-in-out transform hover:scale-105 {$selectedDBAddress === db.address ? 'bg-gradient-to-r from-indigo-500 to-indigo-300 dark:from-indigo-800 dark:to-indigo-600 border-2 border-indigo-500' : 'bg-gradient-to-r from-gray-200 to-gray-100 dark:from-gray-700 dark:to-gray-600 hover:bg-gradient-to-r from-gray-300 to-gray-200 dark:from-gray-600 dark:to-gray-500 border border-gray-200 dark:border-gray-600'}"
+              class="flex-1 text-left p-3 rounded-md transition-all duration-300 ease-in-out transform hover:scale-105 {$selectedDBAddress === db.address ? 'bg-gradient-to-r from-indigo-500 to-indigo-300 dark:from-indigo-800 dark:to-indigo-600 border-2 border-indigo-500' : db.access?.write?.includes($identity?.id) ? 'bg-gradient-to-r from-green-200 to-green-100 dark:from-green-800 dark:to-green-700 border border-green-300 dark:border-green-600' : 'bg-gradient-to-r from-gray-200 to-gray-100 dark:from-gray-700 dark:to-gray-600 hover:bg-gradient-to-r from-gray-300 to-gray-200 dark:from-gray-600 dark:to-gray-500 border border-gray-200 dark:border-gray-600'}"
               on:click={() => handleSwitchToRemoteDB(db.address)}
             >
               <div class="flex justify-between items-center">
-                <div>
-                  <div class="font-medium text-gray-900 dark:text-white">{db.name}</div>
-                  <div class="text-sm text-gray-500 dark:text-gray-400 truncate">{db.address}</div>
+                <div class="flex items-center space-x-2">
+                  <!-- Pin Status Indicator -->
+                  {#if db.pinnedToVoyager !== undefined}
+                    <span 
+                      class="inline-block w-3 h-3 rounded-full {db.pinnedToVoyager ? 'bg-green-500' : 'bg-orange-500'}"
+                      title={db.pinnedToVoyager ? "Pinned to Voyager" : "Not pinned to Voyager"}
+                    ></span>
+                  {/if}
+                  
+                  <!-- Write Access Icon -->
+                  {#if db.access?.write?.includes($identity?.id)}
+                    <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                    </svg>
+                  {:else}
+                    <svg class="w-5 h-5 text-red-500 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  {/if}
+                  
+                  <div>
+                    <div class="font-medium text-gray-900 dark:text-white flex items-center">
+                      {db.name}
+                      
+                      <!-- Post Count Badge -->
+                      {#if db.postsCount !== undefined}
+                        <span class="ml-2 px-2 py-0.5 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-100 rounded-full text-xs font-medium" title="Number of posts">
+                          {db.postsCount} posts
+                        </span>
+                      {/if}
+                    </div>
+                    <div class="text-sm text-gray-500 dark:text-gray-400 truncate">{db.address}</div>
+                  </div>
                 </div>
+                
                 {#if $selectedDBAddress === db.address}
                   <span class="text-indigo-600 dark:text-indigo-400 text-sm font-medium">Current</span>
                 {/if}

@@ -98,7 +98,6 @@ export async function addRemoteDBToStore(address: string, peerId: string, name?:
       }
     }
 
-    // Store the database in remoteDBsDatabases
     const remoteDBsDatabase = get(remoteDBsDatabases);
     const existingDBs = await remoteDBsDatabase.all();
 
@@ -110,7 +109,6 @@ export async function addRemoteDBToStore(address: string, peerId: string, name?:
     if (remoteDBsDatabase) {
       await remoteDBsDatabase.put({ _id: newDB.id, ...newDB });
       
-      // Update the remoteDBs store
       const updatedRemoteDBs = [...get(remoteDBs), newDB];
       remoteDBs.set(updatedRemoteDBs);
       
@@ -124,15 +122,51 @@ export async function addRemoteDBToStore(address: string, peerId: string, name?:
   }
 }
 
+/**
+ * Switches the application to use a remote OrbitDB database
+ * 
+ * This function performs a complete database switch operation by:
+ * 1. Opening the remote settings database using the provided address
+ * 2. Adding the database to Voyager for persistence
+ * 3. Loading all blog settings (name, description, categories, posts address)
+ * 4. Opening the posts database referenced in the settings
+ * 5. Loading all posts from the posts database
+ * 6. Updating all relevant Svelte stores with the remote data
+ * 
+ * The function implements a retry mechanism that continues attempting to 
+ * load the database until all required data is successfully retrieved.
+ * 
+ * @param {string} address - The OrbitDB address of the remote settings database to switch to
+ * @param {boolean} [showModal=false] - Whether to show a loading modal during the operation
+ * 
+ * @returns {Promise<boolean>} True if the switch was successful, false if it failed
+ * 
+ * @throws {Error} Throws an error if OrbitDB is not initialized
+ * 
+ * @example
+ * // Switch to a remote database without showing a modal
+ * await switchToRemoteDB('zdpuAywgooGrEcDdAoMsK4umnDZyxY9gMTdjwww29h2B9MKeh/db-name');
+ * 
+ * @example
+ * // Switch to a remote database with a loading modal
+ * await switchToRemoteDB('zdpuAywgooGrEcDdAoMsK4umnDZyxY9gMTdjwww29h2B9MKeh/db-name', true);
+ */
 export async function switchToRemoteDB(address: string, showModal = false) {
   let retry = true;
   let cancelOperation = false;
   
-  // Optional modal handling variables
   let isModalOpen = showModal;
   let blogNameValue;
-  let categoriesValue; // New variable to store categories
+  let categoriesValue; 
+  let access;
+  let postsCount;  
   const voyagerInstance = get(voyager);
+  
+  // Get existing remote DB information to preserve
+  const existingRemoteDBs = get(remoteDBs);
+  const existingDB = existingRemoteDBs.find(db => db.address === address);
+  const existingPostsCount = existingDB?.postsCount;
+  
   try {
     while (retry && !cancelOperation) {
       const orbitdbInstance = get(orbitdb);
@@ -179,7 +213,22 @@ export async function switchToRemoteDB(address: string, showModal = false) {
           const { _id, ...rest } = post.value;
           return { ...rest, id: _id };
         });
+        postsCount = allPosts.length;
+        access = postsDBInstance.access;
         posts.set(allPosts);
+        
+        // Update the remote DBs store to preserve the postsCount
+        if (existingDB) {
+          remoteDBs.update(dbs => {
+            return dbs.map(db => {
+              if (db.address === address) {
+                return {...db, postsCount, access};
+              }
+              return db;
+            });
+          });
+        }
+        
         console.log('allPosts', allPosts.length);
         
         retry = false; // Stop retrying if all data is fetched
@@ -199,6 +248,16 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       if (!existingDBs.some(db => db.value?.address === address)) {
         // Only add if it doesn't exist already
         addRemoteDBToStore(address, '', blogNameValue || 'Loading...');
+      } else {
+        // Update existing with postsCount and access
+        remoteDBs.update(dbs => {
+          return dbs.map(db => {
+            if (db.address === address) {
+              return {...db, postsCount, access};
+            }
+            return db;
+          });
+        });
       }
     }
     

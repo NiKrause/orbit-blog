@@ -90,8 +90,8 @@ importers:
         specifier: ^1.1.2
         version: 1.1.2(react-native@0.78.1(@babel/core@7.26.10)(@babel/preset-env@7.26.9(@babel/core@7.26.10))(react@19.0.0))
       '@orbitdb/voyager':
-        specifier: ^0.0.3
-        version: 0.0.3(react-native@0.78.1(@babel/core@7.26.10)(@babel/preset-env@7.26.9(@babel/core@7.26.10))(react@19.0.0))
+        specifier: file:/Users/nandi/Documents/projekte/voyager/orbitdb-voyager-0.0.3.tgz
+        version: file:../../voyager/orbitdb-voyager-0.0.3.tgz(react-native@0.78.1(@babel/core@7.26.10)(@babel/preset-env@7.26.9(@babel/core@7.26.10))(react@19.0.0))
       '@types/dompurify':
         specifier: ^3.2.0
         version: 3.2.0
@@ -1493,8 +1493,9 @@ packages:
   '@orbitdb/set-db@1.1.2':
     resolution: {integrity: sha512-zgMWoMPxN6kJv++JZhgkfx7+ZoDgeLgV5vTU6LG5ZZLg4LLg9irqneoc80Gg93vf4nP6jQiGxC5d8SmeDZsBFA==}
 
-  '@orbitdb/voyager@0.0.3':
-    resolution: {integrity: sha512-rZir+nEMYbD0kC8wvpkJdrDm27jfK3h4h5GON6P4SxOH/R51HCsMJGQLmDssRH7c7e3oqi8s+rPDyshoGFljbg==}
+  '@orbitdb/voyager@file:../../voyager/orbitdb-voyager-0.0.3.tgz':
+    resolution: {integrity: sha512-YjoktMv+G7ImhOr8HXsSCwx/Y9CrDUxR11gQ4BrbU1joWpsotkyZwgMHgUU0GvY2Aw4ZtNwKqNti3/zbHm2nHQ==, tarball: file:../../voyager/orbitdb-voyager-0.0.3.tgz}
+    version: 0.0.3
     engines: {node: '>=20.0.0'}
     hasBin: true
 
@@ -7339,7 +7340,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@orbitdb/voyager@0.0.3(react-native@0.78.1(@babel/core@7.26.10)(@babel/preset-env@7.26.9(@babel/core@7.26.10))(react@19.0.0))':
+  '@orbitdb/voyager@file:../../voyager/orbitdb-voyager-0.0.3.tgz(react-native@0.78.1(@babel/core@7.26.10)(@babel/preset-env@7.26.9(@babel/core@7.26.10))(react@19.0.0))':
     dependencies:
       '@chainsafe/libp2p-gossipsub': 14.1.0
       '@libp2p/logger': 5.1.13
