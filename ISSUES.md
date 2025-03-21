@@ -68,6 +68,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [ ] overwrite seedPhrase and generate new peerId and identity (did)
     - [ ] generateMasterSeed should be generated with another password at some point
     - [x] Voyager evaluation
+        - [ ] pin media cids in pinned media dbs!
         - [x] install voyager as pinning service https://github.com/orbitdb/voyager/tree/main
         - [x] add db addresses to voyager
         - [x] allow persistent peerId
