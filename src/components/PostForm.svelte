@@ -2,13 +2,15 @@
   import type { Category } from '../lib/types';
   import { marked } from 'marked';
   import DOMPurify from 'dompurify';
-  import { postsDB, categories, selectedPostId } from '../lib/store';
+  import { postsDB, categories, selectedPostId, identity } from '../lib/store';
+  import MediaUploader from './MediaUploader.svelte';
 
   let title = '';
   let content = '';
   let category: Category = 'Bitcoin';
   let showPreview = false;
-
+  let showMediaUploader = false;
+  let selectedMedia = [];
 
   async function handleSubmit() {
     console.log('Creating new post:', { title, category });
@@ -21,8 +23,10 @@
           title,
           content,
           category,
-          date: new Date().toISOString(),
-          comments: []
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          identity: $identity.id,
+          mediaIds: selectedMedia, // Include attached media IDs
         });
         //get all posts
         const posts = await $postsDB.all();
@@ -32,6 +36,7 @@
         title = '';
         content = '';
         category = 'Bitcoin';
+        selectedMedia = [];
         showPreview = false;
         
         $selectedPostId = _id;
@@ -44,6 +49,26 @@
   function renderMarkdown(content: string): string {
     const rawHtml = marked(content);
     return DOMPurify.sanitize(rawHtml);
+  }
+
+  function handleMediaSelected(mediaCid: string) {
+    console.log('handleMediaSelected', mediaCid);
+    if (!selectedMedia.includes(mediaCid)) {
+      selectedMedia = [...selectedMedia, mediaCid];
+      
+      // Add markdown for the media to the content
+      content += `\n\n![Media](ipfs://${selectedMedia})`;
+    }
+    
+    // Hide the media uploader after selection
+    showMediaUploader = false;
+  }
+
+  async function removeSelectedMedia(mediaId: string) {
+    selectedMedia = selectedMedia.filter(id => id !== mediaId);
+    
+    // Remove the markdown reference to this media from the content
+    content = content.replace(`\n\n![Media](ipfs://${mediaId})`, '');
   }
 </script>
 
@@ -77,14 +102,27 @@
   <div>
     <div class="flex justify-between items-center mb-2">
       <label for="content" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Content (Markdown)</label>
-      <button
-        type="button"
-        on:click={() => showPreview = !showPreview}
-        class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300"
-      >
-        {showPreview ? 'Show Editor' : 'Show Preview'}
-      </button>
+      <div class="flex space-x-2">
+        <button
+          type="button"
+          on:click={() => showMediaUploader = !showMediaUploader}
+          class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300"
+        >
+          {showMediaUploader ? 'Hide Media Library' : 'Add Media'}
+        </button>
+        <button
+          type="button"
+          on:click={() => showPreview = !showPreview}
+          class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300"
+        >
+          {showPreview ? 'Show Editor' : 'Show Preview'}
+        </button>
+      </div>
     </div>
+
+    {#if showMediaUploader}
+      <MediaUploader onMediaSelected={handleMediaSelected} />
+    {/if}
 
     {#if showPreview}
       <div class="prose dark:prose-invert max-w-none min-h-[200px] p-4 border rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
@@ -109,6 +147,26 @@
       ></textarea>
     {/if}
   </div>
+
+  {#if selectedMedia.length > 0}
+    <div class="selected-media">
+      <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Selected Media:</h4>
+      <div class="flex flex-wrap gap-2">
+        {#each selectedMedia as mediaId}
+          <div class="bg-gray-100 dark:bg-gray-700 rounded px-2 py-1 text-sm flex items-center">
+            <span class="truncate max-w-[150px]">{mediaId}</span>
+            <button 
+              type="button"
+              class="ml-2 text-red-500 hover:text-red-700"
+              on:click={() => removeSelectedMedia(mediaId)}
+            >
+              ×
+            </button>
+          </div>
+        {/each}
+      </div>
+    </div>
+  {/if}
 
   <button
     type="submit"

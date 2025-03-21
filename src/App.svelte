@@ -61,7 +61,10 @@
     categories, 
     seedPhrase, 
     voyager,
-    commentsDB
+    commentsDB,
+    commentsDBAddress,
+    mediaDB,
+    mediaDBAddress
   } from './lib/store';
 
   let blockstore = new LevelBlockstore('./helia-blocks');
@@ -77,7 +80,7 @@
   let sidebarVisible = true;
   let touchStartX = 0;
   let touchEndX = 0;
-  const SWIPE_THRESHOLD = 50;
+  const SWIPE_THRESHOLD = 50; 
 
   let routerUnsubscribe;
 
@@ -230,6 +233,21 @@
           window.commentsDB = _db;
           $voyager?.add(_db.address).then((ret) => console.log('voyager added commentsDB', ret))
         }).catch(err => console.log('error', err))
+
+        // Add this to initialize the media database
+        $voyager?.orbitdb.open('media', {
+          type: 'documents',
+          create: true,
+          overwrite: false,
+          directory: './orbitdb/media',
+          identity: $identity,
+          identities: $identities,
+          AccessController: IPFSAccessController({write: [$identity.id]}), // Allow anyone to upload media
+        }).then(_db => {
+          $mediaDB = _db;
+          window.mediaDB = _db;
+          $voyager?.add(_db.address).then((ret) => console.log('voyager added mediaDB', ret))
+        }).catch(err => console.log('error initializing media database', err))
   }
 
   $:if($settingsDB && (!$blogName || !$blogDescription || !$categories || !$postsDBAddress)) {
@@ -254,7 +272,25 @@
         }
       }
     )
-    
+    $settingsDB.get('commentsDBAddress').then(result => {
+      if(result?.value?.value !== undefined){
+        $commentsDBAddress = result.value.value
+      } else {
+        const commentsDBAddress = $commentsDB?.address.toString()
+        $settingsDB?.put({ _id: 'commentsDBAddress', value: commentsDBAddress});
+        $settingsDB?.all().then(result => console.log('settingsDB.all()', result))
+      }
+    })
+    $settingsDB.get('mediaDBAddress').then(result => {
+      if(result?.value?.value !== undefined){
+      } else {
+        const mediaDBAddress = $mediaDB?.address.toString()
+        $settingsDB?.put({ _id: 'mediaDBAddress', value: mediaDBAddress});
+        $settingsDB?.all().then(result => console.log('settingsDB.all()', result))
+      }
+    })
+
+
   $settingsDB.events.on('update', 
     async (entry) => {
       if (entry?.payload?.op === 'PUT') {
@@ -267,12 +303,25 @@
   }
 
   $:if($postsDB){
-    $postsDB.all().then(posts => $posts = posts.map(entry => entry.value)).catch(err => console.error('Error opening posts database:', err));
+    $postsDB.all().then(posts => {
+      console.log('posts', posts);
+      // Each entry contains both the value and the metadata
+      $posts = posts.map(entry => ({
+        ...entry.value,
+        identity: entry.identity // This contains the creator's identity
+      }));
+    }).catch(err => console.error('Error opening posts database:', err));
+
     $postsDB.events.on('update', async (entry) => {
       console.log('Database update:', entry);
       if (entry?.payload?.op === 'PUT') {
         const { _id, ...rest } = entry.payload.value;
-        posts.update(current => [...current, { ...rest, _id: _id }]);
+        console.log('entry', entry);
+        posts.update(current => [...current, { 
+          ...rest, 
+          _id: _id,
+          identity: entry.identity // Add the identity information
+        }]);
       } else if (entry?.payload?.op === 'DEL') {
         posts.update(current => current.filter(post => post._id !== entry.payload.key));
       }

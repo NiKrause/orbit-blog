@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { posts, selectedPostId } from '../lib/store';
+  import { posts, selectedPostId, identity } from '../lib/store';
+  import { DateTime } from 'luxon';
+  import { formatDate, formatTimestamp } from '../lib/dateUtils';
 
   import { marked } from 'marked';
   import DOMPurify from 'dompurify';
@@ -7,6 +9,8 @@
   import CommentSection from './CommentSection.svelte';
   import { onMount } from 'svelte';
   import { postsDB, categories } from '../lib/store';
+  import BlogPost from './BlogPost.svelte';
+  import MediaUploader from './MediaUploader.svelte';
 
   let searchQuery = '';
   let selectedCategory: Category | 'All' = 'All';
@@ -18,6 +22,8 @@
   let editedCategory: Category;
   let showHistory = false;
   let postHistory = [];
+  let showMediaUploader = false;
+  let selectedMedia = [];
 
   $: filteredPosts = $posts.filter(post => {
     const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -27,6 +33,7 @@
   });
 
   $: selectedPost = $selectedPostId ? filteredPosts.find(post => post._id === $selectedPostId) : null;
+  $: console.log('selectedPost', selectedPost);
 
   onMount(() => {
     if (filteredPosts.length > 0 && !$selectedPostId) {
@@ -54,10 +61,11 @@
   }
 
   function editPost(post: Post, event: MouseEvent) {
-    event.stopPropagation(); // Prevent triggering the post selection
+    event.stopPropagation();
     editedTitle = post.title;
     editedContent = post.content;
     editedCategory = post.category;
+    selectedMedia = post.mediaIds || []; // Initialize with existing media
     editMode = true;
   }
 
@@ -69,14 +77,17 @@
           title: editedTitle,
           content: editedContent,
           category: editedCategory,
-          dateUpdated: new Date().toUTCString()
+          updatedAt: new Date().toISOString(),
+          identity: $identity.id,
+          mediaIds: selectedMedia
         };
         await $postsDB.del(selectedPost._id);
         await $postsDB.put(updatedPost);
         // Update the posts store with the new data
-        $posts = $posts.map(post => 
-          post._id === selectedPost._id ? updatedPost : post
-        );
+        // console.log('updatedPost', updatedPost);
+        // $posts = $posts.map(post => 
+        //   post._id === selectedPost._id ? updatedPost : post
+        // );
         console.info('Post updated successfully', updatedPost);
         editMode = false;
         $selectedPostId = updatedPost._id;
@@ -88,12 +99,11 @@
 
   async function deletePost(post: Post, event: MouseEvent) {
     console.log('Deleting post:', post);
-    event.stopPropagation(); // Prevent triggering the post selection
+    event.stopPropagation(); 
     try {
       const postId = post._id;
       await $postsDB.del(postId);
       console.info('Post deleted successfully');
-      // If the deleted post was selected, select another post
       if ($selectedPostId === postId && filteredPosts.length > 1) {
         $selectedPostId = filteredPosts[0]._id;
       }
@@ -119,7 +129,7 @@
       if (entry?.payload?.value?._id === post._id) {
         history.push({
           ...entry.payload.value,
-          timestamp: new Date(entry.timestamp).toLocaleString()
+          timestamp: DateTime.fromMillis(entry.timestamp).toLocaleString(DateTime.DATETIME_MED)
         });
       }
     }
@@ -132,6 +142,19 @@
     editedCategory = historicalPost.category;
     editMode = true;
     showHistory = false;
+  }
+
+  function handleMediaSelected(mediaCid: string) {
+    if (!selectedMedia.includes(mediaCid)) {
+      selectedMedia = [...selectedMedia, mediaCid];
+      editedContent += `\n\n![Media](ipfs://${mediaCid})`;
+    }
+    showMediaUploader = false;
+  }
+
+  function removeSelectedMedia(mediaId: string) {
+    selectedMedia = selectedMedia.filter(id => id !== mediaId);
+    editedContent = editedContent.replace(`\n\n![Media](ipfs://${mediaId})`, '');
   }
 </script>
 
@@ -203,7 +226,7 @@
                   {truncateTitle(post.title, 40)}
                 </h3>
                 <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  <span>{post.date}</span>
+                  <span>{formatDate(post.date)}</span>
                   <span class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full text-xs">
                     {post.category}
                   </span>
@@ -250,7 +273,21 @@
               </div>
 
               <div>
-                <label for="edit-content" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Content (Markdown)</label>
+                <div class="flex justify-between items-center mb-2">
+                  <label for="edit-content" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Content (Markdown)</label>
+                  <button
+                    type="button"
+                    on:click={() => showMediaUploader = !showMediaUploader}
+                    class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300"
+                  >
+                    {showMediaUploader ? 'Hide Media Library' : 'Add Media'}
+                  </button>
+                </div>
+
+                {#if showMediaUploader}
+                  <MediaUploader onMediaSelected={handleMediaSelected} />
+                {/if}
+
                 <textarea
                   id="edit-content"
                   bind:value={editedContent}
@@ -259,6 +296,26 @@
                   required
                 ></textarea>
               </div>
+
+              {#if selectedMedia.length > 0}
+                <div class="selected-media">
+                  <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Selected Media:</h4>
+                  <div class="flex flex-wrap gap-2">
+                    {#each selectedMedia as mediaId}
+                      <div class="bg-gray-100 dark:bg-gray-700 rounded px-2 py-1 text-sm flex items-center">
+                        <span class="truncate max-w-[150px]">{mediaId}</span>
+                        <button 
+                          type="button"
+                          class="ml-2 text-red-500 hover:text-red-700"
+                          on:click={() => removeSelectedMedia(mediaId)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    {/each}
+                  </div>
+                </div>
+              {/if}
 
               <div class="flex space-x-4 justify-end">
                 <button
@@ -279,20 +336,8 @@
             </div>
           </div>
         {:else}
-          <!-- View Mode -->
-          <article class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-            <h2 class="text-2xl font-bold mb-2 text-gray-900 dark:text-white">{selectedPost.title}</h2>
-            <div class="flex space-x-4 text-sm text-gray-500 dark:text-gray-400 mb-4">
-              <span>{selectedPost.date}</span>
-              <span class="px-2 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full">
-                {selectedPost.category}
-              </span>
-            </div>
-            <div class="prose dark:prose-invert max-w-none mb-6">
-              {@html renderMarkdown(selectedPost.content)}
-            </div>
-            <CommentSection post={selectedPost} />
-          </article>
+          <!-- View Mode - Replace with BlogPost component -->
+          <BlogPost post={selectedPost} />
         {/if}
       {:else}
         <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center text-gray-500 dark:text-gray-400">
@@ -312,7 +357,7 @@
         {#each postHistory as version}
           <div class="border dark:border-gray-700 p-4 rounded">
             <div class="flex justify-between mb-2">
-              <span class="text-sm text-gray-500">{version.date}</span>
+              <span class="text-sm text-gray-500">{formatDate(version.date)}</span>
               <button
                 class="text-blue-600 hover:text-blue-800"
                 on:click={() => restoreVersion(version)}

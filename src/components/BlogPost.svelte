@@ -1,14 +1,19 @@
 <script lang="ts">
   import { marked } from 'marked';
   import type { BlogPost, Comment } from '../lib/types';
-  import { posts, commentsDB, selectedPostId } from '../lib/store';
+  import { commentsDB, mediaDB, helia } from '../lib/store';
+  import { unixfs } from '@helia/unixfs';
   import { onMount } from 'svelte';
+  import { DateTime } from 'luxon';
 
   export let post: BlogPost;
 
   let newComment = '';
   let commentAuthor = '';
   let comments: Comment[] = [];
+  let postMedia = [];
+  let fs;
+  let mediaCache = new Map(); // Cache for IPFS content
 
   // Configure marked options
   marked.setOptions({
@@ -19,7 +24,108 @@
     sanitize: false // Allow HTML
   });
 
-  // Load comments for this post
+  // Move renderer setup into a function
+  function setupRenderer() {
+    const renderer = new marked.Renderer();
+    const defaultImageRenderer = renderer.image.bind(renderer);
+    
+    renderer.image = (href, title, text) => {
+      if (href.startsWith('ipfs://')) {
+        const mediaId = href.replace('ipfs://', '');
+        console.log('mediaId', mediaId);
+        console.log('mediaCache', mediaCache);
+        const media = mediaCache.get(mediaId);
+        console.log('media', media);
+        if (media) {
+          return defaultImageRenderer(media, title, text);
+        } else if (media) {
+          return defaultImageRenderer(`https://ipfs.io/ipfs/${media.cid}`, title, text);
+        }
+      }
+      return defaultImageRenderer(href, title, text);
+    };
+
+    marked.use({ renderer });
+  }
+
+  function initUnixFs() {
+    if ($helia) {
+      fs = unixfs($helia);
+      return true;
+    }
+    return false;
+  }
+
+  async function getFileFromIPFS(cid) {
+    console.log('getFileFromIPFS', cid);
+    if (!fs && !initUnixFs()) {
+      return null;
+    }
+    
+    // Check cache first
+    if (mediaCache.has(cid)) {
+      return mediaCache.get(cid);
+    }
+    
+    try {
+      const chunks = [];
+      for await (const chunk of fs.cat(cid)) {
+        chunks.push(chunk);
+      }
+      
+      const fileData = new Uint8Array(chunks.reduce((acc, val) => [...acc, ...val], []));
+      const blob = new Blob([fileData]);
+      const url = URL.createObjectURL(blob);
+      
+      // Store in cache
+      mediaCache.set(cid, url);
+      return url;
+    } catch (error) {
+      console.error(`Error fetching from IPFS (${cid}):`, error);
+      // Fall back to gateway URL
+      return `https://ipfs.io/ipfs/${cid}`;
+    }
+  }
+
+  // Load media URLs asynchronously
+  async function loadMediaUrls() {
+    console.log('loadMediaUrls', postMedia);
+    for (const media of postMedia) {
+      if (!media.url) {
+        media.url = await getFileFromIPFS(media.cid) || `https://ipfs.io/ipfs/${media.cid}`;
+      }
+    }
+    // Force reactivity update
+    postMedia = [...postMedia];
+  }
+
+
+  // Load media for this post
+  async function loadPostMedia() {
+    console.log('loadPostMedia', post);
+    if (!$mediaDB || !post.mediaIds) return;
+    console.log('loadPostMedia...');
+    
+    
+    try {
+      const allMedia = await $mediaDB.all();
+      console.log('allMedia', allMedia);
+      const mediaMap = allMedia.map(entry => entry.value);
+      postMedia = post.mediaIds?.map(cid => {
+        const media = mediaMap.find(m => m.cid === cid);
+        if (media) {
+          return { ...media, url: null }; // Add url property to store fetched content
+        }
+        return null;
+      }).filter(Boolean) || [];
+      
+      initUnixFs();
+      loadMediaUrls();
+    } catch (error) {
+      console.error('Error loading media:', error);
+    }
+  }
+
   async function loadComments() {
     if (!$commentsDB) return;
     
@@ -75,143 +181,130 @@
     });
   }
 
+  // React to Helia being available
+  $: if ($helia && !fs) {
+    initUnixFs();
+    if (postMedia.length > 0) {
+      loadMediaUrls();
+    }
+  }
+
+  onMount(async () => {
+    if ($mediaDB && post) {
+      await loadPostMedia();
+      setupRenderer();
+    }
+  });
+
+  // Remove the reactive post statement since we handle initial load in onMount
+  $: if (post) {
+
+      if ($mediaDB) {
+        loadPostMedia().then(() => {
+          setupRenderer();
+        }); 
+      }
+  }
+
   $: renderedContent = marked(post.content);
+
+  function formatDate(dateString: string): string {
+    if (!dateString) return '';
+    return DateTime.fromISO(dateString).toLocaleString(DateTime.DATETIME_MED);
+  }
 </script>
 
-<article class="blog-post">
-  <h2>{post.title}</h2>
-  <div class="metadata">
-    <span>By {post.author}</span>
-    <span>Posted on {post.createdAt}</span>
-    <span class="category">Category: {post.category}</span>
+<article class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+  <h2 class="text-2xl font-bold mb-2 text-gray-900 dark:text-white">{post.title}</h2>
+  <div class="flex space-x-4 text-sm text-gray-500 dark:text-gray-400 mb-4">
+    <span>By {post.identity || 'Unknown'}</span>
+    <span>{formatDate(post.createdAt)}</span>
+    {#if post.updatedAt && post.updatedAt !== post.createdAt}
+      <span>(Updated: {formatDate(post.updatedAt)})</span>
+    {/if}
+    <span class="px-2 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full">
+      {post.category}
+    </span>
   </div>
-  <div class="content">
+  
+ 
+  
+  <div class="prose dark:prose-invert max-w-none mb-6">
     {@html renderedContent}
   </div>
 
-  <section class="comments">
-    <h3>Comments ({comments.length})</h3>
+  <section class="mt-8">
+    <h3 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">Comments ({comments.length})</h3>
     {#each comments as comment}
-      <div class="comment">
-        <strong>{comment.author}</strong>
-        <span class="comment-date">{new Date(comment.createdAt).toLocaleDateString()}</span>
-        <p>{comment.content}</p>
+      <div class="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+        <div class="flex items-center mb-2">
+          <strong class="text-gray-900 dark:text-white">{comment.author}</strong>
+          <span class="ml-2 text-sm text-gray-500 dark:text-gray-400">
+            {DateTime.fromISO(comment.createdAt).toLocaleString(DateTime.DATETIME_MED)}
+          </span>
+        </div>
+        <p class="text-gray-700 dark:text-gray-300">{comment.content}</p>
       </div>
     {/each}
 
-    <form on:submit|preventDefault={addComment} class="comment-form">
-      <input
-        type="text"
-        bind:value={commentAuthor}
-        placeholder="Your name"
-        required
-      />
-      <textarea
-        bind:value={newComment}
-        placeholder="Write a comment..."
-        required
-      ></textarea>
-      <button type="submit">Add Comment</button>
+     <!-- Display attached media gallery if there are media items -->
+  {#if postMedia.length > 0}
+  <div class="mt-4 mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+    <h3 class="text-lg font-medium mb-2 text-gray-900 dark:text-white">Media</h3>
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+      {#each postMedia as media}
+        {#if media.type.startsWith('image/')}
+          <a href={media.url || `https://ipfs.io/ipfs/${media.cid}`} target="_blank" rel="noopener noreferrer" 
+             class="block overflow-hidden rounded-lg">
+            <img src={media.url || `https://ipfs.io/ipfs/${media.cid}`} alt={media.name}
+                 class="w-full h-auto object-cover" />
+          </a>
+        {:else if media.type.startsWith('video/')}
+          <video controls class="w-full rounded-lg">
+            <source src={media.url || `https://ipfs.io/ipfs/${media.cid}`} type={media.type}>
+            Your browser does not support the video tag.
+          </video>
+        {:else if media.type.startsWith('audio/')}
+          <audio controls class="w-full">
+            <source src={media.url || `https://ipfs.io/ipfs/${media.cid}`} type={media.type}>
+            Your browser does not support the audio tag.
+          </audio>
+        {:else}
+          <a href={media.url || `https://ipfs.io/ipfs/${media.cid}`} 
+             target="_blank" rel="noopener noreferrer" 
+             class="flex items-center p-3 bg-gray-100 dark:bg-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-500 transition">
+            <span class="truncate">{media.name} ({(media.size / 1024).toFixed(2)} KB)</span>
+          </a>
+        {/if}
+      {/each}
+    </div>
+  </div>
+{/if}
+
+    <form on:submit|preventDefault={addComment} class="mt-6">
+      <div class="mb-4">
+        <input
+          type="text"
+          bind:value={commentAuthor}
+          placeholder="Your name"
+          required
+          class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+        />
+      </div>
+      <div class="mb-4">
+        <textarea
+          bind:value={newComment}
+          placeholder="Write a comment..."
+          required
+          class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white min-h-[100px]"
+        ></textarea>
+      </div>
+      <button 
+        type="submit"
+        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition"
+      >
+        Add Comment
+      </button>
     </form>
   </section>
 </article>
-
-<style>
-  .blog-post {
-    margin-bottom: 2rem;
-    padding: 1rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-  }
-
-  .metadata {
-    color: #666;
-    margin-bottom: 1rem;
-  }
-
-  .metadata span {
-    margin-right: 1rem;
-  }
-
-  .category {
-    background: #f0f0f0;
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
-  }
-
-  .content :global(h1) {
-    font-size: 2em;
-    margin-bottom: 1rem;
-  }
-
-  .content :global(h2) {
-    font-size: 1.5em;
-    margin: 1rem 0;
-  }
-
-  .content :global(ul), .content :global(ol) {
-    margin-left: 2rem;
-    margin-bottom: 1rem;
-  }
-
-  .content :global(p) {
-    margin-bottom: 1rem;
-    line-height: 1.6;
-  }
-
-  .content :global(code) {
-    background: #f4f4f4;
-    padding: 0.2em 0.4em;
-    border-radius: 3px;
-    font-family: monospace;
-  }
-
-  .content :global(pre) {
-    background: #f4f4f4;
-    padding: 1rem;
-    border-radius: 4px;
-    overflow-x: auto;
-    margin-bottom: 1rem;
-  }
-
-  .content :global(blockquote) {
-    border-left: 4px solid #ccc;
-    margin: 1rem 0;
-    padding-left: 1rem;
-    color: #666;
-  }
-
-  .comments {
-    margin-top: 2rem;
-  }
-
-  .comment {
-    margin: 1rem 0;
-    padding: 0.5rem;
-    background: #f5f5f5;
-    border-radius: 4px;
-  }
-
-  .comment-date {
-    color: #666;
-    font-size: 0.9em;
-    margin-left: 1rem;
-  }
-
-  .comment-form {
-    margin-top: 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  input, textarea {
-    padding: 0.5rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-  }
-
-  textarea {
-    min-height: 100px;
-  }
-</style>

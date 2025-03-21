@@ -36,7 +36,12 @@ export const selectedCategory = writable<Category | 'All'>('All');
 
 // Add commentsDB to your store exports
 export const commentsDB = writable(null);
+export const commentsDBAddress = writable(null);
 export const allComments = writable([]);
 
+// Add a store for the media database
+export const mediaDB = writable(null);
+export const mediaDBAddress = writable(null);
+export const allMedia = writable([]);
 
 
