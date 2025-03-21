@@ -60,7 +60,8 @@
     blogDescription, 
     categories, 
     seedPhrase, 
-    voyager 
+    voyager,
+    commentsDB
   } from './lib/store';
 
   let blockstore = new LevelBlockstore('./helia-blocks');
@@ -214,6 +215,21 @@
           window.remoteDBsDatabases = _db;
           $voyager?.add(_db.address).then((ret) => console.log('voyager added remoteDBsDatabases', ret))
         }).catch(err => console.error('Error opening remote DBs database:', err));
+
+        // Add this to the initializeApp function after other database initializations
+        $voyager?.orbitdb.open('comments', {
+          type: 'documents',
+          create: true,
+          overwrite: false,
+          directory: './orbitdb/comments',
+          identity: $identity,
+          identities: $identities,
+          AccessController: IPFSAccessController({write: ["*"]}),
+        }).then(_db => {
+          $commentsDB = _db;
+          window.commentsDB = _db;
+          $voyager?.add(_db.address).then((ret) => console.log('voyager added commentsDB', ret))
+        }).catch(err => console.log('error', err))
   }
 
   $:if($settingsDB && (!$blogName || !$blogDescription || !$categories || !$postsDBAddress)) {

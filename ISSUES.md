@@ -98,7 +98,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
         - [x] blog name
         - [x] blog description
         - [x] postsdb address
-        - [ ] commentsdb address  
+        - [x] commentsdb address  
         - [ ] username/did by blockchain (Bitcoin Ordinals, Runes, Namcoin, Doichain)
         - [x] did
         - [ ] did / id by Nostr-Chrome-Extension

@@ -1,12 +1,14 @@
 <script lang="ts">
   import { marked } from 'marked';
   import type { BlogPost, Comment } from '../lib/types';
-  import { posts } from '../lib/store';
+  import { posts, commentsDB, selectedPostId } from '../lib/store';
+  import { onMount } from 'svelte';
 
   export let post: BlogPost;
 
   let newComment = '';
   let commentAuthor = '';
+  let comments: Comment[] = [];
 
   // Configure marked options
   marked.setOptions({
@@ -17,28 +19,60 @@
     sanitize: false // Allow HTML
   });
 
-  function addComment() {
-    if (!newComment.trim() || !commentAuthor.trim()) return;
+  // Load comments for this post
+  async function loadComments() {
+    if (!$commentsDB) return;
+    
+    try {
+      const allComments = await $commentsDB.all();
+      comments = allComments
+        .map(entry => entry.value)
+        .filter(comment => comment.postId === post._id);
+    } catch (error) {
+      console.error('Error loading comments:', error);
+    }
+  }
 
-    const comment: Comment = {
-      id: crypto.randomUUID(),
-      content: newComment,
-      author: commentAuthor,
-      createdAt: new Date().toISOString().split('T')[0]
-    };
+  // Add a comment using the commentsDB
+  async function addComment() {
+    if (!newComment.trim() || !commentAuthor.trim() || !$commentsDB) return;
 
-    posts.update(currentPosts => {
-      const updatedPosts = currentPosts.map(p => {
-        if (p.id === post.id) {
-          return { ...p, comments: [...p.comments, comment] };
-        }
-        return p;
+    try {
+      const _id = crypto.randomUUID();
+      await $commentsDB.put({
+        _id,
+        postId: post._id,
+        content: newComment,
+        author: commentAuthor,
+        createdAt: new Date().toISOString()
       });
-      return updatedPosts;
-    });
 
-    newComment = '';
-    commentAuthor = '';
+      // Clear form fields
+      newComment = '';
+      commentAuthor = '';
+      
+      // Reload comments (optional, since the DB event listener should handle this)
+      await loadComments();
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    }
+  }
+
+  // Listen for database changes
+  $: if ($commentsDB) {
+    loadComments();
+    
+    $commentsDB.events.on('update', async (entry) => {
+      if (entry?.payload?.op === 'PUT') {
+        const comment = entry.payload.value;
+        // Only update our comments list if the comment belongs to this post
+        if (comment.postId === post._id) {
+          await loadComments();
+        }
+      } else if (entry?.payload?.op === 'DEL') {
+        await loadComments();
+      }
+    });
   }
 
   $: renderedContent = marked(post.content);
@@ -56,11 +90,11 @@
   </div>
 
   <section class="comments">
-    <h3>Comments ({post.comments.length})</h3>
-    {#each post.comments as comment}
+    <h3>Comments ({comments.length})</h3>
+    {#each comments as comment}
       <div class="comment">
         <strong>{comment.author}</strong>
-        <span class="comment-date">{comment.createdAt}</span>
+        <span class="comment-date">{new Date(comment.createdAt).toLocaleDateString()}</span>
         <p>{comment.content}</p>
       </div>
     {/each}

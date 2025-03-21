@@ -12,7 +12,7 @@ export interface Comment {
   postId: string;
   content: string;
   author: string;
-  date: string;
+  createdAt: string;
 }
 
 export interface RemoteDB {
@@ -23,3 +23,11 @@ export interface RemoteDB {
 }
 
 export type Category = 'Bitcoin' | 'Ethereum' | 'DeFi' | 'NFTs' | 'Trading';
+
+export interface BlogPost {
+  _id: string;
+  title: string;
+  content: string;
+  category: string;
+  date: string;
+}

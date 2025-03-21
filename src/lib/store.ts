@@ -34,5 +34,9 @@ export const posts = writable<Post[]>(samplePosts);
 export const searchQuery = writable('');
 export const selectedCategory = writable<Category | 'All'>('All');
 
+// Add commentsDB to your store exports
+export const commentsDB = writable(null);
+export const allComments = writable([]);
+
 
 
