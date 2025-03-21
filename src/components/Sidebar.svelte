@@ -98,7 +98,7 @@
                 title={db.pinnedToVoyager ? "Pinned to Voyager" : "Not pinned to Voyager"}
               ></span>
             {/if}
-            <span class="whitespace-nowrap overflow-hidden overflow-ellipsis">
+            <span class="whitespace-nowrap overflow-ellipsis">
               {db.postsCount || ''}
               {#if db.access?.write?.includes($identity?.id)}
                 <svg class="inline-block w-3 h-3 mr-1 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">

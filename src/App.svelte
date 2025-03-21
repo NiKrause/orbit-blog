@@ -453,6 +453,7 @@
     </div>
   </main>
     <!-- Add the sharing button with an icon -->
+    <div class="fixed top-4 right-20 z-50">
     <button 
       class="fixed top-4 right-20 z-50 bg-blue-500 text-white hover:bg-blue-600 rounded-full p-1 shadow-sm transition-all duration-300 focus:outline-none w-6 h-6 flex items-center justify-center"
       on:click={copySettingsDBAddress}
@@ -466,8 +467,8 @@
         Blog address copied to clipboard!
       </div>
     {/if}
-    
-  <ThemeToggle />
+
+  <ThemeToggle /></div>
 {/if}
 
 <style>

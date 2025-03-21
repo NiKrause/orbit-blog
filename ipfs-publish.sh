@@ -10,7 +10,7 @@ echo "latest IPFS CID $cid"
 # Run the ipfs name publish command with the extracted CID
 ipfs name publish --key=orbitblog /ipfs/$cid
 echo "IPFS name orbitblog updated with CID $cid"
-
+ipfs name resolve --key=orbitblog
 # Update the vercel.json file with the new CID
 # sed -i '' "s|/ipfs/[^\"}]*|/ipfs/$cid|g" vercel.json
 

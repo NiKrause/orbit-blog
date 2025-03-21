@@ -15,7 +15,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 ### Todos, Features, Issues
 - Todos:
-    - [ ] better decrypt password on write operations
+    - [ ] better decrypt password only before write operations
     - [x] add lock / unlock icon's for blocks which are writable / locked
     - [x] add posts count before remote sidebar
     - [ ] upload media (images / videos / audio) to each post and make them show up on the right side next to the post relative to a certain position in the text
