@@ -15,6 +15,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 ### Todos, Features, Issues
 - Todos:
+    - [ ] create Svelte lib from project, so it can be used in other projects as component
     - [ ] LATEX & PDF export from a post content
     - [ ] AI templates + file upload e.g. 
         - [ ] create a CV
