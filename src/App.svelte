@@ -518,20 +518,19 @@
     </div>
   </main>
     <!-- Add the sharing button with an icon -->
-    <div class="fixed top-4 right-20 z-50">
+    <!-- <div class="fixed top-4 right-20 z-50">
     <button 
-      class="fixed top-4 right-20 z-50 bg-blue-500 text-white hover:bg-blue-600 rounded-full p-1 shadow-sm transition-all duration-300 focus:outline-none w-6 h-6 flex items-center justify-center"
+      class="fixed top-4 right-20 z-50 bg-blue-500 text-white hover:bg-blue-600 rounded-full p-1 shadow-sm transition-all duration-300 focus:outline-none w-6 h-6 "
       on:click={copySettingsDBAddress}
       aria-label="Share blog address">
       <FaShare />
     </button> 
     
-    <!-- Notification -->
     {#if showNotification}
       <div class="fixed top-16 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded shadow-lg transition-all duration-300">
         Blog address copied to clipboard!
       </div>
-    {/if}
+    {/if} -->
 
   <ThemeToggle /></div>
 {/if}
