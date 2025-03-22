@@ -22,7 +22,15 @@ ssh -t root@ipfs.le-space.de "cd docker/ipfs/willschenk && docker-compose exec i
 echo "IPFS CID $cid pinned to ipfs.le-space.de"
 
 
-# ssh -t root@ipfs.le-space.de "cd docker/ipfs/willschenk && docker-compose exec ipfs ipfs pin add --follow /ipns/k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g"
+# echo the result of name resolve should be the same as the cid
+result=$(ssh -t root@ipfs.le-space.de "cd docker/ipfs/willschenk && docker-compose exec ipfs ipfs name resolve /ipns/k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g")
+if [ "$result" == "$cid" ]; then
+    echo -e "\e[32mIPFS name resolve result matches CID $cid\e[0m"
+else
+    echo -e "\e[31mIPFS name resolve result does not match CID $cid\e[0m"
+fi
+
+
 # echo "IPFS PIN added to follow ipns"
 # Get the current version from package.json
 version=$(node -p "require('./package.json').version")
