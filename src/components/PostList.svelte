@@ -25,19 +25,21 @@
   let showMediaUploader = false;
   let selectedMedia = [];
 
-  $: filteredPosts = $posts.filter(post => {
-    const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  $: filteredPosts = $posts
+    .filter(post => {
+      const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          post.content.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || post.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+      const matchesCategory = selectedCategory === 'All' || post.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    })
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // Sort by date, newest first
 
   $: selectedPost = $selectedPostId ? filteredPosts.find(post => post._id === $selectedPostId) : null;
   $: console.log('selectedPost', selectedPost);
 
   onMount(() => {
     if (filteredPosts.length > 0 && !$selectedPostId) {
-      $selectedPostId = filteredPosts[0].id;
+      $selectedPostId = filteredPosts[0]._id; // Select the first (latest) post
     }
   });
 
