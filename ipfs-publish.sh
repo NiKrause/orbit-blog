@@ -10,7 +10,6 @@ echo "latest IPFS CID $cid"
 # Run the ipfs name publish command with the extracted CID
 ipfs name publish --key=orbitblog /ipfs/$cid
 echo "IPFS name orbitblog updated with CID $cid"
-ipfs name resolve --key=orbitblog
 # Update the vercel.json file with the new CID
 # sed -i '' "s|/ipfs/[^\"}]*|/ipfs/$cid|g" vercel.json
 
@@ -23,7 +22,14 @@ echo "IPFS CID $cid pinned to ipfs.le-space.de"
 
 
 # echo the result of name resolve should be the same as the cid
-result=$(ssh -t root@ipfs.le-space.de "cd docker/ipfs/willschenk && docker-compose exec ipfs ipfs name resolve /ipns/k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g")
+result=$(ssh -t root@ipfs.le-space.de "cd docker/ipfs/willschenk && docker-compose exec ipfs ipfs name resolve /ipns/k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g" | tr -d '\r' | tr -d '\n')
+
+# Debug with hexdump to see exactly what characters we're getting
+echo "Result raw:"
+echo "$result" | hexdump -C
+echo "CID raw:"
+echo "$cid" | hexdump -C
+
 if [ "$result" == "$cid" ]; then
     echo -e "\e[32mIPFS name resolve result matches CID $cid\e[0m"
 else
