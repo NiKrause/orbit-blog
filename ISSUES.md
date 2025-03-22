@@ -15,7 +15,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 ### Todos, Features, Issues
 - Todos:
-    - [ ] create Svelte lib from project, so it can be used in other projects as component
+    - [ ] Create Svelte lib from project, so it can be used in other projects as component
     - [ ] LATEX & PDF export from a post content
     - [ ] AI templates + file upload e.g. 
         - [ ] create a CV
@@ -45,13 +45,14 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [x] peerId is a new one after each page load even if we have a persistent identity
     - [?] can it be useful to have a new peerId even if identity is persistent? What would be the draw back?   
 - UI related
-    - [ ] fork a blog to become an own blog
-        - [ ] PR possible? How? 
+    - [ ] copy a blog to becom own blog
+        - [ ] fork/merge (PR's) possible?
     - [ ] create PoE for blog post on several blockchains (e.g. Bitcoin, Namecoin etc.)
     - [ ] configure your own voyager
         - [ ] via Electron for desktop
         - [ ] on RaspberryPi 
     - [ ] internationalize the UI (en,de,fr,es,it,ru,...)
+        - [ ] https://inlang.com/m/gerre34r/library-inlang-paraglideJs/basics
         - [ ] use AI for translation
         - [ ] use translation services
     - [x] orbitdb address (blog address) should be possible to be given over the url in hash router /#/orbitdb/xyz

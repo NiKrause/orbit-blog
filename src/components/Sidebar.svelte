@@ -53,7 +53,7 @@
             }
           }
         }}  
-        title="Click to load your own blog"
+        title={`Click to load your own blog ${$settingsDB?.address}`}
       >
         <p class="truncate">
                 {#if $settingsDB && $settingsDB.pinnedToVoyager !== undefined}
@@ -77,7 +77,10 @@
                 </svg>
               {/if}
             </span>
-            <strong>ID:</strong> {$identity.id.substring(0, 18) + '...'}
+            <strong>Peer ID:</strong> 
+            <span title={`${$identity.id} @ ${$libp2p?.peerId.toString()}`} >
+              {$libp2p?.peerId.toString().slice(-5)}
+            </span>
           {:else}
             Not connected
           {/if}
