@@ -131,7 +131,9 @@
       if (entry?.payload?.value?._id === post._id) {
         history.push({
           ...entry.payload.value,
-          timestamp: DateTime.fromMillis(entry.timestamp).toLocaleString(DateTime.DATETIME_MED)
+          timestamp: entry.payload.value.date 
+            ? DateTime.fromISO(entry.payload.value.date).toLocaleString(DateTime.DATETIME_MED)
+            : 'No date available'
         });
       }
     }

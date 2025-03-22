@@ -205,7 +205,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         // console.log('categoriesValue', categoriesValue);
         // Load posts from postsDBAddress
         const postsDBInstance = await voyagerInstance.orbitdb.open(postsDBAddressValue);
-        try { await voyagerInstance.add(postsDBInstance.address);  console.log(`postsDB ${postsDBAddressValue} added to voyager`, addedPosts)} catch (e) { console.log('Failed to add posts DB to voyager:', e) }
+        // try { await voyagerInstance.add(postsDBInstance.address);  console.log(`postsDB ${postsDBAddressValue} added to voyager`, addedPosts)} catch (e) { console.log('Failed to add posts DB to voyager:', e) }
         console.log(`postsDB ${postsDBAddressValue} loaded`)
         postsDB.set(postsDBInstance);
         
@@ -213,7 +213,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         const commentsDBAddressValue = dbContents.find(content => content.key === 'commentsDBAddress')?.value?.value;
         if (commentsDBAddressValue) {
           const commentsDBInstance = await voyagerInstance.orbitdb.open(commentsDBAddressValue);
-          try { await voyagerInstance.add(commentsDBInstance.address);  console.log(`commentsDB ${commentsDBAddressValue} added to voyager`, addedComments)} catch (e) { console.log('Failed to add comments DB to voyager:', e) }
+          // try { await voyagerInstance.add(commentsDBInstance.address);  console.log(`commentsDB ${commentsDBAddressValue} added to voyager`, addedComments)} catch (e) { console.log('Failed to add comments DB to voyager:', e) }
           console.log(`commentsDB ${commentsDBAddressValue} loaded`)
           commentsDB.set(commentsDBInstance);
           commentsDBAddress.set(commentsDBAddressValue);
@@ -223,7 +223,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         const mediaDBAddressValue = dbContents.find(content => content.key === 'mediaDBAddress')?.value?.value;
         if (mediaDBAddressValue) {
           const mediaDBInstance = await voyagerInstance.orbitdb.open(mediaDBAddressValue);
-          try { await voyagerInstance.add(mediaDBInstance.address);  console.log(`mediaDB ${mediaDBAddressValue} added to voyager`, addedMedia)} catch (e) { console.log('Failed to add media DB to voyager:', e) }
+          // try { await voyagerInstance.add(mediaDBInstance.address);  console.log(`mediaDB ${mediaDBAddressValue} added to voyager`, addedMedia)} catch (e) { console.log('Failed to add media DB to voyager:', e) }
           console.log(`mediaDB ${mediaDBAddressValue} loaded`)
           mediaDB.set(mediaDBInstance);
           mediaDBAddress.set(mediaDBAddressValue);

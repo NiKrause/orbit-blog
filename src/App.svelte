@@ -334,9 +334,13 @@
       const _remoteDBs = savedDBs.map(entry => entry.value);
       console.info('Remote DBs list:', _remoteDBs);
       _remoteDBs.forEach(async db => {
-        const _db = await $orbitdb.open(db.postsAddress,{sync: false});
+        const _db = await $orbitdb.open(db.postsAddress);
         db.access = _db.access
-        _db.all().then(posts => db.postsCount = posts.length).finally(() => {
+        _db.all().then(_posts => {
+          db.postsCount = _posts.length
+          console.log('_db', _db)
+          console.log('posts', _posts)
+        }).finally(() => {
           // console.log('db', db)
         })
       })
