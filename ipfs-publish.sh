@@ -30,7 +30,7 @@ echo "$result" | hexdump -C
 echo "CID raw:"
 echo "$cid" | hexdump -C
 
-if [ "$result" == "$cid" ]; then
+if [ "$result" == "/ipfs/$cid" ]; then
     echo -e "\e[32mIPFS name resolve result matches CID $cid\e[0m"
 else
     echo -e "\e[31mIPFS name resolve result does not match CID $cid\e[0m"

@@ -82,6 +82,9 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
                 - https://github.com/silkroadnomad/libp2p-relay/blob/main/docker-compose.yml
                 - https://github.com/silkroadnomad/libp2p-relay/blob/main/init-letsencrypt.sh
         - [ ] make voyager support pubsub peer discovery
+        - [ ] create UI which shows all pinned db's
+            - [ ] drop db
+            - [ ] show contents of db (db.all())
         - [ ] support DID on voyager
         - [x] test voyager replication
     - [ ] add first production blog 
