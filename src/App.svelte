@@ -532,7 +532,7 @@
       </div>
     {/if} -->
 
-  <ThemeToggle /></div>
+  <ThemeToggle />
 {/if}
 
 <style>
