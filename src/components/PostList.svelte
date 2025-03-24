@@ -6,11 +6,12 @@
   import { marked } from 'marked';
   import DOMPurify from 'dompurify';
   import type { Post, Category } from '../lib/types';
-  import CommentSection from './CommentSection.svelte';
   import { onMount } from 'svelte';
   import { postsDB, categories } from '../lib/store';
   import BlogPost from './BlogPost.svelte';
   import MediaUploader from './MediaUploader.svelte';
+  // Import html2pdf for PDF generation
+  import html2pdf from 'html2pdf.js';
 
   let searchQuery = '';
   let selectedCategory: Category | 'All' = 'All';
@@ -35,7 +36,6 @@
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // Sort by date, newest first
 
   $: selectedPost = $selectedPostId ? filteredPosts.find(post => post._id === $selectedPostId) : null;
-  $: console.log('selectedPost', selectedPost);
 
   onMount(() => {
     if (filteredPosts.length > 0 && !$selectedPostId) {
@@ -47,12 +47,10 @@
     $selectedPostId = filteredPosts[0]._id;
   }
 
-  $: {
-    console.log('filteredPosts', filteredPosts);
-  }
-
   function renderMarkdown(content: string): string {
-    const rawHtml = marked(content);
+    // Convert single newlines to <br> tags before rendering markdown
+    const contentWithBreaks = content.replace(/\n(?!\n)/g, '  \n');
+    const rawHtml = marked(contentWithBreaks);
     return DOMPurify.sanitize(rawHtml);
   }
 
@@ -125,9 +123,6 @@
     // Get all operations for this post
     const history = [];
     for await (const entry of $postsDB.log.iterator({ reverse: true })) {
-      console.log('entry', entry.payload.value);
-      console.log('post', post._id);
-      // history.push(entry.payload.value);
       if (entry?.payload?.value?._id === post._id) {
         history.push({
           ...entry.payload.value,
@@ -159,6 +154,110 @@
   function removeSelectedMedia(mediaId: string) {
     selectedMedia = selectedMedia.filter(id => id !== mediaId);
     editedContent = editedContent.replace(`\n\n![Media](ipfs://${mediaId})`, '');
+  }
+
+  // Function to export the selected post as PDF
+  function exportToPdf() {
+    if (!selectedPost) return;
+    
+    // Create a temporary div to render the post content
+    const element = document.createElement('div');
+    element.className = 'pdf-export';
+    
+    // Add some basic styling for the PDF
+    element.innerHTML = `
+      <style>
+        .pdf-export {
+          font-family: 'Arial', sans-serif;
+          padding: 20px;
+          max-width: 800px;
+          margin: 0 auto;
+        }
+        h1 {
+          font-size: 22px;
+          margin-bottom: 16px;
+          color: #333;
+        }
+        .meta {
+          font-size: 12px;
+          color: #666;
+          margin-bottom: 20px;
+          text-align: right;
+        }
+        .content {
+          font-size: 14px;
+          line-height: 1.5;
+        }
+        .content p {
+          margin-bottom: 1em;
+        }
+        .content br {
+          display: block;
+          content: "";
+          margin-top: 0.5em;
+        }
+        /* Fix for bullet points */
+        .content ul {
+          list-style-type: disc;
+          padding-left: 2em;
+          margin-bottom: 1em;
+        }
+        .content ol {
+          list-style-type: decimal;
+          padding-left: 2em;
+          margin-bottom: 1em;
+        }
+        .content li {
+          margin-bottom: 0.5em;
+          display: list-item;
+          vertical-align: middle;
+          line-height: 1.4;
+        }
+        /* Fix bullet alignment */
+        .content ul li::before,
+        .content ol li::before {
+          vertical-align: middle;
+        }
+        img {
+          max-width: 100%;
+          height: auto;
+        }
+        .category {
+          display: inline-block;
+          padding: 3px 8px;
+          background: #f0f0f0;
+          border-radius: 12px;
+          font-size: 12px;
+          margin-right: 10px;
+        }
+      </style>
+      <h1>${selectedPost.title}</h1>
+      <div class="meta">
+        <span>${formatDate(selectedPost.date)}</span>
+      </div>
+      <div class="content">
+        ${renderMarkdown(selectedPost.content)}
+      </div>
+    `;
+    
+    // Append temporarily to the document to ensure images load
+    document.body.appendChild(element);
+    
+    // Configure the PDF options
+    const options = {
+      margin: [10, 10, 10, 10],
+      filename: `${selectedPost.title.replace(/[^a-z0-9]/gi, '_')}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    
+    // Generate the PDF
+    html2pdf().from(element).set(options).save()
+      .then(() => {
+        // Remove the temporary element after PDF generation
+        document.body.removeChild(element);
+      });
   }
 </script>
 
@@ -340,8 +439,23 @@
             </div>
           </div>
         {:else}
-          <!-- View Mode - Replace with BlogPost component -->
-          <BlogPost post={selectedPost} />
+          <!-- View Mode -->
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md">
+            <!-- Add Export Button -->
+            <div class="flex justify-end p-4">
+              <button
+                type="button"
+                on:click={exportToPdf}
+                class="text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 px-4 py-2 rounded-md flex items-center space-x-2 text-sm"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd" />
+                </svg>
+                <span>Export PDF</span>
+              </button>
+            </div>
+            <BlogPost post={selectedPost} />
+          </div>
         {/if}
       {:else}
         <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center text-gray-500 dark:text-gray-400">
