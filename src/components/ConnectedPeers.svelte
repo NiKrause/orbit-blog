@@ -21,7 +21,7 @@
     // Check for different transport protocols
     if (remoteAddr.includes('/webrtc-direct')) return 'WebRTC Direct';
     if (remoteAddr.includes('/webrtc')) return 'WebRTC';
-    if (remoteAddr.includes('/wss')) return 'WSS';
+    if (remoteAddr.includes('/wss') || remoteAddr.includes('/tls/sni/')) return 'WSS';
     if (remoteAddr.includes('/ws')) return 'WS';
     if (remoteAddr.includes('/webtransport')) return 'WebTransport';
     if (remoteAddr.includes('/tcp')) return 'TCP';

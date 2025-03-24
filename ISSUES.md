@@ -16,7 +16,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 ### Todos, Features, Issues
 - Todos:
     - [ ] Create Svelte lib from project, so it can be used in other projects as component
-    - [ ] LATEX & PDF export from a post content
+    - ]x] PDF export from a post content
     - [ ] AI templates + file upload e.g. 
         - [ ] create a CV
         - [ ] correct my spelling
@@ -81,6 +81,8 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
             - [x] docker compose + nginx + certbot
                 - https://github.com/silkroadnomad/libp2p-relay/blob/main/docker-compose.yml
                 - https://github.com/silkroadnomad/libp2p-relay/blob/main/init-letsencrypt.sh
+        - [ ] support prometheus metrics 
+            - https://github.com/libp2p/js-libp2p/blob/main/packages/metrics-prometheus/test/metrics.spec.ts
         - [ ] make voyager support pubsub peer discovery
         - [ ] create UI which shows all pinned db's
             - [ ] drop db
