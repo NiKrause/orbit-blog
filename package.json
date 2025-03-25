@@ -1,20 +1,43 @@
 {
   "name": "orbitdb-blog",
-  "private": true,
   "version": "0.1.78",
   "type": "module",
+  "files": [
+    "dist",
+    "src/lib"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "svelte": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "svelte": "./dist/index.js",
+      "import": "./dist/index.js"
+    },
+    "./style.css": "./dist/style.css"
+  },
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "peerDependencies": {
+    "svelte": "^4.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:lib": "svelte-package",
     "preview": "vite preview",
     "ipfs-publish": "npm version patch && npm run build && ./ipfs-publish.sh",
-    "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.node.json"
+    "check": "svelte-check --tsconfig ./tsconfig.json"
   },
   "devDependencies": {
+    "@sveltejs/package": "^2.3.10",
     "@sveltejs/vite-plugin-svelte": "^3.1.2",
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/typography": "^0.5.16",
     "@tsconfig/svelte": "^5.0.4",
+    "@types/hdkey": "^2.1.0",
     "autoprefixer": "^10.4.21",
     "buffer": "^6.0.3",
     "path-browserify": "^1.0.1",
@@ -39,6 +62,7 @@
     "@libp2p/crypto": "^5.0.15",
     "@libp2p/dcutr": "^2.0.27",
     "@libp2p/identify": "^3.0.27",
+    "@libp2p/interface": "^2.7.0",
     "@libp2p/interface-internal": "^2.3.9",
     "@libp2p/interface-pubsub": "^4.0.1",
     "@libp2p/interface-transport": "^4.0.3",
@@ -70,6 +94,7 @@
     "debug": "^4.4.0",
     "dompurify": "^3.2.4",
     "dotenv": "^16.4.7",
+    "esm-env": "^1.2.2",
     "hdkey": "^2.1.0",
     "helia": "^5.3.0",
     "html2pdf.js": "^0.10.3",
