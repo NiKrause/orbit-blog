@@ -65,17 +65,10 @@ export async function generateAndSerializeKey(seed: Uint8Array): Promise<string>
   // Generate an Ed25519 key pair from the seed
   // const keyPair = await keys.generateKeyPairFromSeed('Ed25519', seed);
   const keyPair = await keys.generateKeyPairFromSeed('Ed25519', seed)
-  console.log('keyPair', keyPair)
-
-  // Marshal the private key to a protobuf format
   const marshalledPrivateKey = await keys.marshalPrivateKey(keyPair);
-
-  // Convert the marshalled private key to a hex string
   return {keyPair, hex: Buffer.from(marshalledPrivateKey).toString('hex')}
 }
 
-  
-  // Function to create a key pair from a private key
 export async function createKeyPairFromPrivateKey(privateKey: Buffer) {
     return keys.supportedKeys.ed25519.unmarshalEd25519PrivateKey(privateKey);
 }
