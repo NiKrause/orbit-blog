@@ -8,8 +8,9 @@ export const isLoadingRemoteBlog = writable(true);
 
 async function queryTXT(domain: string) {
     const url = `https://cloudflare-dns.com/dns-query?name=_orbitblog.${domain}&type=TXT`;
-    //replace with blockchain
+    //TODO replace with blockchain
     try {
+        console.log('querying TXT for domain', url);
         const response = await fetch(url, {
             headers: {
                 'Accept': 'application/dns-json'
@@ -18,7 +19,9 @@ async function queryTXT(domain: string) {
         const data = await response.json();
         if (data.Answer && data.Answer.length > 0) {
             // TXT records are returned with quotes, we need to remove them
-            return data.Answer[0].data.replace(/^"(.*)"$/, '$1');
+            const txt = data.Answer[0].data.replace(/^"(.*)"$/, '$1');
+            console.log('TXT for domain', txt);
+            return txt;
         }
     } catch (error) {
         console.error('DNS query failed:', error);
@@ -65,7 +68,7 @@ export async function initHashRouter() {
     // Initial check for URL hash on page load
     const _initialAddressRouter = extractOrbitDBAddress(getHash());
     const _initialAddressDNS =  await queryTXT(domain);
-    console.log('initialAddressDNS', _initialAddressDNS);
+    console.log(`initialAddressDN for domain ${domain}`, _initialAddressDNS);
     if (_initialAddressRouter || _initialAddressDNS) {
         const _initialAddress = _initialAddressRouter || _initialAddressDNS;
         console.log('initialAddress', _initialAddress);
