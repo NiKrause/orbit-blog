@@ -1,10 +1,20 @@
 import { readable, derived, writable, get } from 'svelte/store';
 import { switchToRemoteDB } from './dbUtils';
-import { initialAddress, postsDBAddress, postsDB } from './store';
+import { initialAddress } from './store';
+const domain = "le-space.de" //window.location.hostname;
 const isBrowser = typeof window !== 'undefined';
-// Add a loading state store
+
 export const isLoadingRemoteBlog = writable(true);
-// A helper to read the current hash minus the leading '#'
+
+async function queryTXT(domain) {
+    const query = encode({
+      type: 'query',
+      id: 1,
+      questions: [{ type: 'TXT', name: `_orbitblog.${domain}` }],
+    });
+    return query;
+  }
+
 function getHash() {
     if (!isBrowser)
         return '';
@@ -42,8 +52,12 @@ export function initHashRouter() {
         return;
     let previousAddress = '';
     // Initial check for URL hash on page load
-    const _initialAddress = extractOrbitDBAddress(getHash());
-    if (_initialAddress) {
+    const _initialAddressRouter = extractOrbitDBAddress(getHash());
+    const _initialAddressDNS =  await queryTXT(domain);
+
+    if (_initialAddressRouter || _initialAddressDNS) {
+        const _initialAddress = _initialAddressRouter || _initialAddressDNS;
+        console.log('initialAddress', _initialAddress);
         // Keep isLoadingRemoteBlog as true since we found an address
         switchToRemoteDB(_initialAddress, true)
             .then(success => {

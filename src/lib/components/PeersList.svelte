@@ -10,7 +10,7 @@
     transport: string;
   }
   
-  let peers: PeerInfo[] = [];
+  let peers: PeerInfo[] = $state([]);
   let updateInterval: number;
   
   function getTransportFromMultiaddr(conn: Connection): string {

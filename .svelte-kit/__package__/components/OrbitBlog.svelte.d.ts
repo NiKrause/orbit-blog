@@ -1,17 +1,19 @@
-import { SvelteComponent } from "svelte";
-declare const __propDef: {
-    props: Record<string, never>;
-    events: {
-        [evt: string]: CustomEvent<any>;
+interface $$__sveltets_2_IsomorphicComponent<Props extends Record<string, any> = any, Events extends Record<string, any> = any, Slots extends Record<string, any> = any, Exports = {}, Bindings = string> {
+    new (options: import('svelte').ComponentConstructorOptions<Props>): import('svelte').SvelteComponent<Props, Events, Slots> & {
+        $$bindings?: Bindings;
+    } & Exports;
+    (internal: unknown, props: {
+        $$events?: Events;
+        $$slots?: Slots;
+    }): Exports & {
+        $set?: any;
+        $on?: any;
     };
-    slots: {};
-    exports?: {} | undefined;
-    bindings?: string | undefined;
-};
-export type OrbitBlogProps = typeof __propDef.props;
-export type OrbitBlogEvents = typeof __propDef.events;
-export type OrbitBlogSlots = typeof __propDef.slots;
-export default class OrbitBlog extends SvelteComponent<OrbitBlogProps, OrbitBlogEvents, OrbitBlogSlots> {
+    z_$$bindings?: Bindings;
 }
-export {};
+declare const OrbitBlog: $$__sveltets_2_IsomorphicComponent<Record<string, never>, {
+    [evt: string]: CustomEvent<any>;
+}, {}, {}, string>;
+type OrbitBlog = InstanceType<typeof OrbitBlog>;
+export default OrbitBlog;
 //# sourceMappingURL=OrbitBlog.svelte.d.ts.map

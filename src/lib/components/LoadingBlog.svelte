@@ -1,5 +1,9 @@
-<script>
-  export let message = "Connecting peer-to-peer network and loading blog data...";
+<script lang="ts">
+  interface Props {
+    message?: string;
+  }
+
+  let { message = "Connecting peer-to-peer network and loading blog data..." }: Props = $props();
 </script>
 
 <div class="loading-overlay">

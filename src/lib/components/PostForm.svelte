@@ -1,16 +1,18 @@
 <script lang="ts">
+  import { preventDefault } from 'svelte/legacy';
+
   import type { Category } from '$lib/types';
   import { marked } from 'marked';
   import DOMPurify from 'dompurify';
   import { postsDB, categories, selectedPostId, identity } from '$lib/store';
   import MediaUploader from './MediaUploader.svelte';
 
-  let title = '';
-  let content = '';
-  let category: Category = 'Bitcoin';
-  let showPreview = false;
-  let showMediaUploader = false;
-  let selectedMedia = [];
+  let title = $state('');
+  let content = $state('');
+  let category: Category = $state('Bitcoin');
+  let showPreview = $state(false);
+  let showMediaUploader = $state(false);
+  let selectedMedia = $state([]);
 
   async function handleSubmit() {
     console.log('Creating new post:', { title, category });
@@ -72,7 +74,7 @@
   }
 </script>
 
-<form on:submit|preventDefault={handleSubmit} class="space-y-4 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+<form onsubmit={preventDefault(handleSubmit)} class="space-y-4 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
   <h2 class="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Create New Post</h2>
   
   <div>
@@ -105,14 +107,14 @@
       <div class="flex space-x-2">
         <button
           type="button"
-          on:click={() => showMediaUploader = !showMediaUploader}
+          onclick={() => showMediaUploader = !showMediaUploader}
           class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300"
         >
           {showMediaUploader ? 'Hide Media Library' : 'Add Media'}
         </button>
         <button
           type="button"
-          on:click={() => showPreview = !showPreview}
+          onclick={() => showPreview = !showPreview}
           class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300"
         >
           {showPreview ? 'Show Editor' : 'Show Preview'}
@@ -158,7 +160,7 @@
             <button 
               type="button"
               class="ml-2 text-red-500 hover:text-red-700"
-              on:click={() => removeSelectedMedia(mediaId)}
+              onclick={() => removeSelectedMedia(mediaId)}
             >
               ×
             </button>

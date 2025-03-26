@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { run, preventDefault } from 'svelte/legacy';
+
   import { marked } from 'marked';
   import type { BlogPost, Comment } from '$lib/types';
   import { commentsDB, mediaDB, helia } from '$lib/store';
@@ -6,13 +8,17 @@
   import { onMount } from 'svelte';
   import { DateTime } from 'luxon';
 
-  export let post: BlogPost;
+  interface Props {
+    post: BlogPost;
+  }
 
-  let newComment = '';
-  let commentAuthor = '';
-  let comments: Comment[] = [];
-  let postMedia = [];
-  let fs;
+  let { post }: Props = $props();
+
+  let newComment = $state('');
+  let commentAuthor = $state('');
+  let comments: Comment[] = $state([]);
+  let postMedia = $state([]);
+  let fs = $state();
   let mediaCache = new Map(); // Cache for IPFS content
 
   // Configure marked options
@@ -98,14 +104,10 @@
     // Force reactivity update
     postMedia = [...postMedia];
   }
-
-
   // Load media for this post
   async function loadPostMedia() {
     console.log('loadPostMedia', post);
     if (!$mediaDB || !post.mediaIds) return;
-    console.log('loadPostMedia...');
-    
     
     try {
       const allMedia = await $mediaDB.all();
@@ -127,6 +129,7 @@
   }
 
   async function loadComments() {
+    console.log('loadComments', post);
     if (!$commentsDB) return;
     
     try {
@@ -153,11 +156,9 @@
         createdAt: new Date().toISOString()
       });
 
-      // Clear form fields
       newComment = '';
       commentAuthor = '';
       
-      // Reload comments (optional, since the DB event listener should handle this)
       await loadComments();
     } catch (error) {
       console.error('Error adding comment:', error);
@@ -165,29 +166,33 @@
   }
 
   // Listen for database changes
-  $: if ($commentsDB) {
-    loadComments();
-    
-    $commentsDB.events.on('update', async (entry) => {
-      if (entry?.payload?.op === 'PUT') {
-        const comment = entry.payload.value;
-        // Only update our comments list if the comment belongs to this post
-        if (comment.postId === post._id) {
+  run(() => {
+    if ($commentsDB) {
+      loadComments();
+      
+      $commentsDB.events.on('update', async (entry) => {
+        if (entry?.payload?.op === 'PUT') {
+          const comment = entry.payload.value;
+          // Only update our comments list if the comment belongs to this post
+          if (comment.postId === post._id) {
+            await loadComments();
+          }
+        } else if (entry?.payload?.op === 'DEL') {
           await loadComments();
         }
-      } else if (entry?.payload?.op === 'DEL') {
-        await loadComments();
-      }
-    });
-  }
+      });
+    }
+  });
 
   // React to Helia being available
-  $: if ($helia && !fs) {
-    initUnixFs();
-    if (postMedia.length > 0) {
-      loadMediaUrls();
+  run(() => {
+    if ($helia && !fs) {
+      initUnixFs();
+      if (postMedia.length > 0) {
+        loadMediaUrls();
+      }
     }
-  }
+  });
 
   onMount(async () => {
     if ($mediaDB && post) {
@@ -197,16 +202,18 @@
   });
 
   // Remove the reactive post statement since we handle initial load in onMount
-  $: if (post) {
+  run(() => {
+    if (post) {
 
-      if ($mediaDB) {
-        loadPostMedia().then(() => {
-          setupRenderer();
-        }); 
-      }
-  }
+        if ($mediaDB) {
+          loadPostMedia().then(() => {
+            setupRenderer();
+          }); 
+        }
+    }
+  });
 
-  $: renderedContent = marked(post.content);
+  let renderedContent = $derived(marked(post.content));
 
   function formatDate(dateString: string): string {
     if (!dateString) return '';
@@ -281,7 +288,7 @@
   </div>
 {/if}
 
-    <form on:submit|preventDefault={addComment} class="mt-6">
+    <form onsubmit={preventDefault(addComment)} class="mt-6">
       <div class="mb-4">
         <input
           type="text"

@@ -1,48 +1,71 @@
-<script>import { helia } from "../store";
-import { onMount, onDestroy } from "svelte";
-let peers = [];
-let updateInterval;
-function getTransportFromMultiaddr(conn) {
-  const remoteAddr = conn.remoteAddr.toString();
-  if (remoteAddr.includes("/webrtc")) return "WebRTC";
-  if (remoteAddr.includes("/wss") || remoteAddr.includes("/tls/sni/")) return "WSS";
-  if (remoteAddr.includes("/ws")) return "WS";
-  if (remoteAddr.includes("/webtransport")) return "WebTrans";
-  if (remoteAddr.includes("/tcp")) return "TCP";
-  return "Other";
-}
-function getShortPeerId(peerId) {
-  return peerId.length > 5 ? peerId.slice(-5) : peerId;
-}
-function updatePeersList() {
-  if ($helia?.libp2p) {
-    const connections = $helia.libp2p.getConnections();
-    peers = connections.map((conn) => ({
-      id: conn.remotePeer.toString(),
-      shortId: getShortPeerId(conn.remotePeer.toString()),
-      connected: conn.status === "open",
-      address: conn.remoteAddr.toString(),
-      transport: getTransportFromMultiaddr(conn)
-    }));
+<script lang="ts">
+  import { helia } from '../store';
+  import { onMount, onDestroy } from 'svelte';
+  import type { Connection } from '@libp2p/interface-connection';
+  
+  interface PeerInfo {
+    id: string;
+    shortId: string;
+    connected: boolean;
+    transport: string;
   }
-}
-onMount(() => {
-  updatePeersList();
-  if ($helia?.libp2p) {
-    $helia.libp2p.addEventListener("peer:connect", updatePeersList);
-    $helia.libp2p.addEventListener("peer:disconnect", updatePeersList);
+  
+  let peers: PeerInfo[] = $state([]);
+  let updateInterval: number;
+  
+  function getTransportFromMultiaddr(conn: Connection): string {
+    const remoteAddr = conn.remoteAddr.toString();
+    
+    if (remoteAddr.includes('/webrtc')) return 'WebRTC';
+    if (remoteAddr.includes('/wss') || remoteAddr.includes('/tls/sni/')) return 'WSS';
+    if (remoteAddr.includes('/ws')) return 'WS';
+    if (remoteAddr.includes('/webtransport')) return 'WebTrans';
+    if (remoteAddr.includes('/tcp')) return 'TCP';
+    
+    return 'Other';
   }
-  updateInterval = window.setInterval(updatePeersList, 5e3);
-});
-onDestroy(() => {
-  if ($helia?.libp2p) {
-    $helia.libp2p.removeEventListener("peer:connect", updatePeersList);
-    $helia.libp2p.removeEventListener("peer:disconnect", updatePeersList);
+  
+  function getShortPeerId(peerId: string): string {
+    return peerId.length > 5 ? peerId.slice(-5) : peerId;
   }
-  if (updateInterval) {
-    clearInterval(updateInterval);
+  
+  function updatePeersList() {
+    if ($helia?.libp2p) {
+      const connections = $helia.libp2p.getConnections();
+      peers = connections.map(conn => ({
+        id: conn.remotePeer.toString(),
+        shortId: getShortPeerId(conn.remotePeer.toString()),
+        connected: conn.status === 'open',
+        address: conn.remoteAddr.toString(),
+        transport: getTransportFromMultiaddr(conn)
+      }));
+    }
   }
-});
+  
+  onMount(() => {
+    updatePeersList();
+    
+    if ($helia?.libp2p) {
+      // Listen for peer events
+      $helia.libp2p.addEventListener('peer:connect', updatePeersList);
+      $helia.libp2p.addEventListener('peer:disconnect', updatePeersList);
+    }
+    
+    // Periodically update to catch any changes
+    updateInterval = window.setInterval(updatePeersList, 5000);
+  });
+  
+  onDestroy(() => {
+    if ($helia?.libp2p) {
+      // Clean up listeners
+      $helia.libp2p.removeEventListener('peer:connect', updatePeersList);
+      $helia.libp2p.removeEventListener('peer:disconnect', updatePeersList);
+    }
+    
+    if (updateInterval) {
+      clearInterval(updateInterval);
+    }
+  });
 </script>
 
 <div class="space-y-1">

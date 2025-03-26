@@ -1,31 +1,40 @@
-<script>import { posts } from "../store";
-let title = "";
-let content = "";
-let author = "";
-let category = "Other";
-const categories = ["Technology", "Programming", "Design", "Other"];
-function handleSubmit() {
-  if (!title.trim() || !content.trim() || !author.trim()) return;
-  posts.update((currentPosts) => [
-    {
-      id: crypto.randomUUID(),
-      title,
-      content,
-      author,
-      category,
-      createdAt: (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
-      comments: []
-    },
-    ...currentPosts
-  ]);
-  title = "";
-  content = "";
-  author = "";
-  category = "Other";
-}
+<script lang="ts">
+  import { preventDefault } from 'svelte/legacy';
+
+  import { posts } from '../store';
+  import type { Category } from '../types';
+
+  let title = $state('');
+  let content = $state('');
+  let author = $state('');
+  let category: Category = $state('Other');
+
+  const categories: Category[] = ['Technology', 'Programming', 'Design', 'Other'];
+
+  function handleSubmit() {
+    if (!title.trim() || !content.trim() || !author.trim()) return;
+
+    posts.update(currentPosts => [
+      {
+        id: crypto.randomUUID(),
+        title,
+        content,
+        author,
+        category,
+        createdAt: new Date().toISOString().split('T')[0],
+        comments: []
+      },
+      ...currentPosts
+    ]);
+
+    title = '';
+    content = '';
+    author = '';
+    category = 'Other';
+  }
 </script>
 
-<form on:submit|preventDefault={handleSubmit} class="new-post-form">
+<form onsubmit={preventDefault(handleSubmit)} class="new-post-form">
   <h2>Create New Post</h2>
   
   <input

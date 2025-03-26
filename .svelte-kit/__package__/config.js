@@ -14,18 +14,25 @@ import { ping } from '@libp2p/ping';
 import { pubsubPeerDiscovery } from '@libp2p/pubsub-peer-discovery';
 import { BROWSER, DEV } from 'esm-env';
 /*import { FaultTolerance } from '@libp2p/interface-transport'*/
-// Define environment variables with fallbacks
-const VITE_SEED_NODES_DEV = process.env.VITE_SEED_NODES_DEV || '';
-const VITE_SEED_NODES = process.env.VITE_SEED_NODES || '';
-export const multiaddrs = DEV
-    ? VITE_SEED_NODES_DEV.replace('\n', '').split(',')
-    : VITE_SEED_NODES.replace('\n', '').split(',');
-// Define environment variables with fallbacks
-const VITE_P2P_PUPSUB_DEV = process.env.VITE_P2P_PUPSUB_DEV || '';
-const VITE_P2P_PUPSUB = process.env.VITE_P2P_PUPSUB || '';
-const pubSubPeerDiscoveryTopics = DEV
-    ? VITE_P2P_PUPSUB_DEV.replace('\n', '').split(',')
-    : VITE_P2P_PUPSUB.replace('\n', '').split(',');
+let VITE_SEED_NODES = import.meta.env.VITE_SEED_NODES.replace('\n', '').split(',');
+let VITE_SEED_NODES_DEV = import.meta.env.VITE_SEED_NODES_DEV.replace('\n', '').split(',');
+let MODE = import.meta.env.MODE;
+let VITE_P2P_PUPSUB_DEV = import.meta.env.VITE_P2P_PUPSUB_DEV || '';
+let VITE_P2P_PUPSUB = import.meta.env.VITE_P2P_PUPSUB || '';
+let _VITE_SEED_NODES_DEV = process.env.VITE_SEED_NODES_DEV || '';
+let _VITE_SEED_NODES = process.env.VITE_SEED_NODES || '';
+let _MODE = process.env.MODE;
+let _VITE_P2P_PUPSUB_DEV = process.env.VITE_P2P_PUPSUB_DEV || '';
+let _VITE_P2P_PUPSUB = process.env.VITE_P2P_PUPSUB || '';
+if (_VITE_SEED_NODES || _VITE_SEED_NODES_DEV || _MODE) {
+    VITE_SEED_NODES = _VITE_SEED_NODES;
+    VITE_SEED_NODES_DEV = _VITE_SEED_NODES_DEV;
+    MODE = _MODE;
+    VITE_P2P_PUPSUB = _VITE_P2P_PUPSUB;
+    VITE_P2P_PUPSUB_DEV = _VITE_P2P_PUPSUB_DEV;
+}
+export let multiaddrs = MODE === 'development' ? VITE_SEED_NODES_DEV : VITE_SEED_NODES;
+let pubSubPeerDiscoveryTopics = MODE === 'development' ? VITE_P2P_PUPSUB_DEV : VITE_P2P_PUPSUB_DEV;
 export const bootstrapConfig = { list: multiaddrs };
 export const libp2pOptions = {
     addresses: {

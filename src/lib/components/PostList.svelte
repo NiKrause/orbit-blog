@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { run } from 'svelte/legacy';
+
   import { posts, selectedPostId, identity } from '$lib/store';
   import { DateTime } from 'luxon';
   import { formatDate, formatTimestamp } from '$lib/dateUtils';
@@ -13,29 +15,29 @@
   // Import html2pdf for PDF generation
   import html2pdf from 'html2pdf.js';
 
-  let searchQuery = '';
-  let selectedCategory: Category | 'All' = 'All';
+  let searchQuery = $state('');
+  let selectedCategory: Category | 'All' = $state('All');
   // let selectedPostId: string | null = null;
-  let hoveredPostId = null; // Track the ID of the hovered post
-  let editMode = false; // Track if we're in edit mode
-  let editedTitle = '';
-  let editedContent = '';
-  let editedCategory: Category;
-  let showHistory = false;
-  let postHistory = [];
-  let showMediaUploader = false;
-  let selectedMedia = [];
+  let hoveredPostId = $state(null); // Track the ID of the hovered post
+  let editMode = $state(false); // Track if we're in edit mode
+  let editedTitle = $state('');
+  let editedContent = $state('');
+  let editedCategory: Category = $state();
+  let showHistory = $state(false);
+  let postHistory = $state([]);
+  let showMediaUploader = $state(false);
+  let selectedMedia = $state([]);
 
-  $: filteredPosts = $posts
+  let filteredPosts = $derived($posts
     .filter(post => {
       const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          post.content.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = selectedCategory === 'All' || post.category === selectedCategory;
       return matchesSearch && matchesCategory;
     })
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // Sort by date, newest first
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())); // Sort by date, newest first
 
-  $: selectedPost = $selectedPostId ? filteredPosts.find(post => post._id === $selectedPostId) : null;
+  let selectedPost = $derived($selectedPostId ? filteredPosts.find(post => post._id === $selectedPostId) : null);
 
   onMount(() => {
     if (filteredPosts.length > 0 && !$selectedPostId) {
@@ -43,9 +45,11 @@
     }
   });
 
-  $: if (filteredPosts.length > 0 && (!$selectedPostId || !filteredPosts.find(post => post._id === $selectedPostId))) {
-    $selectedPostId = filteredPosts[0]._id;
-  }
+  run(() => {
+    if (filteredPosts.length > 0 && (!$selectedPostId || !filteredPosts.find(post => post._id === $selectedPostId))) {
+      $selectedPostId = filteredPosts[0]._id;
+    }
+  });
 
   function renderMarkdown(content: string): string {
     // Convert single newlines to <br> tags before rendering markdown
@@ -329,14 +333,14 @@ ${convertMarkdownToLatex(selectedPost.content)}
         {#each filteredPosts as post, index (post._id || post.title + index)}
           <div
             class="w-full text-left p-3 rounded-md transition-colors cursor-pointer"
-            on:mouseover={() => hoveredPostId = post._id}
-            on:mouseout={() => hoveredPostId = null}
-            on:click={() => selectPost(post._id)}
+            onmouseover={() => hoveredPostId = post._id}
+            onmouseout={() => hoveredPostId = null}
+            onclick={() => selectPost(post._id)}
           >
             <div class="flex justify-end space-x-2 {hoveredPostId === post._id ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300 ease-in-out">
               <button
                 class="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                on:click={(e) => editPost(post, e)}
+                onclick={(e) => editPost(post, e)}
                 title="Edit post"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -345,7 +349,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
               </button>
               <button
                 class="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                on:click={(e) => deletePost(post, e)}
+                onclick={(e) => deletePost(post, e)}
                 title="Delete post"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -354,7 +358,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
               </button>
               <button
                 class="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
-                on:click={(e) => viewPostHistory(post, e)}
+                onclick={(e) => viewPostHistory(post, e)}
                 title="View history"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -419,7 +423,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
                   <label for="edit-content" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Content (Markdown)</label>
                   <button
                     type="button"
-                    on:click={() => showMediaUploader = !showMediaUploader}
+                    onclick={() => showMediaUploader = !showMediaUploader}
                     class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300"
                   >
                     {showMediaUploader ? 'Hide Media Library' : 'Add Media'}
@@ -449,7 +453,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
                         <button 
                           type="button"
                           class="ml-2 text-red-500 hover:text-red-700"
-                          on:click={() => removeSelectedMedia(mediaId)}
+                          onclick={() => removeSelectedMedia(mediaId)}
                         >
                           ×
                         </button>
@@ -462,14 +466,14 @@ ${convertMarkdownToLatex(selectedPost.content)}
               <div class="flex space-x-4 justify-end">
                 <button
                   type="button"
-                  on:click={() => editMode = false}
+                  onclick={() => editMode = false}
                   class="bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-100 py-2 px-4 rounded-md hover:bg-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
-                  on:click={saveEditedPost}
+                  onclick={saveEditedPost}
                   class="bg-indigo-600 dark:bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
                 >
                   Save Changes
@@ -484,7 +488,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
             <div class="flex justify-end p-4">
               <button
                 type="button"
-                on:click={exportToPdf}
+                onclick={exportToPdf}
                 class="text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 px-4 py-2 rounded-md flex items-center space-x-2 text-sm"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -496,7 +500,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
             <div class="flex justify-end p-4">
               <button
                 type="button"
-                on:click={exportToLatex}
+                onclick={exportToLatex}
                 class="text-white bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 px-4 py-2 rounded-md flex items-center space-x-2 text-sm"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -529,7 +533,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
               <span class="text-sm text-gray-500">{formatDate(version.date)}</span>
               <button
                 class="text-blue-600 hover:text-blue-800"
-                on:click={() => restoreVersion(version)}
+                onclick={() => restoreVersion(version)}
               >
                 Restore this version
               </button>
@@ -550,7 +554,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
       </div>
       <button
         class="mt-4 bg-gray-200 dark:bg-gray-700 px-4 py-2 rounded"
-        on:click={() => showHistory = false}
+        onclick={() => showHistory = false}
       >
         Close
       </button>

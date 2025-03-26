@@ -1,48 +1,65 @@
-<script>import { createEventDispatcher } from "svelte";
-import { encryptSeedPhrase, decryptSeedPhrase } from "../cryptoUtils";
-export let isNewUser = false;
-export let encryptedSeedPhrase = null;
-const dispatch = createEventDispatcher();
-let password = "";
-let confirmPassword = "";
-let errorMessage = "";
-let isProcessing = false;
-async function handleSubmit() {
-  errorMessage = "";
-  isProcessing = true;
-  try {
-    if (isNewUser) {
-      if (password.length < 8) {
-        errorMessage = "Password must be at least 8 characters long";
-        isProcessing = false;
-        return;
-      }
-      if (password !== confirmPassword) {
-        errorMessage = "Passwords do not match";
-        isProcessing = false;
-        return;
-      }
-      dispatch("seedPhraseCreated", { password });
-    } else {
-      if (!encryptedSeedPhrase) {
-        errorMessage = "No encrypted seed phrase found";
-        isProcessing = false;
-        return;
-      }
-      try {
-        const decryptedSeedPhrase = await decryptSeedPhrase(encryptedSeedPhrase, password);
-        dispatch("seedPhraseDecrypted", { seedPhrase: decryptedSeedPhrase });
-      } catch (error) {
-        errorMessage = "Invalid password. Please try again.";
-        isProcessing = false;
-      }
-    }
-  } catch (error) {
-    console.error("Password processing error:", error);
-    errorMessage = "An error occurred. Please try again.";
-    isProcessing = false;
+<script lang="ts">
+  import { preventDefault } from 'svelte/legacy';
+
+  import { createEventDispatcher } from 'svelte';
+  import { encryptSeedPhrase, decryptSeedPhrase } from '../cryptoUtils';
+  
+  interface Props {
+    isNewUser?: boolean;
+    encryptedSeedPhrase?: string | null;
   }
-}
+
+  let { isNewUser = false, encryptedSeedPhrase = null }: Props = $props();
+  
+  const dispatch = createEventDispatcher();
+  
+  let password = $state('');
+  let confirmPassword = $state('');
+  let errorMessage = $state('');
+  let isProcessing = $state(false);
+  
+  async function handleSubmit() {
+    errorMessage = '';
+    isProcessing = true;
+    
+    try {
+      if (isNewUser) {
+        if (password.length < 8) {
+          errorMessage = 'Password must be at least 8 characters long';
+          isProcessing = false;
+          return;
+        }
+        
+        if (password !== confirmPassword) {
+          errorMessage = 'Passwords do not match';
+          isProcessing = false;
+          return;
+        }
+        
+        // Generate new seed phrase and encrypt it
+        dispatch('seedPhraseCreated', { password });
+      } else {
+        // Try to decrypt existing seed phrase
+        if (!encryptedSeedPhrase) {
+          errorMessage = 'No encrypted seed phrase found';
+          isProcessing = false;
+          return;
+        }
+        
+        try {
+          const decryptedSeedPhrase = await decryptSeedPhrase(encryptedSeedPhrase, password);
+          dispatch('seedPhraseDecrypted', { seedPhrase: decryptedSeedPhrase });
+        } catch (error) {
+          errorMessage = 'Invalid password. Please try again.';
+          isProcessing = false;
+        }
+      }
+    } catch (error) {
+      console.error('Password processing error:', error);
+      errorMessage = 'An error occurred. Please try again.';
+      isProcessing = false;
+    }
+  }
 </script>
 
 <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -59,7 +76,7 @@ async function handleSubmit() {
         : 'Please enter your password to decrypt your seed phrase in order to activate your identity. The password is not transmitted over the network. You can switch off the network to proof that the password is not transmitted.'}
     </p>
     
-    <form on:submit|preventDefault={handleSubmit} class="space-y-4">
+    <form onsubmit={preventDefault(handleSubmit)} class="space-y-4">
       <div>
         <label class="block text-gray-700 dark:text-gray-300 mb-1">Password</label>
         <input 

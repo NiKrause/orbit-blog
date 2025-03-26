@@ -1,80 +1,119 @@
-<script>import { helia } from "../store";
-import { onMount } from "svelte";
-let peers = [];
-let peerId = $helia?.libp2p?.peerId.toString() || "";
-function getTransportFromMultiaddr(conn) {
-  const remoteAddr = conn.remoteAddr.toString();
-  if (remoteAddr.includes("/webrtc-direct")) return "WebRTC Direct";
-  if (remoteAddr.includes("/webrtc")) return "WebRTC";
-  if (remoteAddr.includes("/wss") || remoteAddr.includes("/tls/sni/")) return "WSS";
-  if (remoteAddr.includes("/ws")) return "WS";
-  if (remoteAddr.includes("/webtransport")) return "WebTransport";
-  if (remoteAddr.includes("/tcp")) return "TCP";
-  return "Unknown";
-}
-function updatePeersList() {
-  if ($helia?.libp2p) {
-    const connections = $helia.libp2p.getConnections();
-    peers = connections.map((conn) => ({
-      id: conn.remotePeer.toString(),
-      connected: conn.status === "open",
-      transport: getTransportFromMultiaddr(conn),
-      streams: conn.streams.length,
-      direction: conn.direction,
-      multiaddr: conn.remoteAddr.toString()
-    }));
+<script lang="ts">
+  import { helia } from '../store';
+  import { onMount } from 'svelte';
+  import type { Connection } from '@libp2p/interface-connection'
+  
+  interface PeerInfo {
+    id: string;
+    connected: boolean;
+    transport: string;
+    streams: number;
+    direction: string;
+    multiaddr: string;
   }
-}
-async function disconnectPeer(peerId2) {
-  if ($helia?.libp2p) {
-    const connection = $helia.libp2p.getConnections().find((conn) => conn.remotePeer.toString() === peerId2);
-    if (connection) {
-      try {
-        await connection.close();
-        console.log(`Disconnected from peer: ${peerId2}`);
-        await $helia.libp2p.peerStore.delete(connection.remotePeer);
-        console.log(`Removed peer from peer store: ${peerId2}`);
+  
+  let peers: PeerInfo[] = $state([]);
+  let peerId = $helia?.libp2p?.peerId.toString() || '';
+  
+  function getTransportFromMultiaddr(conn: Connection): string {
+    const remoteAddr = conn.remoteAddr.toString();
+    
+    // Check for different transport protocols
+    if (remoteAddr.includes('/webrtc-direct')) return 'WebRTC Direct';
+    if (remoteAddr.includes('/webrtc')) return 'WebRTC';
+    if (remoteAddr.includes('/wss') || remoteAddr.includes('/tls/sni/')) return 'WSS';
+    if (remoteAddr.includes('/ws')) return 'WS';
+    if (remoteAddr.includes('/webtransport')) return 'WebTransport';
+    if (remoteAddr.includes('/tcp')) return 'TCP';
+    
+    return 'Unknown';
+  }
+  
+  function updatePeersList() {
+    if ($helia?.libp2p) {
+      const connections = $helia.libp2p.getConnections();
+      peers = connections.map(conn => ({
+        id: conn.remotePeer.toString(),
+        connected: conn.status === 'open',
+        transport: getTransportFromMultiaddr(conn),
+        streams: conn.streams.length,
+        direction: conn.direction,
+        multiaddr: conn.remoteAddr.toString()
+      }));
+      // console.log('Updated peers list:', peers);
+    }
+  }
+  
+  async function disconnectPeer(peerId: string) {
+    if ($helia?.libp2p) {
+      const connection = $helia.libp2p.getConnections().find(conn => conn.remotePeer.toString() === peerId);
+      if (connection) {
+        try {
+          await connection.close();
+          console.log(`Disconnected from peer: ${peerId}`);
+          
+          // Remove the peer from the peer store
+          await $helia.libp2p.peerStore.delete(connection.remotePeer);
+          console.log(`Removed peer from peer store: ${peerId}`);
+          
+          updatePeersList();
+        } catch (err) {
+          console.error(`Failed to disconnect from peer: ${peerId}`, err);
+        }
+      }
+    }
+  }
+  
+  function hasWebRTCConnection(_peers: PeerInfo[]): boolean {
+    // console.log('peers', _peers)
+
+    return _peers.some(peer => peer.multiaddr.startsWith('/webrtc'));
+  }
+
+  async function disconnectNonWebRTC() {
+    if ($helia?.libp2p) {
+      const nonWebRTCConnections = $helia.libp2p.getConnections().filter(conn => !conn.remoteAddr.toString().startsWith('/webrtc'));
+      
+      for (const connection of nonWebRTCConnections) {
+        try {
+          await connection.close();
+          console.log(`Disconnected from non-WebRTC peer: ${connection.remotePeer.toString()}`);
+          
+          // Remove the peer from the peer store
+          await $helia.libp2p.peerStore.delete(connection.remotePeer);
+          console.log(`Removed non-WebRTC peer from peer store: ${connection.remotePeer.toString()}`);
+        } catch (err) {
+          console.error(`Failed to disconnect from non-WebRTC peer: ${connection.remotePeer.toString()}`, err);
+        }
+      }
+      
+      updatePeersList();
+    }
+  }
+  
+  function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text);
+  }
+  
+  onMount(() => {
+    if ($helia?.libp2p) {
+      // Initial peers list
+      updatePeersList();
+      
+      // Listen for peer connection events
+      $helia.libp2p.addEventListener('peer:connect', (event) => {
+        // console.log('Peer connected:', event.detail);
         updatePeersList();
-      } catch (err) {
-        console.error(`Failed to disconnect from peer: ${peerId2}`, err);
-      }
+      });
+      
+      $helia.libp2p.addEventListener('peer:disconnect', (event) => {
+        console.log('Peer disconnected:', event.detail);
+        updatePeersList();
+      });
+
     }
-  }
-}
-function hasWebRTCConnection(_peers) {
-  return _peers.some((peer) => peer.multiaddr.startsWith("/webrtc"));
-}
-async function disconnectNonWebRTC() {
-  if ($helia?.libp2p) {
-    const nonWebRTCConnections = $helia.libp2p.getConnections().filter((conn) => !conn.remoteAddr.toString().startsWith("/webrtc"));
-    for (const connection of nonWebRTCConnections) {
-      try {
-        await connection.close();
-        console.log(`Disconnected from non-WebRTC peer: ${connection.remotePeer.toString()}`);
-        await $helia.libp2p.peerStore.delete(connection.remotePeer);
-        console.log(`Removed non-WebRTC peer from peer store: ${connection.remotePeer.toString()}`);
-      } catch (err) {
-        console.error(`Failed to disconnect from non-WebRTC peer: ${connection.remotePeer.toString()}`, err);
-      }
-    }
-    updatePeersList();
-  }
-}
-function copyToClipboard(text) {
-  navigator.clipboard.writeText(text);
-}
-onMount(() => {
-  if ($helia?.libp2p) {
-    updatePeersList();
-    $helia.libp2p.addEventListener("peer:connect", (event) => {
-      updatePeersList();
-    });
-    $helia.libp2p.addEventListener("peer:disconnect", (event) => {
-      console.log("Peer disconnected:", event.detail);
-      updatePeersList();
-    });
-  }
-});
+  });
+  
 </script>
 
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
@@ -88,7 +127,7 @@ onMount(() => {
         value={peerId}
         class="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm text-gray-900 dark:text-white"
       />
-      <button on:click={() => copyToClipboard(peerId)} class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+      <button onclick={() => copyToClipboard(peerId)} class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
         📋
       </button>
     </div>
@@ -98,7 +137,7 @@ onMount(() => {
     {#if hasWebRTCConnection(peers)}
       <button 
         class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-700"
-        on:click={disconnectNonWebRTC}
+        onclick={disconnectNonWebRTC}
       >
         Disconnect Non-WebRTC
       </button>
@@ -148,7 +187,7 @@ onMount(() => {
               <td class="px-4 py-2">
                 <button 
                   class="text-red-500 hover:text-red-700"
-                  on:click={() => disconnectPeer(peer.id)}
+                  onclick={() => disconnectPeer(peer.id)}
                   title="Disconnect"
                 >
                   <!-- You can use an icon library like FontAwesome for a disconnect icon -->

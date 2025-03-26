@@ -1,71 +1,81 @@
-<script>import { settingsDB, blogName, blogDescription, categories, seedPhrase, libp2p, orbitdb } from "../store";
-import { encryptSeedPhrase } from "../cryptoUtils";
-let persistentSeedPhrase = false;
-let showChangePasswordModal = false;
-let newPassword = "";
-let confirmNewPassword = "";
-let errorMessage = "";
-let successMessage = "";
-let showSeedPhrase = false;
-let newCategory = "";
-let peerId = "";
-let did = "";
-$: {
-  peerId = $libp2p?.peerId.toString();
-  did = $orbitdb?.identity?.id;
-}
-$: $settingsDB?.all().then((result) => console.log("settingsDB.all()", result));
-async function changePassword() {
-  errorMessage = "";
-  successMessage = "";
-  if (!seedPhrase) {
-    errorMessage = "No seed phrase available";
-    return;
+<script lang="ts">
+  
+  import { settingsDB, blogName, blogDescription, categories, seedPhrase, libp2p, orbitdb } from '../store';
+  import { encryptSeedPhrase } from '../cryptoUtils';
+
+  // export let seedPhrase: string | null = localStorage.getItem('encryptedSeedPhrase') || generateMnemonic();
+  
+  let persistentSeedPhrase = false; // Default to true since we're always encrypting now
+  let showChangePasswordModal = $state(false);
+  let newPassword = $state('');
+  let confirmNewPassword = $state('');
+  let errorMessage = $state('');
+  let successMessage = $state('');
+  let showSeedPhrase = $state(false); // State to toggle visibility
+  let newCategory = $state(''); // For adding new categories
+  let peerId =  $libp2p?.peerId.toString();
+  let did = $orbitdb?.identity?.id;
+  async function changePassword() {
+    errorMessage = '';
+    successMessage = '';
+    
+    if (!seedPhrase) {
+      errorMessage = 'No seed phrase available';
+      return;
+    }
+    
+    if (newPassword.length < 8) {
+      errorMessage = 'Password must be at least 8 characters long';
+      return;
+    }
+    
+    if (newPassword !== confirmNewPassword) {
+      errorMessage = 'Passwords do not match';
+      return;
+    }
+    
+    try {
+      const encryptedPhrase = await encryptSeedPhrase(seedPhrase, newPassword);
+      localStorage.setItem('encryptedSeedPhrase', encryptedPhrase);
+      successMessage = 'Password changed successfully';
+      setTimeout(() => {
+        showChangePasswordModal = false;
+        successMessage = '';
+      }, 2000);
+    } catch (error) {
+      console.error('Error changing password:', error);
+      errorMessage = 'Failed to change password';
+    }
   }
-  if (newPassword.length < 8) {
-    errorMessage = "Password must be at least 8 characters long";
-    return;
+
+  function toggleSeedVisibility() {
+    showSeedPhrase = !showSeedPhrase;
   }
-  if (newPassword !== confirmNewPassword) {
-    errorMessage = "Passwords do not match";
-    return;
+
+  function addCategory() {
+    if (newCategory.trim() && !$categories.includes(newCategory.trim())) {
+      $categories = [...$categories, newCategory.trim()];
+      $settingsDB?.put({ _id: 'categories', value: $categories });
+      //log the settingsDB address
+      //log settingsdb name
+      console.log('settingsDB address', $settingsDB?.address.toString())
+      console.log('settingsDB name', $settingsDB?.name)
+      newCategory = '';
+    }
   }
-  try {
-    const encryptedPhrase = await encryptSeedPhrase(seedPhrase, newPassword);
-    localStorage.setItem("encryptedSeedPhrase", encryptedPhrase);
-    successMessage = "Password changed successfully";
-    setTimeout(() => {
-      showChangePasswordModal = false;
-      successMessage = "";
-    }, 2e3);
-  } catch (error) {
-    console.error("Error changing password:", error);
-    errorMessage = "Failed to change password";
+
+  function removeCategory(category: string) {
+    $categories = $categories.filter(c => c !== category);
+    $settingsDB?.put({ _id: 'categories', value: $categories });
   }
-}
-function toggleSeedVisibility() {
-  showSeedPhrase = !showSeedPhrase;
-}
-function addCategory() {
-  if (newCategory.trim() && !$categories.includes(newCategory.trim())) {
-    $categories = [...$categories, newCategory.trim()];
-    $settingsDB?.put({ _id: "categories", value: $categories });
-    console.log("settingsDB address", $settingsDB?.address.toString());
-    console.log("settingsDB name", $settingsDB?.name);
-    newCategory = "";
+
+  function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text).then(() => {
+      console.log('Text copied to clipboard:', text);
+    }).catch(err => {
+      console.error('Error copying text to clipboard:', err);
+    });
   }
-}
-function removeCategory(category) {
-  $categories = $categories.filter((c) => c !== category);
-  $settingsDB?.put({ _id: "categories", value: $categories });
-}
-function copyToClipboard(text) {
-  navigator.clipboard.writeText(text).then(() => {
-    console.log("Text copied to clipboard:", text);
-  }).catch((err) => {
-    console.error("Error copying text to clipboard:", err);
-  });
-}
 </script>
 
 <div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
@@ -73,12 +83,18 @@ function copyToClipboard(text) {
   <div class="mb-4">
     <label class="block text-gray-700 dark:text-gray-300">Blog Name</label>
     <input type="text" class="w-full p-2 border rounded" 
-        value={$blogName} on:input={ event => $settingsDB?.put({ _id: 'blogName', value: event.target.value })}
+        value={$blogName} onchange={event => {
+          $settingsDB?.put({ _id: 'blogName', value: event.target.value })
+          console.log('stored blogName in settingsDB', event.target.value)
+        }}
       />
   </div>
   <div class="mb-4">
     <label class="block text-gray-700 dark:text-gray-300">Blog Description</label>
-      <input type="text" class="w-full p-2 border rounded" value={$blogDescription} on:input={ event => $settingsDB?.put({ _id: 'blogDescription', value: event.target.value })}/>
+      <input type="text" class="w-full p-2 border rounded" value={$blogDescription} onchange={event => {
+        $settingsDB?.put({ _id: 'blogDescription', value: event.target.value })
+        console.log('stored blogDescription in settingsDB', event.target.value)
+      }}/>
   </div>
 
   <!-- New categories section -->
@@ -90,7 +106,7 @@ function copyToClipboard(text) {
         class="flex-grow p-2 border rounded-l" 
         placeholder="New category" 
         bind:value={newCategory} 
-        on:keydown={(event) => {
+        onkeydown={(event) => {
           if (event.key === 'Enter') {
             addCategory();
           }
@@ -98,7 +114,7 @@ function copyToClipboard(text) {
       />
       <button 
         class="bg-blue-500 text-white p-2 rounded-r"
-        on:click={addCategory}
+        onclick={addCategory}
       >
         Add
       </button>
@@ -109,7 +125,7 @@ function copyToClipboard(text) {
           <span class="mr-2">{category}</span>
           <button 
             class="text-red-500 hover:text-red-700"
-            on:click={() => removeCategory(category)}
+            onclick={() => removeCategory(category)}
           >
             ×
           </button>
@@ -127,7 +143,7 @@ function copyToClipboard(text) {
         value={did}
         class="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm"
       />
-      <button on:click={() => copyToClipboard(did)} class="text-gray-500 hover:text-gray-700">
+      <button onclick={() => copyToClipboard(did)} class="text-gray-500 hover:text-gray-700">
         📋
       </button>
     </div>
@@ -150,7 +166,7 @@ function copyToClipboard(text) {
     <input type="{showSeedPhrase ? 'text' : 'password'}" class="w-full p-2 border rounded" value={$seedPhrase || ''} />
     <button 
       class="ml-2 p-2 rounded"
-      on:click={toggleSeedVisibility}
+      onclick={toggleSeedVisibility}
       style="background-color: {!showSeedPhrase ? '#4CAF50' : '#f44336'}; color: white;"
     >
       <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
@@ -160,7 +176,7 @@ function copyToClipboard(text) {
     </button>
     <button 
       class="ml-2 bg-blue-500 text-white p-2 rounded"
-      on:click={() => showChangePasswordModal = true}
+      onclick={() => showChangePasswordModal = true}
     >
       Change Password
     </button>
@@ -171,7 +187,7 @@ function copyToClipboard(text) {
     <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full">
       <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">Change Password</h2>
       
-      <form on:submit|preventDefault={changePassword} class="space-y-4">
+      <form onsubmit={preventDefault(changePassword)} class="space-y-4">
         <div>
           <label class="block text-gray-700 dark:text-gray-300 mb-1">New Password</label>
           <input 
@@ -204,7 +220,7 @@ function copyToClipboard(text) {
           <button 
             type="button"
             class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded"
-            on:click={() => showChangePasswordModal = false}
+            onclick={() => showChangePasswordModal = false}
           >
             Cancel
           </button>

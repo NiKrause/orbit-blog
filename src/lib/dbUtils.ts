@@ -1,5 +1,5 @@
 import { get } from 'svelte/store';
-import { helia, orbitdb, blogName, categories, blogDescription, postsDBAddress, postsDB, posts, settingsDB, remoteDBs, remoteDBsDatabases, identity, identities, voyager } from './store';
+import { helia, orbitdb, blogName, categories, blogDescription, postsDBAddress, postsDB, posts, settingsDB, remoteDBs, commentsDB, mediaDB, remoteDBsDatabases, commentsDBAddress, mediaDBAddress, identity, identities, voyager } from './store';
 import type { RemoteDB } from './types';
 import { IPFSAccessController } from '@orbitdb/core';
 

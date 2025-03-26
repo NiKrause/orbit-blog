@@ -1,17 +1,4 @@
-import { SvelteComponent } from "svelte";
-declare const __propDef: {
-    props: Record<string, never>;
-    events: {
-        [evt: string]: CustomEvent<any>;
-    };
-    slots: {};
-    exports?: {} | undefined;
-    bindings?: string | undefined;
-};
-export type PostFormProps = typeof __propDef.props;
-export type PostFormEvents = typeof __propDef.events;
-export type PostFormSlots = typeof __propDef.slots;
-export default class PostForm extends SvelteComponent<PostFormProps, PostFormEvents, PostFormSlots> {
-}
-export {};
+declare const PostForm: import("svelte").Component<Record<string, never>, {}, "">;
+type PostForm = ReturnType<typeof PostForm>;
+export default PostForm;
 //# sourceMappingURL=PostForm.svelte.d.ts.map

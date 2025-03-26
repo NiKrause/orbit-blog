@@ -1,340 +1,420 @@
-<script>import { onDestroy } from "svelte";
-import { fly, fade } from "svelte/transition";
-import { cubicOut } from "svelte/easing";
-import { createHelia } from "helia";
-import { createLibp2p } from "libp2p";
-import { createOrbitDB, IPFSAccessController, Identities } from "@orbitdb/core";
-import { Voyager } from "@orbitdb/voyager";
-import { multiaddr } from "@multiformats/multiaddr";
-import { LevelDatastore } from "datastore-level";
-import { LevelBlockstore } from "blockstore-level";
-import { fromString as uint8ArrayFromString } from "uint8arrays/from-string";
-import { privateKeyFromProtobuf } from "@libp2p/crypto/keys";
-import { generateMnemonic } from "bip39";
-import Sidebar from "./Sidebar.svelte";
-import PostForm from "./PostForm.svelte";
-import PostList from "./PostList.svelte";
-import ThemeToggle from "./ThemeToggle.svelte";
-import DBManager from "./DBManager.svelte";
-import ConnectedPeers from "./ConnectedPeers.svelte";
-import Settings from "./Settings.svelte";
-import PasswordModal from "./PasswordModal.svelte";
-import LoadingBlog from "./LoadingBlog.svelte";
-import { FaBars, FaTimes, FaShare } from "svelte-icons/fa";
-import { libp2pOptions, multiaddrs } from "../config";
-import { encryptSeedPhrase, decryptSeedPhrase, isEncryptedSeedPhrase } from "../cryptoUtils";
-import { generateMasterSeed, generateAndSerializeKey } from "../utils";
-import { initHashRouter, isLoadingRemoteBlog } from "../router";
-import { setupPeerEventListeners } from "../peerConnections";
-import {
-  postsDB,
-  postsDBAddress,
-  posts,
-  selectedPostId,
-  remoteDBs,
-  remoteDBsDatabases,
-  showDBManager,
-  showPeers,
-  showSettings,
-  blogName,
-  libp2p,
-  helia,
-  orbitdb,
-  identity,
-  identities,
-  settingsDB,
-  blogDescription,
-  categories,
-  seedPhrase,
-  voyager,
-  commentsDB,
-  commentsDBAddress,
-  mediaDB,
-  mediaDBAddress
-} from "../store";
-let blockstore = new LevelBlockstore("./helia-blocks");
-let datastore = new LevelDatastore("./helia-data");
-let encryptedSeedPhrase = localStorage.getItem("encryptedSeedPhrase");
-let showPasswordModal = encryptedSeedPhrase ? true : false;
-let isNewUser = !encryptedSeedPhrase;
-let canWrite = false;
-let sidebarVisible = true;
-let touchStartX = 0;
-let touchEndX = 0;
-const SWIPE_THRESHOLD = 50;
-let routerUnsubscribe;
-let showNotification = false;
-if (!encryptedSeedPhrase) {
-  console.log("no seed phrase, generating new one");
-  $seedPhrase = generateMnemonic();
-  initializeApp();
-}
-function toggleSidebar() {
-  sidebarVisible = !sidebarVisible;
-}
-async function handleSeedPhraseCreated(event) {
-  const newSeedPhrase = generateMnemonic();
-  const encryptedPhrase = await encryptSeedPhrase(newSeedPhrase, event.detail.password);
-  localStorage.setItem("encryptedSeedPhrase", encryptedPhrase);
-  $seedPhrase = newSeedPhrase;
-  showPasswordModal = false;
-  initializeApp();
-}
-async function handleSeedPhraseDecrypted(event) {
-  $seedPhrase = event.detail.seedPhrase;
-  showPasswordModal = false;
-  initializeApp();
-}
-async function initializeApp() {
-  if (!seedPhrase) return;
-  console.log("initializeApp");
-  const masterSeed = generateMasterSeed($seedPhrase, "password");
-  const { hex } = await generateAndSerializeKey(masterSeed.subarray(0, 32));
-  const privKeyBuffer = uint8ArrayFromString(hex, "hex");
-  const _keyPair = await privateKeyFromProtobuf(privKeyBuffer);
-  $libp2p = await createLibp2p({ privateKey: _keyPair, ...libp2pOptions });
-  console.log("libp2p", $libp2p);
-  $helia = await createHelia({ libp2p: $libp2p, datastore, blockstore });
-  console.log("helia", $helia);
-  $identities = await Identities({ ipfs: $helia });
-  $identity = await $identities.createIdentity({ id: "me" });
-  $orbitdb = await createOrbitDB({
-    ipfs: $helia,
-    //identity: ret.identity,
-    identity: $identity,
-    storage: blockstore,
-    directory: "./orbitdb"
-  });
-  const addr = multiaddr(multiaddrs[0]);
-  console.log("voyager", voyager);
-  $voyager = await Voyager({ orbitdb: $orbitdb, address: addr });
-  routerUnsubscribe = initHashRouter();
-  setupPeerEventListeners($libp2p);
-}
-$: if (window.location.hash.includes("#/orbitdb/")) {
-  sidebarVisible = false;
-}
-$: if ($orbitdb && $postsDB && $identity) {
-  const access = $postsDB.access;
-  canWrite = access.write.includes($identity.id) && $postsDB.address === $postsDBAddress;
-}
-onDestroy(async () => {
-  if (routerUnsubscribe) routerUnsubscribe();
-  try {
-    await $settingsDB?.close();
-    await $postsDB?.close();
-  } catch (error) {
-    console.error("Error closing OrbitDB connections:", error);
+<!-- @migration-task Error while migrating Svelte code: Cannot subscribe to stores that are not declared at the top level of the component
+https://svelte.dev/e/store_invalid_scoped_subscription -->
+<script lang="ts">
+  // Svelte core
+  import { onDestroy } from 'svelte';
+  import { fly, fade } from 'svelte/transition';
+  import { cubicOut } from 'svelte/easing';
+
+  // IPFS & OrbitDB
+  import { createHelia } from 'helia';
+  import { createLibp2p } from 'libp2p';
+  import { createOrbitDB, IPFSAccessController, Identities } from '@orbitdb/core';
+  import { Voyager } from '@orbitdb/voyager';
+  import { multiaddr } from '@multiformats/multiaddr';
+  
+  // Storage & Crypto
+  import { LevelDatastore } from 'datastore-level';
+  import { LevelBlockstore } from 'blockstore-level';
+  import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string';
+  import { privateKeyFromProtobuf } from '@libp2p/crypto/keys';
+  import { generateMnemonic } from 'bip39';
+
+  // Components
+  import Sidebar from './Sidebar.svelte';
+  import PostForm from './PostForm.svelte';
+  import PostList from './PostList.svelte';
+  import ThemeToggle from './ThemeToggle.svelte';
+  import DBManager from './DBManager.svelte';
+  import ConnectedPeers from './ConnectedPeers.svelte';
+  import Settings from './Settings.svelte';
+  import PasswordModal from './PasswordModal.svelte';
+  import LoadingBlog from './LoadingBlog.svelte';
+
+  // Icons
+  import { FaBars, FaTimes, FaShare } from 'svelte-icons/fa';
+
+  // Local utilities and config
+  import { libp2pOptions, multiaddrs } from '../config';
+  import { encryptSeedPhrase, decryptSeedPhrase, isEncryptedSeedPhrase } from '../cryptoUtils';
+  import { generateMasterSeed, generateAndSerializeKey } from '../utils';
+  import { initHashRouter, isLoadingRemoteBlog } from '../router';
+  import { setupPeerEventListeners } from '../peerConnections';
+
+  // Store imports
+  import { 
+    postsDB, 
+    postsDBAddress, 
+    posts, 
+    selectedPostId,
+    remoteDBs, 
+    remoteDBsDatabases, 
+    showDBManager, 
+    showPeers, 
+    showSettings, 
+    blogName, 
+    libp2p, 
+    helia, 
+    orbitdb, 
+    identity, 
+    identities, 
+    settingsDB, 
+    blogDescription, 
+    categories, 
+    seedPhrase, 
+    voyager,
+    commentsDB,
+    commentsDBAddress,
+    mediaDB,
+    mediaDBAddress
+  } from '../store';
+
+  let blockstore = new LevelBlockstore('./helia-blocks');
+  let datastore = new LevelDatastore('./helia-data');
+
+  let encryptedSeedPhrase = localStorage.getItem('encryptedSeedPhrase');
+
+  let showPasswordModal = encryptedSeedPhrase ? true : false;
+  let isNewUser = !encryptedSeedPhrase;
+  let canWrite = false;
+
+  // Add sidebar state variables
+  let sidebarVisible = true;
+  let touchStartX = 0;
+  let touchEndX = 0;
+  const SWIPE_THRESHOLD = 50; 
+
+  let routerUnsubscribe;
+
+  let showNotification = false;
+
+  let settingsDBUpdateHandler;
+
+  if(!encryptedSeedPhrase) {
+      console.log('no seed phrase, generating new one')
+      $seedPhrase = generateMnemonic();
+      initializeApp();
   }
-});
-$: if ($orbitdb && voyager) {
-  console.log("connecting to voyager");
-  $voyager?.orbitdb.open("settings", {
-    type: "documents",
-    create: true,
-    overwrite: false,
-    directory: "./orbitdb/settings",
-    identity: $identity,
-    identities: $identities,
-    AccessController: IPFSAccessController({ write: [$identity.id] })
-  }).then((_db) => {
-    $settingsDB = _db;
-    window.settingsDB = _db;
-    $voyager?.add(_db.address).then((ret) => {
-      $settingsDB.pinnedToVoyager = ret;
-      console.log("voyager added settingsDB", ret);
-    }).catch((err) => console.log("voyager error", err));
-  }).catch((err) => console.log("error", err));
-  $voyager?.orbitdb.open("posts", {
-    type: "documents",
-    create: true,
-    overwrite: false,
-    directory: "./orbitdb/posts",
-    identity: $identity,
-    identities: $identities,
-    AccessController: IPFSAccessController({ write: [$identity.id] })
-  }).then((_db) => {
-    $postsDB = _db;
-    window.postsDB = _db;
-    $voyager?.add(_db.address).then((ret) => console.log("voyager added postsDB", ret));
-    console.log("postsDB", _db.address.toString());
-    $postsDBAddress = _db.address.toString();
-  }).catch((err) => console.log("error", err));
-  $voyager?.orbitdb.open("remote-dbs", {
-    type: "documents",
-    create: true,
-    overwrite: false,
-    identities: $identities,
-    identity: $identity,
-    AccessController: IPFSAccessController({ write: [$identity.id] })
-  }).then((_db) => {
-    $remoteDBsDatabases = _db;
-    window.remoteDBsDatabases = _db;
-    $voyager?.add(_db.address).then((ret) => console.log("voyager added remoteDBsDatabases", ret));
-  }).catch((err) => console.error("Error opening remote DBs database:", err));
-  $voyager?.orbitdb.open("comments", {
-    type: "documents",
-    create: true,
-    overwrite: false,
-    directory: "./orbitdb/comments",
-    identity: $identity,
-    identities: $identities,
-    AccessController: IPFSAccessController({ write: ["*"] })
-  }).then((_db) => {
-    $commentsDB = _db;
-    window.commentsDB = _db;
-    $voyager?.add(_db.address).then((ret) => console.log("voyager added commentsDB", ret));
-  }).catch((err) => console.log("error", err));
-  $voyager?.orbitdb.open("media", {
-    type: "documents",
-    create: true,
-    overwrite: false,
-    directory: "./orbitdb/media",
-    identity: $identity,
-    identities: $identities,
-    AccessController: IPFSAccessController({ write: [$identity.id] })
-    // Allow anyone to upload media
-  }).then((_db) => {
-    $mediaDB = _db;
-    window.mediaDB = _db;
-    $voyager?.add(_db.address).then((ret) => console.log("voyager added mediaDB", ret));
-  }).catch((err) => console.log("error initializing media database", err));
-}
-$: if ($settingsDB && (!$blogName || !$blogDescription || !$categories || !$postsDBAddress)) {
-  $settingsDB.get("blogName").then(
-    (result) => result?.value?.value !== void 0 ? $blogName = result.value.value : null
-  );
-  $settingsDB.get("blogDescription").then(
-    (result) => result?.value?.value !== void 0 ? $blogDescription = result.value.value : null
-  );
-  $settingsDB.get("categories").then(
-    (result) => result?.value?.value !== void 0 ? $categories = result.value.value : null
-  );
-  $settingsDB.get("postsDBAddress").then(
-    (result) => {
-      if (result?.value?.value !== void 0) {
-        $postsDBAddress = result.value.value;
-      } else {
-        const postsDBAddress2 = $postsDB?.address.toString();
-        $settingsDB?.put({ _id: "postsDBAddress", value: postsDBAddress2 });
-        $settingsDB?.all().then((result2) => console.log("settingsDB.all()", result2));
-      }
-    }
-  );
-  $settingsDB.get("commentsDBAddress").then((result) => {
-    if (result?.value?.value !== void 0) {
-      $commentsDBAddress = result.value.value;
-    } else {
-      const commentsDBAddress2 = $commentsDB?.address.toString();
-      $settingsDB?.put({ _id: "commentsDBAddress", value: commentsDBAddress2 });
-      $settingsDB?.all().then((result2) => console.log("settingsDB.all()", result2));
-    }
-  });
-  $settingsDB.get("mediaDBAddress").then((result) => {
-    if (result?.value?.value !== void 0) {
-    } else {
-      const mediaDBAddress2 = $mediaDB?.address.toString();
-      $settingsDB?.put({ _id: "mediaDBAddress", value: mediaDBAddress2 });
-      $settingsDB?.all().then((result2) => console.log("settingsDB.all()", result2));
-    }
-  });
-  $settingsDB.events.on(
-    "update",
-    async (entry) => {
-      if (entry?.payload?.op === "PUT") {
-        const { _id, ...rest } = entry.payload.value;
-        if (entry.payload.key === "blogName") $blogName = rest.value;
-        if (entry.payload.key === "blogDescription") $blogDescription = rest.value;
-        if (entry.payload.key === "categories") $categories = rest.value;
-      } else if (entry?.payload?.op === "DEL") {
-      }
-    }
-  );
-}
-$: if ($postsDB) {
-  $postsDB.all().then((posts2) => {
-    console.log("posts", posts2);
-    $posts = posts2.map((entry) => ({
-      ...entry.value,
-      identity: entry.identity
-      // This contains the creator's identity
-    }));
-  }).catch((err) => console.error("Error opening posts database:", err));
-  $postsDB.events.on("update", async (entry) => {
-    console.log("Database update:", entry);
-    if (entry?.payload?.op === "PUT") {
-      const { _id, ...rest } = entry.payload.value;
-      console.log("entry", entry);
-      posts.update((current) => [...current, {
-        ...rest,
-        _id,
-        identity: entry.identity
-        // Add the identity information
-      }]);
-    } else if (entry?.payload?.op === "DEL") {
-      posts.update((current) => current.filter((post) => post._id !== entry.payload.key));
-    }
-  });
-}
-$: if ($remoteDBsDatabases) {
-  console.info("Remote DBs database opened successfully:", $remoteDBsDatabases);
-  $remoteDBsDatabases.all().then((savedDBs) => {
-    const _remoteDBs = savedDBs.map((entry) => entry.value);
-    console.info("Remote DBs list:", _remoteDBs);
-    _remoteDBs.forEach(async (db) => {
-      const _db = await $orbitdb.open(db.postsAddress);
-      db.access = _db.access;
-      _db.all().then((_posts) => {
-        db.postsCount = _posts.length;
-        console.log("_db", _db);
-        console.log("posts", _posts);
-      }).finally(() => {
-      });
-    });
-    $remoteDBs = _remoteDBs;
-  });
-  $settingsDB.events.on("update", async (entry) => {
-    console.log("Database update:", entry);
-    if (entry?.payload?.op === "PUT") {
-      const { _id, ...rest } = entry.payload.value;
-      console.log("settingsDB update:", rest);
-    } else if (entry?.payload?.op === "DEL") {
-      console.log("settingsDB delete:", entry.payload.key);
-    }
-  });
-}
-function handleTouchStart(e) {
-  touchStartX = e.touches[0].clientX;
-}
-function handleTouchMove(e) {
-  touchEndX = e.touches[0].clientX;
-}
-function handleTouchEnd() {
-  if (touchStartX - touchEndX > SWIPE_THRESHOLD && sidebarVisible) {
+
+  // Function to toggle sidebar visibility
+  function toggleSidebar() {
+    sidebarVisible = !sidebarVisible;
+  }
+
+  async function handleSeedPhraseCreated(event: CustomEvent) {
+    const newSeedPhrase = generateMnemonic();
+    const encryptedPhrase = await encryptSeedPhrase(newSeedPhrase, event.detail.password);
+    localStorage.setItem('encryptedSeedPhrase', encryptedPhrase);
+    $seedPhrase = newSeedPhrase;
+    showPasswordModal = false; // This will trigger the reactive statement above
+    initializeApp();
+  }
+
+  async function handleSeedPhraseDecrypted(event: CustomEvent) {
+    $seedPhrase = event.detail.seedPhrase;
+    showPasswordModal = false; // This will trigger the reactive statement above
+    initializeApp();
+  }
+
+  async function initializeApp() {
+    if (!seedPhrase) return;
+    
+    console.log('initializeApp')
+    const masterSeed = generateMasterSeed($seedPhrase, "password");
+    const { hex } = await generateAndSerializeKey(masterSeed.subarray(0, 32))
+    const privKeyBuffer = uint8ArrayFromString(hex, 'hex');
+    const _keyPair = await privateKeyFromProtobuf(privKeyBuffer);
+    $libp2p = await createLibp2p({ privateKey: _keyPair, ...libp2pOptions })
+    console.log('libp2p', $libp2p)
+    $helia = await createHelia({ libp2p: $libp2p, datastore, blockstore })
+    console.log('helia', $helia)
+    // const ret = await getIdentity($helia, $seedPhrase) //DID identity
+      // = ret.identity
+    // $identities = ret.identities
+    $identities = await Identities({ ipfs: $helia })
+    $identity = await $identities.createIdentity({ id: 'me' })
+  
+    $orbitdb = await createOrbitDB({
+      ipfs: $helia,
+      //identity: ret.identity,
+      identity: $identity,
+      storage: blockstore,
+      directory: './orbitdb',
+    })
+    const addr = multiaddr(multiaddrs[0])
+    console.log('voyager', voyager)
+    $voyager = await Voyager({ orbitdb: $orbitdb, address: addr})
+
+    routerUnsubscribe = initHashRouter();
+    
+    
+    // Set up peer event listeners from the separate module
+    setupPeerEventListeners($libp2p);
+  }
+
+  $:if(window.location.hash.includes('#/orbitdb/')) {
     sidebarVisible = false;
-  } else if (touchEndX - touchStartX > SWIPE_THRESHOLD && !sidebarVisible) {
-    sidebarVisible = true;
   }
-}
-function handleMouseEnter() {
-  if (!sidebarVisible) {
-    sidebarVisible = true;
+  /**
+   * Check if the user has write access to the posts database
+  */
+  $:if ($orbitdb && $postsDB && $identity) {
+      const access = $postsDB.access;
+      canWrite = access.write.includes($identity.id) && $postsDB.address === $postsDBAddress
   }
-}
-async function copySettingsDBAddress() {
-  if ($settingsDB) {
-    try {
-      const address = $settingsDB.address.toString();
-      await navigator.clipboard.writeText(address);
-      showNotification = true;
-      setTimeout(() => showNotification = false, 3e3);
-    } catch (err) {
-      console.error("Failed to copy address: ", err);
+
+  onDestroy(async () => {
+    // Clean up router subscription
+    if (routerUnsubscribe) routerUnsubscribe();
+    
+    // Clean up event listeners
+    if (settingsDBUpdateHandler) {
+      $settingsDB?.events.removeListener('update', settingsDBUpdateHandler);
     }
-  } else {
-    alert("Settings database is not available.");
+    
+    try {
+      await $settingsDB?.close();
+      await $postsDB?.close();
+    } catch (error) {
+      console.error('Error closing OrbitDB connections:', error);
+    }
+  })
+
+  $:if($orbitdb && voyager){
+    console.log('connecting to voyager')
+    $voyager?.orbitdb.open('settings', {
+          type: 'documents',
+          create: true,
+          overwrite: false,
+          directory: './orbitdb/settings',
+          identity: $identity,
+          identities: $identities,
+          AccessController: IPFSAccessController({write: [$identity.id]}),
+        }).then(_db => {
+          $settingsDB = _db;
+          window.settingsDB = _db;
+          $voyager?.add(_db.address).then((ret) => {
+            $settingsDB.pinnedToVoyager = ret;
+            console.log('voyager added settingsDB', ret)
+          }).catch( err => console.log('voyager error', err))
+        }).catch( err => console.log('error', err))
+        
+        $voyager?.orbitdb.open('posts', {
+          type: 'documents',
+          create: true,
+          overwrite: false,
+          directory: './orbitdb/posts',
+          identity: $identity,
+          identities: $identities,
+          AccessController: IPFSAccessController({write: [$identity.id]}),
+        }).then(_db => {
+          $postsDB = _db;
+          window.postsDB = _db;
+          $voyager?.add(_db.address).then((ret) => console.log('voyager added postsDB '+_db.address, ret))
+          console.log('postsDB', _db.address.toString())
+          $postsDBAddress = _db.address.toString()
+
+        }).catch( err => console.log('error', err))
+
+        $voyager?.orbitdb.open('remote-dbs', {
+          type: 'documents',
+          create: true,
+          overwrite: false,
+          identities: $identities,
+          identity: $identity,
+          AccessController: IPFSAccessController({write: [$identity.id]}),
+        }).then(_db => {
+          $remoteDBsDatabases = _db;
+          window.remoteDBsDatabases = _db;
+          $voyager?.add(_db.address).then((ret) => console.log('voyager added remoteDBsDatabases '+_db.address, ret))
+        }).catch(err => console.error('Error opening remote DBs database:', err));
+
+        // Add this to the initializeApp function after other database initializations
+        $voyager?.orbitdb.open('comments', {
+          type: 'documents',
+          create: true,
+          overwrite: false,
+          directory: './orbitdb/comments',
+          identity: $identity,
+          identities: $identities,
+          AccessController: IPFSAccessController({write: ["*"]}),
+        }).then(_db => {
+          $commentsDB = _db;
+          window.commentsDB = _db;
+          $voyager?.add(_db.address).then((ret) => console.log('voyager added commentsDB '+$commentsDB.address, ret))
+        }).catch(err => console.log('error', err))
+
+        // Add this to initialize the media database
+        $voyager?.orbitdb.open('media', {
+          type: 'documents',
+          create: true,
+          overwrite: false,
+          directory: './orbitdb/media',
+          identity: $identity,
+          identities: $identities,
+          AccessController: IPFSAccessController({write: [$identity.id]}), // Allow anyone to upload media
+        }).then(_db => {
+          $mediaDB = _db;
+          window.mediaDB = _db;
+          $voyager?.add(_db.address).then((ret) => console.log('voyager added mediaDB '+$mediaDB.address, ret))
+        }).catch(err => console.log('error initializing media database', err))
   }
-}
+
+  $:if($settingsDB && (!$blogName || !$blogDescription || !$categories || !$postsDBAddress)) {
+    $settingsDB.get('blogName').then(result => 
+      result?.value?.value !== undefined ? ($blogName = result.value.value) : null
+    );
+    
+    $settingsDB.get('blogDescription').then(result => 
+      result?.value?.value !== undefined ? ($blogDescription = result.value.value) : null
+    );
+    
+    $settingsDB.get('categories').then(result => 
+      result?.value?.value !== undefined ? ($categories = result.value.value) : null
+    );
+    $settingsDB.get('postsDBAddress').then(result => {
+        if(result?.value?.value !== undefined){
+          $postsDBAddress = result.value.value
+        } else {
+          const postsDBAddress = $postsDB?.address.toString()
+          $settingsDB?.put({ _id: 'postsDBAddress', value: postsDBAddress});
+          $settingsDB?.all().then(result => console.log('settingsDB.all()', result))
+        }
+      }
+    )
+    $settingsDB.get('commentsDBAddress').then(result => {
+      if(result?.value?.value !== undefined){
+        $commentsDBAddress = result.value.value
+      } else {
+        const commentsDBAddress = $commentsDB?.address.toString()
+        $settingsDB?.put({ _id: 'commentsDBAddress', value: commentsDBAddress});
+        $settingsDB?.all().then(result => console.log('settingsDB.all()', result))
+      }
+    })
+    $settingsDB.get('mediaDBAddress').then(result => {
+      if(result?.value?.value !== undefined){
+      } else {
+        const mediaDBAddress = $mediaDB?.address.toString()
+        $settingsDB?.put({ _id: 'mediaDBAddress', value: mediaDBAddress});
+        $settingsDB?.all().then(result => console.log('settingsDB.all()', result))
+      }
+    })
+
+
+  $settingsDB.events.on('update', 
+    async (entry) => {
+      if (entry?.payload?.op === 'PUT') {
+        const { _id, ...rest } = entry.payload.value;
+        if(entry.payload.key==='blogName') $blogName = rest.value;
+        if(entry.payload.key==='blogDescription') $blogDescription = rest.value;
+        if(entry.payload.key==='categories') $categories = rest.value;
+       } else if (entry?.payload?.op === 'DEL') { }
+    });
+  }
+
+  $:if($postsDB){
+
+    $postsDB.all().then(_posts => {
+      console.log('posts', _posts);
+      $posts = _posts.map(entry => ({
+        ...entry.value,
+        identity: entry.identity // This contains the creator's identity
+      }));
+    }).catch(err => console.error('Error opening posts database:', err));
+
+    $postsDB.events.on('update', async (entry) => {
+      console.log('Database update:', entry);
+      if (entry?.payload?.op === 'PUT') {
+        const { _id, ...rest } = entry.payload.value;
+        console.log('entry', entry);
+        posts.update(current => [...current, { 
+          ...rest, 
+          _id: _id,
+          identity: entry.identity // Add the identity information
+        }]);
+      } else if (entry?.payload?.op === 'DEL') {
+        posts.update(current => current.filter(post => post._id !== entry.payload.key));
+      }
+    });
+  }
+
+  $:if($remoteDBsDatabases){
+    console.info('Remote DBs database opened successfully:', $remoteDBsDatabases);
+    
+    const loadRemoteDBs = async () => {
+      console.log('Starting to load remote DBs...');
+      const savedDBs = await $remoteDBsDatabases.all();
+      console.log("all of remoteDBsDatabases", savedDBs, new Date().toISOString());
+      const _remoteDBs = savedDBs.map(entry => entry.value);
+      console.info('Remote DBs list:', _remoteDBs);
+      _remoteDBs.forEach(async db => {
+        const _db = await $orbitdb.open(db.postsAddress);
+        db.access = _db.access
+        _db.all().then(_posts => {
+          db.postsCount = _posts.length
+          console.log('_db', _db)
+          console.log('posts', _posts)
+        }).finally(() => {
+          // console.log('db', db)
+        })
+      })
+      $remoteDBs = _remoteDBs;
+    };
+    loadRemoteDBs().catch(err => console.error('Error loading remote DBs:', err));
+  }
+  $settingsDB?.events.on('update', async (entry) => {
+      console.log('Database update:', entry);
+      if (entry?.payload?.op === 'PUT') {
+        const { _id, ...rest } = entry.payload.value;
+        console.log('settingsDB update:', rest);
+        settingsDB.update(current => [...current, { ...rest, _id: _id }]);
+      } else if (entry?.payload?.op === 'DEL') {
+        console.log('settingsDB delete:', entry.payload.key);
+        settingsDB.update(current => current.filter(post => post._id !== entry.payload.key));
+      }
+    });
+
+  function handleTouchStart(e) {
+    touchStartX = e.touches[0].clientX;
+  }
+
+  function handleTouchMove(e) {
+    touchEndX = e.touches[0].clientX;
+  }
+
+  function handleTouchEnd() {
+    if (touchStartX - touchEndX > SWIPE_THRESHOLD && sidebarVisible) {
+      // Swipe left - hide sidebar
+      sidebarVisible = false;
+    } else if (touchEndX - touchStartX > SWIPE_THRESHOLD && !sidebarVisible) {
+      // Swipe right - show sidebar
+      sidebarVisible = true;
+    }
+  }
+
+  // Add mouse-related functions
+  function handleMouseEnter() {
+    if (!sidebarVisible) {
+      sidebarVisible = true;
+    }
+  }
+
+  // Function to copy the settingsDB address to clipboard
+  async function copySettingsDBAddress() {
+    if ($settingsDB) {
+      try {
+        const address = $settingsDB.address.toString();
+        await navigator.clipboard.writeText(address);
+        showNotification = true;
+        setTimeout(() => showNotification = false, 3000); // Hide notification after 3 seconds
+      } catch (err) {
+        console.error('Failed to copy address: ', err);
+      }
+    } else {
+      alert('Settings database is not available.');
+    }
+  }
+
 </script>
 <svelte:head>
   <title>{$blogName} {__APP_VERSION__}</title>

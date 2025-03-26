@@ -2,10 +2,14 @@
   import { postsDB } from '$lib/store';
   import type { Post } from '$lib/types';
 
-  export let post: Post;
+  interface Props {
+    post: Post;
+  }
 
-  let newComment = '';
-  let author = '';
+  let { post = $bindable() }: Props = $props();
+
+  let newComment = $state('');
+  let author = $state('');
 
   async function handleSubmit() {
     console.log('Adding comment to post:', post._id);
@@ -73,7 +77,7 @@
           <div class="flex items-center gap-2">
             <span class="text-sm text-gray-500 dark:text-gray-400">{comment.date}</span>
             <button
-              on:click={() => deleteComment(comment._id)}
+              onclick={() => deleteComment(comment._id)}
               class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
               title="Delete comment"
             >
@@ -113,7 +117,7 @@
 
     <button
       type="button"
-      on:click={handleSubmit}
+      onclick={handleSubmit}
       class="bg-indigo-600 dark:bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
     >
       Add Comment

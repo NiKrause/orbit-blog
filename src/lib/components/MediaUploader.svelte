@@ -3,12 +3,12 @@
   import { mediaDB, helia } from '$lib/store';
   import { unixfs } from '@helia/unixfs';
 
-  export let onMediaSelected = (mediaCid: string) => {};
+  let { onMediaSelected = (mediaCid: string) => {} } = $props();
 
-  let dragActive = false;
-  let uploading = false;
-  let mediaList = [];
-  let errorMessage = '';
+  let dragActive = $state(false);
+  let uploading = $state(false);
+  let mediaList = $state([]);
+  let errorMessage = $state('');
   let fs; // UnixFS instance
 
   onMount(async () => {
@@ -143,9 +143,9 @@
   <div 
     class="drag-area border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center mb-4
            {dragActive ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700' : ''}"
-    on:dragover={handleDragOver}
-    on:dragleave={handleDragLeave}
-    on:drop={handleDrop}
+    ondragover={handleDragOver}
+    ondragleave={handleDragLeave}
+    ondrop={handleDrop}
   >
     <p class="mb-2 text-gray-700 dark:text-gray-300">
       {#if uploading}
@@ -158,7 +158,7 @@
       type="file" 
       id="file-input" 
       class="hidden" 
-      on:change={handleFileInput} 
+      onchange={handleFileInput} 
       multiple 
       accept="image/*,video/*,audio/*"
     />
@@ -181,7 +181,7 @@
     {#each mediaList as media (media._id)}
       <div 
         class="media-item relative border rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
-        on:click={() => selectMedia(media)}
+        onclick={() => selectMedia(media)}
       >
         {#if media.type.startsWith('image/')}
           <img src={getMediaPreviewUrl(media)} alt={media.name} class="w-full h-24 object-cover" />
@@ -204,7 +204,7 @@
         </div>
         <button 
           class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center"
-          on:click={(e) => deleteMedia(media._id, e)}
+          onclick={(e) => deleteMedia(media._id, e)}
         >
           ×
         </button>

@@ -1,11 +1,13 @@
 <script lang="ts">
+  import { preventDefault } from 'svelte/legacy';
+
   import { posts } from '$lib/store';
   import type { Category } from '$lib/types';
 
-  let title = '';
-  let content = '';
-  let author = '';
-  let category: Category = 'Other';
+  let title = $state('');
+  let content = $state('');
+  let author = $state('');
+  let category: Category = $state('Other');
 
   const categories: Category[] = ['Technology', 'Programming', 'Design', 'Other'];
 
@@ -32,7 +34,7 @@
   }
 </script>
 
-<form on:submit|preventDefault={handleSubmit} class="new-post-form">
+<form onsubmit={preventDefault(handleSubmit)} class="new-post-form">
   <h2>Create New Post</h2>
   
   <input

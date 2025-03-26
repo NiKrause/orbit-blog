@@ -12,7 +12,7 @@
     multiaddr: string;
   }
   
-  let peers: PeerInfo[] = [];
+  let peers: PeerInfo[] = $state([]);
   let peerId = $helia?.libp2p?.peerId.toString() || '';
   
   function getTransportFromMultiaddr(conn: Connection): string {
@@ -127,7 +127,7 @@
         value={peerId}
         class="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm text-gray-900 dark:text-white"
       />
-      <button on:click={() => copyToClipboard(peerId)} class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+      <button onclick={() => copyToClipboard(peerId)} class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
         📋
       </button>
     </div>
@@ -137,7 +137,7 @@
     {#if hasWebRTCConnection(peers)}
       <button 
         class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-700"
-        on:click={disconnectNonWebRTC}
+        onclick={disconnectNonWebRTC}
       >
         Disconnect Non-WebRTC
       </button>
@@ -187,7 +187,7 @@
               <td class="px-4 py-2">
                 <button 
                   class="text-red-500 hover:text-red-700"
-                  on:click={() => disconnectPeer(peer.id)}
+                  onclick={() => disconnectPeer(peer.id)}
                   title="Disconnect"
                 >
                   <!-- You can use an icon library like FontAwesome for a disconnect icon -->

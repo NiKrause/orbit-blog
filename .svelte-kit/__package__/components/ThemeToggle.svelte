@@ -1,26 +1,33 @@
-<script>import { onMount } from "svelte";
-let darkMode = true;
-onMount(() => {
-  darkMode = localStorage.getItem("theme") === "dark" || !localStorage.getItem("theme") && window.matchMedia("(prefers-color-scheme: dark)").matches;
-  updateTheme();
-});
-function toggleTheme() {
-  darkMode = !darkMode;
-  updateTheme();
-}
-function updateTheme() {
-  if (darkMode) {
-    document.documentElement.classList.add("dark");
-    localStorage.setItem("theme", "dark");
-  } else {
-    document.documentElement.classList.remove("dark");
-    localStorage.setItem("theme", "light");
+<script lang="ts">
+  import { onMount } from 'svelte';
+
+  let darkMode = $state(true);
+
+  onMount(() => {
+    // Check system preference or stored preference
+    darkMode = localStorage.getItem('theme') === 'dark' || 
+               (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    updateTheme();
+  });
+
+  function toggleTheme() {
+    darkMode = !darkMode;
+    updateTheme();
   }
-}
+
+  function updateTheme() {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }
 </script>
 
 <button
-  on:click={toggleTheme}
+  onclick={toggleTheme}
   class="fixed top-4 right-4 p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
   aria-label="Toggle theme"
 >

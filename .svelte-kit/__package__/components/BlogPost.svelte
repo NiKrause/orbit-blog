@@ -1,171 +1,229 @@
-<script>import { marked } from "marked";
-import { commentsDB, mediaDB, helia } from "../store";
-import { unixfs } from "@helia/unixfs";
-import { onMount } from "svelte";
-import { DateTime } from "luxon";
-export let post;
-let newComment = "";
-let commentAuthor = "";
-let comments = [];
-let postMedia = [];
-let fs;
-let mediaCache = /* @__PURE__ */ new Map();
-marked.setOptions({
-  gfm: true,
-  // GitHub Flavored Markdown
-  breaks: true,
-  // Convert line breaks to <br>
-  headerIds: true,
-  // Add IDs to headers
-  mangle: false,
-  // Don't escape HTML
-  sanitize: false
-  // Allow HTML
-});
-function setupRenderer() {
-  const renderer = new marked.Renderer();
-  const defaultImageRenderer = renderer.image.bind(renderer);
-  renderer.image = (href, title, text) => {
-    if (href.startsWith("ipfs://")) {
-      const mediaId = href.replace("ipfs://", "");
-      console.log("mediaId", mediaId);
-      console.log("mediaCache", mediaCache);
-      const media = mediaCache.get(mediaId);
-      console.log("media", media);
-      if (media) {
-        return defaultImageRenderer(media, title, text);
-      } else if (media) {
-        return defaultImageRenderer(`https://ipfs.io/ipfs/${media.cid}`, title, text);
+<script lang="ts">
+  import { run, preventDefault } from 'svelte/legacy';
+
+  import { marked } from 'marked';
+  import type { BlogPost, Comment } from '../types';
+  import { commentsDB, mediaDB, helia } from '../store';
+  import { unixfs } from '@helia/unixfs';
+  import { onMount } from 'svelte';
+  import { DateTime } from 'luxon';
+
+  interface Props {
+    post: BlogPost;
+  }
+
+  let { post }: Props = $props();
+
+  let newComment = $state('');
+  let commentAuthor = $state('');
+  let comments: Comment[] = $state([]);
+  let postMedia = $state([]);
+  let fs = $state();
+  let mediaCache = new Map(); // Cache for IPFS content
+
+  // Configure marked options
+  marked.setOptions({
+    gfm: true, // GitHub Flavored Markdown
+    breaks: true, // Convert line breaks to <br>
+    headerIds: true, // Add IDs to headers
+    mangle: false, // Don't escape HTML
+    sanitize: false // Allow HTML
+  });
+
+  // Move renderer setup into a function
+  function setupRenderer() {
+    const renderer = new marked.Renderer();
+    const defaultImageRenderer = renderer.image.bind(renderer);
+    
+    renderer.image = (href, title, text) => {
+      if (href.startsWith('ipfs://')) {
+        const mediaId = href.replace('ipfs://', '');
+        console.log('mediaId', mediaId);
+        console.log('mediaCache', mediaCache);
+        const media = mediaCache.get(mediaId);
+        console.log('media', media);
+        if (media) {
+          return defaultImageRenderer(media, title, text);
+        } else if (media) {
+          return defaultImageRenderer(`https://ipfs.io/ipfs/${media.cid}`, title, text);
+        }
       }
+      return defaultImageRenderer(href, title, text);
+    };
+
+    marked.use({ renderer });
+  }
+
+  function initUnixFs() {
+    if ($helia) {
+      fs = unixfs($helia);
+      return true;
     }
-    return defaultImageRenderer(href, title, text);
-  };
-  marked.use({ renderer });
-}
-function initUnixFs() {
-  if ($helia) {
-    fs = unixfs($helia);
-    return true;
+    return false;
   }
-  return false;
-}
-async function getFileFromIPFS(cid) {
-  console.log("getFileFromIPFS", cid);
-  if (!fs && !initUnixFs()) {
-    return null;
-  }
-  if (mediaCache.has(cid)) {
-    return mediaCache.get(cid);
-  }
-  try {
-    const chunks = [];
-    for await (const chunk of fs.cat(cid)) {
-      chunks.push(chunk);
-    }
-    const fileData = new Uint8Array(chunks.reduce((acc, val) => [...acc, ...val], []));
-    const blob = new Blob([fileData]);
-    const url = URL.createObjectURL(blob);
-    mediaCache.set(cid, url);
-    return url;
-  } catch (error) {
-    console.error(`Error fetching from IPFS (${cid}):`, error);
-    return `https://ipfs.io/ipfs/${cid}`;
-  }
-}
-async function loadMediaUrls() {
-  console.log("loadMediaUrls", postMedia);
-  for (const media of postMedia) {
-    if (!media.url) {
-      media.url = await getFileFromIPFS(media.cid) || `https://ipfs.io/ipfs/${media.cid}`;
-    }
-  }
-  postMedia = [...postMedia];
-}
-async function loadPostMedia() {
-  console.log("loadPostMedia", post);
-  if (!$mediaDB || !post.mediaIds) return;
-  console.log("loadPostMedia...");
-  try {
-    const allMedia = await $mediaDB.all();
-    console.log("allMedia", allMedia);
-    const mediaMap = allMedia.map((entry) => entry.value);
-    postMedia = post.mediaIds?.map((cid) => {
-      const media = mediaMap.find((m) => m.cid === cid);
-      if (media) {
-        return { ...media, url: null };
-      }
+
+  async function getFileFromIPFS(cid) {
+    console.log('getFileFromIPFS', cid);
+    if (!fs && !initUnixFs()) {
       return null;
-    }).filter(Boolean) || [];
-    initUnixFs();
-    loadMediaUrls();
-  } catch (error) {
-    console.error("Error loading media:", error);
-  }
-}
-async function loadComments() {
-  if (!$commentsDB) return;
-  try {
-    const allComments = await $commentsDB.all();
-    comments = allComments.map((entry) => entry.value).filter((comment) => comment.postId === post._id);
-  } catch (error) {
-    console.error("Error loading comments:", error);
-  }
-}
-async function addComment() {
-  if (!newComment.trim() || !commentAuthor.trim() || !$commentsDB) return;
-  try {
-    const _id = crypto.randomUUID();
-    await $commentsDB.put({
-      _id,
-      postId: post._id,
-      content: newComment,
-      author: commentAuthor,
-      createdAt: (/* @__PURE__ */ new Date()).toISOString()
-    });
-    newComment = "";
-    commentAuthor = "";
-    await loadComments();
-  } catch (error) {
-    console.error("Error adding comment:", error);
-  }
-}
-$: if ($commentsDB) {
-  loadComments();
-  $commentsDB.events.on("update", async (entry) => {
-    if (entry?.payload?.op === "PUT") {
-      const comment = entry.payload.value;
-      if (comment.postId === post._id) {
-        await loadComments();
+    }
+    
+    // Check cache first
+    if (mediaCache.has(cid)) {
+      return mediaCache.get(cid);
+    }
+    
+    try {
+      const chunks = [];
+      for await (const chunk of fs.cat(cid)) {
+        chunks.push(chunk);
       }
-    } else if (entry?.payload?.op === "DEL") {
+      
+      const fileData = new Uint8Array(chunks.reduce((acc, val) => [...acc, ...val], []));
+      const blob = new Blob([fileData]);
+      const url = URL.createObjectURL(blob);
+      
+      // Store in cache
+      mediaCache.set(cid, url);
+      return url;
+    } catch (error) {
+      console.error(`Error fetching from IPFS (${cid}):`, error);
+      // Fall back to gateway URL
+      return `https://ipfs.io/ipfs/${cid}`;
+    }
+  }
+
+  // Load media URLs asynchronously
+  async function loadMediaUrls() {
+    console.log('loadMediaUrls', postMedia);
+    for (const media of postMedia) {
+      if (!media.url) {
+        media.url = await getFileFromIPFS(media.cid) || `https://ipfs.io/ipfs/${media.cid}`;
+      }
+    }
+    // Force reactivity update
+    postMedia = [...postMedia];
+  }
+
+
+  // Load media for this post
+  async function loadPostMedia() {
+    console.log('loadPostMedia', post);
+    if (!$mediaDB || !post.mediaIds) return;
+    console.log('loadPostMedia...');
+    
+    
+    try {
+      const allMedia = await $mediaDB.all();
+      console.log('allMedia', allMedia);
+      const mediaMap = allMedia.map(entry => entry.value);
+      postMedia = post.mediaIds?.map(cid => {
+        const media = mediaMap.find(m => m.cid === cid);
+        if (media) {
+          return { ...media, url: null }; // Add url property to store fetched content
+        }
+        return null;
+      }).filter(Boolean) || [];
+      
+      initUnixFs();
+      loadMediaUrls();
+    } catch (error) {
+      console.error('Error loading media:', error);
+    }
+  }
+
+  async function loadComments() {
+    if (!$commentsDB) return;
+    
+    try {
+      const allComments = await $commentsDB.all();
+      comments = allComments
+        .map(entry => entry.value)
+        .filter(comment => comment.postId === post._id);
+    } catch (error) {
+      console.error('Error loading comments:', error);
+    }
+  }
+
+  // Add a comment using the commentsDB
+  async function addComment() {
+    if (!newComment.trim() || !commentAuthor.trim() || !$commentsDB) return;
+
+    try {
+      const _id = crypto.randomUUID();
+      await $commentsDB.put({
+        _id,
+        postId: post._id,
+        content: newComment,
+        author: commentAuthor,
+        createdAt: new Date().toISOString()
+      });
+
+      // Clear form fields
+      newComment = '';
+      commentAuthor = '';
+      
+      // Reload comments (optional, since the DB event listener should handle this)
       await loadComments();
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    }
+  }
+
+  // Listen for database changes
+  run(() => {
+    if ($commentsDB) {
+      loadComments();
+      
+      $commentsDB.events.on('update', async (entry) => {
+        if (entry?.payload?.op === 'PUT') {
+          const comment = entry.payload.value;
+          // Only update our comments list if the comment belongs to this post
+          if (comment.postId === post._id) {
+            await loadComments();
+          }
+        } else if (entry?.payload?.op === 'DEL') {
+          await loadComments();
+        }
+      });
     }
   });
-}
-$: if ($helia && !fs) {
-  initUnixFs();
-  if (postMedia.length > 0) {
-    loadMediaUrls();
-  }
-}
-onMount(async () => {
-  if ($mediaDB && post) {
-    await loadPostMedia();
-    setupRenderer();
-  }
-});
-$: if (post) {
-  if ($mediaDB) {
-    loadPostMedia().then(() => {
+
+  // React to Helia being available
+  run(() => {
+    if ($helia && !fs) {
+      initUnixFs();
+      if (postMedia.length > 0) {
+        loadMediaUrls();
+      }
+    }
+  });
+
+  onMount(async () => {
+    if ($mediaDB && post) {
+      await loadPostMedia();
       setupRenderer();
-    });
+    }
+  });
+
+  // Remove the reactive post statement since we handle initial load in onMount
+  run(() => {
+    if (post) {
+
+        if ($mediaDB) {
+          loadPostMedia().then(() => {
+            setupRenderer();
+          }); 
+        }
+    }
+  });
+
+  let renderedContent = $derived(marked(post.content));
+
+  function formatDate(dateString: string): string {
+    if (!dateString) return '';
+    return DateTime.fromISO(dateString).toLocaleString(DateTime.DATETIME_MED);
   }
-}
-$: renderedContent = marked(post.content);
-function formatDate(dateString) {
-  if (!dateString) return "";
-  return DateTime.fromISO(dateString).toLocaleString(DateTime.DATETIME_MED);
-}
 </script>
 
 <article class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
@@ -235,7 +293,7 @@ function formatDate(dateString) {
   </div>
 {/if}
 
-    <form on:submit|preventDefault={addComment} class="mt-6">
+    <form onsubmit={preventDefault(addComment)} class="mt-6">
       <div class="mb-4">
         <input
           type="text"

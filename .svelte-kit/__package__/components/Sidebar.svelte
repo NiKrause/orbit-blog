@@ -1,29 +1,37 @@
-<script>import {
-  postsDB,
-  remoteDBs,
-  libp2p,
-  postsDBAddress,
-  blogName,
-  identity,
-  showDBManager,
-  showPeers,
-  showSettings,
-  settingsDB
-} from "../store";
-import { get } from "svelte/store";
-import { switchToRemoteDB } from "../dbUtils";
-import PeersList from "./PeersList.svelte";
-import { connectedPeersCount } from "../peerConnections";
-let _settingsDB, _identity, _postsDB, _postsDBAddress;
-settingsDB.subscribe((val) => _settingsDB = val);
-identity.subscribe((val) => _identity = val);
-postsDB.subscribe((val) => _postsDB = val);
-postsDBAddress.subscribe((val) => _postsDBAddress = val);
-let canWrite = false;
-$: if (_settingsDB && _identity && _postsDB && _postsDBAddress) {
-  const access = _settingsDB?.access?.write;
-  canWrite = access?.includes(_identity?.id);
-}
+<script lang="ts">
+  import { run } from 'svelte/legacy';
+
+  import {
+    postsDB,
+    remoteDBs, 
+    libp2p, 
+    postsDBAddress, 
+    blogName, 
+    identity,
+    showDBManager,
+    showPeers,
+    showSettings,
+    settingsDB,
+  } from '../store';
+  import { get } from 'svelte/store';
+  import { switchToRemoteDB } from '../dbUtils';
+  import PeersList from './PeersList.svelte';
+  import { connectedPeersCount } from '../peerConnections';
+  
+  let _settingsDB: any = $state(), _identity: any = $state(), _postsDB: any = $state(), _postsDBAddress: any = $state();
+  
+  settingsDB.subscribe(val => _settingsDB = val);
+  identity.subscribe(val => _identity = val);
+  postsDB.subscribe(val => _postsDB = val);
+  postsDBAddress.subscribe(val => _postsDBAddress = val);
+  
+  let canWrite = $state(false)
+  run(() => {
+    if(_settingsDB && _identity && _postsDB && _postsDBAddress){
+      const access = _settingsDB?.access?.write;
+      canWrite = access?.includes(_identity?.id)
+    }
+  });
 </script>
 
 <div class="w-48 md:w-64 bg-gray-200 dark:bg-gray-800 p-2 shadow-md overflow-y-auto">
@@ -31,7 +39,7 @@ $: if (_settingsDB && _identity && _postsDB && _postsDBAddress) {
   <div class="mb-3">
     <h5 
       class="text-xs md:text-sm font-bold uppercase tracking-wider text-white dark:text-white bg-blue-500 rounded py-1 px-2 mb-1 cursor-pointer hover:bg-blue-600"
-      on:click={() => showDBManager.update(value => !value)}
+      onclick={() => showDBManager.update(value => !value)}
       title={$showDBManager ? "Hide Database Manager" : "Show Database Manager"}
     >
       Blogs
@@ -39,7 +47,7 @@ $: if (_settingsDB && _identity && _postsDB && _postsDBAddress) {
     <div class="space-y-1">
       <div 
         class="text-[10px] md:text-xs text-gray-800 dark:text-gray-300 bg-gray-300 dark:bg-gray-600 p-1 rounded cursor-pointer hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
-        on:click={async () => {
+        onclick={async () => {
           if ($settingsDB.address) {
             try {   
                 switchToRemoteDB($settingsDB.address);
@@ -87,7 +95,7 @@ $: if (_settingsDB && _identity && _postsDB && _postsDBAddress) {
         {#each $remoteDBs as db}
           <button 
             class="w-full text-left py-0.5 px-1 rounded text-[10px] md:text-xs truncate max-h-8 flex items-center {$postsDBAddress === db.address ? 'bg-blue-500 text-white' : db.access?.write?.includes($identity?.id) ? 'bg-green-300 dark:bg-green-600 text-gray-800 dark:text-gray-200 hover:bg-amber-400 dark:hover:bg-amber-500' : 'bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-400 dark:hover:bg-gray-500'}"
-            on:click={() => switchToRemoteDB(db.address)}
+            onclick={() => switchToRemoteDB(db.address)}
             title={db.name}
           >
             {#if db.pinnedToVoyager !== undefined}
@@ -121,7 +129,7 @@ $: if (_settingsDB && _identity && _postsDB && _postsDBAddress) {
   <div class="mb-3">
     <h5 
       class="text-xs md:text-sm font-bold uppercase tracking-wider text-white dark:text-white bg-yellow-500 rounded py-1 px-2 mb-1 cursor-pointer hover:bg-yellow-600"
-      on:click={() => showPeers.update(value => !value)}
+      onclick={() => showPeers.update(value => !value)}
       title={$showPeers ? "Hide Connected Peers" : "Show Connected Peers"}
     >
       Peers ({$connectedPeersCount})
@@ -141,7 +149,7 @@ $: if (_settingsDB && _identity && _postsDB && _postsDBAddress) {
   <div>
     <h5 
       class="text-xs md:text-sm font-bold uppercase tracking-wider text-white dark:text-white bg-green-500 rounded py-1 px-2 mb-1 cursor-pointer hover:bg-green-600"
-      on:click={() => showSettings.update(value => !value)}
+      onclick={() => showSettings.update(value => !value)}
       title={$showSettings ? "Hide Settings" : "Show Settings"}
     >
       Settings

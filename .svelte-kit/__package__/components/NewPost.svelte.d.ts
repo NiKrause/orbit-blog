@@ -1,17 +1,4 @@
-import { SvelteComponent } from "svelte";
-declare const __propDef: {
-    props: Record<string, never>;
-    events: {
-        [evt: string]: CustomEvent<any>;
-    };
-    slots: {};
-    exports?: {} | undefined;
-    bindings?: string | undefined;
-};
-export type NewPostProps = typeof __propDef.props;
-export type NewPostEvents = typeof __propDef.events;
-export type NewPostSlots = typeof __propDef.slots;
-export default class NewPost extends SvelteComponent<NewPostProps, NewPostEvents, NewPostSlots> {
-}
-export {};
+declare const NewPost: import("svelte").Component<Record<string, never>, {}, "">;
+type NewPost = ReturnType<typeof NewPost>;
+export default NewPost;
 //# sourceMappingURL=NewPost.svelte.d.ts.map

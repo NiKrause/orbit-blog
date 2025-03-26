@@ -1,47 +1,69 @@
-<script>import { postsDB } from "../store";
-export let post;
-let newComment = "";
-let author = "";
-async function handleSubmit() {
-  console.log("Adding comment to post:", post._id);
-  if (newComment && author) {
-    try {
-      const comment = {
-        _id: crypto.randomUUID(),
-        content: newComment,
-        author,
-        date: (/* @__PURE__ */ new Date()).toISOString().split("T")[0]
-      };
-      post = {
-        ...post,
-        comments: [...post.comments, comment]
-      };
-      console.log("Deleting post:", post);
-      await $postsDB.del(post._id);
-      console.log("Adding post again with new comments:", post);
-      await $postsDB.put(post);
-      console.info("Comment added successfully");
-      newComment = "";
-      author = "";
-    } catch (error) {
-      console.error("Error adding comment:", error);
+<script lang="ts">
+  import { postsDB } from '../store';
+  import type { Post } from '../types';
+
+  interface Props {
+    post: Post;
+  }
+
+  let { post = $bindable() }: Props = $props();
+
+  let newComment = $state('');
+  let author = $state('');
+
+  async function handleSubmit() {
+    console.log('Adding comment to post:', post._id);
+    if (newComment && author) {
+      try {
+        const comment = {
+          _id: crypto.randomUUID(),
+          content: newComment,
+          author,
+          date: new Date().toISOString().split('T')[0]
+        };
+
+        // Update the local post object with the new comment
+        post = {
+          ...post,
+          comments: [...post.comments, comment]
+        };
+
+        // Delete the old post first
+        console.log('Deleting post:', post);
+        await $postsDB.del(post._id);
+        console.log('Adding post again with new comments:', post);
+        // Then add the updated post as a new entry
+        await $postsDB.put(post)
+
+        console.info('Comment added successfully');
+        newComment = '';
+        author = '';
+      } catch (error) {
+        console.error('Error adding comment:', error);
+      }
     }
   }
-}
-async function deleteComment(commentId) {
-  try {
-    post = {
-      ...post,
-      comments: post.comments.filter((comment) => comment._id !== commentId)
-    };
-    console.log("Deleting post:", post);
-    await $postsDB.del(post._id);
-    await $postsDB.put(post);
-    console.info("Comment deleted successfully");
-  } catch (error) {
-    console.error("Error deleting comment:", error);
+
+  async function deleteComment(commentId: string) {
+    try {
+      // Filter out the deleted comment
+      post = {
+        ...post,
+        comments: post.comments.filter(comment => comment._id !== commentId)
+      };
+
+      // Delete the old post first
+      console.log('Deleting post:', post);
+      await $postsDB.del(post._id);
+      
+      // Then add the updated post as a new entry
+      await $postsDB.put(post);
+
+      console.info('Comment deleted successfully');
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+    }
   }
-}
 </script>
 
 <div class="mt-6 border-t dark:border-gray-700 pt-6">
@@ -55,7 +77,7 @@ async function deleteComment(commentId) {
           <div class="flex items-center gap-2">
             <span class="text-sm text-gray-500 dark:text-gray-400">{comment.date}</span>
             <button
-              on:click={() => deleteComment(comment._id)}
+              onclick={() => deleteComment(comment._id)}
               class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
               title="Delete comment"
             >
@@ -95,7 +117,7 @@ async function deleteComment(commentId) {
 
     <button
       type="button"
-      on:click={handleSubmit}
+      onclick={handleSubmit}
       class="bg-indigo-600 dark:bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
     >
       Add Comment

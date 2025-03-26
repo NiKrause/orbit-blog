@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { run } from 'svelte/legacy';
+
   import { onDestroy } from 'svelte';
   import { settingsDB, postsDB, remoteDBs, selectedDBAddress, orbitdb, remoteDBsDatabases, identity, identities } from '$lib/store';
   import QRCode from 'qrcode';
@@ -6,40 +8,21 @@
   import { switchToRemoteDB, addRemoteDBToStore } from '$lib/dbUtils';
   import { IPFSAccessController } from '@orbitdb/core';
 
-  let dbAddress = '';
-  let dbName = '';
+  let dbAddress = $state('');
+  let dbName = $state('');
   let dbPeerId = '';
   let qrCodeDataUrl = '';
-  let showScanner = false;
-  let videoElement: HTMLVideoElement;
-  let isModalOpen = false;
+  let showScanner = $state(false);
+  let videoElement: HTMLVideoElement = $state();
+  let isModalOpen = $state(false);
   let did = '';
-  let modalMessage = "Loading database from the peer-to-peer network...";
+  let modalMessage = $state("Loading database from the peer-to-peer network...");
   let cancelOperation = false;
-  let queueCheckInterval: number;
+  let queueCheckInterval: number = $state();
   let isQueueRunning = false;
-  let isLocalDB = false;
+  let isLocalDB = $state(false);
 
-  $: {
-    if ($remoteDBs) {
-      const hasQueuedDBs = $remoteDBs.some(db => db.fetchLater);
-      
-      if (hasQueuedDBs && !queueCheckInterval) {
-        console.log('Starting queue checking - databases found in queue');
-        queueCheckInterval = window.setInterval(processQueue, 30 * 1000); // every 30 seconds
-        processQueue(); // Process immediately on setup
-      } else if (!hasQueuedDBs && queueCheckInterval) {
-        console.log('Clearing queue checking - no databases in queue');
-        clearInterval(queueCheckInterval);
-        queueCheckInterval = null;
-      }
-    }
-  }
 
-  $:if ($settingsDB) {  
-    $selectedDBAddress = $settingsDB.address;
-    generateQRCode($selectedDBAddress);
-  }
 
   async function generateQRCode(text: string) {
     try {
@@ -310,6 +293,27 @@
       console.error('Error copying text to clipboard:', err);
     });
   }
+  run(() => {
+    if ($remoteDBs) {
+      const hasQueuedDBs = $remoteDBs.some(db => db.fetchLater);
+      
+      if (hasQueuedDBs && !queueCheckInterval) {
+        console.log('Starting queue checking - databases found in queue');
+        queueCheckInterval = window.setInterval(processQueue, 30 * 1000); // every 30 seconds
+        processQueue(); // Process immediately on setup
+      } else if (!hasQueuedDBs && queueCheckInterval) {
+        console.log('Clearing queue checking - no databases in queue');
+        clearInterval(queueCheckInterval);
+        queueCheckInterval = null;
+      }
+    }
+  });
+  run(() => {
+    if ($settingsDB) {  
+      $selectedDBAddress = $settingsDB.address;
+      generateQRCode($selectedDBAddress);
+    }
+  });
 </script>
 
 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6">
@@ -327,8 +331,8 @@
           />
           <button 
             title="Copy to clipboard"
-              on:touchstart={() => copyToClipboard($settingsDB?.address || '')} 
-              on:click={() => copyToClipboard($settingsDB?.address || '')} 
+              ontouchstart={() => copyToClipboard($settingsDB?.address || '')} 
+              onclick={() => copyToClipboard($settingsDB?.address || '')} 
             class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
             📋
           </button>
@@ -391,8 +395,8 @@
             />
             <button
               title="Scan QR Code"
-              on:touchstart={startScanner}
-              on:click={startScanner}
+              ontouchstart={startScanner}
+              onclick={startScanner}
               class="mt-1 px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
             >
               Scan QR
@@ -403,8 +407,8 @@
 
       <button
         title="Add {isLocalDB ? 'Local' : 'Remote'} Database"
-        on:touchstart={addRemoteDB}
-        on:click={addRemoteDB}
+        ontouchstart={addRemoteDB}
+        onclick={addRemoteDB}
         class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors"
       >
         Add {isLocalDB ? 'Local' : 'Remote'} Database
@@ -418,7 +422,7 @@
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Scan QR Code</h3>
           <button
-            on:click={stopScanner}
+            onclick={stopScanner}
             class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
             Close
@@ -442,7 +446,7 @@
           <div class="flex items-center space-x-2">
             <button
               class="flex-1 text-left p-3 rounded-md transition-all duration-300 ease-in-out transform hover:scale-105 {$selectedDBAddress === db.address ? 'bg-gradient-to-r from-indigo-500 to-indigo-300 dark:from-indigo-800 dark:to-indigo-600 border-2 border-indigo-500' : db.access?.write?.includes($identity?.id) ? 'bg-gradient-to-r from-green-200 to-green-100 dark:from-green-800 dark:to-green-700 border border-green-300 dark:border-green-600' : 'bg-gradient-to-r from-gray-200 to-gray-100 dark:from-gray-700 dark:to-gray-600 hover:bg-gradient-to-r from-gray-300 to-gray-200 dark:from-gray-600 dark:to-gray-500 border border-gray-200 dark:border-gray-600'}"
-              on:click={() => handleSwitchToRemoteDB(db.address)}
+              onclick={() => handleSwitchToRemoteDB(db.address)}
             >
               <div class="flex justify-between items-center">
                 <div class="flex items-center space-x-2">
@@ -487,7 +491,7 @@
             </button>
             <button
               class="p-2 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400"
-              on:click={() => removeRemoteDB(db.id)}
+              onclick={() => removeRemoteDB(db.id)}
               title="Remove database"
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -504,7 +508,7 @@
     <h2 class="text-xl font-bold mb-4">Switching Database</h2>
     <p>{modalMessage}</p>
     <div class="progress-bar">Loading...</div>
-    <button on:click={closeModal} class="cancel-button">Cancel</button>
+    <button onclick={closeModal} class="cancel-button">Cancel</button>
   </Modal>
 </div>
 

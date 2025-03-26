@@ -1,3 +1,5 @@
+<!-- @migration-task Error while migrating Svelte code: Cannot subscribe to stores that are not declared at the top level of the component
+https://svelte.dev/e/store_invalid_scoped_subscription -->
 <script lang="ts">
   // Svelte core
   import { onDestroy } from 'svelte';
@@ -30,17 +32,18 @@
   import LoadingBlog from './LoadingBlog.svelte';
 
   // Icons
-  import { FaBars, FaTimes, FaShare } from 'svelte-icons/fa';
+  import { FaBars, FaTimes } from 'svelte-icons/fa';
 
   // Local utilities and config
   import { libp2pOptions, multiaddrs } from '$lib/config';
-  import { encryptSeedPhrase, decryptSeedPhrase, isEncryptedSeedPhrase } from '$lib/cryptoUtils';
+  import { encryptSeedPhrase } from '$lib/cryptoUtils';
   import { generateMasterSeed, generateAndSerializeKey } from '$lib/utils';
   import { initHashRouter, isLoadingRemoteBlog } from '$lib/router';
   import { setupPeerEventListeners } from '$lib/peerConnections';
 
   // Store imports
   import { 
+    initialAddress,
     postsDB, 
     postsDBAddress, 
     posts, 
@@ -86,6 +89,8 @@
 
   let showNotification = false;
 
+  let settingsDBUpdateHandler;
+
   if(!encryptedSeedPhrase) {
       console.log('no seed phrase, generating new one')
       $seedPhrase = generateMnemonic();
@@ -116,6 +121,7 @@
     if (!seedPhrase) return;
     
     console.log('initializeApp')
+    
     const masterSeed = generateMasterSeed($seedPhrase, "password");
     const { hex } = await generateAndSerializeKey(masterSeed.subarray(0, 32))
     const privKeyBuffer = uint8ArrayFromString(hex, 'hex');
@@ -140,17 +146,16 @@
     const addr = multiaddr(multiaddrs[0])
     console.log('voyager', voyager)
     $voyager = await Voyager({ orbitdb: $orbitdb, address: addr})
+    routerUnsubscribe = await initHashRouter();
 
-    routerUnsubscribe = initHashRouter();
-    
-    
-    // Set up peer event listeners from the separate module
     setupPeerEventListeners($libp2p);
   }
 
-  $:if(window.location.hash.includes('#/orbitdb/')) {
+  $:if($initialAddress) {
+    console.log('initialAddress', $initialAddress);
     sidebarVisible = false;
   }
+  
   /**
    * Check if the user has write access to the posts database
   */
@@ -162,6 +167,11 @@
   onDestroy(async () => {
     // Clean up router subscription
     if (routerUnsubscribe) routerUnsubscribe();
+    
+    // Clean up event listeners
+    if (settingsDBUpdateHandler) {
+      $settingsDB?.events.removeListener('update', settingsDBUpdateHandler);
+    }
     
     try {
       await $settingsDB?.close();
@@ -201,9 +211,10 @@
         }).then(_db => {
           $postsDB = _db;
           window.postsDB = _db;
-          $voyager?.add(_db.address).then((ret) => console.log('voyager added postsDB', ret))
+          $voyager?.add(_db.address).then((ret) => console.log('voyager added postsDB '+_db.address, ret))
           console.log('postsDB', _db.address.toString())
           $postsDBAddress = _db.address.toString()
+
         }).catch( err => console.log('error', err))
 
         $voyager?.orbitdb.open('remote-dbs', {
@@ -216,10 +227,10 @@
         }).then(_db => {
           $remoteDBsDatabases = _db;
           window.remoteDBsDatabases = _db;
-          $voyager?.add(_db.address).then((ret) => console.log('voyager added remoteDBsDatabases', ret))
+          $voyager?.add(_db.address).then((ret) => console.log('voyager added remoteDBsDatabases '+_db.address, ret))
         }).catch(err => console.error('Error opening remote DBs database:', err));
 
-        // Add this to the initializeApp function after other database initializations
+        // // Add this to the initializeApp function after other database initializations
         $voyager?.orbitdb.open('comments', {
           type: 'documents',
           create: true,
@@ -229,12 +240,13 @@
           identities: $identities,
           AccessController: IPFSAccessController({write: ["*"]}),
         }).then(_db => {
-          $commentsDB = _db;
+          // $commentsDB = _db;
+          console.log('commentsDB', _db)
           window.commentsDB = _db;
-          $voyager?.add(_db.address).then((ret) => console.log('voyager added commentsDB', ret))
+          $voyager?.add(_db.address).then((ret) => console.log('voyager added commentsDB '+_db.address, ret))
         }).catch(err => console.log('error', err))
 
-        // Add this to initialize the media database
+        // // Add this to initialize the media database
         $voyager?.orbitdb.open('media', {
           type: 'documents',
           create: true,
@@ -244,9 +256,10 @@
           identities: $identities,
           AccessController: IPFSAccessController({write: [$identity.id]}), // Allow anyone to upload media
         }).then(_db => {
-          $mediaDB = _db;
+          // $mediaDB = _db;
+          console.log('mediaDB', _db)
           window.mediaDB = _db;
-          $voyager?.add(_db.address).then((ret) => console.log('voyager added mediaDB', ret))
+          $voyager?.add(_db.address).then((ret) => console.log('voyager added mediaDB '+_db.address, ret))
         }).catch(err => console.log('error initializing media database', err))
   }
 
@@ -303,10 +316,10 @@
   }
 
   $:if($postsDB){
-    $postsDB.all().then(posts => {
-      console.log('posts', posts);
-      // Each entry contains both the value and the metadata
-      $posts = posts.map(entry => ({
+
+    $postsDB.all().then(_posts => {
+      console.log('posts', _posts);
+      $posts = _posts.map(entry => ({
         ...entry.value,
         identity: entry.identity // This contains the creator's identity
       }));
@@ -330,7 +343,11 @@
 
   $:if($remoteDBsDatabases){
     console.info('Remote DBs database opened successfully:', $remoteDBsDatabases);
-    $remoteDBsDatabases.all().then(savedDBs => {
+    
+    const loadRemoteDBs = async () => {
+      console.log('Starting to load remote DBs...');
+      const savedDBs = await $remoteDBsDatabases.all();
+      console.log("all of remoteDBsDatabases", savedDBs, new Date().toISOString());
       const _remoteDBs = savedDBs.map(entry => entry.value);
       console.info('Remote DBs list:', _remoteDBs);
       _remoteDBs.forEach(async db => {
@@ -345,21 +362,21 @@
         })
       })
       $remoteDBs = _remoteDBs;
-    })
-    $settingsDB.events.on('update', async (entry) => {
+    };
+    loadRemoteDBs().catch(err => console.error('Error loading remote DBs:', err));
+  }
+  $settingsDB?.events.on('update', async (entry) => {
       console.log('Database update:', entry);
       if (entry?.payload?.op === 'PUT') {
         const { _id, ...rest } = entry.payload.value;
         console.log('settingsDB update:', rest);
-        // posts.update(current => [...current, { ...rest, _id: _id }]);
+        settingsDB.update(current => [...current, { ...rest, _id: _id }]);
       } else if (entry?.payload?.op === 'DEL') {
         console.log('settingsDB delete:', entry.payload.key);
-        // posts.update(current => current.filter(post => post._id !== entry.payload.key));
+        settingsDB.update(current => current.filter(post => post._id !== entry.payload.key));
       }
     });
-  }
 
-  // Handle touch events for sidebar gestures
   function handleTouchStart(e) {
     touchStartX = e.touches[0].clientX;
   }

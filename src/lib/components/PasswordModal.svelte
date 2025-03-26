@@ -1,16 +1,22 @@
 <script lang="ts">
+  import { preventDefault } from 'svelte/legacy';
+
   import { createEventDispatcher } from 'svelte';
   import { encryptSeedPhrase, decryptSeedPhrase } from '$lib/cryptoUtils';
   
-  export let isNewUser = false;
-  export let encryptedSeedPhrase: string | null = null;
+  interface Props {
+    isNewUser?: boolean;
+    encryptedSeedPhrase?: string | null;
+  }
+
+  let { isNewUser = false, encryptedSeedPhrase = null }: Props = $props();
   
   const dispatch = createEventDispatcher();
   
-  let password = '';
-  let confirmPassword = '';
-  let errorMessage = '';
-  let isProcessing = false;
+  let password = $state('');
+  let confirmPassword = $state('');
+  let errorMessage = $state('');
+  let isProcessing = $state(false);
   
   async function handleSubmit() {
     errorMessage = '';
@@ -70,7 +76,7 @@
         : 'Please enter your password to decrypt your seed phrase in order to activate your identity. The password is not transmitted over the network. You can switch off the network to proof that the password is not transmitted.'}
     </p>
     
-    <form on:submit|preventDefault={handleSubmit} class="space-y-4">
+    <form onsubmit={preventDefault(handleSubmit)} class="space-y-4">
       <div>
         <label class="block text-gray-700 dark:text-gray-300 mb-1">Password</label>
         <input 

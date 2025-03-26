@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
 
-  let darkMode = true;
+  let darkMode = $state(true);
 
   onMount(() => {
     // Check system preference or stored preference
@@ -27,7 +27,7 @@
 </script>
 
 <button
-  on:click={toggleTheme}
+  onclick={toggleTheme}
   class="fixed top-4 right-4 p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
   aria-label="Toggle theme"
 >

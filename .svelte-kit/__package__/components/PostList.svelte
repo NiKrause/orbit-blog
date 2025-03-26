@@ -1,135 +1,175 @@
-<script>import { posts, selectedPostId, identity } from "../store";
-import { DateTime } from "luxon";
-import { formatDate, formatTimestamp } from "../dateUtils";
-import { marked } from "marked";
-import DOMPurify from "dompurify";
-import { onMount } from "svelte";
-import { postsDB, categories } from "../store";
-import BlogPost from "./BlogPost.svelte";
-import MediaUploader from "./MediaUploader.svelte";
-import html2pdf from "html2pdf.js";
-let searchQuery = "";
-let selectedCategory = "All";
-let hoveredPostId = null;
-let editMode = false;
-let editedTitle = "";
-let editedContent = "";
-let editedCategory;
-let showHistory = false;
-let postHistory = [];
-let showMediaUploader = false;
-let selectedMedia = [];
-$: filteredPosts = $posts.filter((post) => {
-  const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) || post.content.toLowerCase().includes(searchQuery.toLowerCase());
-  const matchesCategory = selectedCategory === "All" || post.category === selectedCategory;
-  return matchesSearch && matchesCategory;
-}).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-$: selectedPost = $selectedPostId ? filteredPosts.find((post) => post._id === $selectedPostId) : null;
-onMount(() => {
-  if (filteredPosts.length > 0 && !$selectedPostId) {
-    $selectedPostId = filteredPosts[0]._id;
-  }
-});
-$: if (filteredPosts.length > 0 && (!$selectedPostId || !filteredPosts.find((post) => post._id === $selectedPostId))) {
-  $selectedPostId = filteredPosts[0]._id;
-}
-function renderMarkdown(content) {
-  const contentWithBreaks = content.replace(/\n(?!\n)/g, "  \n");
-  const rawHtml = marked(contentWithBreaks);
-  return DOMPurify.sanitize(rawHtml);
-}
-function selectPost(postId) {
-  $selectedPostId = postId;
-  editMode = false;
-}
-function editPost(post, event) {
-  event.stopPropagation();
-  editedTitle = post.title;
-  editedContent = post.content;
-  editedCategory = post.category;
-  selectedMedia = post.mediaIds || [];
-  editMode = true;
-}
-async function saveEditedPost() {
-  if (selectedPost && editedTitle && editedContent) {
-    try {
-      const updatedPost = {
-        ...selectedPost,
-        title: editedTitle,
-        content: editedContent,
-        category: editedCategory,
-        updatedAt: (/* @__PURE__ */ new Date()).toISOString(),
-        identity: $identity.id,
-        mediaIds: selectedMedia
-      };
-      await $postsDB.del(selectedPost._id);
-      await $postsDB.put(updatedPost);
-      console.info("Post updated successfully", updatedPost);
-      editMode = false;
-      $selectedPostId = updatedPost._id;
-    } catch (error) {
-      console.error("Error updating post:", error);
+<script lang="ts">
+  import { run } from 'svelte/legacy';
+
+  import { posts, selectedPostId, identity } from '../store';
+  import { DateTime } from 'luxon';
+  import { formatDate, formatTimestamp } from '../dateUtils';
+
+  import { marked } from 'marked';
+  import DOMPurify from 'dompurify';
+  import type { Post, Category } from '../types';
+  import { onMount } from 'svelte';
+  import { postsDB, categories } from '../store';
+  import BlogPost from './BlogPost.svelte';
+  import MediaUploader from './MediaUploader.svelte';
+  // Import html2pdf for PDF generation
+  import html2pdf from 'html2pdf.js';
+
+  let searchQuery = $state('');
+  let selectedCategory: Category | 'All' = $state('All');
+  // let selectedPostId: string | null = null;
+  let hoveredPostId = $state(null); // Track the ID of the hovered post
+  let editMode = $state(false); // Track if we're in edit mode
+  let editedTitle = $state('');
+  let editedContent = $state('');
+  let editedCategory: Category = $state();
+  let showHistory = $state(false);
+  let postHistory = $state([]);
+  let showMediaUploader = $state(false);
+  let selectedMedia = $state([]);
+
+  let filteredPosts = $derived($posts
+    .filter(post => {
+      const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         post.content.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = selectedCategory === 'All' || post.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    })
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())); // Sort by date, newest first
+
+  let selectedPost = $derived($selectedPostId ? filteredPosts.find(post => post._id === $selectedPostId) : null);
+
+  onMount(() => {
+    if (filteredPosts.length > 0 && !$selectedPostId) {
+      $selectedPostId = filteredPosts[0]._id; // Select the first (latest) post
     }
-  }
-}
-async function deletePost(post, event) {
-  console.log("Deleting post:", post);
-  event.stopPropagation();
-  try {
-    const postId = post._id;
-    await $postsDB.del(postId);
-    console.info("Post deleted successfully");
-    if ($selectedPostId === postId && filteredPosts.length > 1) {
+  });
+
+  run(() => {
+    if (filteredPosts.length > 0 && (!$selectedPostId || !filteredPosts.find(post => post._id === $selectedPostId))) {
       $selectedPostId = filteredPosts[0]._id;
     }
-  } catch (error) {
-    console.error("Error deleting post:", error);
+  });
+
+  function renderMarkdown(content: string): string {
+    // Convert single newlines to <br> tags before rendering markdown
+    const contentWithBreaks = content.replace(/\n(?!\n)/g, '  \n');
+    const rawHtml = marked(contentWithBreaks);
+    return DOMPurify.sanitize(rawHtml);
   }
-}
-function truncateTitle(title, maxLength) {
-  return title.length > maxLength ? title.slice(0, maxLength) + "..." : title;
-}
-async function viewPostHistory(post, event) {
-  event.stopPropagation();
-  showHistory = true;
-  const history = [];
-  for await (const entry of $postsDB.log.iterator({ reverse: true })) {
-    if (entry?.payload?.value?._id === post._id) {
-      history.push({
-        ...entry.payload.value,
-        timestamp: entry.payload.value.date ? DateTime.fromISO(entry.payload.value.date).toLocaleString(DateTime.DATETIME_MED) : "No date available"
-      });
+
+  function selectPost(postId: string) {
+    $selectedPostId = postId;
+    editMode = false; // Exit edit mode when selecting a different post
+    // Additional logic for when a post is selected
+  }
+
+  function editPost(post: Post, event: MouseEvent) {
+    event.stopPropagation();
+    editedTitle = post.title;
+    editedContent = post.content;
+    editedCategory = post.category;
+    selectedMedia = post.mediaIds || []; // Initialize with existing media
+    editMode = true;
+  }
+
+  async function saveEditedPost() {
+    if (selectedPost && editedTitle && editedContent) {
+      try {
+        const updatedPost = {
+          ...selectedPost,
+          title: editedTitle,
+          content: editedContent,
+          category: editedCategory,
+          updatedAt: new Date().toISOString(),
+          identity: $identity.id,
+          mediaIds: selectedMedia
+        };
+        await $postsDB.del(selectedPost._id);
+        await $postsDB.put(updatedPost);
+        // Update the posts store with the new data
+        // console.log('updatedPost', updatedPost);
+        // $posts = $posts.map(post => 
+        //   post._id === selectedPost._id ? updatedPost : post
+        // );
+        console.info('Post updated successfully', updatedPost);
+        editMode = false;
+        $selectedPostId = updatedPost._id;
+      } catch (error) {
+        console.error('Error updating post:', error);
+      }
     }
   }
-  postHistory = history;
-}
-function restoreVersion(historicalPost) {
-  editedTitle = historicalPost.title;
-  editedContent = historicalPost.content;
-  editedCategory = historicalPost.category;
-  editMode = true;
-  showHistory = false;
-}
-function handleMediaSelected(mediaCid) {
-  if (!selectedMedia.includes(mediaCid)) {
-    selectedMedia = [...selectedMedia, mediaCid];
-    editedContent += `
 
-![Media](ipfs://${mediaCid})`;
+  async function deletePost(post: Post, event: MouseEvent) {
+    console.log('Deleting post:', post);
+    event.stopPropagation(); 
+    try {
+      const postId = post._id;
+      await $postsDB.del(postId);
+      console.info('Post deleted successfully');
+      if ($selectedPostId === postId && filteredPosts.length > 1) {
+        $selectedPostId = filteredPosts[0]._id;
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error);
+    }
   }
-  showMediaUploader = false;
-}
-function removeSelectedMedia(mediaId) {
-  selectedMedia = selectedMedia.filter((id) => id !== mediaId);
-  editedContent = editedContent.replace(`
 
-![Media](ipfs://${mediaId})`, "");
-}
-function exportToPdf() {
-  if (!selectedPost) return;
-  const element = document.createElement("div");
-  element.className = "pdf-export";
-  element.innerHTML = `
+  function truncateTitle(title: string, maxLength: number): string {
+    return title.length > maxLength ? title.slice(0, maxLength) + '...' : title;
+  }
+
+  async function viewPostHistory(post: Post, event: MouseEvent) {
+    event.stopPropagation();
+    showHistory = true;
+    
+    // Get all operations for this post
+    const history = [];
+    for await (const entry of $postsDB.log.iterator({ reverse: true })) {
+      if (entry?.payload?.value?._id === post._id) {
+        history.push({
+          ...entry.payload.value,
+          timestamp: entry.payload.value.date 
+            ? DateTime.fromISO(entry.payload.value.date).toLocaleString(DateTime.DATETIME_MED)
+            : 'No date available'
+        });
+      }
+    }
+    postHistory = history;
+  }
+
+  function restoreVersion(historicalPost: Post) {
+    editedTitle = historicalPost.title;
+    editedContent = historicalPost.content;
+    editedCategory = historicalPost.category;
+    editMode = true;
+    showHistory = false;
+  }
+
+  function handleMediaSelected(mediaCid: string) {
+    if (!selectedMedia.includes(mediaCid)) {
+      selectedMedia = [...selectedMedia, mediaCid];
+      editedContent += `\n\n![Media](ipfs://${mediaCid})`;
+    }
+    showMediaUploader = false;
+  }
+
+  function removeSelectedMedia(mediaId: string) {
+    selectedMedia = selectedMedia.filter(id => id !== mediaId);
+    editedContent = editedContent.replace(`\n\n![Media](ipfs://${mediaId})`, '');
+  }
+
+  // Function to export the selected post as PDF
+  function exportToPdf() {
+    if (!selectedPost) return;
+    
+    // Create a temporary div to render the post content
+    const element = document.createElement('div');
+    element.className = 'pdf-export';
+    
+    // Add some basic styling for the PDF
+    element.innerHTML = `
       <style>
         .pdf-export {
           font-family: 'Arial', sans-serif;
@@ -203,24 +243,35 @@ function exportToPdf() {
         ${renderMarkdown(selectedPost.content)}
       </div>
     `;
-  document.body.appendChild(element);
-  const options = {
-    margin: [10, 10, 10, 10],
-    filename: `${selectedPost.title.replace(/[^a-z0-9]/gi, "_")}.pdf`,
-    image: { type: "jpeg", quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
-  };
-  html2pdf().from(element).set(options).save().then(() => {
-    document.body.removeChild(element);
-  });
-}
-async function exportToLatex() {
-  if (!selectedPost) return;
-  const latexContent = `\\documentclass{article}
+    
+    // Append temporarily to the document to ensure images load
+    document.body.appendChild(element);
+    
+    // Configure the PDF options
+    const options = {
+      margin: [10, 10, 10, 10],
+      filename: `${selectedPost.title.replace(/[^a-z0-9]/gi, '_')}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    
+    // Generate the PDF
+    html2pdf().from(element).set(options).save()
+      .then(() => {
+        // Remove the temporary element after PDF generation
+        document.body.removeChild(element);
+      });
+  }
+
+  async function exportToLatex() {
+    if (!selectedPost) return;
+    
+    // Basic LaTeX document structure
+    const latexContent = `\\documentclass{article}
 \\usepackage[utf8]{inputenc}
 \\usepackage{graphicx}
-\\title{${selectedPost.title.replace(/[&$%#_{}]/g, "\\$&")}}
+\\title{${selectedPost.title.replace(/[&$%#_{}]/g, '\\$&')}}
 \\date{${formatDate(selectedPost.date)}}
 
 \\begin{document}
@@ -229,19 +280,28 @@ async function exportToLatex() {
 ${convertMarkdownToLatex(selectedPost.content)}
 
 \\end{document}`;
-  const blob = new Blob([latexContent], { type: "application/x-tex" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${selectedPost.title.replace(/[^a-z0-9]/gi, "_")}.tex`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-function convertMarkdownToLatex(markdown) {
-  return markdown.replace(/#{1,6} (.+)/g, (_, title) => `\\section{${title}}`).replace(/\*\*(.+?)\*\*/g, "\\textbf{$1}").replace(/\*(.+?)\*/g, "\\textit{$1}").replace(/!\[(.+?)\]\((.+?)\)/g, "\\includegraphics{$2}").replace(/[&$%#_{}]/g, "\\$&");
-}
+
+    // Create and download the .tex file
+    const blob = new Blob([latexContent], { type: 'application/x-tex' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${selectedPost.title.replace(/[^a-z0-9]/gi, '_')}.tex`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function convertMarkdownToLatex(markdown: string): string {
+    // This is a very basic conversion - you'd want to use a proper parser
+    return markdown
+      .replace(/#{1,6} (.+)/g, (_, title) => `\\section{${title}}`) // Headers
+      .replace(/\*\*(.+?)\*\*/g, '\\textbf{$1}') // Bold
+      .replace(/\*(.+?)\*/g, '\\textit{$1}') // Italic
+      .replace(/!\[(.+?)\]\((.+?)\)/g, '\\includegraphics{$2}') // Images
+      .replace(/[&$%#_{}]/g, '\\$&'); // Escape special characters
+  }
 </script>
 
 <div class="space-y-6">
@@ -273,14 +333,14 @@ function convertMarkdownToLatex(markdown) {
         {#each filteredPosts as post, index (post._id || post.title + index)}
           <div
             class="w-full text-left p-3 rounded-md transition-colors cursor-pointer"
-            on:mouseover={() => hoveredPostId = post._id}
-            on:mouseout={() => hoveredPostId = null}
-            on:click={() => selectPost(post._id)}
+            onmouseover={() => hoveredPostId = post._id}
+            onmouseout={() => hoveredPostId = null}
+            onclick={() => selectPost(post._id)}
           >
             <div class="flex justify-end space-x-2 {hoveredPostId === post._id ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300 ease-in-out">
               <button
                 class="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                on:click={(e) => editPost(post, e)}
+                onclick={(e) => editPost(post, e)}
                 title="Edit post"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -289,7 +349,7 @@ function convertMarkdownToLatex(markdown) {
               </button>
               <button
                 class="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                on:click={(e) => deletePost(post, e)}
+                onclick={(e) => deletePost(post, e)}
                 title="Delete post"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -298,7 +358,7 @@ function convertMarkdownToLatex(markdown) {
               </button>
               <button
                 class="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
-                on:click={(e) => viewPostHistory(post, e)}
+                onclick={(e) => viewPostHistory(post, e)}
                 title="View history"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -363,7 +423,7 @@ function convertMarkdownToLatex(markdown) {
                   <label for="edit-content" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Content (Markdown)</label>
                   <button
                     type="button"
-                    on:click={() => showMediaUploader = !showMediaUploader}
+                    onclick={() => showMediaUploader = !showMediaUploader}
                     class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300"
                   >
                     {showMediaUploader ? 'Hide Media Library' : 'Add Media'}
@@ -393,7 +453,7 @@ function convertMarkdownToLatex(markdown) {
                         <button 
                           type="button"
                           class="ml-2 text-red-500 hover:text-red-700"
-                          on:click={() => removeSelectedMedia(mediaId)}
+                          onclick={() => removeSelectedMedia(mediaId)}
                         >
                           ×
                         </button>
@@ -406,14 +466,14 @@ function convertMarkdownToLatex(markdown) {
               <div class="flex space-x-4 justify-end">
                 <button
                   type="button"
-                  on:click={() => editMode = false}
+                  onclick={() => editMode = false}
                   class="bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-100 py-2 px-4 rounded-md hover:bg-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
-                  on:click={saveEditedPost}
+                  onclick={saveEditedPost}
                   class="bg-indigo-600 dark:bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
                 >
                   Save Changes
@@ -428,7 +488,7 @@ function convertMarkdownToLatex(markdown) {
             <div class="flex justify-end p-4">
               <button
                 type="button"
-                on:click={exportToPdf}
+                onclick={exportToPdf}
                 class="text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 px-4 py-2 rounded-md flex items-center space-x-2 text-sm"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -440,7 +500,7 @@ function convertMarkdownToLatex(markdown) {
             <div class="flex justify-end p-4">
               <button
                 type="button"
-                on:click={exportToLatex}
+                onclick={exportToLatex}
                 class="text-white bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 px-4 py-2 rounded-md flex items-center space-x-2 text-sm"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -473,7 +533,7 @@ function convertMarkdownToLatex(markdown) {
               <span class="text-sm text-gray-500">{formatDate(version.date)}</span>
               <button
                 class="text-blue-600 hover:text-blue-800"
-                on:click={() => restoreVersion(version)}
+                onclick={() => restoreVersion(version)}
               >
                 Restore this version
               </button>
@@ -494,7 +554,7 @@ function convertMarkdownToLatex(markdown) {
       </div>
       <button
         class="mt-4 bg-gray-200 dark:bg-gray-700 px-4 py-2 rounded"
-        on:click={() => showHistory = false}
+        onclick={() => showHistory = false}
       >
         Close
       </button>
