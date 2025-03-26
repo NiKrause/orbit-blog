@@ -154,4 +154,18 @@
       Settings
     </h5>
   </div>
-</div> 
+</div>
+
+<style>
+.sidebar-container {
+  contain: layout;
+  transform: translateZ(0); /* Forces GPU acceleration */
+}
+
+svg {
+  width: 1em !important; /* Force consistent SVG sizing */
+  height: 1em !important;
+  display: inline-block;
+  vertical-align: middle;
+}
+</style> 
