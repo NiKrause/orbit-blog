@@ -278,7 +278,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     $settingsDB.get('postsDBAddress').then(result => {
         if(result?.value?.value !== undefined){
           $postsDBAddress = result.value.value
-        } else {
+        } else if($postsDBAddress && $postsDB.address){
           const postsDBAddress = $postsDB?.address.toString()
           $settingsDB?.put({ _id: 'postsDBAddress', value: postsDBAddress});
           $settingsDB?.all().then(result => console.log('settingsDB.all()', result))
@@ -288,7 +288,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     $settingsDB.get('commentsDBAddress').then(result => {
       if(result?.value?.value !== undefined){
         $commentsDBAddress = result.value.value
-      } else {
+      } else if($commentsDB && $commentsDB.address){
         const commentsDBAddress = $commentsDB?.address.toString()
         $settingsDB?.put({ _id: 'commentsDBAddress', value: commentsDBAddress});
         $settingsDB?.all().then(result => console.log('settingsDB.all()', result))
@@ -296,7 +296,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     })
     $settingsDB.get('mediaDBAddress').then(result => {
       if(result?.value?.value !== undefined){
-      } else {
+      } else if($mediaDB && $mediaDB.address){
         const mediaDBAddress = $mediaDB?.address.toString()
         $settingsDB?.put({ _id: 'mediaDBAddress', value: mediaDBAddress});
         $settingsDB?.all().then(result => console.log('settingsDB.all()', result))
