@@ -1532,7 +1532,7 @@ packages:
     resolution: {integrity: sha512-zgMWoMPxN6kJv++JZhgkfx7+ZoDgeLgV5vTU6LG5ZZLg4LLg9irqneoc80Gg93vf4nP6jQiGxC5d8SmeDZsBFA==}
 
   '@orbitdb/voyager@file:../../voyager/orbitdb-voyager-0.0.4.tgz':
-    resolution: {integrity: sha512-TD+gDJyQ+VQ0gKlLoYWdMQSRfJXfCHsb+T7y7lez1mw/VDsB9m2K0mQ1abztoz5BOxVzS2CBp+zGRBFaoUnfdw==, tarball: file:../../voyager/orbitdb-voyager-0.0.4.tgz}
+    resolution: {integrity: sha512-kjrd5QwxJSeflQGs0CBtZkkD+wufgfMzhjUKKujpIeYW+QC+8Mo90ZLi/ZwXCYg+RMyCShOoiml2bj/fGbydyw==, tarball: file:../../voyager/orbitdb-voyager-0.0.4.tgz}
     version: 0.0.4
     engines: {node: '>=20.0.0'}
     hasBin: true
