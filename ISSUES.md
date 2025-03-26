@@ -16,7 +16,12 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 ### Todos, Features, Issues
 - Todos:
     - [ ] Create Svelte lib from project, so it can be used in other projects as component
+        [x] lib created
+        [ ] issue with tailwind components - tailwind components do not show up! 
+    - [x] default orbitblog address configurable by dns txt attribute _orbitblog.example.com (by hostname) <- centralized approach 
+    - [ ] default orbitblog address configurable by ethereum, polygon, namecoin, bitcoin 
     - ]x] PDF export from a post content
+
     - [ ] AI templates + file upload e.g. 
         - [ ] create a CV
         - [ ] correct my spelling
