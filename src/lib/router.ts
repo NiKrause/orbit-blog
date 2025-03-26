@@ -7,24 +7,24 @@ const isBrowser = typeof window !== 'undefined';
 export const isLoadingRemoteBlog = writable(true);
 
 async function queryTXT(domain: string) {
-    const url = `https://cloudflare-dns.com/dns-query?name=_orbitblog.${domain}&type=TXT`;
-    //TODO replace with blockchain
+    // const _domain = 'nicokrause.com';
+    const url = `https://${domain}/.orbitblog`;
+
     try {
-        console.log('querying TXT for domain', url);
-        const response = await fetch(url, {
+        console.log('querying initialAddress for domain', url);
+        const response = await  fetch(url, {
             headers: {
-                'Accept': 'application/dns-json'
+                'Accept': 'application/json'
             }
         });
         const data = await response.json();
-        if (data.Answer && data.Answer.length > 0) {
-            // TXT records are returned with quotes, we need to remove them
-            const txt = data.Answer[0].data.replace(/^"(.*)"$/, '$1');
-            console.log('TXT for domain', txt);
-            return txt;
+        console.log('json', data);
+        if (data.initialAddress) {
+            console.log('initialAddress', data.initialAddress);
+            return data.initialAddress;
         }
     } catch (error) {
-        console.error('DNS query failed:', error);
+        console.error('OrbitBlog InitialAddress query not available:', error);
     }
     return '';
 }
