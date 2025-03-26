@@ -26,7 +26,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:lib": "svelte-package",
+    "build:lib": "vite build --mode lib",
     "preview": "vite preview",
     "ipfs-publish": "npm version patch && npm run build && ./ipfs-publish.sh",
     "check": "svelte-check --tsconfig ./tsconfig.json"
