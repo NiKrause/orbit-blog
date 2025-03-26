@@ -1,6 +1,6 @@
 {
   "name": "orbitdb-blog",
-  "version": "0.1.78",
+  "version": "0.1.79",
   "type": "module",
   "files": [
     "dist",
