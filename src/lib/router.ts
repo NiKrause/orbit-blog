@@ -1,7 +1,7 @@
 import { readable, derived, writable, get } from 'svelte/store';
 import { switchToRemoteDB } from './dbUtils';
 import { initialAddress } from './store';
-const domain = "le-space.de" //window.location.hostname;
+const domain = window.location.hostname;
 const isBrowser = typeof window !== 'undefined';
 
 export const isLoadingRemoteBlog = writable(true);
