@@ -62,8 +62,11 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [x] peerId is a new one after each page load even if we have a persistent identity
     - [?] can it be useful to have a new peerId even if identity is persistent? What would be the draw back?   
 - UI related
-    - [ ] copy a blog to becom own blog
-        - [ ] fork/merge (PR's) possible?
+    - [ ] Markdown improvements
+        - [ ] execute Svelte components inside a post! 
+        - [ ] make accordion component for certain markdown e.g. ----
+    - [ ] copy / fork a blog to become my own blog
+        - [ ] fork/mer  ge (PR's) possible?
     - [ ] create PoE for blog post on several blockchains (e.g. Bitcoin, Namecoin etc.)
     - [ ] configure your own voyager
         - [ ] via Electron for desktop

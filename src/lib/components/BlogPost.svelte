@@ -7,6 +7,7 @@
   import { unixfs } from '@helia/unixfs';
   import { onMount } from 'svelte';
   import { DateTime } from 'luxon';
+  import DOMPurify from 'dompurify';
 
   interface Props {
     post: BlogPost;
@@ -30,18 +31,62 @@
     sanitize: false // Allow HTML
   });
 
+  // At the top of the script section, after imports
+  const accordionExtension = {
+    name: 'accordion',
+    level: 'block',
+    start(src) {
+      return src.match(/^----\s*\n/)?.index;
+    },
+    tokenizer(src, tokens) {
+      const rule = /^----\s*\n(#{1,6}\s*(.+?))\n([\s\S]*?)(?=\n----|\n$)/;
+      const match = rule.exec(src);
+      if (match) {
+        const [raw, headerLine, title, content] = match;
+        const token = {
+          type: 'accordion',
+          raw,
+          headerLine,
+          title: title.trim(),
+          content: content.trim(),
+          tokens: [],
+          contentTokens: []
+        };
+        
+        // Parse the header and content as markdown
+        this.lexer.inline(headerLine.trim(), token.tokens);
+        this.lexer.blockTokens(content.trim(), token.contentTokens);
+        
+        return token;
+      }
+    },
+    renderer(token) {
+      const accordionId = `accordion-${Math.random().toString(36).substr(2, 9)}`;
+      return `
+        <div class="accordion-wrapper">
+          <details class="accordion" id="${accordionId}">
+            <summary class="accordion-header">
+              ${this.parser.parseInline(token.tokens)}
+            </summary>
+            <div class="accordion-content">
+              ${this.parser.parse(token.contentTokens)}
+            </div>
+          </details>
+        </div>`;
+    },
+    childTokens: ['tokens', 'contentTokens']
+  };
+
   // Move renderer setup into a function
   function setupRenderer() {
     const renderer = new marked.Renderer();
     const defaultImageRenderer = renderer.image.bind(renderer);
     
+    // First handle images
     renderer.image = (href, title, text) => {
       if (href.startsWith('ipfs://')) {
         const mediaId = href.replace('ipfs://', '');
-        console.log('mediaId', mediaId);
-        console.log('mediaCache', mediaCache);
         const media = mediaCache.get(mediaId);
-        console.log('media', media);
         if (media) {
           return defaultImageRenderer(media, title, text);
         } else if (media) {
@@ -51,7 +96,7 @@
       return defaultImageRenderer(href, title, text);
     };
 
-    marked.use({ renderer });
+    marked.use({ renderer, extensions: [accordionExtension] });
   }
 
   function initUnixFs() {
@@ -214,7 +259,15 @@
     }
   });
 
-  let renderedContent = $derived(marked(post.content));
+  function renderContent(content: string): string {
+    return DOMPurify.sanitize(marked(content), {
+      ADD_TAGS: ['details', 'summary', 'div'],
+      ADD_ATTR: ['id', 'class', 'aria-controls', 'aria-expanded', 'aria-labelledby', 'role'],
+      ALLOW_DATA_ATTR: true
+    });
+  }
+
+  let renderedContent = $derived(renderContent(post.content));
 
   function formatDate(dateString: string): string {
     if (!dateString) return '';
@@ -222,8 +275,65 @@
   }
 </script>
 
+<style>
+  /* ... existing styles ... */
+
+  /* Add accordion styles */
+  :global(.accordion-wrapper) {
+    margin: 1rem 0;
+  }
+
+  :global(.accordion) {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    overflow: hidden;
+  }
+
+  :global(.accordion-header) {
+    padding: 1rem;
+    background-color: #f9fafb;
+    cursor: pointer;
+    font-weight: 600;
+    display: block;
+    user-select: none;
+  }
+
+  /* Dark mode support */
+  :global(.dark .accordion) {
+    border-color: #4b5563;
+  }
+
+  :global(.dark .accordion-header) {
+    background-color: #374151;
+  }
+
+  :global(.accordion-header:hover) {
+    background-color: #f3f4f6;
+  }
+
+  :global(.dark .accordion-header:hover) {
+    background-color: #4b5563;
+  }
+
+  :global(.accordion-content) {
+    padding: 1rem;
+  }
+
+  /* Add arrow indicator */
+  :global(.accordion-header::after) {
+    content: '▼';
+    float: right;
+    transform: rotate(0);
+    transition: transform 0.2s ease;
+  }
+
+  :global(details[open] .accordion-header::after) {
+    transform: rotate(180deg);
+  }
+</style>
+
 <article class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-  <h2 class="text-2xl font-bold mb-2 text-gray-900 dark:text-white">{post.title}</h2>
+  <h1 class="text-2xl font-bold mb-2 text-gray-900 dark:text-white">{post.title}</h1>
   <div class="flex space-x-4 text-sm text-gray-500 dark:text-gray-400 mb-4">
     <span title={post.identity || 'Unknown'}>
       By {post.identity ? `...${post.identity.slice(-5)}` : 'Unknown'}

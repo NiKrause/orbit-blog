@@ -40,8 +40,9 @@
   let selectedPost = $derived($selectedPostId ? filteredPosts.find(post => post._id === $selectedPostId) : null);
 
   onMount(() => {
+    console.log('PostList component mounted');
     if (filteredPosts.length > 0 && !$selectedPostId) {
-      $selectedPostId = filteredPosts[0]._id; // Select the first (latest) post
+      $selectedPostId = filteredPosts[0]._id;
     }
   });
 
@@ -52,7 +53,7 @@
   });
 
   function renderMarkdown(content: string): string {
-    // Convert single newlines to <br> tags before rendering markdown
+    // Process the markdown
     const contentWithBreaks = content.replace(/\n(?!\n)/g, '  \n');
     const rawHtml = marked(contentWithBreaks);
     return DOMPurify.sanitize(rawHtml);
