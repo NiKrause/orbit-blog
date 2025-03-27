@@ -18,13 +18,12 @@ async function queryTXT(domain: string) {
             }
         });
         const data = await response.json();
-        console.log('json', data);
         if (data.initialAddress) {
             console.log('initialAddress', data.initialAddress);
             return data.initialAddress;
         }
     } catch (error) {
-        console.error('OrbitBlog InitialAddress query not available:', error);
+        console.info('OrbitBlog InitialAddress query not available:');
     }
     return '';
 }
@@ -68,7 +67,6 @@ export async function initHashRouter() {
     // Initial check for URL hash on page load
     const _initialAddressRouter = extractOrbitDBAddress(getHash());
     const _initialAddressDNS =  await queryTXT(domain);
-    console.log(`initialAddressDN for domain ${domain}`, _initialAddressDNS);
     if (_initialAddressRouter || _initialAddressDNS) {
         const _initialAddress = _initialAddressRouter || _initialAddressDNS;
         console.log('initialAddress', _initialAddress);
