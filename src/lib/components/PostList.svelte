@@ -1,7 +1,7 @@
 <script lang="ts">
   import { run } from 'svelte/legacy';
 
-  import { posts, selectedPostId, identity } from '$lib/store';
+  import { posts, selectedPostId, identity, postsDB } from '$lib/store';
   import { DateTime } from 'luxon';
   import { formatDate, formatTimestamp } from '$lib/dateUtils';
 
@@ -9,7 +9,7 @@
   import DOMPurify from 'dompurify';
   import type { Post, Category } from '$lib/types';
   import { onMount } from 'svelte';
-  import { postsDB, categories } from '$lib/store';
+  import { categories } from '$lib/store';
   import BlogPost from './BlogPost.svelte';
   import MediaUploader from './MediaUploader.svelte';
   // Import html2pdf for PDF generation
@@ -302,6 +302,12 @@ ${convertMarkdownToLatex(selectedPost.content)}
       .replace(/!\[(.+?)\]\((.+?)\)/g, '\\includegraphics{$2}') // Images
       .replace(/[&$%#_{}]/g, '\\$&'); // Escape special characters
   }
+
+  // Add a function to check write permissions
+  function hasWriteAccess(): boolean {
+    if (!$postsDB || !$identity) return false;
+    return $postsDB.access.write.includes($identity.id) || $postsDB.access.write.includes("*");
+  }
 </script>
 
 <div class="space-y-6">
@@ -337,35 +343,38 @@ ${convertMarkdownToLatex(selectedPost.content)}
             onmouseout={() => hoveredPostId = null}
             onclick={() => selectPost(post._id)}
           >
-            <div class="flex justify-end space-x-2 {hoveredPostId === post._id ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300 ease-in-out">
-              <button
-                class="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                onclick={(e) => editPost(post, e)}
-                title="Edit post"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                </svg>
-              </button>
-              <button
-                class="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                onclick={(e) => deletePost(post, e)}
-                title="Delete post"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-                </svg>
-              </button>
-              <button
-                class="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
-                onclick={(e) => viewPostHistory(post, e)}
-                title="View history"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"/>
-                </svg>
-              </button>
-            </div>
+            <!-- Only show buttons if user has write access -->
+            {#if hasWriteAccess()}
+              <div class="flex justify-end space-x-2 {hoveredPostId === post._id ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300 ease-in-out">
+                <button
+                  class="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                  onclick={(e) => editPost(post, e)}
+                  title="Edit post"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                  </svg>
+                </button>
+                <button
+                  class="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                  onclick={(e) => deletePost(post, e)}
+                  title="Delete post"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+                <button
+                  class="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
+                  onclick={(e) => viewPostHistory(post, e)}
+                  title="View history"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"/>
+                  </svg>
+                </button>
+              </div>
+            {/if}
             <div class="flex justify-between items-start">
               <div class="flex-1">
                 <h3 class="font-medium text-gray-900 dark:text-white overflow-hidden whitespace-nowrap" title={post.title}>
@@ -484,29 +493,29 @@ ${convertMarkdownToLatex(selectedPost.content)}
         {:else}
           <!-- View Mode -->
           <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md">
-            <!-- Add Export Button -->
-            <div class="flex justify-end p-4">
+            <!-- Replace Export Buttons with small icons -->
+            <div class="flex justify-end p-2 space-x-2">
               <button
                 type="button"
                 onclick={exportToPdf}
-                class="text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 px-4 py-2 rounded-md flex items-center space-x-2 text-sm"
+                class="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 p-1"
+                title="Export as PDF"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd" />
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" />
+                  <path d="M14 11a1 1 0 01-1 1H7a1 1 0 110-2h6a1 1 0 011 1z" />
                 </svg>
-                <span>Export PDF</span>
               </button>
-            </div>
-            <div class="flex justify-end p-4">
               <button
                 type="button"
                 onclick={exportToLatex}
-                class="text-white bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 px-4 py-2 rounded-md flex items-center space-x-2 text-sm"
+                class="text-gray-600 hover:text-green-600 dark:text-gray-400 dark:hover:text-green-400 p-1"
+                title="Export as LaTeX"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clip-rule="evenodd" />
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                  <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd" />
                 </svg>
-                <span>Export LaTeX</span>
               </button>
             </div>
             <BlogPost post={selectedPost} />

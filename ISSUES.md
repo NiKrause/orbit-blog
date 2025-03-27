@@ -15,7 +15,8 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 ### Todos, Features, Issues
 - Todos:
-    - [ ] editable, deletable, history only when write access
+    - [ ] creating a new blog should be easier then the moment (one button click)
+    - [x] editable, deletable, history only when write access
     - [ ] le-space.de should be hosted on vercel 
         - [ ] run voyager as relay and pinning service
         - [ ] deliver posts to display photos in social media e.g. Telegram, Twitter etc. 

@@ -45,7 +45,7 @@
         if (media) {
           return defaultImageRenderer(media, title, text);
         } else if (media) {
-          return defaultImageRenderer(`https://ipfs.io/ipfs/${media.cid}`, title, text);
+          return defaultImageRenderer(`https://dweb.link/ipfs/${media.cid}`, title, text);
         }
       }
       return defaultImageRenderer(href, title, text);
@@ -89,7 +89,7 @@
     } catch (error) {
       console.error(`Error fetching from IPFS (${cid}):`, error);
       // Fall back to gateway URL
-      return `https://ipfs.io/ipfs/${cid}`;
+      return `https://dweb.link/ipfs/${cid}`;
     }
   }
 
@@ -225,7 +225,9 @@
 <article class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
   <h2 class="text-2xl font-bold mb-2 text-gray-900 dark:text-white">{post.title}</h2>
   <div class="flex space-x-4 text-sm text-gray-500 dark:text-gray-400 mb-4">
-    <span>By {post.identity || 'Unknown'}</span>
+    <span title={post.identity || 'Unknown'}>
+      By {post.identity ? `...${post.identity.slice(-5)}` : 'Unknown'}
+    </span>
     <span>{formatDate(post.createdAt)}</span>
     {#if post.updatedAt && post.updatedAt !== post.createdAt}
       <span>(Updated: {formatDate(post.updatedAt)})</span>
