@@ -144,18 +144,19 @@
 
   // Add a comment using the commentsDB
   async function addComment() {
+    console.log('addComment', newComment, commentAuthor, $commentsDB);
     if (!newComment.trim() || !commentAuthor.trim() || !$commentsDB) return;
-
+    console.log("commentsDB", $commentsDB);
     try {
       const _id = crypto.randomUUID();
-      await $commentsDB.put({
+      const comment = await $commentsDB.put({
         _id,
         postId: post._id,
         content: newComment,
         author: commentAuthor,
         createdAt: new Date().toISOString()
       });
-
+      console.log('comment added', comment);
       newComment = '';
       commentAuthor = '';
       

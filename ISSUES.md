@@ -15,6 +15,14 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 ### Todos, Features, Issues
 - Todos:
+    - [ ] editable, deletable, history only when write access
+    - [ ] le-space.de should be hosted on vercel 
+        - [ ] run voyager as relay and pinning service
+        - [ ] deliver posts to display photos in social media e.g. Telegram, Twitter etc. 
+    - [ ] blog author get's lost when updating - author needs to be shortened, the ID is too long, need to hover to see it fully 
+    - [x] comments can't be stored anymore
+    - [ ] integrated AI spell checker
+    - [ ] integrated AI translater via configurable private API url 
     - [ ] Create Svelte lib from project, so it can be used in other projects as component
         [x] lib created
         [ ] issue with tailwind components - tailwind components do not show up! 
@@ -26,7 +34,10 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
         - [ ] create a CV
         - [ ] correct my spelling
         - [ ] translate to English, Spanish, etc.
-    - [ ] Settings: Configure a logo
+    - [ ] Settings 
+        - [ ] Configure a logo
+        - [ ] Configure a favicon
+        - [ ] Configure imprint and data protection 
     - [x] add lock / unlock icon's for blocks which are writable / locked
     - [x] add posts count before remote sidebar
     - [x] upload media (images / videos / audio) to each post and make them show up on the right side next to the post relative to a certain position in the text
