@@ -127,6 +127,65 @@ function hasWriteAccess(db: any, identityId: string): boolean {
   return db.access.write.includes(identityId) || db.access.write.includes("*");
 }
 
+interface DBConfig {
+  name: string;
+  directory: string;
+  writeAccess: string[];
+  store: any; // Svelte store
+  addressStore: any; // Svelte store for address
+}
+
+async function openOrCreateDB(
+  voyagerInstance: any,
+  dbContents: any[],
+  dbKey: string,
+  config: DBConfig,
+  canWriteToSettings: boolean,
+  settingsDB: any
+) {
+  const dbAddressValue = dbContents.find(content => content.key === dbKey)?.value?.value;
+  console.log(`Found ${dbKey}:`, dbAddressValue);
+
+  if (dbAddressValue) {
+    try {
+      const dbInstance = await voyagerInstance.orbitdb.open(dbAddressValue);
+      console.log(`${config.name} ${dbAddressValue} loaded`);
+      config.store.set(dbInstance);
+      config.addressStore.set(dbAddressValue);
+      return dbInstance;
+    } catch (error) {
+      console.error(`Failed to open ${config.name} database:`, error);
+      if (!canWriteToSettings) {
+        console.log(`No write access to settings - skipping ${config.name} database creation`);
+      }
+    }
+  } else if (canWriteToSettings) {
+    try {
+      const dbInstance = await voyagerInstance.orbitdb.open(config.name, {
+        type: 'documents',
+        create: true,
+        overwrite: false,
+        directory: config.directory,
+        identity: get(identity),
+        identities: get(identities),
+        AccessController: IPFSAccessController({ write: config.writeAccess })
+      });
+      await voyagerInstance.add(dbInstance.address);
+      config.store.set(dbInstance);
+      const dbAddress = dbInstance.address.toString();
+      config.addressStore.set(dbAddress);
+      // Store in settings
+      await settingsDB.put({ _id: dbKey, value: dbAddress });
+      return dbInstance;
+    } catch (error) {
+      console.error(`Failed to create ${config.name} database:`, error);
+    }
+  } else {
+    console.log(`No ${config.name} database address found and no write access to create one`);
+  }
+  return null;
+}
+
 /**
  * Switches the application to use a remote OrbitDB database
  * 
@@ -213,141 +272,54 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         console.log('blogDescriptionValue', blogDescriptionValue);
         console.log('postsDBAddressValue', postsDBAddressValue);
 
-        // Load posts from postsDBAddress
-        console.log('Found postsDBAddress:', postsDBAddressValue);
-        if (postsDBAddressValue) {
-          try {
-            const postsDBInstance = await voyagerInstance.orbitdb.open(postsDBAddressValue);
-            console.log(`postsDB ${postsDBAddressValue} loaded`);
-            postsDB.set(postsDBInstance);
-            postsDBAddress.set(postsDBAddressValue);
-            
-            const allPosts = (await postsDBInstance.all()).map(post => {
-              const { _id, ...rest } = post.value;
-              return { ...rest, id: _id };
-            });
-            console.log(`Loaded ${allPosts.length} posts`);
-            postsCount = allPosts.length;
-            access = postsDBInstance.access;
-            posts.set(allPosts);
-          } catch (error) {
-            console.error('Failed to open posts database:', error);
-            if (!canWriteToSettings) {
-              console.log('No write access to settings - skipping database creation');
-              return false;
-            }
-            // Only create new database if we have write access
-            console.log('Creating new posts database...');
-            try {
-              const postsDBInstance = await voyagerInstance.orbitdb.open('posts', {
-                type: 'documents',
-                create: true,
-                overwrite: false,
-                directory: './orbitdb/posts',
-                identity: get(identity),
-                identities: get(identities),
-                AccessController: IPFSAccessController({write: [get(identity).id]})
-              });
-              await voyagerInstance.add(postsDBInstance.address);
-              postsDB.set(postsDBInstance);
-              const postsAddress = postsDBInstance.address.toString();
-              postsDBAddress.set(postsAddress);
-              // Store in settings
-              await db.put({ _id: 'postsDBAddress', value: postsAddress });
-              posts.set([]);
-            } catch (createError) {
-              console.error('Failed to create posts database:', createError);
-              return false;
-            }
-          }
-        } else if (canWriteToSettings) {
-          // Only create new database if we have write access
-          console.log('No posts database address found and no write access to create one');
-          return false;
-        } else {
-          console.error('No posts database address found and no write access to create one');
-          return false;
-        }
-        
-        // Get comments DB address and open it
-        const commentsDBAddressValue = dbContents.find(content => content.key === 'commentsDBAddress')?.value?.value;
-        console.log('Found commentsDBAddress:', commentsDBAddressValue);
-        if (commentsDBAddressValue) {
-          try {
-            const commentsDBInstance = await voyagerInstance.orbitdb.open(commentsDBAddressValue);
-            console.log(`commentsDB ${commentsDBAddressValue} loaded`);
-            commentsDB.set(commentsDBInstance);
-            commentsDBAddress.set(commentsDBAddressValue);
-          } catch (error) {
-            console.error('Failed to open comments database:', error);
-            if (!canWriteToSettings) {
-              console.log('No write access to settings - skipping comments database creation');
-            }
-          }
-        } else if (canWriteToSettings) {
-          // Only create new database if we have write access
-          try {
-            const commentsDBInstance = await voyagerInstance.orbitdb.open('comments', {
-              type: 'documents',
-              create: true,
-              overwrite: false,
-              directory: './orbitdb/comments',
-              identity: get(identity),
-              identities: get(identities),
-              AccessController: IPFSAccessController({write: ["*"]}) // Allow anyone to comment
-            });
-            await voyagerInstance.add(commentsDBInstance.address);
-            commentsDB.set(commentsDBInstance);
-            const commentsAddress = commentsDBInstance.address.toString();
-            commentsDBAddress.set(commentsAddress);
-            // Store in settings
-            await db.put({ _id: 'commentsDBAddress', value: commentsAddress });
-          } catch (error) {
-            console.error('Failed to create comments database:', error);
-          }
-        } else {
-          console.log('No comments database address found and no write access to create one');
+        // Posts DB
+        const postsInstance = await openOrCreateDB(voyagerInstance, dbContents, 'postsDBAddress', {
+          name: 'posts',
+          directory: './orbitdb/posts',
+          writeAccess: [get(identity).id],
+          store: postsDB,
+          addressStore: postsDBAddress
+        }, canWriteToSettings, db);
+
+        if (postsInstance) {
+          const allPosts = (await postsInstance.all()).map(post => {
+            // OrbitDB returns { key, value } pairs, where value contains our actual post data
+            const { _id, ...rest } = post.value;
+            // Log the post structure to debug
+            console.log('Post structure:', post);
+            // Make sure we're getting the actual post content
+            return { 
+              ...rest,
+              _id:   _id,
+              content: rest.content || rest.value?.content, // Handle potential nesting
+              title: rest.title || rest.value?.title,
+              date: rest.date || rest.value?.date,
+              // Add any other fields you need
+            };
+          });
+          console.log(`Loaded ${allPosts.length} posts with content:`, allPosts);
+          postsCount = allPosts.length;
+          access = postsInstance.access;
+          posts.set(allPosts);
         }
 
-        // Get media DB address and open it
-        const mediaDBAddressValue = dbContents.find(content => content.key === 'mediaDBAddress')?.value?.value;
-        console.log('Found mediaDBAddress:', mediaDBAddressValue);
-        if (mediaDBAddressValue) {
-          try {
-            const mediaDBInstance = await voyagerInstance.orbitdb.open(mediaDBAddressValue);
-            console.log(`mediaDB ${mediaDBAddressValue} loaded`);
-            mediaDB.set(mediaDBInstance);
-            mediaDBAddress.set(mediaDBAddressValue);
-          } catch (error) {
-            console.error('Failed to open media database:', error);
-            if (!canWriteToSettings) {
-              console.log('No write access to settings - skipping media database creation');
-            }
-          }
-        } else if (canWriteToSettings) {
-          // Only create new database if we have write access
-          try {
-            const mediaDBInstance = await voyagerInstance.orbitdb.open('media', {
-              type: 'documents',
-              create: true,
-              overwrite: false,
-              directory: './orbitdb/media',
-              identity: get(identity),
-              identities: get(identities),
-              AccessController: IPFSAccessController({write: [get(identity).id]})
-            });
-            await voyagerInstance.add(mediaDBInstance.address);
-            mediaDB.set(mediaDBInstance);
-            const mediaAddress = mediaDBInstance.address.toString();
-            mediaDBAddress.set(mediaAddress);
-            // Store in settings
-            await db.put({ _id: 'mediaDBAddress', value: mediaAddress });
-          } catch (error) {
-            console.error('Failed to create media database:', error);
-          }
-        } else {
-          console.log('No media database address found and no write access to create one');
-        }
+        // Comments DB
+        await openOrCreateDB(voyagerInstance, dbContents, 'commentsDBAddress', {
+          name: 'comments',
+          directory: './orbitdb/comments',
+          writeAccess: ["*"], // Allow anyone to comment
+          store: commentsDB,
+          addressStore: commentsDBAddress
+        }, canWriteToSettings, db);
+
+        // Media DB
+        await openOrCreateDB(voyagerInstance, dbContents, 'mediaDBAddress', {
+          name: 'media',
+          directory: './orbitdb/media',
+          writeAccess: [get(identity).id],
+          store: mediaDB,
+          addressStore: mediaDBAddress
+        }, canWriteToSettings, db);
 
         retry = false; // Stop retrying if all data is fetched
       } else {
