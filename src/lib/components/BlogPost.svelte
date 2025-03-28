@@ -267,11 +267,15 @@
     if ($mediaDB && post) {
       await loadPostMedia();
     }
+    updateRenderedContent();
   });
 
   $effect(() => {
     if ($mediaDB && post) {
       updateRenderedContent();
+    } else {
+      updateRenderedContent();
+      //console.log('Media DB or post is not available');
     }
   });
 
