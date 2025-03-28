@@ -254,7 +254,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
           directory: './orbitdb/media',
           identity: $identity,
           identities: $identities,
-          AccessController: IPFSAccessController({write: [$identity.id]}), // Allow anyone to upload media
+          AccessController: IPFSAccessController({write: [$identity.id]}), 
         }).then(_db => {
           // $mediaDB = _db;
           console.log('mediaDB', _db)
@@ -324,6 +324,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         identity: entry.identity // This contains the creator's identity
       }));
     }).catch(err => console.error('Error opening posts database:', err));
+
 
     $postsDB.events.on('update', async (entry) => {
       console.log('Database update:', entry);

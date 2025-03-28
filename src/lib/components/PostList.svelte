@@ -27,6 +27,9 @@
   let postHistory = $state([]);
   let showMediaUploader = $state(false);
   let selectedMedia = $state([]);
+  let showDeleteConfirm = $state(false);
+  let postToDelete = $state(null);
+
 
   let filteredPosts = $derived($posts
     .filter(post => {
@@ -35,7 +38,8 @@
       const matchesCategory = selectedCategory === 'All' || post.category === selectedCategory;
       return matchesSearch && matchesCategory;
     })
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())); // Sort by date, newest first
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  );
 
   let selectedPost = $derived($selectedPostId ? filteredPosts.find(post => post._id === $selectedPostId) : null);
 
@@ -86,13 +90,7 @@
           identity: $identity.id,
           mediaIds: selectedMedia
         };
-        await $postsDB.del(selectedPost._id);
         await $postsDB.put(updatedPost);
-        // Update the posts store with the new data
-        // console.log('updatedPost', updatedPost);
-        // $posts = $posts.map(post => 
-        //   post._id === selectedPost._id ? updatedPost : post
-        // );
         console.info('Post updated successfully', updatedPost);
         editMode = false;
         $selectedPostId = updatedPost._id;
@@ -103,15 +101,23 @@
   }
 
   async function deletePost(post: Post, event: MouseEvent) {
-    console.log('Deleting post:', post);
-    event.stopPropagation(); 
+    event.stopPropagation();
+    postToDelete = post;
+    showDeleteConfirm = true;
+  }
+
+  async function confirmDelete() {
+    if (!postToDelete) return;
+    
     try {
-      const postId = post._id;
+      const postId = postToDelete._id;
       await $postsDB.del(postId);
       console.info('Post deleted successfully');
       if ($selectedPostId === postId && filteredPosts.length > 1) {
         $selectedPostId = filteredPosts[0]._id;
       }
+      showDeleteConfirm = false;
+      postToDelete = null;
     } catch (error) {
       console.error('Error deleting post:', error);
     }
@@ -337,55 +343,56 @@ ${convertMarkdownToLatex(selectedPost.content)}
     <div class="col-span-4 bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 h-fit">
       <h2 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Blog Posts</h2>
       <div class="space-y-2">
-        {#each filteredPosts as post, index (post._id || post.title + index)}
-          <div
-            class="w-full text-left p-3 rounded-md transition-colors cursor-pointer"
+        {#each filteredPosts as post (post._id)}
+          <div class="post-item w-full text-left p-3 rounded-md transition-colors cursor-pointer bg-white dark:bg-gray-800"
             onmouseover={() => hoveredPostId = post._id}
             onmouseout={() => hoveredPostId = null}
             onclick={() => selectPost(post._id)}
           >
-            <!-- Only show buttons if user has write access -->
-            {#if hasWriteAccess()}
-              <div class="flex justify-end space-x-2 {hoveredPostId === post._id ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300 ease-in-out">
-                <button
-                  class="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                  onclick={(e) => editPost(post, e)}
-                  title="Edit post"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                  </svg>
-                </button>
-                <button
-                  class="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                  onclick={(e) => deletePost(post, e)}
-                  title="Delete post"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-                  </svg>
-                </button>
-                <button
-                  class="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
-                  onclick={(e) => viewPostHistory(post, e)}
-                  title="View history"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"/>
-                  </svg>
-                </button>
-              </div>
-            {/if}
-            <div class="flex justify-between items-start">
-              <div class="flex-1">
-                <h3 class="font-medium text-gray-900 dark:text-white overflow-hidden whitespace-nowrap" title={post.title}>
-                  {truncateTitle(post.title, 40)}
-                </h3>
-                <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  <span>{formatDate(post.date)}</span>
-                  <span class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full text-xs">
-                    {post.category}
-                  </span>
+            <div class="post-content">
+              <!-- Only show buttons if user has write access -->
+              {#if hasWriteAccess()}
+                <div class="flex justify-end space-x-2 {hoveredPostId === post._id ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300 ease-in-out">
+                  <button
+                    class="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                    onclick={(e) => editPost(post, e)}
+                    title="Edit post"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                    </svg>
+                  </button>
+                  <button
+                    class="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                    onclick={(e) => deletePost(post, e)}
+                    title="Delete post"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                  </button>
+                  <button
+                    class="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
+                    onclick={(e) => viewPostHistory(post, e)}
+                    title="View history"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"/>
+                    </svg>
+                  </button>
+                </div>
+              {/if}
+              <div class="flex justify-between items-start">
+                <div class="flex-1">
+                  <h3 class="font-medium text-gray-900 dark:text-white overflow-hidden whitespace-nowrap" title={post.title}>
+                    {truncateTitle(post.title, 40)}
+                  </h3>
+                  <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    <span>{formatDate(post.date)}</span>
+                    <span class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full text-xs">
+                      {post.category}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -572,23 +579,39 @@ ${convertMarkdownToLatex(selectedPost.content)}
   </div>
 {/if}
 
+<!-- Add this modal for confirming deletion -->
+{#if showDeleteConfirm}
+  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl max-w-md w-full">
+      <h3 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">Confirm Delete</h3>
+      <p class="text-gray-600 dark:text-gray-300 mb-6">
+        Are you sure you want to delete "{postToDelete?.title}"? This action cannot be undone.
+      </p>
+      <div class="flex justify-end space-x-4">
+        <button
+          class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+          onclick={() => {
+            showDeleteConfirm = false;
+            postToDelete = null;
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+          onclick={confirmDelete}
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
 <style>
-  .line-clamp-2 {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
 
-  /* Ensure the parent container has enough width */
-  .title-container {
-    max-width: 100%;
-  }
-
-  /* Ensure the title is styled correctly */
   h3 {
-    max-width: 100%; /* Adjust as needed */
+    max-width: 100%; 
   }
 
   /* Add transition styles for opacity */
@@ -596,15 +619,6 @@ ${convertMarkdownToLatex(selectedPost.content)}
     transition: opacity 0.3s ease-in-out;
   }
 
-  /* Ensure buttons are hidden by default */
-  .post-buttons {
-    opacity: 0;
-  }
-
-  /* Show buttons on hover */
-  .post:hover .post-buttons {
-    opacity: 1;
-  }
 
   @media (max-width: 768px) {
     .responsive-grid {
@@ -648,5 +662,18 @@ ${convertMarkdownToLatex(selectedPost.content)}
   .relative:hover .content-tooltip .tooltip-content {
     visibility: visible;
     opacity: 1;
+  }
+
+  .post-item {
+    margin-bottom: 0.5rem;
+    border: 1px solid transparent;
+  }
+
+  .post-item:hover {
+    border-color: #e5e7eb;
+  }
+
+  .post-content {
+    position: relative;
   }
 </style>
