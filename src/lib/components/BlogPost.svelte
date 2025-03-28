@@ -36,28 +36,33 @@
     name: 'accordion',
     level: 'block',
     start(src) {
-      // console.log("start", src);
       return src.match(/^----\s*\n/)?.index;
     },
     tokenizer(src, tokens) {
-      console.log("tokenizer", src, tokens);
-      // console.log("tokenizer", src, tokens);
-      const rule = /^(#{1,6}\s*(.+?))\n([\s\S]*?)(?=\n----\s*$|\n#{1,6}\s|$)/;
-      const match = rule.exec(src);
+      // First check for the opening dashes
+      const dashRule = /^----\s*\n/;
+      if (!dashRule.test(src)) {
+        return;
+      }
+
+      // Skip past the dashes to look for the header and content
+      const afterDashes = src.replace(dashRule, '');
+      // Modified regex to better handle content boundaries
+      const rule = /^(#{1,6}\s*(.+?))\n([\s\S]*?)(?=\n----|\n#{1,6}\s|$)/;
+      const match = rule.exec(afterDashes);
+      
       if (match) {
-        console.log("match", match);
         const [raw, headerLine, title, content] = match;
         const token = {
           type: 'accordion',
-          raw,
+          raw: '----\n' + raw,
           headerLine,
-          title: title.trim(),
+          title: title.trim(), 
           content: content.trim(),
           tokens: [],
           contentTokens: []
         };
         
-        // Parse the header and content as markdown
         this.lexer.inline(headerLine.trim(), token.tokens);
         this.lexer.blockTokens(content.trim(), token.contentTokens);
         
@@ -71,7 +76,7 @@
         <div class="accordion-wrapper">
           <details class="accordion" id="${accordionId}">
             <summary class="accordion-header">
-              ${this.parser.parseInline(token.tokens)}
+              ${this.parser.parseInline(token.tokens).replace(/#/g, '')}
             </summary>
             <div class="accordion-content">
               ${this.parser.parse(token.contentTokens)}
@@ -84,6 +89,7 @@
 
   // Move renderer setup into a function
   function setupRenderer() {
+    console.log("setupRenderer");
     const renderer = new marked.Renderer();
     const defaultImageRenderer = renderer.image.bind(renderer);
     console.log("renderer", renderer); 
@@ -245,22 +251,31 @@
     }
   });
 
+  let renderedContent = $state('');
+
+  function updateRenderedContent() {
+    if (post?.content) {
+      renderedContent = renderContent(post.content);
+    }
+  }
+
   onMount(async () => {
+    setupRenderer();
+    updateRenderedContent();
+    
     if ($mediaDB && post) {
       await loadPostMedia();
-      setupRenderer();
     }
   });
 
-  // Remove the reactive post statement since we handle initial load in onMount
   run(() => {
     if (post) {
-
-        if ($mediaDB) {
-          loadPostMedia().then(() => {
-            setupRenderer();
-          }); 
-        }
+      if ($mediaDB) {
+        loadPostMedia().then(() => {
+          setupRenderer();
+          updateRenderedContent();
+        }); 
+      }
     }
   });
 
@@ -271,8 +286,6 @@
       ALLOW_DATA_ATTR: true
     });
   }
-
-  let renderedContent = $derived(renderContent(post.content));
 
   function formatDate(dateString: string): string {
     if (!dateString) return '';
