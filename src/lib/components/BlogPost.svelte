@@ -1,28 +1,41 @@
 <script lang="ts">
+  // Framework imports
+  import { onMount } from 'svelte';
   import { run, preventDefault } from 'svelte/legacy';
 
+  // Third-party imports
   import { marked } from 'marked';
-  import type { BlogPost, Comment } from '$lib/types';
-  import { commentsDB, mediaDB, helia } from '$lib/store';
-  import { unixfs } from '@helia/unixfs';
-  import { onMount } from 'svelte';
   import { DateTime } from 'luxon';
   import DOMPurify from 'dompurify';
+  import { unixfs } from '@helia/unixfs';
 
+  // Local imports
+  import type { BlogPost, Comment } from '$lib/types';
+  import { commentsDB, mediaDB, helia } from '$lib/store';
+
+  /**
+   * Component props interface
+   */
   interface Props {
+    /** The blog post to display */
     post: BlogPost;
   }
 
+  // Props
   let { post }: Props = $props();
 
+  // State variables
   let newComment = $state('');
   let commentAuthor = $state('');
   let comments: Comment[] = $state([]);
   let postMedia = $state([]);
   let fs = $state();
-  let mediaCache = new Map(); // Cache for IPFS content
+  let renderedContent = $state('');
+  
+  // Cache for IPFS content
+  let mediaCache = new Map();
 
-  // Configure marked options
+  // Markdown configuration
   marked.setOptions({
     gfm: true, // GitHub Flavored Markdown
     breaks: true, // Convert line breaks to <br>
@@ -31,7 +44,10 @@
     sanitize: false // Allow HTML
   });
 
-  // At the top of the script section, after imports
+  /**
+   * Custom accordion extension for markdown processing
+   * Allows creation of collapsible sections using ---- syntax
+   */
   const accordionExtension = {
     name: 'accordion',
     level: 'block',
@@ -39,15 +55,10 @@
       return src.match(/^----\s*\n/)?.index;
     },
     tokenizer(src, tokens) {
-      // First check for the opening dashes
       const dashRule = /^----\s*\n/;
-      if (!dashRule.test(src)) {
-        return;
-      }
+      if (!dashRule.test(src)) return;
 
-      // Skip past the dashes to look for the header and content
       const afterDashes = src.replace(dashRule, '');
-      // Modified regex to better handle content boundaries
       const rule = /^(#{1,6}\s*(.+?))\n([\s\S]*?)(?=\n----|\n#{1,6}\s|$)/;
       const match = rule.exec(afterDashes);
       
@@ -86,28 +97,12 @@
     childTokens: ['tokens', 'contentTokens']
   };
 
-  // Move renderer setup into a function
-  function setupRenderer() {
-    const renderer = new marked.Renderer();
-    const defaultImageRenderer = renderer.image.bind(renderer);
-    // First handle images
-    renderer.image = (href, title, text) => {
-      if (href.startsWith('ipfs://')) {
-        const mediaId = href.replace('ipfs://', '');
-        const media = mediaCache.get(mediaId);
-        if (media) {
-          return defaultImageRenderer(media, title, text);
-        } else if (media) {
-          return defaultImageRenderer(`https://dweb.link/ipfs/${media.cid}`, title, text);
-        }
-      }
-      return defaultImageRenderer(href, title, text);
-    };
-
-    marked.use({ renderer, extensions: [accordionExtension] });
-  }
-
-  function initUnixFs() {
+  // IPFS Related Functions
+  /**
+   * Initializes the UnixFS instance for IPFS operations
+   * @returns {boolean} True if initialization successful, false otherwise
+   */
+  function initUnixFs(): boolean {
     if ($helia) {
       fs = unixfs($helia);
       return true;
@@ -115,16 +110,14 @@
     return false;
   }
 
-  async function getFileFromIPFS(cid) {
-    console.log('getFileFromIPFS', cid);
-    if (!fs && !initUnixFs()) {
-      return null;
-    }
-    
-    // Check cache first
-    if (mediaCache.has(cid)) {
-      return mediaCache.get(cid);
-    }
+  /**
+   * Retrieves a blob URL for an IPFS CID
+   * @param {string} cid - The IPFS content identifier
+   * @returns {Promise<string|null>} The blob URL or gateway URL as fallback
+   */
+  async function getBlobUrl(cid: string): Promise<string | null> {
+    if (!fs && !initUnixFs()) return null;
+    if (mediaCache.has(cid)) return mediaCache.get(cid);
     
     try {
       const chunks = [];
@@ -135,54 +128,93 @@
       const fileData = new Uint8Array(chunks.reduce((acc, val) => [...acc, ...val], []));
       const blob = new Blob([fileData]);
       const url = URL.createObjectURL(blob);
-      
-      // Store in cache
       mediaCache.set(cid, url);
       return url;
     } catch (error) {
       console.error(`Error fetching from IPFS (${cid}):`, error);
-      // Fall back to gateway URL
       return `https://dweb.link/ipfs/${cid}`;
     }
   }
 
-  // Load media URLs asynchronously
-  async function loadMediaUrls() {
-    console.log('loadMediaUrls', postMedia);
-    for (const media of postMedia) {
-      if (!media.url) {
-        media.url = await getFileFromIPFS(media.cid) || `https://ipfs.io/ipfs/${media.cid}`;
+  // Content Related Functions
+  /**
+   * Sets up the markdown renderer with custom configurations
+   */
+  function setupRenderer(): void {
+    const renderer = new marked.Renderer();
+    const defaultImageRenderer = renderer.image.bind(renderer);
+    
+    renderer.image = (href, title, text) => {
+      if (href.startsWith('ipfs://')) {
+        const mediaId = href.replace('ipfs://', '');
+        const media = mediaCache.get(mediaId);
+        if (media) return defaultImageRenderer(media, title, text);
+        return defaultImageRenderer(`https://dweb.link/ipfs/${mediaId}`, title, text);
       }
-    }
-    // Force reactivity update
-    postMedia = [...postMedia];
+      return defaultImageRenderer(href, title, text);
+    };
+
+    marked.use({ renderer, extensions: [accordionExtension] });
   }
-  // Load media for this post
-  async function loadPostMedia() {
-    console.log('loadPostMedia', post);
+
+  /**
+   * Updates the rendered content with markdown processing
+   */
+  function updateRenderedContent(): void {
+    if (post?.content) {
+      renderedContent = renderContent(post.content);
+    }
+  }
+
+  /**
+   * Renders markdown content with sanitization
+   * @param {string} content - The markdown content to render
+   * @returns {string} Sanitized HTML content
+   */
+  function renderContent(content: string): string {
+    return DOMPurify.sanitize(marked(content), {
+      ADD_TAGS: ['details', 'summary', 'div'],
+      ADD_ATTR: ['id', 'class', 'aria-controls', 'aria-expanded', 'aria-labelledby', 'role'],
+      ALLOW_DATA_ATTR: true
+    });
+  }
+
+  // Media Related Functions
+  /**
+   * Loads and caches media associated with the current post
+   */
+  async function loadPostMedia(): Promise<void> {
     if (!$mediaDB || !post.mediaIds) return;
     
     try {
       const allMedia = await $mediaDB.all();
-      console.log('allMedia', allMedia);
       const mediaMap = allMedia.map(entry => entry.value);
-      postMedia = post.mediaIds?.map(cid => {
-        const media = mediaMap.find(m => m.cid === cid);
-        if (media) {
-          return { ...media, url: null }; // Add url property to store fetched content
-        }
-        return null;
-      }).filter(Boolean) || [];
+      const existingMediaMap = new Map(postMedia.map(m => [m.cid, m.url]));
       
       initUnixFs();
-      loadMediaUrls();
+      
+      postMedia = await Promise.all(
+        post.mediaIds?.map(async cid => {
+          const media = mediaMap.find(m => m.cid === cid);
+          if (media) {
+            return {
+              ...media,
+              url: existingMediaMap.get(media.cid) || await getBlobUrl(media.cid)
+            };
+          }
+          return null;
+        }) || []
+      ).then(results => results.filter(Boolean));
     } catch (error) {
       console.error('Error loading media:', error);
     }
   }
 
-  async function loadComments() {
-    console.log('loadComments', post);
+  // Comment Related Functions
+  /**
+   * Loads comments for the current post
+   */
+  async function loadComments(): Promise<void> {
     if (!$commentsDB) return;
     
     try {
@@ -195,39 +227,61 @@
     }
   }
 
-  // Add a comment using the commentsDB
-  async function addComment() {
-    console.log('addComment', newComment, commentAuthor, $commentsDB);
+  /**
+   * Adds a new comment to the post
+   */
+  async function addComment(): Promise<void> {
     if (!newComment.trim() || !commentAuthor.trim() || !$commentsDB) return;
-    console.log("commentsDB", $commentsDB);
+    
     try {
       const _id = crypto.randomUUID();
-      const comment = await $commentsDB.put({
+      await $commentsDB.put({
         _id,
         postId: post._id,
         content: newComment,
         author: commentAuthor,
         createdAt: new Date().toISOString()
       });
-      console.log('comment added', comment);
+      
       newComment = '';
       commentAuthor = '';
-      
       await loadComments();
     } catch (error) {
       console.error('Error adding comment:', error);
     }
   }
 
-  // Listen for database changes
-  run(() => {
+  /**
+   * Formats a date string to a readable format
+   * @param {string} dateString - ISO date string
+   * @returns {string} Formatted date string
+   */
+  function formatDate(dateString: string): string {
+    if (!dateString) return '';
+    return DateTime.fromISO(dateString).toLocaleString(DateTime.DATETIME_MED);
+  }
+
+  // Lifecycle and Effects
+  onMount(async () => {
+    setupRenderer();
+    if ($mediaDB && post) {
+      await loadPostMedia();
+    }
+  });
+
+  $effect(() => {
+    if ($mediaDB && post) {
+      updateRenderedContent();
+    }
+  });
+
+  $effect(() => {
     if ($commentsDB) {
       loadComments();
       
       $commentsDB.events.on('update', async (entry) => {
         if (entry?.payload?.op === 'PUT') {
           const comment = entry.payload.value;
-          // Only update our comments list if the comment belongs to this post
           if (comment.postId === post._id) {
             await loadComments();
           }
@@ -237,61 +291,9 @@
       });
     }
   });
-
-  // React to Helia being available
-  run(() => {
-    if ($helia && !fs) {
-      initUnixFs();
-      if (postMedia.length > 0) {
-        loadMediaUrls();
-      }
-    }
-  });
-
-  let renderedContent = $state('');
-
-  function updateRenderedContent() {
-    if (post?.content) {
-      renderedContent = renderContent(post.content);
-    }
-  }
-
-  onMount(async () => {
-    setupRenderer();
-    updateRenderedContent();
-    
-    if ($mediaDB && post) {
-      await loadPostMedia();
-    }
-  });
-
-  run(() => {
-    if (post) {
-      if ($mediaDB) {
-        loadPostMedia().then(() => {
-          setupRenderer();
-          updateRenderedContent();
-        }); 
-      }
-    }
-  });
-
-  function renderContent(content: string): string {
-    return DOMPurify.sanitize(marked(content), {
-      ADD_TAGS: ['details', 'summary', 'div'],
-      ADD_ATTR: ['id', 'class', 'aria-controls', 'aria-expanded', 'aria-labelledby', 'role'],
-      ALLOW_DATA_ATTR: true
-    });
-  }
-
-  function formatDate(dateString: string): string {
-    if (!dateString) return '';
-    return DateTime.fromISO(dateString).toLocaleString(DateTime.DATETIME_MED);
-  }
 </script>
 
 <style>
-  /* ... existing styles ... */
 
   /* Add accordion styles */
   :global(.accordion-wrapper) {
