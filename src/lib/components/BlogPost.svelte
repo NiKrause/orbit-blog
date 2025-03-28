@@ -70,7 +70,6 @@
       }
     },
     renderer(token) {
-      console.log("renderer accordion", token);
       const accordionId = `accordion-${Math.random().toString(36).substr(2, 9)}`;
       return `
         <div class="accordion-wrapper">
@@ -89,10 +88,8 @@
 
   // Move renderer setup into a function
   function setupRenderer() {
-    console.log("setupRenderer");
     const renderer = new marked.Renderer();
     const defaultImageRenderer = renderer.image.bind(renderer);
-    console.log("renderer", renderer); 
     // First handle images
     renderer.image = (href, title, text) => {
       if (href.startsWith('ipfs://')) {
@@ -351,7 +348,7 @@
 </style>
 
 <article class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-  <h1 class="text-2xl font-bold mb-2 text-gray-900 dark:text-white">{post.title}</h1>
+  <h1 class="text-4xl font-bold mb-2 text-gray-900 dark:text-white">{post.title}</h1>
   <div class="flex space-x-4 text-sm text-gray-500 dark:text-gray-400 mb-4">
     <span title={post.identity || 'Unknown'}>
       By {post.identity ? `...${post.identity.slice(-5)}` : 'Unknown'}
