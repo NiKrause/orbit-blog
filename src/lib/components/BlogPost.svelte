@@ -36,12 +36,16 @@
     name: 'accordion',
     level: 'block',
     start(src) {
+      // console.log("start", src);
       return src.match(/^----\s*\n/)?.index;
     },
     tokenizer(src, tokens) {
-      const rule = /^----\s*\n(#{1,6}\s*(.+?))\n([\s\S]*?)(?=\n----|\n$)/;
+      console.log("tokenizer", src, tokens);
+      // console.log("tokenizer", src, tokens);
+      const rule = /^(#{1,6}\s*(.+?))\n([\s\S]*?)(?=\n----\s*$|\n#{1,6}\s|$)/;
       const match = rule.exec(src);
       if (match) {
+        console.log("match", match);
         const [raw, headerLine, title, content] = match;
         const token = {
           type: 'accordion',
@@ -61,6 +65,7 @@
       }
     },
     renderer(token) {
+      console.log("renderer accordion", token);
       const accordionId = `accordion-${Math.random().toString(36).substr(2, 9)}`;
       return `
         <div class="accordion-wrapper">
@@ -81,7 +86,7 @@
   function setupRenderer() {
     const renderer = new marked.Renderer();
     const defaultImageRenderer = renderer.image.bind(renderer);
-    
+    console.log("renderer", renderer); 
     // First handle images
     renderer.image = (href, title, text) => {
       if (href.startsWith('ipfs://')) {
