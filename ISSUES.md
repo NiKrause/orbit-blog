@@ -15,29 +15,32 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 ### Todos, Features, Issues
 - Todos:
-    - [ ] creating a new blog should be easier then the moment (one button click)
+    - [ ] PostList should be possible to drag posts up and down and order them and store position at the post document 
+    - [ ] warn user if firewall doesn't support ICE (WebRTC/Peer-To-Peer)
     - [x] editable, deletable, history only when write access
     - [ ] le-space.de should be hosted on vercel 
         - [ ] run voyager as relay and pinning service
         - [ ] deliver posts to display photos in social media e.g. Telegram, Twitter etc. 
-    - [ ] blog author get's lost when updating - author needs to be shortened, the ID is too long, need to hover to see it fully 
+    - [ ] blog author get's lost when updating - author needs to be shortened, the ID is too long, need to hover to see it fully
+        - [ ] obviously it get's lost but when testing locally and in production it is not loosing data 
     - [x] comments can't be stored anymore
     - [ ] integrated AI spell checker
     - [ ] integrated AI translater via configurable private API url 
     - [ ] Create Svelte lib from project, so it can be used in other projects as component
         [x] lib created
-        [ ] issue with tailwind components - tailwind components do not show up! 
+        [ ] issue with tailwind components - tailwind components are not activated when importing blog lib! 
     - [x] default orbitblog address configurable by dns txt attribute _orbitblog.example.com (by hostname) <- centralized approach 
-    - [ ] default orbitblog address configurable by ethereum, polygon, namecoin, bitcoin 
+    - [ ] default orbitblog address configurable by ethereum, polygon, namecoin, bitcoin, arweave? 
     - ]x] PDF export from a post content
-
-    - [ ] AI templates + file upload e.g. 
+    - [ ] AI prompt templates + file upload e.g. 
         - [ ] create a CV
         - [ ] correct my spelling
         - [ ] translate to English, Spanish, etc.
     - [ ] Settings 
         - [ ] Configure a logo
+        - [ ] activate a navigation
         - [ ] Configure a favicon
+        - [ ] configure a different css style
         - [ ] Configure imprint and data protection 
     - [x] add lock / unlock icon's for blocks which are writable / locked
     - [x] add posts count before remote sidebar
@@ -62,9 +65,12 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [x] peerId is a new one after each page load even if we have a persistent identity
     - [?] can it be useful to have a new peerId even if identity is persistent? What would be the draw back?   
 - UI related
+    - [ ] order posts by an id and make post list draggable
+    - [ ] creating a new blog should be easier then the moment (one button click)
+    - [ ] when loading blog first time and posts are getting replicated they do not appear one by one as they come (loaded but not reactively displayed)
     - [ ] Markdown improvements
         - [ ] execute Svelte components inside a post! 
-        - [ ] make accordion component for certain markdown e.g. ----
+        - [x] make accordion component for certain markdown e.g. ----
     - [ ] copy / fork a blog to become my own blog
         - [ ] fork/mer  ge (PR's) possible?
     - [ ] create PoE for blog post on several blockchains (e.g. Bitcoin, Namecoin etc.)
