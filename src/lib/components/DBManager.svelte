@@ -2,11 +2,10 @@
   import { run } from 'svelte/legacy';
 
   import { onDestroy } from 'svelte';
-  import { settingsDB, postsDB, remoteDBs, selectedDBAddress, orbitdb, remoteDBsDatabases, identity, identities } from '$lib/store';
+  import { settingsDB, postsDB, posts, remoteDBs, selectedDBAddress, orbitdb, remoteDBsDatabases, identity, identities } from '$lib/store';
   import QRCode from 'qrcode';
   import Modal from './Modal.svelte';
   import { switchToRemoteDB, addRemoteDBToStore } from '$lib/dbUtils';
-  import { IPFSAccessController } from '@orbitdb/core';
 
   let dbAddress = $state('');
   let dbName = $state('');
@@ -149,6 +148,11 @@
               
               const postsDb = await $orbitdb.open(db.postsAddress);
               const allPosts = await postsDb.all();
+              console.log('allPosts', allPosts);
+              $posts = allPosts.map(entry => ({
+                ...entry.value,
+                identity: entry.identity // This contains the creator's identity
+              }));
               db.fetchLater = false;
               console.log(`Successfully fetched ${allPosts.length} posts from ${db.name}`);
             }else db.fetchLater = true;
