@@ -224,6 +224,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
   let categoriesValue; 
   let access;
   let postsCount;  
+  
   const voyagerInstance = get(voyager);
   
   // Get existing remote DB information to preserve
@@ -329,7 +330,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
     return true;
   } catch (error) {
     console.error('Failed to switch to remote DB:', error);
-    return false;
+    // return false;
   } finally {
     // Check if the database already exists in the store before adding it
     const remoteDBsDatabase = get(remoteDBsDatabases);
@@ -350,9 +351,6 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         });
       }
     }
-    
-    if (showModal) {
-      // Signal to close modal if needed
-    }
+
   }
 } 

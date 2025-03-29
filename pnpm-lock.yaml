@@ -20,6 +20,9 @@ importers:
       '@helia/unixfs':
         specifier: ^4.0.3
         version: 4.0.3
+      '@le-space/voyager':
+        specifier: ^0.0.6
+        version: 0.0.6(react-native@0.78.1(@babel/core@7.26.10)(@babel/preset-env@7.26.9(@babel/core@7.26.10))(react@19.0.0))
       '@libp2p/autonat':
         specifier: ^2.0.28
         version: 2.0.28
@@ -95,9 +98,6 @@ importers:
       '@orbitdb/set-db':
         specifier: ^1.1.2
         version: 1.1.2(react-native@0.78.1(@babel/core@7.26.10)(@babel/preset-env@7.26.9(@babel/core@7.26.10))(react@19.0.0))
-      '@orbitdb/voyager':
-        specifier: file:/Users/nandi/Documents/projekte/voyager/orbitdb-voyager-0.0.4.tgz
-        version: file:../../voyager/orbitdb-voyager-0.0.4.tgz(react-native@0.78.1(@babel/core@7.26.10)(@babel/preset-env@7.26.9(@babel/core@7.26.10))(react@19.0.0))
       '@types/dompurify':
         specifier: ^3.2.0
         version: 3.2.0
@@ -196,17 +196,17 @@ importers:
         version: 0.1.2
       vite-plugin-node-polyfills:
         specifier: ^0.23.0
-        version: 0.23.0(rollup@2.79.2)(vite@5.4.15(@types/node@22.13.13)(terser@5.39.0))
+        version: 0.23.0(rollup@2.79.2)(vite@5.4.15(@types/node@22.13.14)(terser@5.39.0))
       vite-plugin-wasm:
         specifier: ^3.4.1
-        version: 3.4.1(vite@5.4.15(@types/node@22.13.13)(terser@5.39.0))
+        version: 3.4.1(vite@5.4.15(@types/node@22.13.14)(terser@5.39.0))
     devDependencies:
       '@sveltejs/package':
         specifier: ^2.3.10
         version: 2.3.10(svelte@5.25.3)(typescript@5.8.2)
       '@sveltejs/vite-plugin-svelte':
         specifier: ^4.0.4
-        version: 4.0.4(svelte@5.25.3)(vite@5.4.15(@types/node@22.13.13)(terser@5.39.0))
+        version: 4.0.4(svelte@5.25.3)(vite@5.4.15(@types/node@22.13.14)(terser@5.39.0))
       '@tailwindcss/forms':
         specifier: ^0.5.10
         version: 0.5.10(tailwindcss@3.4.17)
@@ -251,10 +251,10 @@ importers:
         version: 5.8.2
       vite:
         specifier: ^5.4.15
-        version: 5.4.15(@types/node@22.13.13)(terser@5.39.0)
+        version: 5.4.15(@types/node@22.13.14)(terser@5.39.0)
       vite-plugin-pwa:
         specifier: ^0.21.2
-        version: 0.21.2(vite@5.4.15(@types/node@22.13.13)(terser@5.39.0))(workbox-build@7.3.0(@types/babel__core@7.20.5))(workbox-window@7.3.0)
+        version: 0.21.2(vite@5.4.15(@types/node@22.13.14)(terser@5.39.0))(workbox-build@7.3.0(@types/babel__core@7.20.5))(workbox-window@7.3.0)
 
 packages:
 
@@ -1308,6 +1308,11 @@ packages:
   '@jridgewell/trace-mapping@0.3.25':
     resolution: {integrity: sha512-vNk6aEwybGtawWmy/PzwnGDOjCkLWSD2wqvjGGAgOAwCGWySYXfYoxt00IJkTF+8Lb57DwOb3Aa0o9CApepiYQ==}
 
+  '@le-space/voyager@0.0.6':
+    resolution: {integrity: sha512-mF4rdf9e+D7Q7NiAHFdb8NJlcpWZMP6S1o94ff/tc/7zjrqjAgBzeEgaurcaNRxVfrprC+khsW5S5L99Bd7/fQ==}
+    engines: {node: '>=20.0.0'}
+    hasBin: true
+
   '@leichtgewicht/ip-codec@2.0.5':
     resolution: {integrity: sha512-Vo+PSpZG2/fmgmiNzYK9qWRh8h/CHrwD0mo1h1DzL4yzHNSfWYujGTYsWGreD000gcgmZ7K4Ys6Tx9TxtsKdDw==}
 
@@ -1530,12 +1535,6 @@ packages:
 
   '@orbitdb/set-db@1.1.2':
     resolution: {integrity: sha512-zgMWoMPxN6kJv++JZhgkfx7+ZoDgeLgV5vTU6LG5ZZLg4LLg9irqneoc80Gg93vf4nP6jQiGxC5d8SmeDZsBFA==}
-
-  '@orbitdb/voyager@file:../../voyager/orbitdb-voyager-0.0.4.tgz':
-    resolution: {integrity: sha512-kjrd5QwxJSeflQGs0CBtZkkD+wufgfMzhjUKKujpIeYW+QC+8Mo90ZLi/ZwXCYg+RMyCShOoiml2bj/fGbydyw==, tarball: file:../../voyager/orbitdb-voyager-0.0.4.tgz}
-    version: 0.0.4
-    engines: {node: '>=20.0.0'}
-    hasBin: true
 
   '@peculiar/asn1-cms@2.3.15':
     resolution: {integrity: sha512-B+DoudF+TCrxoJSTjjcY8Mmu+lbv8e7pXGWrhNp2/EGJp9EEcpzjBCar7puU57sGifyzaRVM03oD5L7t7PghQg==}
@@ -1928,8 +1927,8 @@ packages:
   '@types/babel__template@7.4.4':
     resolution: {integrity: sha512-h/NUaSyG5EyxBIp8YRxo4RMe2/qQgvyowRwVMzhYhBCONbW8PUsg4lkFMrhgZhUe5z3L3MiLDuvyJ/CaPa2A8A==}
 
-  '@types/babel__traverse@7.20.6':
-    resolution: {integrity: sha512-r1bzfrm0tomOI8g1SzvCaQHo6Lcv6zu0EA+W2kHrt8dyrHQxGzBBL4kdkzIS+jBMV+EYcMAEAqXqYaLJq5rOZg==}
+  '@types/babel__traverse@7.20.7':
+    resolution: {integrity: sha512-dkO5fhS7+/oos4ciWxyEyjWe48zmG6wbCheo/G2ZnHx4fs3EU6YC6UM8rk56gAjNJ9P3MTH2jo5jb92/K6wbng==}
 
   '@types/dns-packet@5.6.5':
     resolution: {integrity: sha512-qXOC7XLOEe43ehtWJCMnQXvgcIpv6rPmQ1jXT98Ad8A3TB1Ue50jsCbSSSyuazScEuZ/Q026vHbrOTVkmwA+7Q==}
@@ -1973,6 +1972,9 @@ packages:
 
   '@types/node@22.13.13':
     resolution: {integrity: sha512-ClsL5nMwKaBRwPcCvH8E7+nU4GxHVx1axNvMZTFHMEfNI7oahimt26P5zjVCRrjiIWj6YFXfE1v3dEp94wLcGQ==}
+
+  '@types/node@22.13.14':
+    resolution: {integrity: sha512-Zs/Ollc1SJ8nKUAgc7ivOEdIBM8JAKgrqqUYi2J997JuKO7/tpQC+WCetQ1sypiKCQWHdvdg9wBNpUPEWZae7w==}
 
   '@types/qrcode@1.5.5':
     resolution: {integrity: sha512-CdfBi/e3Qk+3Z/fXYShipBT13OJ2fDO2Q2w5CIP5anLTLIndQG9z6P1cnm+8zCWSpm5dnxMFd/uREtb0EXuQzg==}
@@ -2913,8 +2915,8 @@ packages:
   flow-enums-runtime@0.0.6:
     resolution: {integrity: sha512-3PYnM29RFXwvAN6Pc/scUfkI7RwhQ/xqyLUyPNlXUp9S40zI8nup9tUSrTLSVnWGBN38FNiGWbwZOB6uR4OGdw==}
 
-  flow-parser@0.265.3:
-    resolution: {integrity: sha512-YH50TTYgnzDnuaZlAxLYQ0UZtXSbbizMO3OCpoY8obvLReJmvQ5UUW22efsC3SZJmze/tATfQ0PtkKul2XwWBw==}
+  flow-parser@0.266.0:
+    resolution: {integrity: sha512-FK3Zlmnrp5lwNQZ8Ul+m0vVwnA4/Ww84+HzXKCgTmO/1aBoZcQS5f2PJfBMaGYKH2HYIm/l8qpNhw0Wxzb8x5g==}
     engines: {node: '>=0.4.0'}
 
   follow-redirects@1.15.9:
@@ -4167,6 +4169,10 @@ packages:
 
   pirates@4.0.6:
     resolution: {integrity: sha512-saLsH7WeYYPiD25LDuLRRY/i+6HaPYr6G1OUlN39otzkSTxKnubR9RTxS3/Kk50s1g2JTgFwWQDQyplC5/SHZg==}
+    engines: {node: '>= 6'}
+
+  pirates@4.0.7:
+    resolution: {integrity: sha512-TfySrs/5nm8fQJDcBDuUng3VOUKsd7S+zqvbOTiGXHfxX4wK31ard+hoNuvkicM/2YFzlpDgABOevKSsB4G/FA==}
     engines: {node: '>= 6'}
 
   pkg-dir@3.0.0:
@@ -6201,7 +6207,7 @@ snapshots:
       clone-deep: 4.0.1
       find-cache-dir: 2.1.0
       make-dir: 2.1.0
-      pirates: 4.0.6
+      pirates: 4.0.7
       source-map-support: 0.5.21
 
   '@babel/runtime@7.27.0':
@@ -6817,14 +6823,14 @@ snapshots:
     dependencies:
       '@jest/fake-timers': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 22.13.13
+      '@types/node': 22.13.14
       jest-mock: 29.7.0
 
   '@jest/fake-timers@29.7.0':
     dependencies:
       '@jest/types': 29.6.3
       '@sinonjs/fake-timers': 10.3.0
-      '@types/node': 22.13.13
+      '@types/node': 22.13.14
       jest-message-util: 29.7.0
       jest-mock: 29.7.0
       jest-util: 29.7.0
@@ -6847,7 +6853,7 @@ snapshots:
       jest-regex-util: 29.6.3
       jest-util: 29.7.0
       micromatch: 4.0.8
-      pirates: 4.0.6
+      pirates: 4.0.7
       slash: 3.0.0
       write-file-atomic: 4.0.2
     transitivePeerDependencies:
@@ -6858,7 +6864,7 @@ snapshots:
       '@jest/schemas': 29.6.3
       '@types/istanbul-lib-coverage': 2.0.6
       '@types/istanbul-reports': 3.0.4
-      '@types/node': 22.13.13
+      '@types/node': 22.13.14
       '@types/yargs': 17.0.33
       chalk: 4.1.2
 
@@ -6883,6 +6889,32 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
+
+  '@le-space/voyager@0.0.6(react-native@0.78.1(@babel/core@7.26.10)(@babel/preset-env@7.26.9(@babel/core@7.26.10))(react@19.0.0))':
+    dependencies:
+      '@chainsafe/libp2p-gossipsub': 14.1.0
+      '@ipshipyard/libp2p-auto-tls': 1.0.0
+      '@libp2p/autonat': 2.0.28
+      '@libp2p/keychain': 5.1.4
+      '@libp2p/logger': 5.1.13
+      '@libp2p/prometheus-metrics': 4.3.15
+      '@multiformats/multiaddr-matcher': 1.6.0
+      '@orbitdb/core': 2.5.0
+      '@orbitdb/set-db': 1.1.2(react-native@0.78.1(@babel/core@7.26.10)(@babel/preset-env@7.26.9(@babel/core@7.26.10))(react@19.0.0))
+      blockstore-level: 2.0.1
+      datastore-level: 11.0.1
+      helia: 5.3.0(react-native@0.78.1(@babel/core@7.26.10)(@babel/preset-env@7.26.9(@babel/core@7.26.10))(react@19.0.0))
+      it-all: 3.0.7
+      it-pipe: 3.0.1
+      libp2p: 2.8.2
+      prom-client: 15.1.3
+      uint8arrays: 5.1.0
+      yargs: 17.7.2
+    transitivePeerDependencies:
+      - bufferutil
+      - react-native
+      - supports-color
+      - utf-8-validate
 
   '@leichtgewicht/ip-codec@2.0.5': {}
 
@@ -7520,32 +7552,6 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@orbitdb/voyager@file:../../voyager/orbitdb-voyager-0.0.4.tgz(react-native@0.78.1(@babel/core@7.26.10)(@babel/preset-env@7.26.9(@babel/core@7.26.10))(react@19.0.0))':
-    dependencies:
-      '@chainsafe/libp2p-gossipsub': 14.1.0
-      '@ipshipyard/libp2p-auto-tls': 1.0.0
-      '@libp2p/autonat': 2.0.28
-      '@libp2p/keychain': 5.1.4
-      '@libp2p/logger': 5.1.13
-      '@libp2p/prometheus-metrics': 4.3.15
-      '@multiformats/multiaddr-matcher': 1.6.0
-      '@orbitdb/core': 2.5.0
-      '@orbitdb/set-db': 1.1.2(react-native@0.78.1(@babel/core@7.26.10)(@babel/preset-env@7.26.9(@babel/core@7.26.10))(react@19.0.0))
-      blockstore-level: 2.0.1
-      datastore-level: 11.0.1
-      helia: 5.3.0(react-native@0.78.1(@babel/core@7.26.10)(@babel/preset-env@7.26.9(@babel/core@7.26.10))(react@19.0.0))
-      it-all: 3.0.7
-      it-pipe: 3.0.1
-      libp2p: 2.8.2
-      prom-client: 15.1.3
-      uint8arrays: 5.1.0
-      yargs: 17.7.2
-    transitivePeerDependencies:
-      - bufferutil
-      - react-native
-      - supports-color
-      - utf-8-validate
-
   '@peculiar/asn1-cms@2.3.15':
     dependencies:
       '@peculiar/asn1-schema': 2.3.15
@@ -7993,25 +7999,25 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  '@sveltejs/vite-plugin-svelte-inspector@3.0.1(@sveltejs/vite-plugin-svelte@4.0.4(svelte@5.25.3)(vite@5.4.15(@types/node@22.13.13)(terser@5.39.0)))(svelte@5.25.3)(vite@5.4.15(@types/node@22.13.13)(terser@5.39.0))':
+  '@sveltejs/vite-plugin-svelte-inspector@3.0.1(@sveltejs/vite-plugin-svelte@4.0.4(svelte@5.25.3)(vite@5.4.15(@types/node@22.13.14)(terser@5.39.0)))(svelte@5.25.3)(vite@5.4.15(@types/node@22.13.14)(terser@5.39.0))':
     dependencies:
-      '@sveltejs/vite-plugin-svelte': 4.0.4(svelte@5.25.3)(vite@5.4.15(@types/node@22.13.13)(terser@5.39.0))
+      '@sveltejs/vite-plugin-svelte': 4.0.4(svelte@5.25.3)(vite@5.4.15(@types/node@22.13.14)(terser@5.39.0))
       debug: 4.4.0
       svelte: 5.25.3
-      vite: 5.4.15(@types/node@22.13.13)(terser@5.39.0)
+      vite: 5.4.15(@types/node@22.13.14)(terser@5.39.0)
     transitivePeerDependencies:
       - supports-color
 
-  '@sveltejs/vite-plugin-svelte@4.0.4(svelte@5.25.3)(vite@5.4.15(@types/node@22.13.13)(terser@5.39.0))':
+  '@sveltejs/vite-plugin-svelte@4.0.4(svelte@5.25.3)(vite@5.4.15(@types/node@22.13.14)(terser@5.39.0))':
     dependencies:
-      '@sveltejs/vite-plugin-svelte-inspector': 3.0.1(@sveltejs/vite-plugin-svelte@4.0.4(svelte@5.25.3)(vite@5.4.15(@types/node@22.13.13)(terser@5.39.0)))(svelte@5.25.3)(vite@5.4.15(@types/node@22.13.13)(terser@5.39.0))
+      '@sveltejs/vite-plugin-svelte-inspector': 3.0.1(@sveltejs/vite-plugin-svelte@4.0.4(svelte@5.25.3)(vite@5.4.15(@types/node@22.13.14)(terser@5.39.0)))(svelte@5.25.3)(vite@5.4.15(@types/node@22.13.14)(terser@5.39.0))
       debug: 4.4.0
       deepmerge: 4.3.1
       kleur: 4.1.5
       magic-string: 0.30.17
       svelte: 5.25.3
-      vite: 5.4.15(@types/node@22.13.13)(terser@5.39.0)
-      vitefu: 1.0.6(vite@5.4.15(@types/node@22.13.13)(terser@5.39.0))
+      vite: 5.4.15(@types/node@22.13.14)(terser@5.39.0)
+      vitefu: 1.0.6(vite@5.4.15(@types/node@22.13.14)(terser@5.39.0))
     transitivePeerDependencies:
       - supports-color
 
@@ -8036,7 +8042,7 @@ snapshots:
       '@babel/types': 7.27.0
       '@types/babel__generator': 7.6.8
       '@types/babel__template': 7.4.4
-      '@types/babel__traverse': 7.20.6
+      '@types/babel__traverse': 7.20.7
 
   '@types/babel__generator@7.6.8':
     dependencies:
@@ -8047,7 +8053,7 @@ snapshots:
       '@babel/parser': 7.27.0
       '@babel/types': 7.27.0
 
-  '@types/babel__traverse@7.20.6':
+  '@types/babel__traverse@7.20.7':
     dependencies:
       '@babel/types': 7.27.0
 
@@ -8067,7 +8073,7 @@ snapshots:
 
   '@types/graceful-fs@4.1.9':
     dependencies:
-      '@types/node': 22.13.13
+      '@types/node': 22.13.14
 
   '@types/hdkey@2.1.0':
     dependencies:
@@ -8092,9 +8098,13 @@ snapshots:
 
   '@types/node-forge@1.3.11':
     dependencies:
-      '@types/node': 22.13.13
+      '@types/node': 22.13.14
 
   '@types/node@22.13.13':
+    dependencies:
+      undici-types: 6.20.0
+
+  '@types/node@22.13.14':
     dependencies:
       undici-types: 6.20.0
 
@@ -8316,7 +8326,7 @@ snapshots:
       '@babel/template': 7.27.0
       '@babel/types': 7.27.0
       '@types/babel__core': 7.20.5
-      '@types/babel__traverse': 7.20.6
+      '@types/babel__traverse': 7.20.7
 
   babel-plugin-polyfill-corejs2@0.4.13(@babel/core@7.26.10):
     dependencies:
@@ -8647,7 +8657,7 @@ snapshots:
 
   chrome-launcher@0.15.2:
     dependencies:
-      '@types/node': 22.13.13
+      '@types/node': 22.13.14
       escape-string-regexp: 4.0.0
       is-wsl: 2.2.0
       lighthouse-logger: 1.4.2
@@ -8656,7 +8666,7 @@ snapshots:
 
   chromium-edge-launcher@0.2.0:
     dependencies:
-      '@types/node': 22.13.13
+      '@types/node': 22.13.14
       escape-string-regexp: 4.0.0
       is-wsl: 2.2.0
       lighthouse-logger: 1.4.2
@@ -9261,7 +9271,7 @@ snapshots:
 
   flow-enums-runtime@0.0.6: {}
 
-  flow-parser@0.265.3: {}
+  flow-parser@0.266.0: {}
 
   follow-redirects@1.15.9(debug@4.4.0):
     optionalDependencies:
@@ -9969,7 +9979,7 @@ snapshots:
       '@jest/environment': 29.7.0
       '@jest/fake-timers': 29.7.0
       '@jest/types': 29.6.3
-      '@types/node': 22.13.13
+      '@types/node': 22.13.14
       jest-mock: 29.7.0
       jest-util: 29.7.0
 
@@ -9979,7 +9989,7 @@ snapshots:
     dependencies:
       '@jest/types': 29.6.3
       '@types/graceful-fs': 4.1.9
-      '@types/node': 22.13.13
+      '@types/node': 22.13.14
       anymatch: 3.1.3
       fb-watchman: 2.0.2
       graceful-fs: 4.2.11
@@ -10006,7 +10016,7 @@ snapshots:
   jest-mock@29.7.0:
     dependencies:
       '@jest/types': 29.6.3
-      '@types/node': 22.13.13
+      '@types/node': 22.13.14
       jest-util: 29.7.0
 
   jest-regex-util@29.6.3: {}
@@ -10014,7 +10024,7 @@ snapshots:
   jest-util@29.7.0:
     dependencies:
       '@jest/types': 29.6.3
-      '@types/node': 22.13.13
+      '@types/node': 22.13.14
       chalk: 4.1.2
       ci-info: 3.9.0
       graceful-fs: 4.2.11
@@ -10031,7 +10041,7 @@ snapshots:
 
   jest-worker@29.7.0:
     dependencies:
-      '@types/node': 22.13.13
+      '@types/node': 22.13.14
       jest-util: 29.7.0
       merge-stream: 2.0.0
       supports-color: 8.1.1
@@ -10061,7 +10071,7 @@ snapshots:
       '@babel/preset-flow': 7.25.9(@babel/core@7.26.10)
       '@babel/preset-typescript': 7.27.0(@babel/core@7.26.10)
       '@babel/register': 7.25.9(@babel/core@7.26.10)
-      flow-parser: 0.265.3
+      flow-parser: 0.266.0
       graceful-fs: 4.2.11
       micromatch: 4.0.8
       neo-async: 2.6.2
@@ -10785,6 +10795,8 @@ snapshots:
   pify@4.0.1: {}
 
   pirates@4.0.6: {}
+
+  pirates@4.0.7: {}
 
   pkg-dir@3.0.0:
     dependencies:
@@ -11895,42 +11907,42 @@ snapshots:
       - utf-8-validate
       - zod
 
-  vite-plugin-node-polyfills@0.23.0(rollup@2.79.2)(vite@5.4.15(@types/node@22.13.13)(terser@5.39.0)):
+  vite-plugin-node-polyfills@0.23.0(rollup@2.79.2)(vite@5.4.15(@types/node@22.13.14)(terser@5.39.0)):
     dependencies:
       '@rollup/plugin-inject': 5.0.5(rollup@2.79.2)
       node-stdlib-browser: 1.3.1
-      vite: 5.4.15(@types/node@22.13.13)(terser@5.39.0)
+      vite: 5.4.15(@types/node@22.13.14)(terser@5.39.0)
     transitivePeerDependencies:
       - rollup
 
-  vite-plugin-pwa@0.21.2(vite@5.4.15(@types/node@22.13.13)(terser@5.39.0))(workbox-build@7.3.0(@types/babel__core@7.20.5))(workbox-window@7.3.0):
+  vite-plugin-pwa@0.21.2(vite@5.4.15(@types/node@22.13.14)(terser@5.39.0))(workbox-build@7.3.0(@types/babel__core@7.20.5))(workbox-window@7.3.0):
     dependencies:
       debug: 4.4.0
       pretty-bytes: 6.1.1
       tinyglobby: 0.2.12
-      vite: 5.4.15(@types/node@22.13.13)(terser@5.39.0)
+      vite: 5.4.15(@types/node@22.13.14)(terser@5.39.0)
       workbox-build: 7.3.0(@types/babel__core@7.20.5)
       workbox-window: 7.3.0
     transitivePeerDependencies:
       - supports-color
 
-  vite-plugin-wasm@3.4.1(vite@5.4.15(@types/node@22.13.13)(terser@5.39.0)):
+  vite-plugin-wasm@3.4.1(vite@5.4.15(@types/node@22.13.14)(terser@5.39.0)):
     dependencies:
-      vite: 5.4.15(@types/node@22.13.13)(terser@5.39.0)
+      vite: 5.4.15(@types/node@22.13.14)(terser@5.39.0)
 
-  vite@5.4.15(@types/node@22.13.13)(terser@5.39.0):
+  vite@5.4.15(@types/node@22.13.14)(terser@5.39.0):
     dependencies:
       esbuild: 0.21.5
       postcss: 8.5.3
       rollup: 4.37.0
     optionalDependencies:
-      '@types/node': 22.13.13
+      '@types/node': 22.13.14
       fsevents: 2.3.3
       terser: 5.39.0
 
-  vitefu@1.0.6(vite@5.4.15(@types/node@22.13.13)(terser@5.39.0)):
+  vitefu@1.0.6(vite@5.4.15(@types/node@22.13.14)(terser@5.39.0)):
     optionalDependencies:
-      vite: 5.4.15(@types/node@22.13.13)(terser@5.39.0)
+      vite: 5.4.15(@types/node@22.13.14)(terser@5.39.0)
 
   vlq@1.0.1: {}
 

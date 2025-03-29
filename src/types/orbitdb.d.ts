@@ -3,7 +3,7 @@ declare module '@orbitdb/core' {
   export function IPFSAccessController(options: any): any;
 }
 
-declare module '@orbitdb/voyager' {
+declare module '@le-space/voyager' {
   export class Voyager {
     constructor(options: any);
     add(address: string): void;

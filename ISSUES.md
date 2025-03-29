@@ -15,22 +15,26 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 ### Todos, Features, Issues
 - Todos:
+    - [ ] add Github Link
+    - [ ] when dropping db - ask user before - if drop only locally or also on voyager! Drop recursive posts, comments, media and unpin ipfs files 
     - [ ] PostList should be possible to drag posts up and down and order them and store position at the post document 
     - [ ] warn user if firewall doesn't support ICE (WebRTC/Peer-To-Peer)
-    - [x] editable, deletable, history only when write access
     - [ ] le-space.de should be hosted on vercel 
         - [ ] run voyager as relay and pinning service
         - [ ] deliver posts to display photos in social media e.g. Telegram, Twitter etc. 
     - [ ] blog author get's lost when updating - author needs to be shortened, the ID is too long, need to hover to see it fully
         - [ ] obviously it get's lost but when testing locally and in production it is not loosing data 
-    - [x] comments can't be stored anymore
     - [ ] integrated AI spell checker
     - [ ] integrated AI translater via configurable private API url 
     - [ ] Create Svelte lib from project, so it can be used in other projects as component
         [x] lib created
+    - [x] editable, deletable, history only when write access
+    - [x] comments can't be stored anymore
+    - [x] when switching network off, blog should read local db and not connect. At the moment it tries to connect online and fail
+        - [x] in dbutils try/catch if voyager.orbitdb.open works otherwise just do orbitdb.open (directly!) this could be done encapsulated internally inside voyager api
         [ ] issue with tailwind components - tailwind components are not activated when importing blog lib! 
-    - [x] default orbitblog address configurable by dns txt attribute _orbitblog.example.com (by hostname) <- centralized approach 
-    - [ ] default orbitblog address configurable by ethereum, polygon, namecoin, bitcoin, arweave? 
+    - [x] default orbit blog address configurable by dns txt attribute _orbitblog.example.com (by hostname) <- centralized approach 
+    - [ ] default orbit blog address configurable by ethereum, polygon, namecoin, bitcoin, arweave? 
     - ]x] PDF export from a post content
     - [ ] AI prompt templates + file upload e.g. 
         - [ ] create a CV
