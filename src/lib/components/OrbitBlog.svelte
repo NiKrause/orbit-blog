@@ -9,7 +9,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   // IPFS & OrbitDB
   import { createHelia } from 'helia';
   import { createLibp2p } from 'libp2p';
-  import { createOrbitDB, IPFSAccessController } from '@orbitdb/core';
+  import { createOrbitDB, IPFSAccessController, Identities } from '@orbitdb/core';
   import { Voyager } from '@le-space/voyager';
   import { multiaddr } from '@multiformats/multiaddr';
   
