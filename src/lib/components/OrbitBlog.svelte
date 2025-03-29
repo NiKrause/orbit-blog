@@ -30,6 +30,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   import Settings from './Settings.svelte';
   import PasswordModal from './PasswordModal.svelte';
   import LoadingBlog from './LoadingBlog.svelte';
+  import WebRTCTester from './WebRTCTester.svelte';
 
   // Icons
   import { FaBars, FaTimes } from 'svelte-icons/fa';
@@ -86,10 +87,11 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   const SWIPE_THRESHOLD = 50; 
 
   let routerUnsubscribe;
-
   let showNotification = false;
 
   let settingsDBUpdateHandler;
+
+  let showWebRTCTester = false;
 
   if(!encryptedSeedPhrase) {
       console.log('no seed phrase, generating new one')
@@ -513,7 +515,9 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         <LoadingBlog />
       {:else}
         <div class="max-w-7xl mx-auto py-8 px-4">
-          <h1 class="text-4xl font-bold text-center mb-8 text-gray-900 dark:text-white">{$blogName}</h1> 
+            <h1 class="text-4xl font-bold text-center mb-8 text-gray-900 dark:text-white">
+            {$blogName}
+          </h1>
           <h6 class="text-sm text-center mb-8 text-gray-900 dark:text-white">{$blogDescription}</h6>
           <h6 class="text-xs text-center mb-8 text-gray-900 dark:text-white">{__APP_VERSION__}</h6>
 

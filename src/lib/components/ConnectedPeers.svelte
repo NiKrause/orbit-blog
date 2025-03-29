@@ -2,6 +2,7 @@
   import { helia } from '$lib/store';
   import { onMount } from 'svelte';
   import type { Connection } from '@libp2p/interface-connection'
+  import WebRTCTester from './WebRTCTester.svelte';
   
   interface PeerInfo {
     id: string;
@@ -14,6 +15,7 @@
   
   let peers: PeerInfo[] = $state([]);
   let peerId = $helia?.libp2p?.peerId.toString() || '';
+  let showWebRTCTester = false;
   
   function getTransportFromMultiaddr(conn: Connection): string {
     const remoteAddr = conn.remoteAddr.toString();
@@ -134,14 +136,22 @@
   </div>
   <div class="flex justify-between items-center mb-4">
     <h2 class="text-xl font-bold text-gray-900 dark:text-white">Connected Peers</h2>
-    {#if hasWebRTCConnection(peers)}
+    <div class="flex gap-2">
       <button 
-        class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-700"
-        onclick={disconnectNonWebRTC}
+        class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded"
+        onclick={() => showWebRTCTester = true}
       >
-        Disconnect Non-WebRTC
+        Test WebRTC
       </button>
-    {/if}
+      {#if (peers)}
+        <button 
+          class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-700"
+          onclick={disconnectNonWebRTC}
+        >
+          Disconnect Non-WebRTC
+        </button>
+      {/if}
+    </div>
   </div>
   
   {#if peers.length === 0}
@@ -203,6 +213,10 @@
     </div>
   {/if}
 </div>
+
+{#if showWebRTCTester}
+  <WebRTCTester on:close={() => showWebRTCTester = false} />
+{/if}
 
 <style>
   /* Ensure tooltips don't get cut off */
