@@ -15,14 +15,18 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 ### Todos, Features, Issues
 - Todos:
-    - [ ] add Github Link
-    - [ ] when dropping db - ask user before - if drop only locally or also on voyager! Drop recursive posts, comments, media and unpin ipfs files 
-    - [ ] PostList should be possible to drag posts up and down and order them and store position at the post document 
-    - [ ] warn user if firewall doesn't support ICE (WebRTC/Peer-To-Peer)
-    - [ ] le-space.de should be hosted on vercel 
-        - [ ] run voyager as relay and pinning service
-        - [ ] deliver posts to display photos in social media e.g. Telegram, Twitter etc. 
-    - [ ] blog author get's lost when updating - author needs to be shortened, the ID is too long, need to hover to see it fully
+    - [ ] Feature RSS Feed: Auf Web2.0
+    - [ ] Feature: add Github Link
+    - [ ] Feature: when adding IPFS-image links into markdown, it should also parse external CIDs not just cids which are inside our media library
+    - [ ] Bug: locks & keys in sidebar are updating too late
+    - [ ] Feature: when dropping db - ask user before - if drop only locally or also on voyager! Drop recursive posts, comments, media and unpin ipfs files 
+    - [ ] Feature: PostList should be possible to drag posts up and down and order them and store position at the post document 
+    - [ ] Feature: warn user if firewall doesn't support ICE (WebRTC/Peer-To-Peer)
+    - [ ] Feature: le-space.de should be hosted on vercel 
+        - [ ] Feature: run voyager as relay and pinning service
+        - [ ] Feature: deliver posts in classic web2.0 mode to display photos in social media e.g. Telegram, Twitter etc. 
+    - [x] Bug: blog author get's lost when updating (only on ipns.dweb.link)
+    - [x] Feature: author needs to be shortened, the ID is too long, need to hover to see it fully
         - [ ] obviously it get's lost but when testing locally and in production it is not loosing data 
     - [ ] integrated AI spell checker
     - [ ] integrated AI translater via configurable private API url 

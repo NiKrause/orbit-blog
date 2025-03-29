@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  console.log('WebRTCTester script loaded');
+  import { createEventDispatcher, onMount } from 'svelte';
   const dispatch = createEventDispatcher();
 
   let testResults = $state({
@@ -486,7 +487,7 @@ async checkBrowserSupport() {
   }
 </script>
 
-<div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+<div class="fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-center justify-center">
   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-2xl font-bold text-gray-900 dark:text-white">WebRTC Network Test</h2>

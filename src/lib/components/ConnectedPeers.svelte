@@ -15,7 +15,7 @@
   
   let peers: PeerInfo[] = $state([]);
   let peerId = $helia?.libp2p?.peerId.toString() || '';
-  let showWebRTCTester = false;
+  let showWebRTCTester = $state(false);
   
   function getTransportFromMultiaddr(conn: Connection): string {
     const remoteAddr = conn.remoteAddr.toString();
@@ -96,15 +96,13 @@
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text);
   }
-  
+ 
   onMount(() => {
+    console.log('ConnectedPeers mounted');
     if ($helia?.libp2p) {
-      // Initial peers list
       updatePeersList();
       
-      // Listen for peer connection events
       $helia.libp2p.addEventListener('peer:connect', (event) => {
-        // console.log('Peer connected:', event.detail);
         updatePeersList();
       });
       
@@ -139,7 +137,10 @@
     <div class="flex gap-2">
       <button 
         class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded"
-        onclick={() => showWebRTCTester = true}
+        onclick={() => {
+          showWebRTCTester = true;
+          console.log('Button clicked, showWebRTCTester:', showWebRTCTester);
+        }}
       >
         Test WebRTC
       </button>
@@ -214,8 +215,12 @@
   {/if}
 </div>
 
+<!-- Add debug text -->
 {#if showWebRTCTester}
-  <WebRTCTester on:close={() => showWebRTCTester = false} />
+  <WebRTCTester on:close={() => {
+    console.log('Close event received');
+    showWebRTCTester = false;
+  }} />
 {/if}
 
 <style>
