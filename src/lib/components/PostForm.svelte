@@ -25,10 +25,10 @@
           title,
           content,
           category,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
           identity: $identity.id,
-          mediaIds: selectedMedia, // Include attached media IDs
+          mediaIds: selectedMedia,
         });
         //get all posts
         const posts = await $postsDB.all();
@@ -68,8 +68,6 @@
 
   async function removeSelectedMedia(mediaId: string) {
     selectedMedia = selectedMedia.filter(id => id !== mediaId);
-    
-    // Remove the markdown reference to this media from the content
     content = content.replace(`\n\n![Media](ipfs://${mediaId})`, '');
   }
 </script>

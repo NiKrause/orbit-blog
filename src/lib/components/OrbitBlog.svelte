@@ -333,11 +333,17 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       if (entry?.payload?.op === 'PUT') {
         const { _id, ...rest } = entry.payload.value;
         console.log('entry', entry);
-        posts.update(current => [...current, { 
-          ...rest, 
-          _id: _id,
-          identity: entry.identity // Add the identity information
-        }]);
+        
+        posts.update(current => {
+          // Remove any existing post with the same _id
+          const filtered = current.filter(post => post._id !== _id);
+          // Add the updated/new post
+          return [...filtered, { 
+            ...rest, 
+            _id: _id,
+            identity: entry.identity
+          }];
+        });
       } else if (entry?.payload?.op === 'DEL') {
         posts.update(current => current.filter(post => post._id !== entry.payload.key));
       }

@@ -23,6 +23,8 @@
   let editedTitle = $state('');
   let editedContent = $state('');
   let editedCategory: Category = $state();
+  let editedUpdatedAt = $state('');
+  let editedCreatedAt = $state('');
   let showHistory = $state(false);
   let postHistory = $state([]);
   let showMediaUploader = $state(false);
@@ -38,7 +40,7 @@
       const matchesCategory = selectedCategory === 'All' || post.category === selectedCategory;
       return matchesSearch && matchesCategory;
     })
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .sort((a, b) => a.createdAt - b.createdAt)
   );
 
   let selectedPost = $derived($selectedPostId ? filteredPosts.find(post => post._id === $selectedPostId) : null);
@@ -74,7 +76,9 @@
     editedTitle = post.title;
     editedContent = post.content;
     editedCategory = post.category;
-    selectedMedia = post.mediaIds || []; // Initialize with existing media
+    editedUpdatedAt = new Date(post.updatedAt).toISOString().slice(0, 16);
+    editedCreatedAt = new Date(post.createdAt).toISOString().slice(0, 16);
+    selectedMedia = post.mediaIds || [];
     editMode = true;
   }
 
@@ -83,12 +87,12 @@
       try {
         console.log('selectedPost', selectedPost);
         const updatedPost = {
-          // ...selectedPost,
           _id: selectedPost._id,
           title: editedTitle,
           content: editedContent,
           category: editedCategory,
-          updatedAt: new Date().toISOString(),
+          createdAt: new Date(editedCreatedAt).getTime(),
+          updatedAt: new Date(editedUpdatedAt).getTime(),
           identity: $identity.id,
           mediaIds: selectedMedia
         };
@@ -178,7 +182,6 @@
     const element = document.createElement('div');
     element.className = 'pdf-export';
     
-    // Add some basic styling for the PDF
     element.innerHTML = `
       <style>
         .pdf-export {
@@ -247,7 +250,10 @@
       </style>
       <h1>${selectedPost.title}</h1>
       <div class="meta">
-        <span>${formatDate(selectedPost.updatedAt)}</span>
+        <span>${formatTimestamp(selectedPost.createdAt)}</span>
+        ${selectedPost.updatedAt && selectedPost.updatedAt !== selectedPost.createdAt 
+          ? `<span>(Updated: ${formatTimestamp(selectedPost.updatedAt)})</span>` 
+          : ''}
       </div>
       <div class="content">
         ${renderMarkdown(selectedPost.content)}
@@ -282,7 +288,12 @@
 \\usepackage[utf8]{inputenc}
 \\usepackage{graphicx}
 \\title{${selectedPost.title.replace(/[&$%#_{}]/g, '\\$&')}}
-\\date{${formatDate(selectedPost.updatedAt)}}
+\\author{${selectedPost.identity ? `...${selectedPost.identity.slice(-5)}` : 'Unknown'}}
+\\date{${formatTimestamp(selectedPost.createdAt)}${
+  selectedPost.updatedAt && selectedPost.updatedAt !== selectedPost.createdAt 
+    ? `\\\\Updated: ${formatTimestamp(selectedPost.updatedAt)}` 
+    : ''
+}}
 
 \\begin{document}
 \\maketitle
@@ -391,7 +402,13 @@ ${convertMarkdownToLatex(selectedPost.content)}
                     {truncateTitle(post.title, 40)}
                   </h3>
                   <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    <span>{formatDate(post.updatedAt)}</span>
+                    <span>
+                      {#if post.createdAt}
+                        {formatTimestamp(post.createdAt)}
+                      {:else}
+                        No date
+                      {/if}
+                    </span>
                     <span class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full text-xs">
                       {post.category}
                     </span>
@@ -436,6 +453,26 @@ ${convertMarkdownToLatex(selectedPost.content)}
                     <option value={cat}>{cat}</option>
                   {/each}
                 </select>
+              </div>
+
+              <div>
+                <label for="edit-updated-at" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Last Updated</label>
+                <input
+                  id="edit-updated-at"
+                  type="datetime-local"
+                  bind:value={editedUpdatedAt}
+                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label for="edit-created-at" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Created At</label>
+                <input
+                  id="edit-created-at"
+                  type="datetime-local"
+                  bind:value={editedCreatedAt}
+                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                />
               </div>
 
               <div>
@@ -550,7 +587,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
         {#each postHistory as version}
           <div class="border dark:border-gray-700 p-4 rounded">
             <div class="flex justify-between mb-2">
-              <span class="text-sm text-gray-500">{formatDate(version.updatedAt)}</span>
+              <span class="text-sm text-gray-500">{formatDate(version.createdAt)}</span>
               <button
                 class="text-blue-600 hover:text-blue-800"
                 onclick={() => restoreVersion(version)}

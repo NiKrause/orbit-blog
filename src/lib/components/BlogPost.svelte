@@ -12,7 +12,7 @@
   // Local imports
   import type { BlogPost, Comment } from '$lib/types';
   import { commentsDB, mediaDB, helia } from '$lib/store';
-
+  import { formatTimestamp } from '$lib/dateUtils';
   /**
    * Component props interface
    */
@@ -295,6 +295,9 @@
       });
     }
   });
+  $effect(() => {
+    console.log('post', post);
+  });
 </script>
 
 <style>
@@ -357,11 +360,12 @@
   <h1 class="text-4xl font-bold mb-2 text-gray-900 dark:text-white">{post.title}</h1>
   <div class="flex space-x-4 text-sm text-gray-500 dark:text-gray-400 mb-4">
     <span title={post.identity || 'Unknown'}>
+    
       By {post.identity ? `...${post.identity.slice(-5)}` : 'Unknown'}
     </span>
-    <span>{formatDate(post.createdAt)}</span>
+    <span>{formatTimestamp(post.createdAt)}</span>
     {#if post.updatedAt && post.updatedAt !== post.createdAt}
-      <span>(Updated: {formatDate(post.updatedAt)})</span>
+      <span>(Updated: {formatTimestamp(post.updatedAt)})</span>
     {/if}
     <span class="px-2 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full">
       {post.category}
@@ -381,7 +385,7 @@
         <div class="flex items-center mb-2">
           <strong class="text-gray-900 dark:text-white">{comment.author}</strong>
           <span class="ml-2 text-sm text-gray-500 dark:text-gray-400">
-            {DateTime.fromISO(comment.createdAt).toLocaleString(DateTime.DATETIME_MED)}
+            {formatTimestamp(comment.createdAt)}
           </span>
         </div>
         <p class="text-gray-700 dark:text-gray-300">{comment.content}</p>
