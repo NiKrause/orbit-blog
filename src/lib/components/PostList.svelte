@@ -38,7 +38,7 @@
       const matchesCategory = selectedCategory === 'All' || post.category === selectedCategory;
       return matchesSearch && matchesCategory;
     })
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
   );
 
   let selectedPost = $derived($selectedPostId ? filteredPosts.find(post => post._id === $selectedPostId) : null);
@@ -81,8 +81,10 @@
   async function saveEditedPost() {
     if (selectedPost && editedTitle && editedContent) {
       try {
+        console.log('selectedPost', selectedPost);
         const updatedPost = {
-          ...selectedPost,
+          // ...selectedPost,
+          _id: selectedPost._id,
           title: editedTitle,
           content: editedContent,
           category: editedCategory,
@@ -90,6 +92,7 @@
           identity: $identity.id,
           mediaIds: selectedMedia
         };
+        console.log('updatedPost', updatedPost);
         await $postsDB.put(updatedPost);
         console.info('Post updated successfully', updatedPost);
         editMode = false;
@@ -137,8 +140,8 @@
       if (entry?.payload?.value?._id === post._id) {
         history.push({
           ...entry.payload.value,
-          timestamp: entry.payload.value.date 
-            ? DateTime.fromISO(entry.payload.value.date).toLocaleString(DateTime.DATETIME_MED)
+          timestamp: entry.payload.value.updatedAt 
+            ? DateTime.fromISO(entry.payload.value.updatedAt).toLocaleString(DateTime.DATETIME_MED)
             : 'No date available'
         });
       }
@@ -244,7 +247,7 @@
       </style>
       <h1>${selectedPost.title}</h1>
       <div class="meta">
-        <span>${formatDate(selectedPost.date)}</span>
+        <span>${formatDate(selectedPost.updatedAt)}</span>
       </div>
       <div class="content">
         ${renderMarkdown(selectedPost.content)}
@@ -279,7 +282,7 @@
 \\usepackage[utf8]{inputenc}
 \\usepackage{graphicx}
 \\title{${selectedPost.title.replace(/[&$%#_{}]/g, '\\$&')}}
-\\date{${formatDate(selectedPost.date)}}
+\\date{${formatDate(selectedPost.updatedAt)}}
 
 \\begin{document}
 \\maketitle
@@ -388,7 +391,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
                     {truncateTitle(post.title, 40)}
                   </h3>
                   <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    <span>{formatDate(post.date)}</span>
+                    <span>{formatDate(post.updatedAt)}</span>
                     <span class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full text-xs">
                       {post.category}
                     </span>
@@ -547,7 +550,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
         {#each postHistory as version}
           <div class="border dark:border-gray-700 p-4 rounded">
             <div class="flex justify-between mb-2">
-              <span class="text-sm text-gray-500">{formatDate(version.date)}</span>
+              <span class="text-sm text-gray-500">{formatDate(version.updatedAt)}</span>
               <button
                 class="text-blue-600 hover:text-blue-800"
                 onclick={() => restoreVersion(version)}
