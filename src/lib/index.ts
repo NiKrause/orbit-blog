@@ -6,7 +6,6 @@ export { default as DBManager } from './components/DBManager.svelte';
 export { default as LoadingBlog } from './components/LoadingBlog.svelte';
 export { default as MediaUploader } from './components/MediaUploader.svelte';
 export { default as Modal } from './components/Modal.svelte';
-export { default as NewPost } from './components/NewPost.svelte';
 export { default as PasswordModal } from './components/PasswordModal.svelte';
 export { default as PeersList } from './components/PeersList.svelte';
 export { default as PostForm } from './components/PostForm.svelte';

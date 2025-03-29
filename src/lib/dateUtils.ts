@@ -5,7 +5,10 @@ export const formatDate = (dateString: string, format = DateTime.DATETIME_MED): 
   return DateTime.fromISO(dateString).toLocaleString(format);
 };
 
-export const formatTimestamp = (timestamp: number, format = DateTime.DATETIME_MED): string => {
+export const formatTimestamp = (timestamp: number | string, format = DateTime.DATETIME_MED): string => {
+  if (typeof timestamp === 'string') {
+    return DateTime.fromISO(timestamp).toLocaleString(format);
+  }
   return DateTime.fromMillis(timestamp).toLocaleString(format);
 };
 
