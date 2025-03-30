@@ -21,8 +21,8 @@ importers:
         specifier: ^4.0.3
         version: 4.0.3
       '@le-space/voyager':
-        specifier: ^0.0.6
-        version: 0.0.6(react-native@0.78.1(@babel/core@7.26.10)(@babel/preset-env@7.26.9(@babel/core@7.26.10))(react@19.0.0))
+        specifier: ^0.0.7
+        version: 0.0.7(react-native@0.78.1(@babel/core@7.26.10)(@babel/preset-env@7.26.9(@babel/core@7.26.10))(react@19.0.0))
       '@libp2p/autonat':
         specifier: ^2.0.28
         version: 2.0.28
@@ -1311,8 +1311,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.25':
     resolution: {integrity: sha512-vNk6aEwybGtawWmy/PzwnGDOjCkLWSD2wqvjGGAgOAwCGWySYXfYoxt00IJkTF+8Lb57DwOb3Aa0o9CApepiYQ==}
 
-  '@le-space/voyager@0.0.6':
-    resolution: {integrity: sha512-mF4rdf9e+D7Q7NiAHFdb8NJlcpWZMP6S1o94ff/tc/7zjrqjAgBzeEgaurcaNRxVfrprC+khsW5S5L99Bd7/fQ==}
+  '@le-space/voyager@0.0.7':
+    resolution: {integrity: sha512-BqEOokNAAYsqHuNlznmcQwMNCKMQ0hbjESZuiVY/7ytZOj9LPxuCW4Ny8hNZF8Jq483liQmglqyWE/O4Q1dkHw==}
     engines: {node: '>=20.0.0'}
     hasBin: true
 
@@ -2912,8 +2912,8 @@ packages:
   flow-enums-runtime@0.0.6:
     resolution: {integrity: sha512-3PYnM29RFXwvAN6Pc/scUfkI7RwhQ/xqyLUyPNlXUp9S40zI8nup9tUSrTLSVnWGBN38FNiGWbwZOB6uR4OGdw==}
 
-  flow-parser@0.266.0:
-    resolution: {integrity: sha512-FK3Zlmnrp5lwNQZ8Ul+m0vVwnA4/Ww84+HzXKCgTmO/1aBoZcQS5f2PJfBMaGYKH2HYIm/l8qpNhw0Wxzb8x5g==}
+  flow-parser@0.266.1:
+    resolution: {integrity: sha512-dON6h+yO7FGa/FO5NQCZuZHN0o3I23Ev6VYOJf9d8LpdrArHPt39wE++LLmueNV/hNY5hgWGIIrgnrDkRcXkPg==}
     engines: {node: '>=0.4.0'}
 
   follow-redirects@1.15.9:
@@ -6912,14 +6912,22 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
 
-  '@le-space/voyager@0.0.6(react-native@0.78.1(@babel/core@7.26.10)(@babel/preset-env@7.26.9(@babel/core@7.26.10))(react@19.0.0))':
+  '@le-space/voyager@0.0.7(react-native@0.78.1(@babel/core@7.26.10)(@babel/preset-env@7.26.9(@babel/core@7.26.10))(react@19.0.0))':
     dependencies:
       '@chainsafe/libp2p-gossipsub': 14.1.1
+      '@chainsafe/libp2p-noise': 16.1.0
+      '@chainsafe/libp2p-yamux': 7.0.1
       '@ipshipyard/libp2p-auto-tls': 1.0.0
       '@libp2p/autonat': 2.0.28
+      '@libp2p/bootstrap': 11.0.32
+      '@libp2p/identify': 3.0.27
+      '@libp2p/kad-dht': 14.2.15
       '@libp2p/keychain': 5.1.4
       '@libp2p/logger': 5.1.13
       '@libp2p/prometheus-metrics': 4.3.15
+      '@libp2p/tcp': 10.1.8
+      '@libp2p/websockets': 9.2.8
+      '@multiformats/multiaddr': 12.4.0
       '@multiformats/multiaddr-matcher': 1.7.0
       '@orbitdb/core': 2.5.0
       '@orbitdb/set-db': 1.1.2(react-native@0.78.1(@babel/core@7.26.10)(@babel/preset-env@7.26.9(@babel/core@7.26.10))(react@19.0.0))
@@ -9290,7 +9298,7 @@ snapshots:
 
   flow-enums-runtime@0.0.6: {}
 
-  flow-parser@0.266.0: {}
+  flow-parser@0.266.1: {}
 
   follow-redirects@1.15.9(debug@4.4.0):
     optionalDependencies:
@@ -10097,7 +10105,7 @@ snapshots:
       '@babel/preset-flow': 7.25.9(@babel/core@7.26.10)
       '@babel/preset-typescript': 7.27.0(@babel/core@7.26.10)
       '@babel/register': 7.25.9(@babel/core@7.26.10)
-      flow-parser: 0.266.0
+      flow-parser: 0.266.1
       graceful-fs: 4.2.11
       micromatch: 4.0.8
       neo-async: 2.6.2

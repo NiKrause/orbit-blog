@@ -403,11 +403,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
                   </h3>
                   <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-1">
                     <span>
-                      {#if post.createdAt}
-                        {formatTimestamp(post.createdAt)}
-                      {:else}
-                        No date
-                      {/if}
+                      {formatTimestamp(post.createdAt || post.date)}
                     </span>
                     <span class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full text-xs">
                       {post.category}

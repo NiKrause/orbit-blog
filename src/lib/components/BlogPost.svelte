@@ -360,10 +360,9 @@
   <h1 class="text-4xl font-bold mb-2 text-gray-900 dark:text-white">{post.title}</h1>
   <div class="flex space-x-4 text-sm text-gray-500 dark:text-gray-400 mb-4">
     <span title={post.identity || 'Unknown'}>
-    
       By {post.identity ? `...${post.identity.slice(-5)}` : 'Unknown'}
     </span>
-    <span>{formatTimestamp(post.createdAt)}</span>
+    <span>{formatTimestamp(post.createdAt || post.date)}</span>
     {#if post.updatedAt && post.updatedAt !== post.createdAt}
       <span>(Updated: {formatTimestamp(post.updatedAt)})</span>
     {/if}
