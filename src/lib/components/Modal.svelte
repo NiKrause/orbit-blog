@@ -3,9 +3,10 @@
     isOpen?: boolean;
     onClose?: any;
     children?: import('svelte').Snippet;
+    message?: string;
   }
 
-  let { isOpen = false, onClose = () => {}, children }: Props = $props();
+  let { isOpen = false, onClose = () => {}, children, message = '' }: Props = $props();
 </script>
 
 {#if isOpen}
@@ -14,7 +15,10 @@
       <button class="absolute top-2 right-2 text-gray-500 hover:text-gray-700" onclick={onClose}>
         &times;
       </button>
-      {@render children?.()}
+      {#if message}
+        <p class="text-gray-700 dark:text-gray-300 mb-4">{@html message}</p>
+      {/if}
+      <slot>{children}</slot>
     </div>
   </div>
 {/if}

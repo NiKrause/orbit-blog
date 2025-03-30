@@ -13,14 +13,15 @@
 ## Release Plan
 
 ### Version 0.2 (Core Functionality & Critical Improvements)
-- [ ] Drop database improvements
-  - [ ] Ask user before dropping DB
-  - [ ] Option to drop locally or on voyager
-  - [ ] Recursive drop of posts, comments, media
-  - [ ] Unpin IPFS files
+- [x] Drop database improvements
+  - [x] Ask user before dropping DB
+  - [x] Option to drop locally or on voyager
+  - [x] Recursive drop of posts, comments, media
+  - [x] Unpin IPFS files
+- [x] cloning a database
 - [ ] PostList drag-and-drop ordering with position storage
 - [ ] Warn user if firewall doesn't support ICE (WebRTC/P2P)
-- [ ] External CID parsing for IPFS image links in markdown
+- [ ] External CID parsing via internal Helia (not dweb.link) for IPFS image links in markdown
 - [ ] Periodic reconnection attempts for libp2p disconnects
 - [ ] Better password decryption workflow
 - [ ] Private/Public/Link sharing options

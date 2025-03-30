@@ -12,10 +12,14 @@ async function queryTXT(domain: string) {
 
     try {
         console.log('querying initialAddress for domain', url);
-        const response = await  fetch(url, {
+        const response = await fetch(url, {
             headers: {
-                'Accept': 'application/json'
-            }
+                'Accept': 'application/json',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            },
+            cache: 'no-store'
         });
         const data = await response.json();
         if (data.initialAddress) {

@@ -183,7 +183,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     }
   })
 
-  $:if($orbitdb && voyager){
+  $:if($orbitdb && $voyager){
     console.log('connecting to voyager')
     $voyager?.orbitdb.open('settings', {
           type: 'documents',

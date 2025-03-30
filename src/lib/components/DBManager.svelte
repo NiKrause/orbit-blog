@@ -2,10 +2,12 @@
   import { run } from 'svelte/legacy';
 
   import { onDestroy } from 'svelte';
-  import { settingsDB, postsDB, posts, remoteDBs, selectedDBAddress, orbitdb, remoteDBsDatabases, identity, identities } from '$lib/store';
+  import { settingsDB, postsDB, posts, allComments, allMedia, remoteDBs, selectedDBAddress, orbitdb, voyager, remoteDBsDatabases, identity, identities } from '$lib/store';
   import QRCode from 'qrcode';
   import Modal from './Modal.svelte';
   import { switchToRemoteDB, addRemoteDBToStore } from '$lib/dbUtils';
+  import { IPFSAccessController } from '@orbitdb/core';
+  import ConfirmModal from './ConfirmModal.svelte';
 
   let dbAddress = $state('');
   let dbName = $state('');
@@ -20,6 +22,8 @@
   let queueCheckInterval: number = $state();
   let isQueueRunning = false;
   let isLocalDB = $state(false);
+  let showConfirmModal = $state(false);
+  let dbToRemove = $state(null);
 
 
 
@@ -139,23 +143,48 @@
             }else db.fetchLater = true;
           }
           
-          if (!db.postsAddress) {
-            console.log('db.postsAddress', db.postsAddress);
-            const postsAddressEntry = await settingsDb.get('postsDBAddress');
-            console.log('postsAddressEntry', postsAddressEntry);
-            if (postsAddressEntry?.value?.value) {
-              db.postsAddress = postsAddressEntry.value.value;
-              
-              const postsDb = await $orbitdb.open(db.postsAddress);
-              const allPosts = await postsDb.all();
-              console.log('allPosts', allPosts);
-              $posts = allPosts.map(entry => ({
-                ...entry.value,
-                identity: entry.identity // This contains the creator's identity
-              }));
-              db.fetchLater = false;
-              console.log(`Successfully fetched ${allPosts.length} posts from ${db.name}`);
-            }else db.fetchLater = true;
+          // Check and open posts database
+          console.log('Checking posts database...');
+          const postsAddressEntry = await settingsDb.get('postsDBAddress');
+          if (postsAddressEntry?.value?.value) {
+            db.postsAddress = postsAddressEntry.value.value;
+            const postsDb = await $orbitdb.open(db.postsAddress);
+            const allPosts = await postsDb.all();
+            console.log('allPosts', allPosts);
+            $posts = allPosts.map(entry => ({
+              ...entry.value,
+              identity: entry.identity
+            }));
+            db.fetchLater = false;
+            console.log(`Successfully fetched ${allPosts.length} posts from ${db.name}`);
+          } else db.fetchLater = true;
+
+          // Check and open comments database
+          console.log('Checking comments database...');
+          const commentsAddressEntry = await settingsDb.get('commentsDBAddress');
+          if (commentsAddressEntry?.value?.value) {
+            db.commentsAddress = commentsAddressEntry.value.value;
+            const commentsDb = await $orbitdb.open(db.commentsAddress);
+            const _allComments = await commentsDb.all();
+            console.log('allComments', allComments);
+            $allComments = _allComments.map(entry => ({
+              ...entry.value,
+              identity: entry.identity
+            }));
+          }
+
+          // Check and open media database
+          console.log('Checking media database...');
+          const mediaAddressEntry = await settingsDb.get('mediaDBAddress');
+          if (mediaAddressEntry?.value?.value) {
+            db.mediaAddress = mediaAddressEntry.value.value;
+            const mediaDb = await $orbitdb.open(db.mediaAddress);
+            const _allMedia = await mediaDb.all();
+            console.log('allMedia', allMedia);
+            $allMedia = _allMedia.map(entry => ({
+              ...entry.value,
+              identity: entry.identity
+            }));
           }
           db.lastProcessed = new Date().toISOString();
           
@@ -192,7 +221,7 @@
       
       try {
         const success = await addRemoteDBToStore(dbAddress, dbPeerId, dbName);
-        
+         
         if (success) {
           console.log('Database added successfully:', dbAddress);
         } else {
@@ -250,45 +279,91 @@
   }
 
   async function removeRemoteDB(id: string) {
-    console.log('Removing DB:', id);
-    await $remoteDBsDatabases.del(id);
-    $remoteDBs = $remoteDBs.filter(db => {
-
-      if(db.id === id) { //drop while filtering
-        $orbitdb.open(db.address).then(remotedb => {
-          console.log('remotedb', remotedb);
-          remotedb.get('postsDBAddress').then(postsAddressEntry => {
-            console.log('postsAddressEntry', postsAddressEntry);
-            if (postsAddressEntry?.value?.value) {
-              $orbitdb.open(postsAddressEntry.value.value).then(postsDb => {
-                postsDb.drop();
-                console.log('dropped posts db', postsAddressEntry.value.value);
-                remotedb.drop()
-                console.log('dropped db', remotedb.address);
-              })
-            } else {
-              remotedb.drop()
-              console.log('no postsAddressEntry dropped db anyways', remotedb.address);
-            }
-          })
-      })
-      }
-      return db.id !== id;
-    });
-    console.log('Updated remoteDBs:', $remoteDBs);
+    dbToRemove = id;
+    showConfirmModal = true;
   }
 
-  async function dropAndSync() {
+  async function handleConfirmRemove(options) {
+    if (!dbToRemove) return;
+    
+    isModalOpen = true;
+    modalMessage = "Removing database...";
+    
+    await $remoteDBsDatabases.del(dbToRemove);
+    
+    $remoteDBs = $remoteDBs.filter(db => {
+      if (db.id === dbToRemove) {
+        handleDatabaseDrop(db, options);
+      }
+      return db.id !== dbToRemove;
+    });
+
+    dbToRemove = null;
+    isModalOpen = false;
+    showConfirmModal = false;
+  }
+
+  // New helper function to handle the database dropping process
+  async function handleDatabaseDrop(db, options) {
     try {
-      // Drop the local database
-      await $postsDB.drop();
-      console.info('Local database dropped successfully');
+      const remotedb = await $orbitdb.open(db.address);
       
-      console.info('resyncing from network');
+      // Get all database addresses
+      const [postsAddressEntry, commentsAddressEntry, mediaAddressEntry] = await Promise.all([
+        remotedb.get('postsDBAddress'),
+        remotedb.get('commentsDBAddress'),
+        remotedb.get('mediaDBAddress')
+      ]);
+      
+      const dropPromises = [];
+      
+      if (options.dropLocal) {
+        // Drop local database copies
+        for (const entry of [postsAddressEntry, commentsAddressEntry, mediaAddressEntry]) {
+          if (entry?.value?.value) {
+            dropPromises.push(
+              $orbitdb.open(entry.value.value).then(async (database) => {
+                await database.drop();
+                console.log(`Dropped database: ${entry.value.value}`);
+              })
+            );
+          }
+        }
+        
+        // Drop main settings database
+        dropPromises.push(remotedb.drop());
+      }
+      
+      if (options.unpinVoyager && $voyager) {
+    
+        // Unpin from Voyager
+        for (const entry of [postsAddressEntry, commentsAddressEntry, mediaAddressEntry]) {
+          if (entry?.value?.value) {
+            console.log('unpinning from voyager', entry.value.value);
+            dropPromises.push(
+              $voyager.remove(entry.value.value).catch(err => 
+                console.warn(`Failed to unpin from Voyager: ${entry.value.value}`, err)
+              )
+            );
+          }
+        }
+        
+        // Unpin main database
+        dropPromises.push($voyager.remove(db.address));
+        
+        // TODO: Add IPFS file unpinning once Helia integration is available
+        // This would involve getting all IPFS CIDs from posts/media and unpinning them
+      }
+      
+      await Promise.all(dropPromises);
+      console.log(`Successfully removed database: ${db.name}`);
+      
     } catch (error) {
-      console.error('Error during drop and sync:', error);
+      console.error(`Error dropping database ${db.name}:`, error);
+      throw error;
     }
   }
+
 
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text).then(() => {
@@ -318,6 +393,172 @@
       generateQRCode($selectedDBAddress);
     }
   });
+
+  async function cloneDatabase(sourceDb) {
+    isModalOpen = true;
+    modalMessage = `Cloning database "${sourceDb.name}"...`;
+    
+    try {
+      // Create a new database name with identity suffix
+      const identitySuffix = $identity?.id?.slice(-5) || 'xxxxx';
+      const newDbName = `${sourceDb.name}_${identitySuffix}`;
+      console.log('newDbName', newDbName);
+      
+      // Step 1: Create and setup new settings database
+      modalMessage = 'Creating new settings database...';
+      const newSettingsDb = await $orbitdb.open(newDbName, {
+        type: 'documents',
+        create: true,
+        identity: $identity,
+        identities: $identities,
+        AccessController: IPFSAccessController({write: [$identity.id]})
+      });
+      
+      if (!newSettingsDb) {
+        throw new Error('Failed to create new settings database');
+      }
+      
+      // Step 2: Open all source databases
+      modalMessage = 'Opening source databases...';
+      const sourceSettingsDb = await $orbitdb.open(sourceDb.address);
+      const sourcePostsDb = await $orbitdb.open(sourceDb.postsAddress);
+      
+      // Get comments and media DB addresses from source settings
+      const commentsAddressEntry = await sourceSettingsDb.get('commentsDBAddress');
+      const mediaAddressEntry = await sourceSettingsDb.get('mediaDBAddress');
+      
+      // Open source comments and media DBs if they exist
+      const sourceCommentsDb = commentsAddressEntry?.value?.value ? 
+        await $orbitdb.open(commentsAddressEntry.value.value) : null;
+      const sourceMediaDb = mediaAddressEntry?.value?.value ? 
+        await $orbitdb.open(mediaAddressEntry.value.value) : null;
+      
+      // Step 3: Create new databases for posts, comments, and media
+      modalMessage = 'Creating new databases...';
+      
+      // Create new posts DB
+      const newPostsDb = await $orbitdb.open(`posts_${sourceDb.name}_${identitySuffix}`, {
+        type: 'documents',
+        create: true,
+        identity: $identity,
+        identities: $identities,
+        AccessController: IPFSAccessController({write: [$identity.id]})
+      });
+      
+      // Create new comments DB (public write access)
+      const newCommentsDb = await $orbitdb.open(`comments_${sourceDb.name}_${identitySuffix}`, {
+        type: 'documents',
+        create: true,
+        identity: $identity,
+        identities: $identities,
+        AccessController: IPFSAccessController({write: ["*"]})
+      });
+      
+      // Create new media DB
+      const newMediaDb = await $orbitdb.open(`media_${sourceDb.name}_${identitySuffix}`, {
+        type: 'documents',
+        create: true,
+        identity: $identity,
+        identities: $identities,
+        AccessController: IPFSAccessController({write: [$identity.id]})
+      });
+      
+      // Step 4: Copy settings (excluding database addresses)
+      modalMessage = 'Copying settings...';
+      console.log('copying settings', sourceSettingsDb);
+      const settings = await sourceSettingsDb.all();
+      for (const entry of settings) {
+        // Skip database address entries - we'll add these later
+        if (entry.key === 'postsDBAddress' || 
+            entry.key === 'commentsDBAddress' || 
+            entry.key === 'mediaDBAddress') {
+          continue;
+        }
+        const cleanValue = JSON.parse(JSON.stringify(entry.value));
+        await newSettingsDb.put(cleanValue);
+      }
+      
+      // Step 5: Copy posts
+      modalMessage = 'Copying posts...';
+      console.log('copying posts', sourcePostsDb);
+      const posts = await sourcePostsDb.all();
+      for (const post of posts) {
+        console.log('copying post', post);
+        // Ensure we're only storing serializable data
+        const cleanPost = JSON.parse(JSON.stringify(post.value));
+        await newPostsDb.put(cleanPost);
+      } 
+      if(posts.length === 0) {
+        console.log('no posts to copy');
+      }
+      
+      // Step 6: Copy comments if they exist
+      if (sourceCommentsDb) {
+        modalMessage = 'Copying comments...';
+        console.log('copying comments', sourceCommentsDb);
+        const comments = await sourceCommentsDb.all();
+        for (const comment of comments) {
+          // Ensure we're only storing serializable data
+          const cleanComment = JSON.parse(JSON.stringify(comment.value));
+          await newCommentsDb.put(cleanComment);
+        }
+      } else {
+        console.log('no comments to copy');
+      }
+      
+      // Step 7: Copy media if it exists
+      if (sourceMediaDb) {
+        modalMessage = 'Copying media...';
+        console.log('copying media', sourceMediaDb);
+        const media = await sourceMediaDb.all();
+        for (const item of media) {
+          // Ensure we're only storing serializable data
+          const cleanMedia = JSON.parse(JSON.stringify(item.value));
+          await newMediaDb.put(cleanMedia);
+        }
+      } else {
+        console.log('no media to copy');
+      }
+      
+      // After copying all content, update the settings with new database addresses
+      modalMessage = 'Updating database references...';
+      await newSettingsDb.put({ _id: 'postsDBAddress', value: newPostsDb.address });
+      await newSettingsDb.put({ _id: 'commentsDBAddress', value: newCommentsDb.address });
+      await newSettingsDb.put({ _id: 'mediaDBAddress', value: newMediaDb.address });
+      
+      // Step 8: Pin to Voyager if available
+      if ($voyager) {
+        console.log('pinning to voyager', newSettingsDb.address, newPostsDb.address, newCommentsDb.address, newMediaDb.address);
+        modalMessage = 'Pinning to Voyager...';
+        await $voyager.add(newSettingsDb.address);
+        console.log('pinned to voyager', newSettingsDb.address);
+        await $voyager.add(newPostsDb.address);
+        console.log('pinned to voyager', newPostsDb.address);
+        await $voyager.add(newCommentsDb.address);
+        console.log('pinned to voyager', newCommentsDb.address);
+        await $voyager.add(newMediaDb.address);
+        console.log('pinned to voyager', newMediaDb.address);
+      }
+      
+      // Only after everything is successful, register the database
+      console.log('registering new database', newSettingsDb);
+      modalMessage = 'Registering new database...';
+      const success = await addRemoteDBToStore(newSettingsDb.address);
+      console.log('success', success);
+      console.log('registered new database', newSettingsDb.address, newPostsDb.address, newCommentsDb.address, newMediaDb.address);
+      modalMessage = 'Clone completed successfully!';
+      setTimeout(() => {
+        isModalOpen = false;
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error cloning database:', error);
+      modalMessage = `Error cloning database: ${error.message}`;
+      setTimeout(() => {
+        isModalOpen = false;
+      }, 3000);
+    }
+  }
 </script>
 
 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6">
@@ -493,6 +734,20 @@
                 {/if}
               </div>
             </button>
+            
+            <!-- Add Clone Button -->
+            <button
+              class="p-2 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400"
+              onclick={() => cloneDatabase(db)}
+              title="Clone database"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M7 9a2 2 0 012-2h6a2 2 0 012 2v6a2 2 0 01-2 2H9a2 2 0 01-2-2V9z" />
+                <path d="M5 3a2 2 0 00-2 2v6a2 2 0 002 2V5h8a2 2 0 00-2-2H5z" />
+              </svg>
+            </button>
+            
+            <!-- Existing Delete Button -->
             <button
               class="p-2 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400"
               onclick={() => removeRemoteDB(db.id)}
@@ -508,12 +763,31 @@
     </div>
   {/if}
 
-  <Modal isOpen={isModalOpen} onClose={closeModal}>
-    <h2 class="text-xl font-bold mb-4">Switching Database</h2>
-    <p>{modalMessage}</p>
-    <div class="progress-bar">Loading...</div>
-    <button onclick={closeModal} class="cancel-button">Cancel</button>
+  <Modal isOpen={isModalOpen} onClose={closeModal} message={modalMessage}>
+    <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">Database Operation</h2>
+    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-4">
+      <div class="bg-blue-600 dark:bg-blue-500 h-2.5 rounded-full animate-pulse"></div>
+    </div>
+    <button 
+      onclick={closeModal} 
+      class="px-4 py-2 bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 text-white rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+    >
+      Cancel
+    </button>
   </Modal>
+
+  <!-- New Confirmation Modal -->
+  <ConfirmModal
+    isOpen={showConfirmModal}
+    onConfirm={(options) => handleConfirmRemove(options)}
+    onCancel={() => showConfirmModal = false}
+    title="Remove Database"
+    showOptions={true}
+  >
+    <p class="text-gray-700 dark:text-gray-300">
+      Are you sure you want to remove this database?
+    </p>
+  </ConfirmModal>
 </div>
 
 <style>
