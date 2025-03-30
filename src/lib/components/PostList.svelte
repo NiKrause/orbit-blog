@@ -40,7 +40,7 @@
       const matchesCategory = selectedCategory === 'All' || post.category === selectedCategory;
       return matchesSearch && matchesCategory;
     })
-    .sort((a, b) => a.createdAt - b.createdAt)
+    .sort((a, b) => b.createdAt - a.createdAt)
   );
 
   let selectedPost = $derived($selectedPostId ? filteredPosts.find(post => post._id === $selectedPostId) : null);

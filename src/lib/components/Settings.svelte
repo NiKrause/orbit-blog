@@ -3,8 +3,6 @@
   import { settingsDB, blogName, blogDescription, categories, seedPhrase, libp2p, orbitdb } from '$lib/store';
   import { encryptSeedPhrase } from '$lib/cryptoUtils';
 
-  // export let seedPhrase: string | null = localStorage.getItem('encryptedSeedPhrase') || generateMnemonic();
-  
   let persistentSeedPhrase = false; // Default to true since we're always encrypting now
   let showChangePasswordModal = $state(false);
   let newPassword = $state('');
