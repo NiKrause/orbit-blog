@@ -21,7 +21,8 @@
   - [x] Recursive drop of posts, comments, media
   - [x] Unpin IPFS files
 - [x] cloning a database
-- [x] Newly rolled out pinned ipfs version is often cached too long, probably by nginx. (no-cache header by Nginx)
+- [ ] Newly rolled out pinned ipfs version is often cached too long, probably by nginx. (no-cache header by Nginx)
+- [x] Github Icon
 - [ ] External image CID parsing inside markdown via internal Helia (not dweb.link) for IPFS image links in markdown
 - [ ] Private/Public implementation completion
 - [ ] Warn user if firewall doesn't support ICE (WebRTC/P2P)

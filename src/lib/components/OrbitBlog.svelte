@@ -30,7 +30,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   import Settings from './Settings.svelte';
   import PasswordModal from './PasswordModal.svelte';
   import LoadingBlog from './LoadingBlog.svelte';
-  import WebRTCTester from './WebRTCTester.svelte';
 
   // Icons
   import { FaBars, FaTimes } from 'svelte-icons/fa';
@@ -553,22 +552,22 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       {/if}
     </div>
   </main>
-    <!-- Add the sharing button with an icon -->
-    <!-- <div class="fixed top-4 right-20 z-50">
-    <button 
-      class="fixed top-4 right-20 z-50 bg-blue-500 text-white hover:bg-blue-600 rounded-full p-1 shadow-sm transition-all duration-300 focus:outline-none w-6 h-6 "
-      on:click={copySettingsDBAddress}
-      aria-label="Share blog address">
-      <FaShare />
-    </button> 
-    
-    {#if showNotification}
-      <div class="fixed top-16 right-4 z-50 bg-green-500 text-white px-4 py-2 rounded shadow-lg transition-all duration-300">
-        Blog address copied to clipboard!
-      </div>
-    {/if} -->
+    <!-- Add GitHub link next to ThemeToggle -->
+    <div class="fixed-controls">
 
-  <ThemeToggle />
+    
+          <a 
+            href="https://github.com/Le-Space/le-space-blog"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="control-button"
+        aria-label="View source on GitHub">
+        <svg class="w-6 h-6 text-gray-800 dark:text-gray-200" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+        </svg>
+      </a>
+          <ThemeToggle />
+  </div>
 {/if}
 
 <style>
@@ -647,5 +646,44 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   .share-button {
     left: auto !important;
     right: 20px !important;
+  }
+
+  /* Add new styles for the fixed controls and GitHub link */
+  :global(.fixed-controls) {
+    position: fixed;
+    top: 1rem;
+    right: 4rem;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    z-index: 50;
+  }
+
+  :global(.control-button) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    background-color: rgb(229 231 235 / var(--tw-bg-opacity));
+    border-radius: 0.5rem;
+    transition-property: all;
+    transition-duration: 300ms;
+    color: rgb(55 65 81 / var(--tw-text-opacity));
+  }
+
+  :global(.dark) .control-button {
+    background-color: rgb(55 65 81 / var(--tw-bg-opacity));
+    color: rgb(229 231 235 / var(--tw-text-opacity));
+  }
+
+  .control-button:hover {
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
+
+  @media (max-width: 768px) {
+    .fixed-controls {
+      gap: 0.5rem;
+    }
   }
 </style>

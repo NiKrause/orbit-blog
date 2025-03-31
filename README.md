@@ -20,8 +20,8 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 - [x] Subscribe to blogs read-only 
 - [ ] Give write permission
 - [ ] Publish a blog onto the peer-to-peer blogging network to be visible and readable by others
-- [ ] Create encrypted block
-- [ ] Make block permanently stored (via ArWeave)
+- [ ] Create an asynchronous encrypted blog (with password)
+- [ ] Make blog permanently stored (via ArWeave)
 - [x] Identity via 12-word encrypted seed phrase
 - [ ] Identity via Metamask wallet (Ethereum)
 - [x] Identity via Nostr Wallet
