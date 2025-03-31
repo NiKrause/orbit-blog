@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { _ } from 'svelte-i18n';
   
   import { settingsDB, blogName, blogDescription, categories, seedPhrase, libp2p, orbitdb } from '$lib/store';
   import { encryptSeedPhrase } from '$lib/cryptoUtils';
@@ -18,31 +19,31 @@
     successMessage = '';
     
     if (!seedPhrase) {
-      errorMessage = 'No seed phrase available';
+      errorMessage = $_('no_seed_phrase_available');
       return;
     }
     
     if (newPassword.length < 8) {
-      errorMessage = 'Password must be at least 8 characters long';
+      errorMessage = $_('password_min_length');
       return;
     }
     
     if (newPassword !== confirmNewPassword) {
-      errorMessage = 'Passwords do not match';
+      errorMessage = $_('passwords_do_not_match');
       return;
     }
     
     try {
       const encryptedPhrase = await encryptSeedPhrase(seedPhrase, newPassword);
       localStorage.setItem('encryptedSeedPhrase', encryptedPhrase);
-      successMessage = 'Password changed successfully';
+      successMessage = $_('password_changed_successfully');
       setTimeout(() => {
         showChangePasswordModal = false;
         successMessage = '';
       }, 2000);
     } catch (error) {
       console.error('Error changing password:', error);
-      errorMessage = 'Failed to change password';
+      errorMessage = $_('failed_to_change_password');
     }
   }
 
@@ -77,9 +78,9 @@
 </script>
 
 <div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-  <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">Settings</h2>
+  <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">{$_('settings')}</h2>
   <div class="mb-4">
-    <label class="block text-gray-700 dark:text-gray-300">Blog Name</label>
+    <label class="block text-gray-700 dark:text-gray-300">{$_('blog_name')}</label>
     <input type="text" class="w-full p-2 border rounded" 
         value={$blogName} onchange={event => {
           $settingsDB?.put({ _id: 'blogName', value: event.target.value })
@@ -88,7 +89,7 @@
       />
   </div>
   <div class="mb-4">
-    <label class="block text-gray-700 dark:text-gray-300">Blog Description</label>
+    <label class="block text-gray-700 dark:text-gray-300">{$_('blog_description')}</label>
       <input type="text" class="w-full p-2 border rounded" value={$blogDescription} onchange={event => {
         $settingsDB?.put({ _id: 'blogDescription', value: event.target.value })
         console.log('stored blogDescription in settingsDB', event.target.value)
@@ -97,12 +98,12 @@
 
   <!-- New categories section -->
   <div class="mb-4">
-    <label class="block text-gray-700 dark:text-gray-300 mb-2">Post Categories</label>
+    <label class="block text-gray-700 dark:text-gray-300 mb-2">{$_('post_categories')}</label>
     <div class="flex mb-2">
-      <input 
-        type="text" 
-        class="flex-grow p-2 border rounded-l" 
-        placeholder="New category" 
+      <input
+        type="text"
+        class="flex-grow p-2 border rounded-l"
+        placeholder={$_('new_category')}
         bind:value={newCategory} 
         onkeydown={(event) => {
           if (event.key === 'Enter') {
@@ -114,7 +115,7 @@
         class="bg-blue-500 text-white p-2 rounded-r"
         onclick={addCategory}
       >
-        Add
+        {$_('add')}
       </button>
     </div>
     <div class="flex flex-wrap gap-2 mt-2">
@@ -133,7 +134,7 @@
   </div>
   <div class="mb-4 text-sm">
     <div class="flex items-center space-x-2">
-      <span class="text-gray-600 dark:text-gray-400">DID:</span>
+      <span class="text-gray-600 dark:text-gray-400">{$_('did')}:</span>
       <input
         type="text"
         size={60}
@@ -159,7 +160,7 @@
   </div>-->
 </div> 
 <div class="mb-4">
-  <label class="block text-gray-700 dark:text-gray-300">Seed Phrase (Encrypted and Stored Securely)</label>
+  <label class="block text-gray-700 dark:text-gray-300">{$_('seed_phrase')}</label>
   <div class="flex items-center">
     <input type="{showSeedPhrase ? 'text' : 'password'}" class="w-full p-2 border rounded" value={$seedPhrase || ''} />
     <button 
@@ -176,33 +177,33 @@
       class="ml-2 bg-blue-500 text-white p-2 rounded"
       onclick={() => showChangePasswordModal = true}
     >
-      Change Password
+      {$_('change_password')}
     </button>
   </div>
 </div>
 {#if showChangePasswordModal}
   <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full">
-      <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">Change Password</h2>
+      <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">{$_('change_password')}</h2>
       
       <form onsubmit={preventDefault(changePassword)} class="space-y-4">
         <div>
-          <label class="block text-gray-700 dark:text-gray-300 mb-1">New Password</label>
-          <input 
-            type="password" 
+          <label class="block text-gray-700 dark:text-gray-300 mb-1">{$_('new_password')}</label>
+          <input
+            type="password"
             bind:value={newPassword}
             class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            placeholder="Enter new password"
+            placeholder={$_('enter_new_password')}
           />
         </div>
         
         <div>
-          <label class="block text-gray-700 dark:text-gray-300 mb-1">Confirm New Password</label>
-          <input 
-            type="password" 
+          <label class="block text-gray-700 dark:text-gray-300 mb-1">{$_('confirm_new_password')}</label>
+          <input
+            type="password"
             bind:value={confirmNewPassword}
             class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            placeholder="Confirm new password"
+            placeholder={$_('confirm_new_password_placeholder')}
           />
         </div>
         
@@ -220,13 +221,13 @@
             class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded"
             onclick={() => showChangePasswordModal = false}
           >
-            Cancel
+            {$_('cancel')}
           </button>
           <button 
             type="submit"
             class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
           >
-            Change Password
+            {$_('change_password')}
           </button>
         </div>
       </form>

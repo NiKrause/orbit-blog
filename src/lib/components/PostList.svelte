@@ -1,5 +1,6 @@
 <script lang="ts">
   import { run } from 'svelte/legacy';
+  import { _ } from 'svelte-i18n';
 
   import { posts, selectedPostId, identity, postsDB } from '$lib/store';
   import { DateTime } from 'luxon';
@@ -335,17 +336,17 @@ ${convertMarkdownToLatex(selectedPost.content)}
   <div class="flex space-x-4 mb-6">
     <input
       type="text"
-      placeholder="Search posts..."
+      placeholder={$_('search_posts')}
       bind:value={searchQuery}
       class="flex-1 rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
     />
-    <label for="edit-category" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
+    <label for="edit-category" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{$_('category')}</label>
     <select
       id="edit-category"
       bind:value={selectedCategory}
       class="rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
     >
-      <option value="All">All</option>
+      <option value="All">{$_('all')}</option>
       {#each [...$categories].sort((a, b) => b.localeCompare(a)) as cat}
         <option value={cat}>{cat}</option>
       {/each}
@@ -355,7 +356,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
   <div class="grid grid-cols-12 gap-6 responsive-grid">
     <!-- Post List -->
     <div class="col-span-4 bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 h-fit">
-      <h2 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Blog Posts</h2>
+      <h2 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white">{$_('blog_posts')}</h2>
       <div class="space-y-2">
         {#each filteredPosts as post (post._id)}
           <div class="post-item w-full text-left p-3 rounded-md transition-colors cursor-pointer bg-white dark:bg-gray-800"
@@ -370,7 +371,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
                   <button
                     class="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                     onclick={(e) => editPost(post, e)}
-                    title="Edit post"
+                    title={$_('edit_post')}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
@@ -379,7 +380,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
                   <button
                     class="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                     onclick={(e) => deletePost(post, e)}
-                    title="Delete post"
+                    title={$_('delete_post')}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
@@ -388,7 +389,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
                   <button
                     class="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
                     onclick={(e) => viewPostHistory(post, e)}
-                    title="View history"
+                    title={$_('view_history')}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"/>
@@ -423,11 +424,11 @@ ${convertMarkdownToLatex(selectedPost.content)}
         {#if editMode}
           <!-- Edit Form -->
           <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-            <h2 class="text-2xl font-bold mb-4 text-gray-900 dark:text-white">Edit Post</h2>
+            <h2 class="text-2xl font-bold mb-4 text-gray-900 dark:text-white">{$_('edit_post')}</h2>
             
             <div class="space-y-4">
               <div>
-                <label for="edit-title" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Title</label>
+                <label for="edit-title" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{$_('title')}</label>
                 <input
                   id="edit-title"
                   type="text"
@@ -438,13 +439,13 @@ ${convertMarkdownToLatex(selectedPost.content)}
               </div>
 
               <div>
-                <label for="edit-category" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
+                <label for="edit-category" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{$_('category')}</label>
                 <select
                   id="edit-category"
                   bind:value={editedCategory}
                   class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 >
-                  <option value="All">All</option>
+                  <option value="All">{$_('all')}</option>
                   {#each [...$categories].sort((a, b) => b.localeCompare(a)) as cat}
                     <option value={cat}>{cat}</option>
                   {/each}
@@ -452,7 +453,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
               </div>
 
               <div>
-                <label for="edit-updated-at" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Last Updated</label>
+                <label for="edit-updated-at" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{$_('last_updated')}</label>
                 <input
                   id="edit-updated-at"
                   type="datetime-local"
@@ -462,7 +463,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
               </div>
 
               <div>
-                <label for="edit-created-at" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Created At</label>
+                <label for="edit-created-at" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{$_('created_at')}</label>
                 <input
                   id="edit-created-at"
                   type="datetime-local"
@@ -473,13 +474,13 @@ ${convertMarkdownToLatex(selectedPost.content)}
 
               <div>
                 <div class="flex justify-between items-center mb-2">
-                  <label for="edit-content" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Content (Markdown)</label>
+                  <label for="edit-content" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{$_('content')}</label>
                   <button
                     type="button"
                     onclick={() => showMediaUploader = !showMediaUploader}
                     class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300"
                   >
-                    {showMediaUploader ? 'Hide Media Library' : 'Add Media'}
+                    {showMediaUploader ? $_('hide_media_library') : $_('add_media')}
                   </button>
                 </div>
 
@@ -498,7 +499,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
 
               {#if selectedMedia.length > 0}
                 <div class="selected-media">
-                  <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Selected Media:</h4>
+                  <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{$_('selected_media')}</h4>
                   <div class="flex flex-wrap gap-2">
                     {#each selectedMedia as mediaId}
                       <div class="bg-gray-100 dark:bg-gray-700 rounded px-2 py-1 text-sm flex items-center">
@@ -522,14 +523,14 @@ ${convertMarkdownToLatex(selectedPost.content)}
                   onclick={() => editMode = false}
                   class="bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-100 py-2 px-4 rounded-md hover:bg-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
                 >
-                  Cancel
+                  {$_('cancel')}
                 </button>
                 <button
                   type="button"
                   onclick={saveEditedPost}
                   class="bg-indigo-600 dark:bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
                 >
-                  Save Changes
+                  {$_('save_changes')}
                 </button>
               </div>
             </div>
@@ -543,7 +544,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
                 type="button"
                 onclick={exportToPdf}
                 class="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 p-1"
-                title="Export as PDF"
+                title={$_('export_as_pdf')}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" />
@@ -554,7 +555,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
                 type="button"
                 onclick={exportToLatex}
                 class="text-gray-600 hover:text-green-600 dark:text-gray-400 dark:hover:text-green-400 p-1"
-                title="Export as LaTeX"
+                title={$_('export_as_latex')}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
@@ -567,7 +568,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
         {/if}
       {:else}
         <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center text-gray-500 dark:text-gray-400">
-          <p>Select a post to view its content</p>
+          <p>{$_('select_post_to_view')}</p>
         </div>
       {/if}
     </div>
@@ -578,7 +579,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
 {#if showHistory}
   <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-      <h3 class="text-xl font-bold mb-4">Post History</h3>
+      <h3 class="text-xl font-bold mb-4">{$_('post_history')}</h3>
       <div class="space-y-4">
         {#each postHistory as version}
           <div class="border dark:border-gray-700 p-4 rounded">
@@ -588,12 +589,12 @@ ${convertMarkdownToLatex(selectedPost.content)}
                 class="text-blue-600 hover:text-blue-800"
                 onclick={() => restoreVersion(version)}
               >
-                Restore this version
+                {$_('restore_this_version')}
               </button>
             </div>
             <h4 class="font-bold">{version.title}</h4>
             <div class="relative">
-              <p class="text-sm text-gray-600 dark:text-gray-400 cursor-help">{version.content ? version.content.substring(0, version.content.length > 100 ? 100 : version.content.length) : 'No content'}...</p>
+              <p class="text-sm text-gray-600 dark:text-gray-400 cursor-help">{version.content ? version.content.substring(0, version.content.length > 100 ? 100 : version.content.length) : $_('no_content')}...</p>
               {#if version.content && version.content.length > 100}
                 <div class="content-tooltip">
                   <div class="tooltip-content">
@@ -609,7 +610,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
         class="mt-4 bg-gray-200 dark:bg-gray-700 px-4 py-2 rounded"
         onclick={() => showHistory = false}
       >
-        Close
+        {$_('close')}
       </button>
     </div>
   </div>
@@ -619,9 +620,9 @@ ${convertMarkdownToLatex(selectedPost.content)}
 {#if showDeleteConfirm}
   <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl max-w-md w-full">
-      <h3 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">Confirm Delete</h3>
+      <h3 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">{$_('confirm_delete')}</h3>
       <p class="text-gray-600 dark:text-gray-300 mb-6">
-        Are you sure you want to delete "{postToDelete?.title}"? This action cannot be undone.
+        {$_('delete_post_confirm')} "{postToDelete?.title}"?
       </p>
       <div class="flex justify-end space-x-4">
         <button
@@ -631,13 +632,13 @@ ${convertMarkdownToLatex(selectedPost.content)}
             postToDelete = null;
           }}
         >
-          Cancel
+          {$_('cancel')}
         </button>
         <button
           class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
           onclick={confirmDelete}
         >
-          Delete
+          {$_('delete')}
         </button>
       </div>
     </div>

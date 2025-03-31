@@ -8,6 +8,7 @@
   import { DateTime } from 'luxon';
   import DOMPurify from 'dompurify';
   import { unixfs } from '@helia/unixfs';
+  import { _ } from 'svelte-i18n';
 
   // Local imports
   import type { BlogPost, Comment } from '$lib/types';
@@ -360,11 +361,11 @@
   <h1 class="text-4xl font-bold mb-2 text-gray-900 dark:text-white">{post.title}</h1>
   <div class="flex space-x-4 text-sm text-gray-500 dark:text-gray-400 mb-4">
     <span title={post.identity || 'Unknown'}>
-      By {post.identity ? `...${post.identity.slice(-5)}` : 'Unknown'}
+      {$_('by')} {post.identity ? `...${post.identity.slice(-5)}` : $_('unknown')}
     </span>
     <span>{formatTimestamp(post.createdAt || post.date)}</span>
     {#if post.updatedAt && post.updatedAt !== post.createdAt}
-      <span>(Updated: {formatTimestamp(post.updatedAt)})</span>
+      <span>({$_('updated')}: {formatTimestamp(post.updatedAt)})</span>
     {/if}
     <span class="px-2 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full">
       {post.category}
@@ -378,7 +379,7 @@
   </div>
 
   <section class="mt-8">
-    <h3 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">Comments ({comments.length})</h3>
+    <h3 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">{$_('comments')} ({comments.length})</h3>
     {#each comments as comment}
       <div class="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
         <div class="flex items-center mb-2">
@@ -394,7 +395,7 @@
      <!-- Display attached media gallery if there are media items -->
   {#if postMedia.length > 0}
   <div class="mt-4 mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-    <h3 class="text-lg font-medium mb-2 text-gray-900 dark:text-white">Media</h3>
+    <h3 class="text-lg font-medium mb-2 text-gray-900 dark:text-white">{$_('media')}</h3>
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
       {#each postMedia as media}
         {#if media.type.startsWith('image/')}
@@ -406,12 +407,12 @@
         {:else if media.type.startsWith('video/')}
           <video controls class="w-full rounded-lg">
             <source src={media.url || `https://ipfs.io/ipfs/${media.cid}`} type={media.type}>
-            Your browser does not support the video tag.
+            {$_('browser_no_video_support')}
           </video>
         {:else if media.type.startsWith('audio/')}
           <audio controls class="w-full">
             <source src={media.url || `https://ipfs.io/ipfs/${media.cid}`} type={media.type}>
-            Your browser does not support the audio tag.
+            {$_('browser_no_audio_support')}
           </audio>
         {:else}
           <a href={media.url || `https://ipfs.io/ipfs/${media.cid}`} 
@@ -430,7 +431,7 @@
         <input
           type="text"
           bind:value={commentAuthor}
-          placeholder="Your name"
+          placeholder={$_('your_name')}
           required
           class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
         />
@@ -438,7 +439,7 @@
       <div class="mb-4">
         <textarea
           bind:value={newComment}
-          placeholder="Write a comment..."
+          placeholder={$_('write_a_comment')}
           required
           class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white min-h-[100px]"
         ></textarea>
@@ -447,7 +448,7 @@
         type="submit"
         class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition"
       >
-        Add Comment
+        {$_('add_comment')}
       </button>
     </form>
   </section>

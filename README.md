@@ -56,9 +56,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 2. **UI Improvements**
    - [x] Fix / Enable Voyager Blog Pinning
-   - [ ] Add remote database together with the peerId (in 'one string')
-   - [ ] Implement QR code scanning functionality (necessary together with the OneTimeAccessController)
-   - [ ] Add internationalization support (en, de, fr, es, it, ru)
+   - [x] Add internationalization support (en, de, fr, es, it, ru)
    - [x] Enable blog address sharing via URL hash routing
 
 ### Mid-Term Goals

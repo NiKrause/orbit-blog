@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { _ } from 'svelte-i18n';
   console.log('WebRTCTester script loaded');
   import { createEventDispatcher, onMount } from 'svelte';
   const dispatch = createEventDispatcher();
@@ -50,7 +51,7 @@
     await this.checkNetworkType();
     await this.testICEServers();
     await this.testSTUNConnectivity();
-    await this.testTURNConnectivity();
+    // await this.testTURNConnectivity();
     await this.checkSymmetricNAT();
     await this.checkVPNandGeolocation();
     await this.testDataChannelThroughput();
@@ -470,19 +471,19 @@ async checkBrowserSupport() {
     const tester = new WebRTCNetworkTester();
     const results = await tester.runAllTests();
     
-    console.log('WebRTC Network Test Results:', results);
+    console.log($_('webrtc_test_results'), results);
     
     // Example of how to interpret results
     if (results.symmetricNAT) {
-      console.warn('Symmetric NAT detected - direct P2P connections may be difficult');
+      console.warn($_('webrtc_warn_symmetric_nat'));
     }
     
     if (!results.stunTests.working) {
-      console.warn('STUN connectivity failed - NAT traversal may not be possible');
+      console.warn($_('webrtc_warn_stun_failed'));
     }
     
     if (results.throughputTests.throughputMBps < 1) {
-      console.warn('Low throughput detected - data channel performance may be poor');
+      console.warn($_('webrtc_warn_low_throughput'));
     }
   }
 </script>
@@ -490,10 +491,12 @@ async checkBrowserSupport() {
 <div class="fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-center justify-center">
   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
     <div class="flex justify-between items-center mb-4">
-      <h2 class="text-2xl font-bold text-gray-900 dark:text-white">WebRTC Network Test</h2>
-      <button 
+      <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{$_('webrtc_network_test')}</h2>
+      <button
         class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
         on:click={closeModal}
+        title={$_('webrtc_close')}
+        aria-label={$_('webrtc_close')}
       >
         ✕
       </button>
@@ -504,7 +507,7 @@ async checkBrowserSupport() {
         class="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700 mb-4"
         on:click={startTests}
       >
-        Start Network Tests
+        {$_('start_network_tests')}
       </button>
     {/if}
 
@@ -524,7 +527,7 @@ async checkBrowserSupport() {
       <div class="space-y-4">
         <!-- Browser Support -->
         <div class="border dark:border-gray-700 rounded-lg p-4">
-          <h3 class="font-bold mb-2 text-gray-900 dark:text-white">Browser Support</h3>
+          <h3 class="font-bold mb-2 text-gray-900 dark:text-white">{$_('browser_support')}</h3>
           {#each Object.entries(testResults.browserSupport) as [feature, supported]}
             <div class="flex justify-between text-sm">
               <span class="text-gray-600 dark:text-gray-400">{feature}</span>
@@ -537,7 +540,7 @@ async checkBrowserSupport() {
 
         <!-- Network Info -->
         <div class="border dark:border-gray-700 rounded-lg p-4">
-          <h3 class="font-bold mb-2 text-gray-900 dark:text-white">Network Information</h3>
+          <h3 class="font-bold mb-2 text-gray-900 dark:text-white">{$_('network_information')}</h3>
           {#each Object.entries(testResults.networkInfo) as [key, value]}
             <div class="flex justify-between text-sm">
               <span class="text-gray-600 dark:text-gray-400">{key}</span>
@@ -548,18 +551,18 @@ async checkBrowserSupport() {
 
         <!-- STUN/TURN Tests -->
         <div class="border dark:border-gray-700 rounded-lg p-4">
-          <h3 class="font-bold mb-2 text-gray-900 dark:text-white">Connectivity Tests</h3>
+          <h3 class="font-bold mb-2 text-gray-900 dark:text-white">{$_('connectivity_tests')}</h3>
           <div class="text-sm">
             <div class="flex justify-between mb-2">
-              <span class="text-gray-600 dark:text-gray-400">STUN Connectivity</span>
+              <span class="text-gray-600 dark:text-gray-400">{$_('stun_connectivity')}</span>
               <span class={testResults.stunTests.working ? 'text-green-500' : 'text-red-500'}>
-                {testResults.stunTests.working ? '✓ Working' : '✗ Failed'}
+                {testResults.stunTests.working ? '✓ {$_("working")}' : '✗ {$_("failed")}'}
               </span>
             </div>
             <div class="flex justify-between">
-              <span class="text-gray-600 dark:text-gray-400">NAT Type</span>
+              <span class="text-gray-600 dark:text-gray-400">{$_('nat_type')}</span>
               <span class={testResults.symmetricNAT ? 'text-red-500' : 'text-green-500'}>
-                {testResults.symmetricNAT ? 'Symmetric (problematic)' : 'Non-symmetric (good)'}
+                {testResults.symmetricNAT ? $_('symmetric_nat_warning') : $_('non_symmetric_nat')}
               </span>
             </div>
           </div>

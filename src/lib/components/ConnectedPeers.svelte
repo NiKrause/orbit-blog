@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { _ } from 'svelte-i18n';
   import { helia } from '$lib/store';
   import { onMount } from 'svelte';
   import type { Connection } from '@libp2p/interface-connection'
@@ -119,7 +120,7 @@
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
   <div class="mb-4 text-sm">
     <div class="flex items-center space-x-2">
-      <span class="text-gray-600 dark:text-gray-400">Peer ID:</span>
+      <span class="text-gray-600 dark:text-gray-400">{$_('peer_id')}:</span>
       <input
         type="text"
         size={60}
@@ -133,7 +134,7 @@
     </div>
   </div>
   <div class="flex justify-between items-center mb-4">
-    <h2 class="text-xl font-bold text-gray-900 dark:text-white">Connected Peers</h2>
+    <h2 class="text-xl font-bold text-gray-900 dark:text-white">{$_('connected_peers')}</h2>
     <div class="flex gap-2">
       <button 
         class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded"
@@ -142,32 +143,32 @@
           console.log('Button clicked, showWebRTCTester:', showWebRTCTester);
         }}
       >
-        Test WebRTC
+        {$_('test_webrtc')}
       </button>
       {#if (peers)}
         <button 
           class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-700"
           onclick={disconnectNonWebRTC}
         >
-          Disconnect Non-WebRTC
+          {$_('disconnect_non_webrtc')}
         </button>
       {/if}
     </div>
   </div>
   
   {#if peers.length === 0}
-    <p class="text-gray-600 dark:text-gray-400 text-center">No peers connected</p>
+    <p class="text-gray-600 dark:text-gray-400 text-center">{$_('no_peers_connected')}</p>
   {:else}
     <div class="overflow-x-auto">
       <table class="min-w-full">
         <thead>
           <tr class="border-b dark:border-gray-700">
-            <th class="px-4 py-2 text-left text-gray-900 dark:text-white">Peer ID</th>
-            <th class="px-4 py-2 text-left text-gray-900 dark:text-white">Status</th>
-            <th class="px-4 py-2 text-left text-gray-900 dark:text-white">Transport</th>
-            <th class="px-4 py-2 text-left text-gray-900 dark:text-white">Streams</th>
-            <th class="px-4 py-2 text-left text-gray-900 dark:text-white">Direction</th>
-            <th class="px-4 py-2 text-left text-gray-900 dark:text-white">Actions</th>
+            <th class="px-4 py-2 text-left text-gray-900 dark:text-white">{$_('peer_id')}</th>
+            <th class="px-4 py-2 text-left text-gray-900 dark:text-white">{$_('status')}</th>
+            <th class="px-4 py-2 text-left text-gray-900 dark:text-white">{$_('transport')}</th>
+            <th class="px-4 py-2 text-left text-gray-900 dark:text-white">{$_('streams')}</th>
+            <th class="px-4 py-2 text-left text-gray-900 dark:text-white">{$_('direction')}</th>
+            <th class="px-4 py-2 text-left text-gray-900 dark:text-white">{$_('actions')}</th>
           </tr>
         </thead>
         <tbody>
@@ -185,7 +186,7 @@
               </td>
               <td class="px-4 py-2">
                 <span class={`inline-block px-2 py-1 rounded-full text-xs ${peer.connected ? 'bg-green-500' : 'bg-red-500'} text-white`}>
-                  {peer.connected ? 'Connected' : 'Disconnected'}
+                  {peer.connected ? $_('connected') : $_('disconnected')}
                 </span>
               </td>
               <td class="px-4 py-2 text-gray-900 dark:text-white">
@@ -199,7 +200,7 @@
                 <button 
                   class="text-red-500 hover:text-red-700"
                   onclick={() => disconnectPeer(peer.id)}
-                  title="Disconnect"
+                  title={$_('disconnect')}
                 >
                   <!-- You can use an icon library like FontAwesome for a disconnect icon -->
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

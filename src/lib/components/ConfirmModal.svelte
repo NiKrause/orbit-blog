@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { _ } from 'svelte-i18n';
   interface Props {
     isOpen?: boolean;
     onConfirm?: (options: { dropLocal: boolean; unpinVoyager: boolean }) => void;
@@ -48,7 +49,7 @@
               class="rounded border-gray-300"
             >
             <label for="dropLocal" class="text-gray-700 dark:text-gray-300">
-              Drop local database copies
+              {$_('drop_local_database_copies')}
             </label>
           </div>
           
@@ -60,7 +61,7 @@
               class="rounded border-gray-300"
             >
             <label for="unpinVoyager" class="text-gray-700 dark:text-gray-300">
-              Unpin from Voyager node
+              {$_('unpin_from_voyager_node')}
             </label>
           </div>
         </div>
@@ -71,13 +72,13 @@
           class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
           on:click={handleConfirm}
         >
-          Confirm
+          {$_('confirm')}
         </button>
         <button 
           class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
           on:click={onCancel}
         >
-          Cancel
+          {$_('cancel')}
         </button>
       </div>
     </div>

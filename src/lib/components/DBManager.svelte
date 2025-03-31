@@ -1,5 +1,6 @@
 <script lang="ts">
   import { run } from 'svelte/legacy';
+  import { _ } from 'svelte-i18n';
 
   import { onDestroy } from 'svelte';
   import { settingsDB, postsDB, posts, allComments, allMedia, remoteDBs, selectedDBAddress, orbitdb, voyager, remoteDBsDatabases, identity, identities } from '$lib/store';
@@ -17,7 +18,7 @@
   let videoElement: HTMLVideoElement = $state();
   let isModalOpen = $state(false);
   let did = '';
-  let modalMessage = $state("Loading database from the peer-to-peer network...");
+  let modalMessage = $state($_("loading_database_from_p2p"));
   let cancelOperation = false;
   let queueCheckInterval: number = $state();
   let isQueueRunning = false;
@@ -217,15 +218,15 @@
     console.log('Adding DB:', { dbAddress, dbName , dbPeerId});
     if (dbAddress || dbName) {
       isModalOpen = true;
-      modalMessage = `${isLocalDB ? 'Creating local' : 'Connecting to remote'} database...`;
+      modalMessage = isLocalDB ? $_('creating_local_database') : $_('connecting_to_remote_database');
       
       try {
         const success = await addRemoteDBToStore(dbAddress, dbPeerId, dbName);
          
         if (success) {
-          console.log('Database added successfully:', dbAddress);
+          console.log($_('database_added_successfully'), dbAddress);
         } else {
-          console.log('Failed to add database, but it was queued for later');
+          console.log($_('failed_to_add_database_queued'));
         }
         
         dbAddress = '';
@@ -240,7 +241,7 @@
         }
       } catch (err) {
         console.error('Error opening remote database:', err);
-        modalMessage = `Error: ${err.message || 'Unknown error'} - Adding to queue for later.`;
+        modalMessage = `${$_('error')}: ${err.message || $_('unknown_error')} - ${$_('adding_to_queue_for_later')}`;
         
         await addRemoteDBToStore(dbAddress, dbName);
         
@@ -259,14 +260,14 @@
         }
       }
     } else {
-      console.log('Missing required fields');
+      console.log($_('missing_required_fields'));
     }
   }
 
   async function handleSwitchToRemoteDB(address: string) {
     isModalOpen = true;
     cancelOperation = false;
-    modalMessage = "Loading data from the remote database...";
+    modalMessage = $_("loading_data_from_remote_database");
     
     await switchToRemoteDB(address, true);
     
@@ -287,7 +288,7 @@
     if (!dbToRemove) return;
     
     isModalOpen = true;
-    modalMessage = "Removing database...";
+    modalMessage = $_("removing_database");
     
     await $remoteDBsDatabases.del(dbToRemove);
     
@@ -396,7 +397,7 @@
 
   async function cloneDatabase(sourceDb) {
     isModalOpen = true;
-    modalMessage = `Cloning database "${sourceDb.name}"...`;
+    modalMessage = `${$_("cloning_database")} "${sourceDb.name}"...`;
     
     try {
       // Create a new database name with identity suffix
@@ -405,7 +406,7 @@
       console.log('newDbName', newDbName);
       
       // Step 1: Create and setup new settings database
-      modalMessage = 'Creating new settings database...';
+      modalMessage = $_('creating_new_settings_database');
       const newSettingsDb = await $orbitdb.open(newDbName, {
         type: 'documents',
         create: true,
@@ -415,11 +416,11 @@
       });
       
       if (!newSettingsDb) {
-        throw new Error('Failed to create new settings database');
+        throw new Error($_('failed_to_create_new_settings_database'));
       }
       
       // Step 2: Open all source databases
-      modalMessage = 'Opening source databases...';
+      modalMessage = $_('opening_source_databases');
       const sourceSettingsDb = await $orbitdb.open(sourceDb.address);
       const sourcePostsDb = await $orbitdb.open(sourceDb.postsAddress);
       
@@ -434,7 +435,7 @@
         await $orbitdb.open(mediaAddressEntry.value.value) : null;
       
       // Step 3: Create new databases for posts, comments, and media
-      modalMessage = 'Creating new databases...';
+      modalMessage = $_('creating_new_databases');
       
       // Create new posts DB
       const newPostsDb = await $orbitdb.open(`posts_${sourceDb.name}_${identitySuffix}`, {
@@ -464,7 +465,7 @@
       });
       
       // Step 4: Copy settings (excluding database addresses)
-      modalMessage = 'Copying settings...';
+      modalMessage = $_('copying_settings');
       console.log('copying settings', sourceSettingsDb);
       const settings = await sourceSettingsDb.all();
       for (const entry of settings) {
@@ -479,7 +480,7 @@
       }
       
       // Step 5: Copy posts
-      modalMessage = 'Copying posts...';
+      modalMessage = $_('copying_posts');
       console.log('copying posts', sourcePostsDb);
       const posts = await sourcePostsDb.all();
       for (const post of posts) {
@@ -489,12 +490,12 @@
         await newPostsDb.put(cleanPost);
       } 
       if(posts.length === 0) {
-        console.log('no posts to copy');
+        console.log($_('no_posts_to_copy'));
       }
       
       // Step 6: Copy comments if they exist
       if (sourceCommentsDb) {
-        modalMessage = 'Copying comments...';
+        modalMessage = $_('copying_comments');
         console.log('copying comments', sourceCommentsDb);
         const comments = await sourceCommentsDb.all();
         for (const comment of comments) {
@@ -503,12 +504,12 @@
           await newCommentsDb.put(cleanComment);
         }
       } else {
-        console.log('no comments to copy');
+        console.log($_('no_comments_to_copy'));
       }
       
       // Step 7: Copy media if it exists
       if (sourceMediaDb) {
-        modalMessage = 'Copying media...';
+        modalMessage = $_('copying_media');
         console.log('copying media', sourceMediaDb);
         const media = await sourceMediaDb.all();
         for (const item of media) {
@@ -517,11 +518,11 @@
           await newMediaDb.put(cleanMedia);
         }
       } else {
-        console.log('no media to copy');
+        console.log($_('no_media_to_copy'));
       }
       
       // After copying all content, update the settings with new database addresses
-      modalMessage = 'Updating database references...';
+      modalMessage = $_('updating_database_references');
       await newSettingsDb.put({ _id: 'postsDBAddress', value: newPostsDb.address });
       await newSettingsDb.put({ _id: 'commentsDBAddress', value: newCommentsDb.address });
       await newSettingsDb.put({ _id: 'mediaDBAddress', value: newMediaDb.address });
@@ -529,7 +530,7 @@
       // Step 8: Pin to Voyager if available
       if ($voyager) {
         console.log('pinning to voyager', newSettingsDb.address, newPostsDb.address, newCommentsDb.address, newMediaDb.address);
-        modalMessage = 'Pinning to Voyager...';
+        modalMessage = $_('pinning_to_voyager');
         await $voyager.add(newSettingsDb.address);
         console.log('pinned to voyager', newSettingsDb.address);
         await $voyager.add(newPostsDb.address);
@@ -542,18 +543,18 @@
       
       // Only after everything is successful, register the database
       console.log('registering new database', newSettingsDb);
-      modalMessage = 'Registering new database...';
+      modalMessage = $_('registering_new_database');
       const success = await addRemoteDBToStore(newSettingsDb.address);
       console.log('success', success);
       console.log('registered new database', newSettingsDb.address, newPostsDb.address, newCommentsDb.address, newMediaDb.address);
-      modalMessage = 'Clone completed successfully!';
+      modalMessage = $_('clone_completed_successfully');
       setTimeout(() => {
         isModalOpen = false;
       }, 2000);
       
     } catch (error) {
       console.error('Error cloning database:', error);
-      modalMessage = `Error cloning database: ${error.message}`;
+      modalMessage = `${$_('error_cloning_database')}: ${error.message}`;
       setTimeout(() => {
         isModalOpen = false;
       }, 3000);
@@ -563,11 +564,11 @@
 
 <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6">
   <div class="mb-4">
-    <h3 class="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Our Blog DB</h3>
+    <h3 class="text-lg font-semibold mb-2 text-gray-900 dark:text-white">{$_('our_blog_db')}</h3>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="space-y-2">
         <div class="flex items-center space-x-2">
-          <span class="text-gray-600 dark:text-gray-400">DB Address:</span>
+          <span class="text-gray-600 dark:text-gray-400">{$_('db_address')}:</span>
           <input
             type="text"
             size={70}
@@ -575,7 +576,7 @@
             class="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm"
           />
           <button 
-            title="Copy to clipboard"
+            title={$_('copy_to_clipboard')}
               ontouchstart={() => copyToClipboard($settingsDB?.address || '')} 
               onclick={() => copyToClipboard($settingsDB?.address || '')} 
             class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
@@ -603,14 +604,16 @@
   </div>
 
   <div class="border-t dark:border-gray-700 pt-4">
-    <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Add {isLocalDB ? 'Local' : 'Remote'} Database</h3>
+    <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+      {isLocalDB ? $_('add_local_database') : $_('add_remote_database')}
+    </h3>
     
     <div class="mb-4">
       <label class="relative inline-flex items-center cursor-pointer">
         <input type="checkbox" bind:checked={isLocalDB} class="sr-only peer">
         <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
         <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">
-          {isLocalDB ? 'Local Database' : 'Remote Database'}
+          {isLocalDB ? $_('local_database') : $_('remote_database')}
         </span>
       </label>
     </div>
@@ -618,45 +621,45 @@
     <div class="space-y-4">
       {#if isLocalDB}
         <div>
-          <label for="dbName" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Database Name</label>
+          <label for="dbName" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{$_('database_name')}</label>
           <input
             id="dbName"
             type="text"
             bind:value={dbName}
-            placeholder="My New Blog"
+            placeholder={$_('my_new_blog')}
             class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           />
         </div>
       {:else}
         <div>
-          <label for="dbAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Blog OrbitDB Address</label>
+          <label for="dbAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{$_('blog_orbitdb_address')}</label>
           <div class="flex space-x-2">
             <input
               id="dbAddress"
               type="text"
               bind:value={dbAddress}
-              placeholder="Paste database address here"
+              placeholder={$_('paste_database_address_here')}
               class="flex-1 mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             />
             <button
-              title="Scan QR Code"
+              title={$_('scan_qr_code')}
               ontouchstart={startScanner}
               onclick={startScanner}
               class="mt-1 px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
             >
-              Scan QR
+              {$_('scan_qr')}
             </button>
           </div>
         </div>
       {/if}
 
       <button
-        title="Add {isLocalDB ? 'Local' : 'Remote'} Database"
+        title={isLocalDB ? $_('add_local_database') : $_('add_remote_database')}
         ontouchstart={addRemoteDB}
         onclick={addRemoteDB}
         class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors"
       >
-        Add {isLocalDB ? 'Local' : 'Remote'} Database
+        {isLocalDB ? $_('add_local_database') : $_('add_remote_database')}
       </button>
     </div>
   </div>
@@ -665,12 +668,12 @@
     <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white dark:bg-gray-800 p-4 rounded-lg max-w-lg w-full mx-4">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Scan QR Code</h3>
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{$_('scan_qr_code')}</h3>
           <button
             onclick={stopScanner}
             class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
-            Close
+            {$_('close')}
           </button>
         </div>
         <video
@@ -683,9 +686,9 @@
   {/if}
 
   {#if $remoteDBs.length > 0}
-    <div class="text-gray-900 dark:text-white">Number of databases: {$remoteDBs.length}</div>
+    <div class="text-gray-900 dark:text-white">{$_('number_of_databases')}: {$remoteDBs.length}</div>
     <div class="border-t dark:border-gray-700 mt-6 pt-4">
-      <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Available Databases</h3>
+      <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">{$_('available_databases')}</h3>
       <div class="space-y-2">
         {#each $remoteDBs as db}
           <div class="flex items-center space-x-2">
@@ -699,7 +702,7 @@
                   {#if db.pinnedToVoyager !== undefined}
                     <span 
                       class="inline-block w-3 h-3 rounded-full {db.pinnedToVoyager ? 'bg-green-500' : 'bg-orange-500'}"
-                      title={db.pinnedToVoyager ? "Pinned to Voyager" : "Not pinned to Voyager"}
+                      title={db.pinnedToVoyager ? $_("pinned_to_voyager") : $_("not_pinned_to_voyager")}
                     ></span>
                   {/if}
                   
@@ -721,7 +724,7 @@
                       <!-- Post Count Badge -->
                       {#if db.postsCount !== undefined}
                         <span class="ml-2 px-2 py-0.5 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-100 rounded-full text-xs font-medium" title="Number of posts">
-                          {db.postsCount} posts
+                          {db.postsCount} {$_('posts')}
                         </span>
                       {/if}
                     </div>
@@ -730,7 +733,7 @@
                 </div>
                 
                 {#if $selectedDBAddress === db.address}
-                  <span class="text-indigo-600 dark:text-indigo-400 text-sm font-medium">Current</span>
+                  <span class="text-indigo-600 dark:text-indigo-400 text-sm font-medium">{$_('current')}</span>
                 {/if}
               </div>
             </button>
@@ -739,7 +742,7 @@
             <button
               class="p-2 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400"
               onclick={() => cloneDatabase(db)}
-              title="Clone database"
+              title={$_('clone_database')}
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M7 9a2 2 0 012-2h6a2 2 0 012 2v6a2 2 0 01-2 2H9a2 2 0 01-2-2V9z" />
@@ -751,7 +754,7 @@
             <button
               class="p-2 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400"
               onclick={() => removeRemoteDB(db.id)}
-              title="Remove database"
+              title={$_('remove_database')}
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
@@ -764,15 +767,15 @@
   {/if}
 
   <Modal isOpen={isModalOpen} onClose={closeModal} message={modalMessage}>
-    <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">Database Operation</h2>
+    <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">{$_('database_operation')}</h2>
     <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-4">
       <div class="bg-blue-600 dark:bg-blue-500 h-2.5 rounded-full animate-pulse"></div>
     </div>
-    <button 
-      onclick={closeModal} 
+    <button
+      onclick={closeModal}
       class="px-4 py-2 bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 text-white rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
     >
-      Cancel
+      {$_('cancel')}
     </button>
   </Modal>
 
@@ -781,11 +784,11 @@
     isOpen={showConfirmModal}
     onConfirm={(options) => handleConfirmRemove(options)}
     onCancel={() => showConfirmModal = false}
-    title="Remove Database"
+    title={$_('remove_database')}
     showOptions={true}
   >
     <p class="text-gray-700 dark:text-gray-300">
-      Are you sure you want to remove this database?
+      {$_('remove_database_confirm')}
     </p>
   </ConfirmModal>
 </div>

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { _ } from 'svelte-i18n';
   import { helia } from '$lib/store';
   import { onMount, onDestroy } from 'svelte';
   import type { Connection } from '@libp2p/interface-connection';
@@ -70,7 +71,7 @@
 
 <div class="space-y-1">
   {#if peers.length === 0}
-    <p class="text-[8px] text-gray-500 dark:text-gray-400">No peers connected</p>
+    <p class="text-[8px] text-gray-500 dark:text-gray-400">{$_('no_peers_connected')}</p>
   {:else}
     {#each peers as peer (peer.address)}
       <div 

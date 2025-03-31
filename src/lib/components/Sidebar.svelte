@@ -1,5 +1,6 @@
 <script lang="ts">
   import { run } from 'svelte/legacy';
+  import { _ } from 'svelte-i18n';
 
   import {
     postsDB,
@@ -39,9 +40,9 @@
     <h5 
       class="text-xs md:text-sm font-bold uppercase tracking-wider text-white dark:text-white bg-blue-500 rounded py-1 px-2 mb-1 cursor-pointer hover:bg-blue-600"
       onclick={() => showDBManager.update(value => !value)}
-      title={$showDBManager ? "Hide Database Manager" : "Show Database Manager"}
+      title={$showDBManager ? $_("hide_database_manager") : $_("show_database_manager")}
     >
-      Blogs
+      {$_('blogs')}
     </h5>
     <div class="space-y-1">
       <div 
@@ -55,16 +56,16 @@
             }
           }
         }}  
-        title={`Click to load your own blog ${$settingsDB?.address}`}
+        title={`${$_('click_to_load_your_blog')} ${$settingsDB?.address}`}
       >
         <p class="truncate">
                 {#if $settingsDB && $settingsDB.pinnedToVoyager !== undefined}
             <span 
               class="inline-block ml-1 w-2 h-2 rounded-full {$settingsDB.pinnedToVoyager ? 'bg-green-500' : canWrite ? 'bg-orange-500' : 'bg-red-500'}"
-              title={$settingsDB.pinnedToVoyager ? "Pinned to Voyager" : canWrite ? "Not pinned to Voyager" : "No Write Access"}
+              title={$settingsDB.pinnedToVoyager ? $_("pinned_to_voyager") : canWrite ? $_("not_pinned_to_voyager") : $_("no_write_access")}
             ></span>
           {/if}
-          <strong>Blog:</strong> {$blogName || 'Not set'}
+          <strong>{$_('blog_name')}:</strong> {$blogName || $_('not_set')}
         </p>
         <p class="truncate">
           {#if $identity?.id}
@@ -79,12 +80,12 @@
                 </svg>
               {/if}
             </span>
-            <strong>Peer ID:</strong> 
+            <strong>{$_('peer_id')}:</strong>
             <span title={`${$identity.id} @ ${$libp2p?.peerId.toString()}`} >
               {$libp2p?.peerId.toString().slice(-5)}
             </span>
           {:else}
-            Not connected
+            {$_('not_connected')}
           {/if}
         </p>
       </div>
@@ -100,7 +101,7 @@
             {#if db.pinnedToVoyager !== undefined}
               <span 
                 class="inline-block ml-1 w-2 h-2 rounded-full flex-shrink-0 {db.pinnedToVoyager ? 'bg-green-500' : 'bg-orange-500'}"
-                title={db.pinnedToVoyager ? "Pinned to Voyager" : "Not pinned to Voyager"}
+                title={db.pinnedToVoyager ? $_("pinned_to_voyager") : $_("not_pinned_to_voyager")}
               ></span>
             {/if}
             <span class="whitespace-nowrap overflow-ellipsis">
@@ -119,7 +120,7 @@
           </button>
         {/each}
       {:else}
-        <p class="text-[10px] md:text-xs text-gray-500 dark:text-gray-400">No databases</p>
+        <p class="text-[10px] md:text-xs text-gray-500 dark:text-gray-400">{$_('no_databases')}</p>
       {/if}
     </div>
   </div>
@@ -129,9 +130,9 @@
     <h5 
       class="text-xs md:text-sm font-bold uppercase tracking-wider text-white dark:text-white bg-yellow-500 rounded py-1 px-2 mb-1 cursor-pointer hover:bg-yellow-600"
       onclick={() => showPeers.update(value => !value)}
-      title={$showPeers ? "Hide Connected Peers" : "Show Connected Peers"}
+      title={$showPeers ? $_("hide_connected_peers") : $_("show_connected_peers")}
     >
-      Peers ({$connectedPeersCount})
+      {$_('peers')} ({$connectedPeersCount})
     </h5>
     <div class="space-y-1">
       {#if $libp2p}
@@ -139,7 +140,7 @@
           <PeersList />
         {/key}
       {:else}
-        <p class="text-[10px] md:text-xs text-gray-500 dark:text-gray-400">Not connected</p>
+        <p class="text-[10px] md:text-xs text-gray-500 dark:text-gray-400">{$_('not_connected')}</p>
       {/if}
     </div>
   </div>
@@ -149,9 +150,9 @@
     <h5 
       class="text-xs md:text-sm font-bold uppercase tracking-wider text-white dark:text-white bg-green-500 rounded py-1 px-2 mb-1 cursor-pointer hover:bg-green-600"
       onclick={() => showSettings.update(value => !value)}
-      title={$showSettings ? "Hide Settings" : "Show Settings"}
+      title={$showSettings ? $_("hide_settings") : $_("show_settings")}
     >
-      Settings
+      {$_('settings')}
     </h5>
   </div>
 </div>

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { preventDefault } from 'svelte/legacy';
+  import { _ } from 'svelte-i18n';
 
   import { createEventDispatcher } from 'svelte';
   import { encryptSeedPhrase, decryptSeedPhrase } from '$lib/cryptoUtils';
@@ -66,24 +67,24 @@
   <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full">
     <span class="relative top-0 right-0 text-xs text-gray-500">OrbitDB Blog v{__APP_VERSION__}</span>
     <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white relative">
-      {isNewUser ? 'Create Password & Generate Seed Phrase' : 'Enter Password & Decrypt Seed Phrase'}
+      {isNewUser ? $_('create_password_generate_seed_phrase') : $_('enter_password_decrypt_seed')}
  
     </h2>
     
     <p class="mb-4 text-gray-700 dark:text-gray-300">
-      {isNewUser 
-        ? 'Please create a password to encrypt a newly generated a new seed phrase. You will need this password to access your blog in the future. The password is not transmitted over the network. You can switch off the network to proof that the password is not transmitted.'
-        : 'Please enter your password to decrypt your seed phrase in order to activate your identity. The password is not transmitted over the network. You can switch off the network to proof that the password is not transmitted.'}
+      {isNewUser
+        ? $_('create_password_explanation')
+        : $_('enter_password_explanation')}
     </p>
     
     <form onsubmit={preventDefault(handleSubmit)} class="space-y-4">
       <div>
-        <label class="block text-gray-700 dark:text-gray-300 mb-1">Password</label>
+        <label class="block text-gray-700 dark:text-gray-300 mb-1">{$_('password')}</label>
         <input 
           type="password" 
           bind:value={password}
           class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-          placeholder="Enter your password"
+          placeholder={$_('enter_your_password')}
           autocomplete="current-password"
           autofocus
         />
@@ -91,12 +92,12 @@
       
       {#if isNewUser}
         <div>
-          <label class="block text-gray-700 dark:text-gray-300 mb-1">Confirm Password</label>
+          <label class="block text-gray-700 dark:text-gray-300 mb-1">{$_('confirm_password')}</label>
           <input 
             type="password" 
             bind:value={confirmPassword}
             class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            placeholder="Confirm your password"
+            placeholder={$_('confirm_your_password')}
             autocomplete="new-password"
           />
         </div>
@@ -112,7 +113,7 @@
           class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
           disabled={isProcessing}
         >
-          {isProcessing ? 'Processing...' : isNewUser ? 'Create' : 'Unlock'}
+          {isProcessing ? $_('processing') : isNewUser ? $_('create') : $_('unlock')}
         </button>
       </div>
     </form>

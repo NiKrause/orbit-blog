@@ -21,13 +21,16 @@
   - [x] Recursive drop of posts, comments, media
   - [x] Unpin IPFS files
 - [x] cloning a database
-- [ ] Newly rolled out pinned ipfs version is often cached too long, probably by nginx. (no-cache header by Nginx)
 - [x] Github Icon
+- [x] internationalization with svelte-i18n
+- [ ] translate each post into other languages on button click 
+- [ ] Run voyager inside a one-click Svelte project on Vercel
 - [ ] External image CID parsing inside markdown via internal Helia (not dweb.link) for IPFS image links in markdown
 - [ ] Private/Public implementation completion
 - [ ] Warn user if firewall doesn't support ICE (WebRTC/P2P)
 - [ ] Periodic reconnection attempts for libp2p disconnects
-- [ ] Better password decryption workflow
+- [?] Better password decryption workflow
+- [ ] Newly rolled out pinned ipfs version is often cached too long, probably by nginx. (no-cache header by Nginx)
 
 ### Version 0.3 (Enhanced Features)
 - [ ] PostList drag-and-drop ordering with position storage
