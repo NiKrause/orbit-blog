@@ -15,11 +15,13 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 ### Todos, Features, Issues
 - Todos:
+    - [x] Bug: Website in browsers and mobile apps pwa is cached too long: nginx must send no-cache header
+    - [x] Feature: Privacy Statement
     - [ ] Feature RSS Feed: Auf Web2.0
     - [ ] Feature: add Github Link
     - [ ] Feature: when adding IPFS-image links into markdown, it should also parse external CIDs not just cids which are inside our media library
     - [ ] Bug: locks & keys in sidebar are updating too late
-    - [ ] Feature: when dropping db - ask user before - if drop only locally or also on voyager! Drop recursive posts, comments, media and unpin ipfs files 
+    - [x] Feature: when dropping db - ask user before - if drop only locally or also on voyager! Drop recursive posts, comments, media and unpin ipfs files 
     - [ ] Feature: PostList should be possible to drag posts up and down and order them and store position at the post document 
     - [ ] Feature: warn user if firewall doesn't support ICE (WebRTC/Peer-To-Peer)
     - [ ] Feature: le-space.de should be hosted on vercel 

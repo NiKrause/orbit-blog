@@ -3,14 +3,14 @@
 ## Current Version: 0.2
 
 ## Known Bugs
-0. When loading blog first time, manual reload needed to see all blog articles 
+~~0. When loading blog first time, manual reload needed to see all blog article~~
 1. Locks & keys in sidebar are updating too late
 2. Tailwind components aren't activated when using blog lib
 3. Blog author gets lost when updating (only on ipns.dweb.link)
    - Related: Author data loss when testing locally vs production
 4. Toggle button temporary persistent seed phrase suddenly missing
 5. If URL isn't the main URL - show warning
-
+6. Comments aren't saved per post, they appear on all posts ;(
 
 ## Release Plan
 
@@ -21,6 +21,7 @@
   - [x] Recursive drop of posts, comments, media
   - [x] Unpin IPFS files
 - [x] cloning a database
+- [x] Newly rolled out pinned ipfs version is often cached too long, probably by nginx. (no-cache header by Nginx)
 - [ ] External image CID parsing inside markdown via internal Helia (not dweb.link) for IPFS image links in markdown
 - [ ] Private/Public implementation completion
 - [ ] Warn user if firewall doesn't support ICE (WebRTC/P2P)

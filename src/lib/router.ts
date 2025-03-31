@@ -74,16 +74,16 @@ export async function initHashRouter() {
     if (_initialAddressRouter || _initialAddressDNS) {
         const _initialAddress = _initialAddressRouter || _initialAddressDNS;
         console.log('initialAddress', _initialAddress);
-        // Keep isLoadingRemoteBlog as true since we found an address
-        switchToRemoteDB(_initialAddress, true)
-            .then(success => {
-            initialAddress.set(_initialAddress);
-            console.log('Initial remote blog load:', success ? 'success' : 'failed');
-        })
-            .catch(error => console.error('Error loading initial remote blog:', error))
-            .finally(() => {
-            setTimeout(() => isLoadingRemoteBlog.set(false), 1000);
-        });
+        
+        await switchToRemoteDB(_initialAddress, true)
+        initialAddress.set(_initialAddress);
+        console.log('Initial remote blog load success');
+        await setTimeout(async () => {
+            console.log('Setting isLoadingRemoteBlog to false');
+            isLoadingRemoteBlog.set(false);
+        }, 1000);
+        // console.log('Switching to remote blog again');
+        // await switchToRemoteDB(_initialAddress, true) //Workaround for initial load issue
     }
     else {
         // No OrbitDB address in the URL, so immediately set loading to false
@@ -110,7 +110,9 @@ export async function initHashRouter() {
             }
             finally {
                 // Set loading state to false when finished, whether successful or not
-                setTimeout(() => isLoadingRemoteBlog.set(false), 1000); // Small delay for UX
+                await setTimeout(() => isLoadingRemoteBlog.set(false), 1000); // Small delay for UX
+
+                // await switchToRemoteDB(address) //Workaround for initial load issue
             }
         }
     });

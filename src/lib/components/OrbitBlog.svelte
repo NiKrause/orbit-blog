@@ -41,7 +41,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   import { generateMasterSeed, generateAndSerializeKey } from '$lib/utils';
   import { initHashRouter, isLoadingRemoteBlog } from '$lib/router';
   import { setupPeerEventListeners } from '$lib/peerConnections';
-
+  import { switchToRemoteDB } from '$lib/dbUtils';
   // Store imports
   import { 
     initialAddress,
@@ -242,7 +242,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
           identities: $identities,
           AccessController: IPFSAccessController({write: ["*"]}),
         }).then(_db => {
-          // $commentsDB = _db;
+          $commentsDB = _db;
           console.log('commentsDB', _db)
           window.commentsDB = _db;
           $voyager?.add(_db.address).then((ret) => console.log('voyager added commentsDB '+_db.address, ret))
@@ -258,7 +258,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
           identities: $identities,
           AccessController: IPFSAccessController({write: [$identity.id]}), 
         }).then(_db => {
-          // $mediaDB = _db;
+          $mediaDB = _db;
           console.log('mediaDB', _db)
           window.mediaDB = _db;
           $voyager?.add(_db.address).then((ret) => console.log('voyager added mediaDB '+_db.address, ret))
@@ -325,28 +325,32 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         ...entry.value,
         identity: entry.identity // This contains the creator's identity
       }));
+
     }).catch(err => console.error('Error opening posts database:', err));
 
 
     $postsDB.events.on('update', async (entry) => {
-      console.log('Database update:', entry);
-      if (entry?.payload?.op === 'PUT') {
-        const { _id, ...rest } = entry.payload.value;
-        console.log('entry', entry);
+      console.log('Posts database update:', entry);
+      setTimeout(async () => {
+        await switchToRemoteDB($settingsDB.address);
+      }, 3500);
+      // if (entry?.payload?.op === 'PUT') {
+      //   const { _id, ...rest } = entry.payload.value;
+      //   console.log('entry', entry);
         
-        posts.update(current => {
-          // Remove any existing post with the same _id
-          const filtered = current.filter(post => post._id !== _id);
-          // Add the updated/new post
-          return [...filtered, { 
-            ...rest, 
-            _id: _id,
-            identity: entry.identity
-          }];
-        });
-      } else if (entry?.payload?.op === 'DEL') {
-        posts.update(current => current.filter(post => post._id !== entry.payload.key));
-      }
+      //   posts.update(current => {
+      //     // Remove any existing post with the same _id
+      //     const filtered = current.filter(post => post._id !== _id);
+      //     // Add the updated/new post
+      //     return [...filtered, { 
+      //       ...rest, 
+      //       _id: _id,
+      //       identity: entry.identity
+      //     }];
+      //   });
+      // } else if (entry?.payload?.op === 'DEL') {
+      //   posts.update(current => current.filter(post => post._id !== entry.payload.key));
+      // }
     });
   }
 
@@ -375,7 +379,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     loadRemoteDBs().catch(err => console.error('Error loading remote DBs:', err));
   }
   $settingsDB?.events.on('update', async (entry) => {
-      console.log('Database update:', entry);
+      console.log('Setting database update:', entry);
       if (entry?.payload?.op === 'PUT') {
         const { _id, ...rest } = entry.payload.value;
         console.log('settingsDB update:', rest);
