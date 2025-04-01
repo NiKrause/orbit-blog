@@ -174,8 +174,11 @@
    */
   function renderContent(content: string): string {
     return DOMPurify.sanitize(marked(content), {
-      ADD_TAGS: ['details', 'summary', 'div'],
-      ADD_ATTR: ['id', 'class', 'aria-controls', 'aria-expanded', 'aria-labelledby', 'role'],
+      ADD_TAGS: ['details', 'summary', 'div', 'iframe'],
+      ADD_ATTR: [
+        'id', 'class', 'aria-controls', 'aria-expanded', 'aria-labelledby', 'role',
+        'src', 'width', 'height', 'frameborder', 'allow', 'allowfullscreen'
+      ],
       ALLOW_DATA_ATTR: true
     });
   }
@@ -298,6 +301,56 @@
   });
   $effect(() => {
     console.log('post', post);
+  });
+
+  function isAllowedDomain(src: string): boolean {
+    const allowedDomains = [
+      // Western platforms
+      'youtube.com', 'youtu.be', 'youtube-nocookie.com', // YouTube domains
+      'player.vimeo.com',                // Vimeo embed
+      'www.dailymotion.com',             // Dailymotion
+      'rutube.ru', 'video.rutube.ru',    // RuTube
+      'player.bilibili.com',             // Bilibili embed
+      'player.youku.com',                // Youku embed
+      'embed.nicovideo.jp',              // Niconico embed
+      'www.tudou.com',                   // Tudou
+      'player.iqiyi.com',                // iQiyi embed
+      'v.qq.com', 'video.qq.com',        // Tencent Video
+      'tv.naver.com',                    // Naver TV
+      'www.vlive.tv',                    // VLive
+      'embed.peertube.tv'                // PeerTube
+    ];
+
+    try {
+      const url = new URL(src);
+      // Special handling for YouTube URLs to convert them to embed format
+      if (url.hostname === 'www.youtube.com' && url.pathname.startsWith('/watch')) {
+        const videoId = url.searchParams.get('v');
+        if (videoId) {
+          // Replace the node's src with the embed URL
+          node.setAttribute('src', `https://www.youtube-nocookie.com/embed/${videoId}`);
+          return true;
+        }
+      }
+      return allowedDomains.some(domain => url.hostname.endsWith(domain));
+    } catch {
+      return false;
+    }
+  }
+
+  // Custom DOMPurify hook
+  DOMPurify.addHook('uponSanitizeElement', (node, data) => {
+    if (data.tagName === 'iframe') {
+      const src = node.getAttribute('src');
+      if (!src || !isAllowedDomain(src)) {
+        return node.parentNode?.removeChild(node);
+      }
+      
+      // Set secure attributes for iframes
+      node.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-presentation');
+      node.setAttribute('loading', 'lazy');
+      node.setAttribute('referrerpolicy', 'no-referrer');
+    }
   });
 </script>
 
