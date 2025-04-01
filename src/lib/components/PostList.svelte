@@ -146,8 +146,6 @@
         history.push({
           ...entry.payload.value,
           timestamp: entry.payload.value.updatedAt 
-            ? DateTime.fromISO(entry.payload.value.updatedAt).toLocaleString(DateTime.DATETIME_MED)
-            : 'No date available'
         });
       }
     }
@@ -584,7 +582,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
         {#each postHistory as version}
           <div class="border dark:border-gray-700 p-4 rounded">
             <div class="flex justify-between mb-2">
-              <span class="text-sm text-gray-500">{formatDate(version.createdAt)}</span>
+              <span class="text-sm text-gray-500">{formatTimestamp(version.createdAt)}</span>
               <button
                 class="text-blue-600 hover:text-blue-800"
                 onclick={() => restoreVersion(version)}
