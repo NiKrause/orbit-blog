@@ -1,6 +1,7 @@
 import { writable, derived } from 'svelte/store';
-import type { Post, Category, RemoteDB } from './types';
-import { localStorageStore } from './utils';
+import type { Post, Category, RemoteDB } from './types.js';
+import { localStorageStore } from './utils.js';
+import { LANGUAGES } from './i18n/index.js';
 
 // Create writable stores
 export const identity = writable(null)
@@ -26,6 +27,9 @@ export const voyager = writable()
 export const showDBManager = localStorageStore('showDBManager', false);
 export const showPeers = localStorageStore('showPeers', false);
 export const showSettings = localStorageStore('showSettings', false);
+
+// Language settings
+export const enabledLanguages = localStorageStore('enabledLanguages', Object.keys(LANGUAGES));
 
 // Sample data
 const samplePosts: Post[] = [ ];

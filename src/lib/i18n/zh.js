@@ -239,6 +239,11 @@ export default {
   // 日期格式
   "date_format": "yyyy年MM月dd日 HH:mm",
   
-  // 杂项
+  // 语言
+  "select_language": "选择语言",
+  "language": "语言",
+  "enabled_languages": "已启用的语言",
+  
+  // 其他
   "unknown": "未知"
 }

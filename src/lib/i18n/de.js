@@ -239,6 +239,11 @@ export default {
   // Date Format
   "date_format": "dd.MM.yyyy 'um' HH:mm",
   
+  // Sprache
+  "select_language": "Sprache auswählen",
+  "language": "Sprache",
+  "enabled_languages": "Aktivierte Sprachen",
+  
   // Misc
   "unknown": "Unbekannt"
 }

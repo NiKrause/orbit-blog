@@ -239,6 +239,11 @@ export default {
   // Формат даты
   "date_format": "dd.MM.yyyy 'в' HH:mm",
   
+  // Язык
+  "select_language": "Выбрать язык",
+  "language": "Язык",
+  "enabled_languages": "Включенные языки",
+  
   // Разное
   "unknown": "Неизвестно"
 }

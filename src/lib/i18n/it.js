@@ -239,6 +239,11 @@ export default {
   // Formato data
   "date_format": "dd/MM/yyyy 'alle' HH:mm",
   
+  // Lingua
+  "select_language": "Seleziona lingua",
+  "language": "Lingua",
+  "enabled_languages": "Lingue abilitate",
+  
   // Varie
   "unknown": "Sconosciuto"
 }

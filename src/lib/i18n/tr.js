@@ -239,6 +239,11 @@ export default {
   // Tarih Formatı
   "date_format": "dd.MM.yyyy 'saat' HH:mm",
   
+  // Dil
+  "select_language": "Dil seçin",
+  "language": "Dil",
+  "enabled_languages": "Etkin Diller",
+  
   // Çeşitli
   "unknown": "Bilinmiyor"
 }

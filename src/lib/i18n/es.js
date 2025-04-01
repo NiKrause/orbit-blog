@@ -239,6 +239,11 @@ export default {
   // Formato de fecha
   "date_format": "dd/MM/yyyy 'a las' HH:mm",
   
-  // Miscelánea
+  // Idioma
+  "select_language": "Seleccionar idioma",
+  "language": "Idioma",
+  "enabled_languages": "Idiomas habilitados",
+  
+  // Misc
   "unknown": "Desconocido"
 }

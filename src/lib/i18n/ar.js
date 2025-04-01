@@ -239,6 +239,11 @@ export default {
   // تنسيق التاريخ
   "date_format": "dd/MM/yyyy 'في' HH:mm",
   
+  // اللغة
+  "select_language": "اختر اللغة",
+  "language": "اللغة",
+  "enabled_languages": "اللغات المفعلة",
+  
   // متفرقات
   "unknown": "غير معروف"
 }

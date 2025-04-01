@@ -1,8 +1,11 @@
 <script lang="ts">
   import { _ } from 'svelte-i18n';
-  
-  import { settingsDB, blogName, blogDescription, categories, seedPhrase, libp2p, orbitdb } from '$lib/store';
-  import { encryptSeedPhrase } from '$lib/cryptoUtils';
+  import { preventDefault } from 'svelte/legacy';
+  import type { Writable } from 'svelte/store';
+  import type { RemoteDB } from '../types.js';
+  import { settingsDB, blogName, blogDescription, categories, seedPhrase, libp2p, orbitdb, enabledLanguages } from '../store.js';
+  import { encryptSeedPhrase } from '../cryptoUtils.js';
+  import { LANGUAGES } from '../i18n/index.js';
 
   let persistentSeedPhrase = false; // Default to true since we're always encrypting now
   let showChangePasswordModal = $state(false);
@@ -12,13 +15,23 @@
   let successMessage = $state('');
   let showSeedPhrase = $state(false); // State to toggle visibility
   let newCategory = $state(''); // For adding new categories
-  let peerId =  $libp2p?.peerId.toString();
+  let peerId = $libp2p?.peerId?.toString();
   let did = $orbitdb?.identity?.id;
+
+  // Function to toggle language
+  function toggleLanguage(lang: string) {
+    if ($enabledLanguages.includes(lang)) {
+      $enabledLanguages = $enabledLanguages.filter((l: string) => l !== lang);
+    } else {
+      $enabledLanguages = [...$enabledLanguages, lang];
+    }
+  }
+
   async function changePassword() {
     errorMessage = '';
     successMessage = '';
     
-    if (!seedPhrase) {
+    if (!$seedPhrase) {
       errorMessage = $_('no_seed_phrase_available');
       return;
     }
@@ -34,7 +47,7 @@
     }
     
     try {
-      const encryptedPhrase = await encryptSeedPhrase(seedPhrase, newPassword);
+      const encryptedPhrase = await encryptSeedPhrase($seedPhrase, newPassword);
       localStorage.setItem('encryptedSeedPhrase', encryptedPhrase);
       successMessage = $_('password_changed_successfully');
       setTimeout(() => {
@@ -79,20 +92,41 @@
 
 <div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
   <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">{$_('settings')}</h2>
+  
+  <!-- Language Settings -->
+  <div class="mb-4">
+    <label class="block text-gray-700 dark:text-gray-300 mb-2">{$_('enabled_languages')}</label>
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+      {#each Object.entries(LANGUAGES) as [code, name]}
+        <label class="flex items-center space-x-2 p-2 bg-gray-100 dark:bg-gray-700 rounded">
+          <input
+            type="checkbox"
+            checked={$enabledLanguages.includes(code)}
+            onchange={() => toggleLanguage(code)}
+            class="form-checkbox h-4 w-4 text-blue-600"
+          />
+          <span class="text-gray-700 dark:text-gray-300">{name}</span>
+        </label>
+      {/each}
+    </div>
+  </div>
+
   <div class="mb-4">
     <label class="block text-gray-700 dark:text-gray-300">{$_('blog_name')}</label>
     <input type="text" class="w-full p-2 border rounded" 
-        value={$blogName} onchange={event => {
-          $settingsDB?.put({ _id: 'blogName', value: event.target.value })
-          console.log('stored blogName in settingsDB', event.target.value)
+        value={$blogName} onchange={(event: Event) => {
+          const target = event.target as HTMLInputElement;
+          $settingsDB?.put({ _id: 'blogName', value: target.value })
+          console.log('stored blogName in settingsDB', target.value)
         }}
       />
   </div>
   <div class="mb-4">
     <label class="block text-gray-700 dark:text-gray-300">{$_('blog_description')}</label>
-      <input type="text" class="w-full p-2 border rounded" value={$blogDescription} onchange={event => {
-        $settingsDB?.put({ _id: 'blogDescription', value: event.target.value })
-        console.log('stored blogDescription in settingsDB', event.target.value)
+      <input type="text" class="w-full p-2 border rounded" value={$blogDescription} onchange={(event: Event) => {
+        const target = event.target as HTMLInputElement;
+        $settingsDB?.put({ _id: 'blogDescription', value: target.value })
+        console.log('stored blogDescription in settingsDB', target.value)
       }}/>
   </div>
 
