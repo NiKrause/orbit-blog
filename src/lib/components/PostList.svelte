@@ -1,9 +1,8 @@
 <script lang="ts">
   import { run } from 'svelte/legacy';
-  import { _ } from 'svelte-i18n';
+  import { _, locale } from 'svelte-i18n';
 
-  import { posts, selectedPostId, identity, postsDB } from '$lib/store';
-  import { DateTime } from 'luxon';
+  import { posts, selectedPostId, identity, postsDB, aiApiKey, aiApiUrl } from '$lib/store';
   import { formatDate, formatTimestamp } from '$lib/dateUtils';
 
   import { marked } from 'marked';
@@ -13,8 +12,11 @@
   import { categories } from '$lib/store';
   import BlogPost from './BlogPost.svelte';
   import MediaUploader from './MediaUploader.svelte';
+  import { TranslationService } from '$lib/services/translationService';
+  
   // Import html2pdf for PDF generation
   import html2pdf from 'html2pdf.js';
+
 
   let searchQuery = $state('');
   let selectedCategory: Category | 'All' = $state('All');
@@ -33,29 +35,61 @@
   let showDeleteConfirm = $state(false);
   let postToDelete = $state(null);
 
+  let searchTerm = $state('');
+  let displayedPosts = $state([]);
 
-  let filteredPosts = $derived($posts
-    .filter(post => {
-      const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         post.content.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = selectedCategory === 'All' || post.category === selectedCategory;
-      return matchesSearch && matchesCategory;
-    })
-    .sort((a, b) => b.createdAt - a.createdAt)
-  );
+  // Add these state variables with the other state declarations at the top
+  let isTranslating = $state(false);
+  let translationError = $state('');
 
-  let selectedPost = $derived($selectedPostId ? filteredPosts.find(post => post._id === $selectedPostId) : null);
+  // Combined filtering function
+  function filterPosts() {
+    const currentLanguage = $locale;
+    
+    // First check if there are any posts in the current language
+    const hasPostsInCurrentLanguage = $posts.some(post => post.language === currentLanguage);
+    return $posts
+      .filter(post => {
+        // Language filter
+        const matchesLanguage = hasPostsInCurrentLanguage 
+          ? post.language === currentLanguage
+          : post.language === undefined && post.translatedFrom === undefined;
+        // Category filter
+        const matchesCategory = selectedCategory === 'All' || selectedCategory === undefined || 
+                              post.category === selectedCategory;
+
+        // Search term filter
+        const matchesSearch = !searchTerm || 
+                            post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            post.content.toLowerCase().includes(searchTerm.toLowerCase());
+        return matchesLanguage && matchesCategory && matchesSearch;
+      })
+      .sort((a, b) => (b.createdAt || b.date) - (a.createdAt || a.date));
+  }
+
+  // Update displayed posts when any filter changes
+  $effect(() => {
+    displayedPosts = filterPosts();
+  });
+
+  // Watch for changes in posts, locale, selectedCategory, and searchTerm
+  $effect(() => {
+    const _ = [$posts, $locale, selectedCategory, searchTerm];
+    displayedPosts = filterPosts();
+  });
+
+  let selectedPost = $derived($selectedPostId ? displayedPosts.find(post => post._id === $selectedPostId) : null);
 
   onMount(() => {
     console.log('PostList component mounted');
-    if (filteredPosts.length > 0 && !$selectedPostId) {
-      $selectedPostId = filteredPosts[0]._id;
+    if (displayedPosts.length > 0 && !$selectedPostId) {
+      $selectedPostId = displayedPosts[0]._id;
     }
   });
 
   run(() => {
-    if (filteredPosts.length > 0 && (!$selectedPostId || !filteredPosts.find(post => post._id === $selectedPostId))) {
-      $selectedPostId = filteredPosts[0]._id;
+    if (displayedPosts.length > 0 && (!$selectedPostId || !displayedPosts.find(post => post._id === $selectedPostId))) {
+      $selectedPostId = displayedPosts[0]._id;
     }
   });
 
@@ -118,16 +152,33 @@
     if (!postToDelete) return;
     
     try {
-      const postId = postToDelete._id;
-      await $postsDB.del(postId);
-      console.info('Post deleted successfully');
-      if ($selectedPostId === postId && filteredPosts.length > 1) {
-        $selectedPostId = filteredPosts[0]._id;
+      // First get all translations of this post by matching title/content across languages
+      const allPosts = $posts;
+      const relatedPosts = allPosts.filter(p => 
+        // If this is a translated post, find all posts with same translatedFrom
+        (postToDelete.translatedFrom && p.translatedFrom === postToDelete.translatedFrom) ||
+        // If this is an original post, find all posts that were translated from it
+        (p.translatedFrom === postToDelete._id)
+      );
+      
+      // Add the original post to the deletion list if not already included
+      if (!relatedPosts.includes(postToDelete)) {
+        relatedPosts.push(postToDelete);
+      }
+
+      // Delete all related posts
+      for (const post of relatedPosts) {
+        await $postsDB.del(post._id);
+      }
+
+      console.info('Posts deleted successfully');
+      if ($selectedPostId === postToDelete._id && displayedPosts.length > 1) {
+        $selectedPostId = displayedPosts[0]._id;
       }
       showDeleteConfirm = false;
       postToDelete = null;
     } catch (error) {
-      console.error('Error deleting post:', error);
+      console.error('Error deleting posts:', error);
     }
   }
 
@@ -328,6 +379,56 @@ ${convertMarkdownToLatex(selectedPost.content)}
     if (!$postsDB || !$identity) return false;
     return $postsDB.access.write.includes($identity.id) || $postsDB.access.write.includes("*");
   }
+
+  // Add this function with the other functions
+  async function handleTranslate() {
+    console.log('handleTranslate', $aiApiKey, $aiApiUrl);
+    if (!$aiApiKey || !$aiApiUrl) {
+      translationError = $_('translation_config_missing');
+      return;
+    }
+
+    if (!editedTitle || !editedContent || !editedCategory) {
+      translationError = $_('fill_required_fields');
+      return;
+    }
+
+    isTranslating = true;
+    translationError = '';
+
+    try {
+      const post = {
+        title: editedTitle,
+        content: editedContent,
+        category: editedCategory,
+        language: $locale // Assuming original content is in English
+      };
+
+      const translations = await TranslationService.translatePost(post);
+
+      // Save all translations
+      for (const [lang, translatedPost] of Object.entries(translations)) {
+        const _id = crypto.randomUUID();
+        await $postsDB.put({
+          _id,
+          ...translatedPost,
+          createdAt: new Date(editedCreatedAt).getTime(),
+          updatedAt: new Date(editedUpdatedAt).getTime(),
+          identity: $identity.id,
+          mediaIds: selectedMedia,
+        });
+        console.log('translatedPost', translatedPost);
+      }
+
+      translationError = '';
+      editMode = false;
+    } catch (error) {
+      console.error('Translation error:', error);
+      translationError = $_('translation_failed');
+    } finally {
+      isTranslating = false;
+    }
+  }
 </script>
 
 <div class="space-y-6">
@@ -356,7 +457,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
     <div class="col-span-4 bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 h-fit">
       <h2 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white">{$_('blog_posts')}</h2>
       <div class="space-y-2">
-        {#each filteredPosts as post (post._id)}
+        {#each displayedPosts as post (post._id)}
           <div class="post-item w-full text-left p-3 rounded-md transition-colors cursor-pointer bg-white dark:bg-gray-800"
             onmouseover={() => hoveredPostId = post._id}
             onmouseout={() => hoveredPostId = null}
@@ -525,6 +626,18 @@ ${convertMarkdownToLatex(selectedPost.content)}
                 </button>
                 <button
                   type="button"
+                  onclick={handleTranslate}
+                  disabled={isTranslating}
+                  class="bg-green-600 dark:bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-700 dark:hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors disabled:opacity-50"
+                >
+                  {#if isTranslating}
+                    {$_('translating')}...
+                  {:else}
+                    {$_('translate_and_post')}
+                  {/if}
+                </button>
+                <button
+                  type="button"
                   onclick={saveEditedPost}
                   class="bg-indigo-600 dark:bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
                 >
@@ -620,7 +733,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
     <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl max-w-md w-full">
       <h3 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">{$_('confirm_delete')}</h3>
       <p class="text-gray-600 dark:text-gray-300 mb-6">
-        {$_('delete_post_confirm')} "{postToDelete?.title}"?
+        {$_('delete_post_confirm')} "{postToDelete?.title}"? {$_('this_will_delete_all_translations')}
       </p>
       <div class="flex justify-end space-x-4">
         <button

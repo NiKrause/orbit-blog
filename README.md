@@ -27,7 +27,7 @@ Visit our IPNS link (requires [IPFS Companion](https://docs.ipfs.tech/install/ip
 
 ### Core Features
 - ✅ Personal peer-to-peer blog creation
-- ✅ Media storage inside a ad-hoc running IPFS node.
+- ✅ Media files stored directly to IPFS in your apps Helia node
 - ✅ Blog address sharing
 - ✅ Blog subscriptions
 - ✅ Identity management via 12-word encrypted seed (Metamask, Nostr coming soon) 

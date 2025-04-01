@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { locale, _ } from 'svelte-i18n';
+  import { locale } from 'svelte-i18n';
   import { LANGUAGES, setLanguage } from '../i18n/index.js';
-  import { enabledLanguages } from '../store.js';
 
   type LanguageCode = keyof typeof LANGUAGES;
 
@@ -24,22 +23,20 @@
 
 <div class="language-selector">
   <div class="selected-language">
-    <button class="language-button" aria-label={$_('select_language')}>
-      {LANGUAGES[currentLocale] || $_('language')}
+    <button class="language-button" aria-label="Select language">
+      {LANGUAGES[currentLocale] || 'Language'}
       <svg class="dropdown-icon" viewBox="0 0 20 20" fill="currentColor">
         <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
       </svg>
     </button>
     <div class="language-dropdown">
       {#each Object.entries(LANGUAGES) as [code, name]}
-        {#if $enabledLanguages.includes(code)}
-          <button 
-            class="language-option {code === currentLocale ? 'active' : ''}" 
-            onclick={() => changeLanguage(code as LanguageCode)}
-          >
-            {name}
-          </button>
-        {/if}
+        <button 
+          class="language-option {code === currentLocale ? 'active' : ''}" 
+          onclick={() => changeLanguage(code as LanguageCode)}
+        >
+          {name}
+        </button>
       {/each}
     </div>
   </div>

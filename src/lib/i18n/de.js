@@ -37,6 +37,11 @@ export default {
   // Blog
   "blog_name": "Blog-Name",
   "blog_description": "Blog-Beschreibung",
+  "blog_settings": "Blog-Einstellungen",
+  "enabled_languages": "Spracheinstellungen",
+  "available_languages": "Verfügbare Sprachen",
+  "identity": "Identität",
+  "security": "Sicherheit",
   "post_categories": "Beitragskategorien",
   "new_category": "Neue Kategorie",
   "add": "Hinzufügen",
@@ -238,11 +243,6 @@ export default {
   
   // Date Format
   "date_format": "dd.MM.yyyy 'um' HH:mm",
-  
-  // Sprache
-  "select_language": "Sprache auswählen",
-  "language": "Sprache",
-  "enabled_languages": "Aktivierte Sprachen",
   
   // Misc
   "unknown": "Unbekannt"

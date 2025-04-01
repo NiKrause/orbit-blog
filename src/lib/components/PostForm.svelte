@@ -1,19 +1,23 @@
 <script lang="ts">
   import { preventDefault } from 'svelte/legacy';
-  import { _ } from 'svelte-i18n';
+  import { _, locale } from 'svelte-i18n';
 
   import type { Category } from '$lib/types';
   import { marked } from 'marked';
   import DOMPurify from 'dompurify';
   import { postsDB, categories, selectedPostId, identity } from '$lib/store';
   import MediaUploader from './MediaUploader.svelte';
+  import { TranslationService } from '../services/translationService';
+  import { aiApiKey, aiApiUrl } from '../store';
 
   let title = $state('');
   let content = $state('');
-  let category: Category = $state('Bitcoin');
+  let category: Category = $state('');
   let showPreview = $state(false);
   let showMediaUploader = $state(false);
   let selectedMedia = $state([]);
+  let isTranslating = $state(false);
+  let translationError = $state('');
 
   async function handleSubmit() {
     console.log('Creating new post:', { title, category });
@@ -38,7 +42,7 @@
         console.info('Post created successfully');
         title = '';
         content = '';
-        category = 'Bitcoin';
+        category = '';
         selectedMedia = [];
         showPreview = false;
         
@@ -70,6 +74,58 @@
   async function removeSelectedMedia(mediaId: string) {
     selectedMedia = selectedMedia.filter(id => id !== mediaId);
     content = content.replace(`\n\n![Media](ipfs://${mediaId})`, '');
+  }
+
+  async function handleTranslate() {
+    if (!$aiApiKey || !$aiApiUrl) {
+      translationError = $_('translation_config_missing');
+      return;
+    }
+
+    if (!title || !content || !category) {
+      translationError = $_('fill_required_fields');
+      return;
+    }
+
+    isTranslating = true;
+    translationError = '';
+
+    try {
+      const post = {
+        title,
+        content,
+        category,
+        language: $locale // Assuming original content is in English
+      };
+
+      const translations = await TranslationService.translatePost(post);
+
+      // Save all translations
+      for (const [lang, translatedPost] of Object.entries(translations)) {
+        const _id = crypto.randomUUID();
+        await $postsDB.put({
+          _id,
+          ...translatedPost,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          identity: $identity.id,
+          mediaIds: selectedMedia,
+        });
+      }
+
+      // Clear form after successful translation and posting
+      title = '';
+      content = '';
+      category = 'Bitcoin';
+      selectedMedia = [];
+      showPreview = false;
+      translationError = '';
+    } catch (error) {
+      console.error('Translation error:', error);
+      translationError = $_('translation_failed');
+    } finally {
+      isTranslating = false;
+    }
   }
 </script>
 
@@ -161,10 +217,31 @@
     </div>
   {/if}
 
-  <button
-    type="submit"
-    class="w-full bg-indigo-600 dark:bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
-  >
-    {$_('create_post')}
-  </button>
+  <div class="flex justify-between items-center mt-4">
+    <button
+      type="button"
+      onclick={handleTranslate}
+      disabled={isTranslating}
+      class="bg-green-600 dark:bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-700 dark:hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors disabled:opacity-50"
+    >
+      {#if isTranslating}
+        {$_('translating')}...
+      {:else}
+        {$_('translate_and_post')}
+      {/if}
+    </button>
+    
+    <button
+      type="submit"
+      class="bg-indigo-600 dark:bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
+    >
+      {$_('create_post')}
+    </button>
+  </div>
+
+  {#if translationError}
+    <div class="mt-2 text-red-600 dark:text-red-400">
+      {translationError}
+    </div>
+  {/if}
 </form>

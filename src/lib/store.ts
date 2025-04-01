@@ -31,6 +31,14 @@ export const showSettings = localStorageStore('showSettings', false);
 // Language settings
 export const enabledLanguages = localStorageStore('enabledLanguages', Object.keys(LANGUAGES));
 
+// AI Translation settings
+export const aiApiKey = writable<string>(localStorage.getItem('aiApiKey') || '');
+export const aiApiUrl = writable<string>(localStorage.getItem('aiApiUrl') || '');
+
+// Subscribe to changes and save to localStorage
+aiApiKey.subscribe(value => localStorage.setItem('aiApiKey', value));
+aiApiUrl.subscribe(value => localStorage.setItem('aiApiUrl', value));
+
 // Sample data
 const samplePosts: Post[] = [ ];
 

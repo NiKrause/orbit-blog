@@ -37,6 +37,11 @@ export default {
   // Blog
   "blog_name": "Blog Name",
   "blog_description": "Blog Description",
+  "blog_settings": "Blog Settings",
+  "enabled_languages": "Language Settings",
+  "available_languages": "Available Languages",
+  "identity": "Identity",
+  "security": "Security",
   "post_categories": "Post Categories",
   "new_category": "New Category",
   "add": "Add",
@@ -242,8 +247,18 @@ export default {
   // Language
   "select_language": "Select language",
   "language": "Language",
-  "enabled_languages": "Enabled Languages",
   
   // Misc
-  "unknown": "Unknown"
+  "unknown": "Unknown",
+  "ai_translation_settings": "AI Translation Settings",
+  "ai_api_key": "AI API Key",
+  "ai_api_url": "AI API URL",
+  "translate_and_post": "Translate & Post",
+  "translating": "Translating",
+  "translation_config_missing": "Please configure AI translation settings first",
+  "fill_required_fields": "Please fill in all required fields before translating",
+  "translation_failed": "Translation failed. Please try again",
+  "no_posts_in_language": "No posts available in {language}",
+  "original_language": "Original language",
+  "translated_from": "Translated from {language}"
 }

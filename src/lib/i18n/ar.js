@@ -37,6 +37,7 @@ export default {
   // المدونة
   "blog_name": "اسم المدونة",
   "blog_description": "وصف المدونة",
+  "blog_settings": "إعدادات المدونة",
   "post_categories": "فئات المنشورات",
   "new_category": "فئة جديدة",
   "add": "إضافة",
@@ -52,6 +53,9 @@ export default {
   "passwords_do_not_match": "كلمات المرور غير متطابقة",
   "password_changed_successfully": "تم تغيير كلمة المرور بنجاح",
   "failed_to_change_password": "فشل تغيير كلمة المرور",
+  "enabled_languages": "إعدادات اللغة",
+  "available_languages": "اللغات المتوفرة",
+  "identity": "الهوية",
   
   // المنشورات
   "blog_posts": "منشورات المدونة",
@@ -242,7 +246,6 @@ export default {
   // اللغة
   "select_language": "اختر اللغة",
   "language": "اللغة",
-  "enabled_languages": "اللغات المفعلة",
   
   // متفرقات
   "unknown": "غير معروف"

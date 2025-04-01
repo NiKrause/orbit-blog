@@ -37,6 +37,11 @@ export default {
   // 博客
   "blog_name": "博客名称",
   "blog_description": "博客描述",
+  "blog_settings": "博客设置",
+  "enabled_languages": "语言设置",
+  "available_languages": "可用语言",
+  "identity": "身份",
+  "security": "安全",
   "post_categories": "文章分类",
   "new_category": "新分类",
   "add": "添加",
@@ -239,11 +244,6 @@ export default {
   // 日期格式
   "date_format": "yyyy年MM月dd日 HH:mm",
   
-  // 语言
-  "select_language": "选择语言",
-  "language": "语言",
-  "enabled_languages": "已启用的语言",
-  
-  // 其他
+  // 杂项
   "unknown": "未知"
 }

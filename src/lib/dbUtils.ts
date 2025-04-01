@@ -284,11 +284,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
 
         if (postsInstance) {
           const allPosts = (await postsInstance.all()).map(post => {
-            // OrbitDB returns { key, value } pairs, where value contains our actual post data
             const { _id, ...rest } = post.value;
-            // Log the post structure to debug
-            console.log('Post structure:', post);
-            // Make sure we're getting the actual post content
             return { 
               ...rest,
               _id:   _id,

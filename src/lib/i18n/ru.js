@@ -37,6 +37,11 @@ export default {
   // Блог
   "blog_name": "Название блога",
   "blog_description": "Описание блога",
+  "blog_settings": "Настройки блога",
+  "enabled_languages": "Настройки языка",
+  "available_languages": "Доступные языки",
+  "identity": "Идентичность",
+  "security": "Безопасность",
   "post_categories": "Категории постов",
   "new_category": "Новая категория",
   "add": "Добавить",
@@ -238,11 +243,6 @@ export default {
   
   // Формат даты
   "date_format": "dd.MM.yyyy 'в' HH:mm",
-  
-  // Язык
-  "select_language": "Выбрать язык",
-  "language": "Язык",
-  "enabled_languages": "Включенные языки",
   
   // Разное
   "unknown": "Неизвестно"

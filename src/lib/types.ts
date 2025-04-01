@@ -29,5 +29,12 @@ export interface BlogPost {
   title: string;
   content: string;
   category: string;
-  date: string;
+  createdAt?: number;
+  updatedAt?: number;
+  date?: number;
+  identity?: string;
+  mediaIds?: string[];
+  language?: string;        // The language of this post
+  translatedFrom?: string;  // The source language if this is a translation
+  originalPostId?: string;  // Reference to the original post if this is a translation
 }

@@ -37,6 +37,11 @@ export default {
   // Blog
   "blog_name": "Blog Adı",
   "blog_description": "Blog Açıklaması",
+  "blog_settings": "Blog Ayarları",
+  "enabled_languages": "Dil Ayarları",
+  "available_languages": "Mevcut Diller",
+  "identity": "Kimlik",
+  "security": "Güvenlik",
   "post_categories": "Yazı Kategorileri",
   "new_category": "Yeni Kategori",
   "add": "Ekle",
@@ -238,11 +243,6 @@ export default {
   
   // Tarih Formatı
   "date_format": "dd.MM.yyyy 'saat' HH:mm",
-  
-  // Dil
-  "select_language": "Dil seçin",
-  "language": "Dil",
-  "enabled_languages": "Etkin Diller",
   
   // Çeşitli
   "unknown": "Bilinmiyor"

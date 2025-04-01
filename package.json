@@ -109,6 +109,7 @@
     "libp2p-crypto": "^0.21.2",
     "luxon": "^3.6.0",
     "marked": "^12.0.2",
+    "openai": "^4.91.0",
     "qrcode": "^1.5.4",
     "svelte-i18n": "^4.0.1",
     "svelte-icons": "^2.1.0",

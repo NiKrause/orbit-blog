@@ -35,8 +35,13 @@ export default {
   "posts": "Publicaciones",
   
   // Blog
-  "blog_name": "Nombre del blog",
-  "blog_description": "Descripción del blog",
+  "blog_name": "Nombre del Blog",
+  "blog_description": "Descripción del Blog",
+  "blog_settings": "Configuración del Blog",
+  "enabled_languages": "Configuración de idiomas",
+  "available_languages": "Idiomas disponibles",
+  "identity": "Identidad",
+  "security": "Seguridad",
   "post_categories": "Categorías de publicaciones",
   "new_category": "Nueva categoría",
   "add": "Añadir",
@@ -239,11 +244,6 @@ export default {
   // Formato de fecha
   "date_format": "dd/MM/yyyy 'a las' HH:mm",
   
-  // Idioma
-  "select_language": "Seleccionar idioma",
-  "language": "Idioma",
-  "enabled_languages": "Idiomas habilitados",
-  
-  // Misc
+  // Miscelánea
   "unknown": "Desconocido"
 }
