@@ -1,103 +1,96 @@
 <table border="0" cellspacing="0" cellpadding="0">
   <tr>
       <td>
-      <h1>Orbit-Blog</h1>A local-first & peer-to-peer blog powered by OrbitDB which replicates between browsers and mobile apps. It is deployed on IPFS.</td>
+      <h1>Orbit-Blog</h1>
+      <p>A local-first & peer-to-peer blog powered by OrbitDB which replicates between browsers and mobile apps.</p>
+      </td>
     <td><img src="./public/orbitbloglogo-700.png" width="300" alt="Orbit Blog Logo"></td>
   </tr>
 </table>
-Note! This software is currently in alpha version status and thus may change, break backwards compatibility or contain major issues. It has not been security audited. Use it accordingly.
 
-### Install as Progressive Web App (PWA)
+> ⚠️ **Alpha Version Notice**: This software is currently in alpha status and may change, break backwards compatibility, or contain major issues. It has not been security audited. Use accordingly.
 
-Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g) [IPFS Companion needed](https://docs.ipfs.tech/install/ipfs-companion/)
+## Description
+
+Orbit-Blog is a decentralized blogging application that leverages OrbitDB for peer-to-peer data replication and IPFS for content storage. It enables users to create, manage, and share blog content in a truly decentralized manner, with support for categories, comments, and media uploads.
+
+## Installation
+
+### As Progressive Web App (PWA)
+
+Visit our IPNS link (requires [IPFS Companion](https://docs.ipfs.tech/install/ipfs-companion/)):
+- IPNS: [ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g](https://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g.ipns.dweb.link/)
 
 [![QR Code to PWA](/public/ipns.dweb.link.png)](https://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g.ipns.dweb.link/)
 
-## Current Features
-- [x] Create a personal peer-to-peer blog with categories and comments
-- [x] Upload media (photos) to local IPFS node running in the browser
-- [x] Share the blogs address privately via social media 
-- [x] Subscribe to blogs read-only 
-- [ ] Give write permission
-- [ ] Publish a blog onto the peer-to-peer blogging network to be visible and readable by others
-- [ ] Create an asynchronous encrypted blog (with password)
-- [ ] Make blog permanently stored (via ArWeave)
-- [x] Identity via 12-word encrypted seed phrase
-- [ ] Identity via Metamask wallet (Ethereum)
-- [x] Identity via Nostr Wallet
-- [ ] zkEmail-Integration for Metamask account recovery   
+## Features
 
-### Core Functionality
-- [ ] Local-first data storage with peer-to-peer replication
-- [ ] so far free centralized voyager pinning service
-- [ ] run your own voyager pinning service  
-- [x] Restore blog data from replicating nodes with your seed phrase only
-- [x] Persistent or temporary identity management (store seed persistently securely on your mobile - leave the temporary in your desktop browser)
-- [x] Encrypted seed phrase storage with password protection
-- [x] Editable and flexible post categories
-- [x] Markdown support for rich content creation
-- [x]Search functionality within posts
+### Core Features
+- ✅ Personal peer-to-peer blog creation with categories and comments
+- ✅ Local IPFS-based media uploads
+- ✅ Private blog address sharing
+- ✅ Read-only blog subscriptions
+- ✅ Identity management via:
+  - 12-word encrypted seed phrase
+  - Nostr Wallet
+- ✅ Markdown support for rich content
+- ✅ Post search functionality
+- ✅ Progressive Web App (PWA) support
 
-### OrbitDB Integration
-- [x] Connection and replication with remote blogs
-- [x] Persistent peer ID generation from seed phrases
-- [x] Identity switching between temporary and persistent modes
+### Technical Features
+- ✅ OrbitDB integration with remote blog replication
+- ✅ Persistent peer ID generation
+- ✅ Secure seed phrase storage
+- ✅ IPFS deployment support
+- ✅ Internationalization (en, de, fr, es, it, ru)
+- ✅ URL hash routing for blog sharing
+- ✅ Secure WebSocket connections (WSS)
 
-### Deployment & Accessibility
-- [x] IPFS deployment support
-- [x] Progressive Web App (PWA) functionality
+## Roadmap
 
-## Development Roadmap
+### In Development
+- Identity & Security
+  - Metamask wallet integration
+  - zkEmail-Integration for account recovery
+  - Peer-specific write permissions
+  
+- Content Management
+  - Comment search functionality
+  - Markdown support for comments
+  - About section creation
+  
+- Infrastructure
+  - Custom Voyager instance deployment
+  - Pubsub peer discovery
+  - Monitoring with Prometheus & Grafana
 
-### Short-Term Goals
-1. **Mobile Experience Enhancement**
-   - [x] Fix sidebar layout issues
-   - [x] Disable zoom for better mobile UX
+### Future Plans
+- Advanced Data Management
+  - Encrypted backups and restoration
+  - Integration with Filecoin and Arweave
+  - IPFS pubsub pinning
 
-2. **UI Improvements**
-   - [x] Fix / Enable Voyager Blog Pinning
-   - [x] Add internationalization support (en, de, fr, es, it, ru)
-   - [x] Enable blog address sharing via URL hash routing
+- Security Enhancements
+  - OneTimeAccessController implementation
+  - Owner-specific content controls
 
-### Mid-Term Goals
-1. **Search & Content Enhancements**
-   - [x] make comments a separate OrbitDB table with separate AccessControler
-   - [ ] Add search functionality for comments
-   - [ ] Implement markdown support for comments
-   - [ ] Create an "About" section
+- Content Features
+  - Interactive blog posts with code execution
+  - Svelte component integration in markdown
 
-2. **Identity & Security**
-   - [x] Implement overwrite functionality for seed phrases
-   - [ ] Generate new peer IDs and identities
-   - [ ] Support various identity providers (Nostr, Metamask)
+- DevOps
+  - End-to-end testing
+  - CI/CD pipeline with Docker
+  - Automated IPFS publishing
 
-3. **Voyager Integration**
-   - Configure custom Voyager instances via 
-      - [ ] One-Time-Click-Hosting (e.g. Hetzner, Vercel)
-      - [ ] Self-hosted via Docker
-      - [ ] Desktop via Electron 
-      - [ ] Raspberry Pi
-   - [x] Implement secure WebSocket connections (WSS)
-   - [ ] Add pubsub peer discovery support
-   - [ ] Add monitoring with Prometheus & Grafana
+## Contributing
 
-### Long-Term Goals
-1. **Advanced Data Management**
-   - Create encrypted backups with restore functionality
-   - Enable storage on Filecoin, Arweave, and cloud services
-   - Implement pubsub IPFS pinning for posts and comments
+This project is in active development. Contributions are welcome. Please check the issues page for current tasks and development priorities.
 
-2. **Access Control & Security**
-   - Develop peer-specific write permissions
-   - Implement OneTimeAccessController for enhanced security
-   - Create owner-specific content management controls
+## License
 
-3. **Media & Content Expansion**
-   - Support image uploads with IPFS integration
-   - Implement Svelte components within markdown
-   - Enable code execution for interactive blog posts
+[License information to be added]
 
-4. **Testing & Deployment**
-   - Develop end-to-end testing
-   - Create CI/CD pipeline with Docker integration
-   - Implement automated IPFS publishing and pinning
+## Contact
+
+[Contact information to be added]

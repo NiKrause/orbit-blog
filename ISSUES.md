@@ -192,3 +192,23 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
         - pin build cid on pinning service
         - tag version on github with CID
         - display version and CID inside settings / about 
+
+### Additional Features & Goals
+- Core Features
+    - [ ] Give write permission system implementation
+    - [ ] Publish blog onto peer-to-peer blogging network with visibility controls
+    - [ ] Create asynchronous encrypted blog with password protection
+    - [ ] zkEmail-Integration for Metamask account recovery
+    - [ ] Comprehensive local-first data storage with peer-to-peer replication
+
+### Access Control & Security
+- [ ] Owner-specific content management controls
+    - [ ] Define granular permission levels
+    - [ ] Implement role-based access control
+    - [ ] Add user management interface
+
+### Data Management
+- [ ] ArWeave Integration
+    - [ ] Permanent storage implementation
+    - [ ] Backup/restore functionality
+    - [ ] Cost estimation and management 
