@@ -230,8 +230,8 @@ export default {
   "confirm_your_password": "Conferma la tua password",
   
   // Caricamento Blog
-  "connecting_network_loading_blog": "Connessione alla rete P2P e caricamento dati del blog...",
-  "loading_peer_to_peer_blog": "Caricamento Blog P2P",
+  "connecting_network_loading_blog": "Connessione alla rete peer-to-peer e caricamento dei dati del blog...",
+  "loading_peer_to_peer_blog": "Caricamento Blog Peer-to-Peer",
   
   // Cambio tema
   "toggle_theme": "Cambia tema",

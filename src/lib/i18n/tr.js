@@ -229,9 +229,9 @@ export default {
   "enter_your_password": "Şifrenizi girin",
   "confirm_your_password": "Şifrenizi onaylayın",
   
-  // Blog Yükleniyor
-  "connecting_network_loading_blog": "P2P ağına bağlanıyor ve blog verileri yükleniyor...",
-  "loading_peer_to_peer_blog": "P2P Blog Yükleniyor",
+  // Loading Blog
+  "connecting_network_loading_blog": "Eşler arası ağa bağlanıyor ve blog verileri yükleniyor...",
+  "loading_peer_to_peer_blog": "Eşler Arası Blog Yükleniyor",
   
   // Tema Değiştirici
   "toggle_theme": "Temayı değiştir",

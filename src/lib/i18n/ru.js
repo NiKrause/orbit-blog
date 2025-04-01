@@ -230,8 +230,8 @@ export default {
   "confirm_your_password": "Подтвердите ваш пароль",
   
   // Загрузка блога
-  "connecting_network_loading_blog": "Подключение к P2P-сети и загрузка данных блога...",
-  "loading_peer_to_peer_blog": "Загрузка P2P-блога",
+  "connecting_network_loading_blog": "Подключение к одноранговой сети и загрузка данных блога...",
+  "loading_peer_to_peer_blog": "Загрузка одорангового блога",
   
   // Переключатель темы
   "toggle_theme": "Переключить тему",

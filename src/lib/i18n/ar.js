@@ -230,8 +230,8 @@ export default {
   "confirm_your_password": "تأكيد كلمة المرور الخاصة بك",
   
   // تحميل المدونة
-  "connecting_network_loading_blog": "جاري الاتصال بشبكة P2P وتحميل بيانات المدونة...",
-  "loading_peer_to_peer_blog": "جاري تحميل مدونة النظير إلى النظير",
+  "connecting_network_loading_blog": "جارٍ الاتصال بشبكة النظير للنظير وتحميل بيانات المدونة...",
+  "loading_peer_to_peer_blog": "تحميل مدونة النظير للنظير",
   
   // تبديل السمة
   "toggle_theme": "تبديل السمة",

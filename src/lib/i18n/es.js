@@ -229,9 +229,9 @@ export default {
   "enter_your_password": "Introduce tu contraseña",
   "confirm_your_password": "Confirma tu contraseña",
   
-  // Cargando Blog
-  "connecting_network_loading_blog": "Conectando a la red P2P y cargando datos del blog...",
-  "loading_peer_to_peer_blog": "Cargando Blog P2P",
+  // Loading Blog
+  "connecting_network_loading_blog": "Conectando a la red peer-to-peer y cargando datos del blog...",
+  "loading_peer_to_peer_blog": "Cargando Blog Peer-to-Peer",
   
   // Cambio de tema
   "toggle_theme": "Cambiar tema",

@@ -230,7 +230,7 @@ export default {
   "confirm_your_password": "确认您的密码",
   
   // 加载博客
-  "connecting_network_loading_blog": "正在连接 P2P 网络并加载博客数据...",
+  "connecting_network_loading_blog": "正在连接点对点网络并加载博客数据...",
   "loading_peer_to_peer_blog": "正在加载点对点博客",
   
   // 主题切换
