@@ -12,7 +12,7 @@
 
 ## Description
 
-Orbit-Blog is a decentralized blogging application that leverages OrbitDB for peer-to-peer data replication and IPFS for content storage. It enables users to create, manage, and share blog content in a truly decentralized manner, with support for categories, comments, and media uploads.
+Orbit-Blog is a decentralized blogging application that leverages OrbitDB for peer-to-peer data replication and IPFS for content storage. It enables users to create, manage, and share blog content in a decentralized manner, so blog posts are stored with the blog author and their readers maintain a replica via peer-to-peer connections.
 
 ## Installation
 
@@ -26,57 +26,44 @@ Visit our IPNS link (requires [IPFS Companion](https://docs.ipfs.tech/install/ip
 ## Features
 
 ### Core Features
-- ✅ Personal peer-to-peer blog creation with categories and comments
-- ✅ Local IPFS-based media uploads
-- ✅ Private blog address sharing
-- ✅ Read-only blog subscriptions
-- ✅ Identity management via:
-  - 12-word encrypted seed phrase
-  - Nostr Wallet
-- ✅ Markdown support for rich content
-- ✅ Post search functionality
+- ✅ Personal peer-to-peer blog creation
+- ✅ Media storage inside a ad-hoc running IPFS node.
+- ✅ Blog address sharing
+- ✅ Blog subscriptions
+- ✅ Identity management via 12-word encrypted seed (Metamask, Nostr coming soon) 
+- ✅ Markdown support
+- ✅ Post search
 - ✅ Progressive Web App (PWA) support
 
 ### Technical Features
-- ✅ OrbitDB integration with remote blog replication
-- ✅ Persistent peer ID generation
-- ✅ Secure seed phrase storage
-- ✅ IPFS deployment support
-- ✅ Internationalization (en, de, fr, es, it, ru)
+- ✅ OrbitDB replicates blogs to readers
+- ✅ Temporary and persistent peer ID generation
+- ✅ Blog deployed on IPFS 
+- ✅ Internationalization (en, de, fr, es, it, ru, zh, ar, tr)
 - ✅ URL hash routing for blog sharing
-- ✅ Secure WebSocket connections (WSS)
+- ✅ LibP2P-Transport via secure Websocket, WebRTC and Webtransport
 
 ## Roadmap
 
 ### In Development
 - Identity & Security
   - Metamask wallet integration
-  - zkEmail-Integration for account recovery
-  - Peer-specific write permissions
+  - zkEmail-Integration for account recovery (under consideration)
+  - write permissions for certain roles (One-Time Write Permission, Permanent Write Permission)
   
-- Content Management
-  - Comment search functionality
-  - Markdown support for comments
-  - About section creation
-  
-- Infrastructure
-  - Custom Voyager instance deployment
-  - Pubsub peer discovery
-  - Monitoring with Prometheus & Grafana
+- Pinning Service Infrastructure 
+  - Custom Voyager instance 
+  - Voyager supports Pubsub peer discovery
+  - Centralized Fiat+Crypto Pinning Gateway
+  - Decentralized-Peer-to-Peer Voyager Network for OrbitDB Pinning
 
 ### Future Plans
 - Advanced Data Management
   - Encrypted backups and restoration
-  - Integration with Filecoin and Arweave
-  - IPFS pubsub pinning
-
-- Security Enhancements
-  - OneTimeAccessController implementation
-  - Owner-specific content controls
+  - Integration with FileCoin, ArWeave, Aleph-IM
 
 - Content Features
-  - Interactive blog posts with code execution
-  - Svelte component integration in markdown
+  - Interactive blog posts with Svelte code execution
 
 - DevOps
   - End-to-end testing
@@ -89,8 +76,8 @@ This project is in active development. Contributions are welcome. Please check t
 
 ## License
 
-[License information to be added]
+This project is licensed under the MIT License.
 
 ## Contact
 
-[Contact information to be added]
+Visit us at [www.le-space.de](https://www.le-space.de)
