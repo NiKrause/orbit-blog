@@ -103,11 +103,6 @@
   }
 
   async function handleTranslate() {
-    if (!$aiApiKey || !$aiApiUrl) {
-      translationError = $_('translation_config_missing');
-      return;
-    }
-
     if (!title || !content || !category) {
       translationError = $_('fill_required_fields');
       return;
@@ -115,62 +110,41 @@
 
     isTranslating = true;
     translationError = '';
-    
-    // Reset statuses
     translationStatuses = Object.fromEntries([...$enabledLanguages].map(lang => [lang, 'default']));
 
     try {
-      const post = {
-        title,
-        content,
-        category,
-        language: $locale
-      };
-
-      const translations = await TranslationService.translatePost(
-        post,
-        (lang, status) => {
-          // Update status immediately for each language
+      const result = await TranslationService.translateAndSavePost({
+        post: {
+          title,
+          content,
+          category,
+          language: $locale
+        },
+        postsDB: $postsDB,
+        identity: $identity,
+        mediaIds: selectedMedia,
+        onStatusUpdate: (lang, status) => {
           translationStatuses = {
             ...translationStatuses,
             [lang]: status === 'processing' ? 'default' : status
           };
         }
-      );
+      });
 
-      // Save translations
-      for (const [lang, translatedPost] of Object.entries(translations)) {
-        try {
-          const _id = crypto.randomUUID();
-          await $postsDB.put({
-            _id,
-            ...translatedPost,
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-            identity: $identity.id,
-            mediaIds: selectedMedia,
-          });
-        } catch (error) {
-          console.error(`Error saving translation for ${lang}:`, error);
-          translationStatuses = {
-            ...translationStatuses,
-            [lang]: 'error'
-          };
-        }
+      if (result.success) {
+        translationStatuses = result.translationStatuses;
+        // Clear form after successful translation
+        title = '';
+        content = '';
+        category = '';
+        selectedMedia = [];
+        showPreview = false;
+      } else {
+        translationError = result.error;
+        translationStatuses = result.translationStatuses;
       }
-
-      // Clear form after successful translation and posting
-      title = '';
-      content = '';
-      category = '';
-      selectedMedia = [];
-      showPreview = false;
-      translationError = '';
     } catch (error) {
-      console.error('Translation error:', error);
       translationError = $_('translation_failed');
-      // Mark all as error if general translation fails
-      translationStatuses = Object.fromEntries([...$enabledLanguages].map(lang => [lang, 'error']));
     } finally {
       isTranslating = false;
     }

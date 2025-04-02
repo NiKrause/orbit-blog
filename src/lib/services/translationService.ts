@@ -14,6 +14,23 @@ interface TranslationResponse {
   detectedLanguage?: string;
 }
 
+interface TranslateAndSaveOptions {
+  post: {
+    title: string;
+    content: string;
+    category: string;
+    language: string;
+  };
+  postsDB: any; // Use proper type from your DB
+  identity: any; // Use proper type from your identity
+  mediaIds?: string[];
+  timestamps?: {
+    createdAt: number;
+    updatedAt: number;
+  };
+  onStatusUpdate?: (lang: string, status: string) => void;
+}
+
 export class TranslationService {
   private static openaiClient: OpenAI;
 
@@ -119,5 +136,63 @@ Only respond with the translated text, without any additional commentary.`;
     }
 
     return translations;
+  }
+
+  static async translateAndSavePost(options: TranslateAndSaveOptions) {
+    const {
+      post,
+      postsDB,
+      identity,
+      mediaIds = [],
+      timestamps = { createdAt: Date.now(), updatedAt: Date.now() },
+      onStatusUpdate
+    } = options;
+
+    if (!get(aiApiKey) || !get(aiApiUrl)) {
+      return {
+        success: false,
+        error: 'translation_config_missing',
+        translationStatuses: {}
+      };
+    }
+
+    const translationStatuses = {};
+    
+    try {
+      const translations = await this.translatePost(post, onStatusUpdate);
+
+      // Save translations
+      for (const [lang, translatedPost] of Object.entries(translations)) {
+        try {
+          const _id = crypto.randomUUID();
+          await postsDB.put({
+            _id,
+            ...translatedPost,
+            createdAt: timestamps.createdAt,
+            updatedAt: timestamps.updatedAt,
+            identity: identity.id,
+            mediaIds,
+          });
+          translationStatuses[lang] = 'success';
+        } catch (error) {
+          console.error(`Error saving translation for ${lang}:`, error);
+          translationStatuses[lang] = 'error';
+        }
+      }
+
+      return {
+        success: true,
+        translationStatuses
+      };
+    } catch (error) {
+      console.error('Translation error:', error);
+      return {
+        success: false,
+        error: 'translation_failed',
+        translationStatuses: Object.fromEntries(
+          [...get(enabledLanguages)].map(lang => [lang, 'error'])
+        )
+      };
+    }
   }
 } 

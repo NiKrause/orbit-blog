@@ -412,16 +412,10 @@ ${convertMarkdownToLatex(selectedPost.content)}
     return $postsDB.access.write.includes($identity.id) || $postsDB.access.write.includes("*");
   }
 
+  // Modify the handleTranslate function similarly to the PostForm version
   async function handleTranslate() {
-    if (!$aiApiKey || !$aiApiUrl) {
-      translationError = $_('translation_config_missing');
-      return;
-    }
-
     isTranslating = true;
     translationError = '';
-    
-    // Reset statuses
     translationStatuses = Object.fromEntries([...$enabledLanguages].map(lang => [lang, 'default']));
 
     try {
@@ -432,34 +426,26 @@ ${convertMarkdownToLatex(selectedPost.content)}
         language: $locale
       };
 
-      const translations = await TranslationService.translatePost(post);
-
-      // Update statuses based on translations
-      for (const [lang, translatedPost] of Object.entries(translations)) {
-        try {
-          const _id = crypto.randomUUID();
-          await $postsDB.put({
-            _id,
-            ...translatedPost,
-            createdAt: new Date(editedCreatedAt).getTime(),
-            updatedAt: new Date(editedUpdatedAt).getTime(),
-            identity: $identity.id,
-            mediaIds: selectedMedia,
-          });
-          translationStatuses[lang] = 'success';
-        } catch (error) {
-          translationStatuses[lang] = 'error';
-          console.error(`Error saving translation for ${lang}:`, error);
+      const result = await TranslationService.translateAndSavePost({
+        post,
+        postsDB: $postsDB,
+        identity: $identity,
+        mediaIds: selectedMedia,
+        timestamps: {
+          createdAt: new Date(editedCreatedAt).getTime(),
+          updatedAt: new Date(editedUpdatedAt).getTime()
         }
-      }
+      });
 
-      editMode = false;
-      translationError = '';
+      if (result.success) {
+        translationStatuses = result.translationStatuses;
+        editMode = false;
+      } else {
+        translationError = result.error;
+        translationStatuses = result.translationStatuses;
+      }
     } catch (error) {
-      console.error('Translation error:', error);
       translationError = $_('translation_failed');
-      // Mark all as error if general translation fails
-      translationStatuses = Object.fromEntries([...$enabledLanguages].map(lang => [lang, 'error']));
     } finally {
       isTranslating = false;
     }
@@ -534,18 +520,28 @@ ${convertMarkdownToLatex(selectedPost.content)}
       <div class="space-y-2">
         {#each displayedPosts as post (post._id)}
           <div class="post-item w-full text-left p-3 rounded-md transition-colors cursor-pointer bg-white dark:bg-gray-800"
+            onclick={() => selectPost(post._id)}
             onmouseover={() => hoveredPostId = post._id}
             onmouseout={() => hoveredPostId = null}
-            onclick={() => selectPost(post._id)}
+            ontouchstart={(e) => { e.preventDefault(); }}
+            ontouchend={(e) => { e.preventDefault(); }}
+            role="button"
+            tabindex="0"
+            onkeydown={(e) => e.key === 'Enter' && selectPost(post._id)}
+            class:active={hoveredPostId === post._id}
+            data-post-id={post._id}
           >
             <div class="post-content">
               <!-- Only show buttons if user has write access -->
               {#if hasWriteAccess()}
-                <div class="flex justify-end space-x-2 {hoveredPostId === post._id ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300 ease-in-out">
+                <div class="flex justify-end space-x-2 action-buttons {hoveredPostId === post._id ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300 ease-in-out">
                   <button
-                    class="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                    onclick={(e) => editPost(post, e)}
+                    type="button"
+                    class="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 touch-manipulation"
+                    onclick={(e) => {e.stopPropagation(); editPost(post, e)}}
+                    ontouchend={(e) => {e.stopPropagation(); editPost(post, e)}}
                     title={$_('edit_post')}
+                    aria-label={$_('edit_post')}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
@@ -944,16 +940,50 @@ ${convertMarkdownToLatex(selectedPost.content)}
   }
 
   .post-item {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+    position: relative;
     margin-bottom: 0.5rem;
     border: 1px solid transparent;
+  }
+
+  /* Active state for touch feedback */
+  .post-item.active {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+
+  /* Dark mode active state */
+  :global(.dark) .post-item.active {
+    background-color: rgba(255, 255, 255, 0.05);
   }
 
   .post-item:hover {
     border-color: #e5e7eb;
   }
 
-  .post-content {
-    position: relative;
+  /* Improve touch target size for buttons */
+  .action-buttons button {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Add specific mobile styles */
+  @media (max-width: 768px) {
+    .post-item {
+      padding: 12px; /* Larger touch target */
+    }
+
+    .action-buttons {
+      opacity: 1 !important; /* Always show buttons on mobile */
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
   }
 
   /* RTL specific styles */
@@ -984,4 +1014,5 @@ ${convertMarkdownToLatex(selectedPost.content)}
     margin-left: 0.25rem;
     margin-right: 0;
   }
+
 </style>
