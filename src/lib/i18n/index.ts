@@ -3,16 +3,21 @@ import { isRTL } from '../store.js';
 
 // Definiere die verfügbaren Sprachen
 export const LANGUAGES = {
-  en: 'English',
-  de: 'Deutsch',
-  nl: 'Nederlands',
-  fr: 'Français',
-  es: 'Español',
-  it: 'Italiano',
-  ru: 'Русский',
-  zh: '中文',
   ar: 'العربية',
-  tr: 'Türkçe'
+  de: 'Deutsch',
+  el: 'Ελληνικά',
+  en: 'English',
+  es: 'Español',
+  fr: 'Français',
+  hi: 'हिन्दी',
+  id: 'Bahasa Indonesia',
+  it: 'Italiano',
+  nl: 'Nederlands',
+  pt: 'Português',
+  ru: 'Русский',
+  th: 'ไทย',
+  tr: 'Türkçe',
+  zh: '中文',
 };
 
 // Define RTL languages
@@ -23,13 +28,17 @@ const registerTranslations = () => {
   // Mit expliziten Dateierweiterungen
   register('en', () => import('./en.js'));
   register('de', () => import('./de.js'));
+  register('el', () => import('./el.js'));
+  register('hi', () => import('./hi.js'));
   register('nl', () => import('./nl.js'));
   register('fr', () => import('./fr.js'));
   register('es', () => import('./es.js'));
   register('it', () => import('./it.js'));
+  register('pt', () => import('./pt.js'));
   register('ru', () => import('./ru.js'));
   register('zh', () => import('./zh.js'));
   register('ar', () => import('./ar.js'));
+  register('th', () => import('./th.js'));
   register('tr', () => import('./tr.js'));
 };
 
