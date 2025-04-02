@@ -2,17 +2,17 @@
   import { run } from 'svelte/legacy';
   import { _, locale } from 'svelte-i18n';
 
-  import { posts, selectedPostId, identity, postsDB, aiApiKey, aiApiUrl, enabledLanguages } from '$lib/store';
-  import { formatDate, formatTimestamp } from '$lib/dateUtils';
+  import { posts, selectedPostId, identity, postsDB, aiApiKey, aiApiUrl, enabledLanguages, isRTL } from '$lib/store.js';
+  import { formatDate, formatTimestamp } from '$lib/dateUtils.js';
 
   import { marked } from 'marked';
   import DOMPurify from 'dompurify';
-  import type { Post, Category } from '$lib/types';
+  import type { Post, Category } from '$lib/types.js';
   import { onMount } from 'svelte';
-  import { categories } from '$lib/store';
+  import { categories } from '$lib/store.js';
   import BlogPost from './BlogPost.svelte';
   import MediaUploader from './MediaUploader.svelte';
-  import { TranslationService } from '$lib/services/translationService';
+  import { TranslationService } from '$lib/services/translationService.js';
   
   // Import html2pdf for PDF generation
   import html2pdf from 'html2pdf.js';
@@ -22,7 +22,7 @@
   let searchQuery = $state('');
   let selectedCategory: Category | 'All' = $state('All');
   // let selectedPostId: string | null = null;
-  let hoveredPostId = $state(null); // Track the ID of the hovered post
+  let hoveredPostId = $state<string | null>(null); // Track the ID of the hovered post
   let editMode = $state(false); // Track if we're in edit mode
   let editedTitle = $state('');
   let editedContent = $state('');
@@ -30,11 +30,11 @@
   let editedUpdatedAt = $state('');
   let editedCreatedAt = $state('');
   let showHistory = $state(false);
-  let postHistory = $state([]);
+  let postHistory = $state<Post[]>([]);
   let showMediaUploader = $state(false);
-  let selectedMedia = $state([]);
+  let selectedMedia = $state<string[]>([]);
   let showDeleteConfirm = $state(false);
-  let postToDelete = $state(null);
+  let postToDelete = $state<Post | null>(null);
 
   let searchTerm = $state('');
   let displayedPosts = $state([]);
@@ -43,7 +43,9 @@
   let isTranslating = $state(false);
   let translationError = $state('');
 
-  let translationStatuses = $state({});
+  let translationStatuses = $state<Record<string, 'success' | 'error' | 'default'>>({});
+
+  let showPreview = $state(false);
 
   // Combined filtering function
   function filterPosts() {
@@ -439,7 +441,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
   }
 </script>
 
-<div class="space-y-6">
+<div class="space-y-4 {$isRTL ? 'rtl' : 'ltr'}">
   <div class="flex space-x-4 mb-6">
     <input
       type="text"
@@ -582,26 +584,41 @@ ${convertMarkdownToLatex(selectedPost.content)}
               <div>
                 <div class="flex justify-between items-center mb-2">
                   <label for="edit-content" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{$_('content')}</label>
-                  <button
-                    type="button"
-                    onclick={() => showMediaUploader = !showMediaUploader}
-                    class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300"
-                  >
-                    {showMediaUploader ? $_('hide_media_library') : $_('add_media')}
-                  </button>
+                  <div class="flex space-x-2">
+                    <button
+                      type="button"
+                      onclick={() => showMediaUploader = !showMediaUploader}
+                      class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300"
+                    >
+                      {showMediaUploader ? $_('hide_media_library') : $_('add_media')}
+                    </button>
+                    <button
+                      type="button"
+                      onclick={() => showPreview = !showPreview}
+                      class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300"
+                    >
+                      {showPreview ? $_('show_editor') : $_('show_preview')}
+                    </button>
+                  </div>
                 </div>
 
                 {#if showMediaUploader}
                   <MediaUploader onMediaSelected={handleMediaSelected} />
                 {/if}
 
-                <textarea
-                  id="edit-content"
-                  bind:value={editedContent}
-                  rows="10"
-                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  required
-                ></textarea>
+                {#if showPreview}
+                  <div class="prose dark:prose-invert max-w-none min-h-[200px] p-4 border rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
+                    {@html renderMarkdown(editedContent || `*${$_('preview_will_appear_here')}...*`)}
+                  </div>
+                {:else}
+                  <textarea
+                    id="edit-content"
+                    bind:value={editedContent}
+                    rows="10"
+                    class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    required
+                  ></textarea>
+                {/if}
               </div>
 
               {#if selectedMedia.length > 0}
@@ -636,9 +653,9 @@ ${convertMarkdownToLatex(selectedPost.content)}
                   type="button"
                   onclick={handleTranslate}
                   disabled={isTranslating}
-                  class="inline-flex items-center gap-2 bg-green-600 dark:bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-700 dark:hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors disabled:opacity-50"
+                  class="inline-flex items-center gap-2 bg-indigo-600 dark:bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors disabled:opacity-50"
                 >
-                  <div class="flex items-center">
+                  <div class="grid grid-cols-3 gap-1">
                     {#each [...$enabledLanguages] as lang}
                       <LanguageStatusLED 
                         language={lang} 
@@ -843,5 +860,34 @@ ${convertMarkdownToLatex(selectedPost.content)}
 
   .post-content {
     position: relative;
+  }
+
+  /* RTL specific styles */
+  :global([dir="rtl"]) .flex {
+    flex-direction: row-reverse;
+  }
+
+  :global([dir="rtl"]) .space-x-2 > * + * {
+    margin-right: 0.5rem;
+    margin-left: 0;
+  }
+
+  :global([dir="rtl"]) .gap-2 > * + * {
+    margin-right: 0.5rem;
+    margin-left: 0;
+  }
+
+  :global([dir="rtl"]) .text-left {
+    text-align: right;
+  }
+
+  :global([dir="rtl"]) .ml-1 {
+    margin-right: 0.25rem;
+    margin-left: 0;
+  }
+
+  :global([dir="rtl"]) .mr-1 {
+    margin-left: 0.25rem;
+    margin-right: 0;
   }
 </style>

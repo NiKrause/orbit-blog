@@ -15,12 +15,13 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 ### Todos, Features, Issues
 - Todos:
+    - [ ] Peer-to-Peer between browsers broken (WebRTC upgrade from circuite-relay-v2)
+    - [ ] Bug: locks & keys in sidebar are updating too late
+    - [ ] Feature: when adding IPFS-image links into markdown, it should also parse external CIDs not just cids which are inside our media library
     - [x] Bug: Website in browsers and mobile apps pwa is cached too long: nginx must send no-cache header
     - [x] Feature: Privacy Statement
+    - [x] Feature: add Github Link
     - [ ] Feature RSS Feed: Auf Web2.0
-    - [ ] Feature: add Github Link
-    - [ ] Feature: when adding IPFS-image links into markdown, it should also parse external CIDs not just cids which are inside our media library
-    - [ ] Bug: locks & keys in sidebar are updating too late
     - [x] Feature: when dropping db - ask user before - if drop only locally or also on voyager! Drop recursive posts, comments, media and unpin ipfs files 
     - [ ] Feature: PostList should be possible to drag posts up and down and order them and store position at the post document 
     - [ ] Feature: warn user if firewall doesn't support ICE (WebRTC/Peer-To-Peer)
@@ -31,11 +32,11 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [x] Feature: author needs to be shortened, the ID is too long, need to hover to see it fully
         - [ ] obviously it get's lost but when testing locally and in production it is not loosing data 
     - [ ] Feature: integrated AI spell checker
-    - [ ] Feature: integrated AI translater via configurable private API url 
-    - [ ] Feature: Create Svelte lib from project, so it can be used in other projects as component
+    - [x] Feature: integrated AI translater via configurable private API url 
+    - [x] Feature: Create Svelte lib from project, so it can be used in other projects as component
         - [x] lib created
         - [ ] Bug tailwind components aren't activated when using lib
-        - [ ] Feature: Run voyager
+        - [ ] Feature: Run voyager inside 
     - [x] editable, deletable, history only when write access
     - [x] comments can't be stored anymore
     - [x] when switching network off, blog should read local db and not connect. At the moment it tries to connect online and fail
@@ -46,7 +47,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - ]x] Feature: PDF export from a post content
     - [ ] Feature: AI prompt templates + file upload e.g. 
         - [ ] Feature: correct my spelling
-        - [ ] Feature: translate to English, Spanish, etc.
+        - [x] Feature: translate to English, Spanish, etc.
     - [ ] Settings 
         - [ ] Feature: Configure a logo
         - [ ] Feature: activate a navigation

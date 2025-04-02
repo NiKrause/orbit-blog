@@ -1,28 +1,29 @@
 import { writable, derived } from 'svelte/store';
-import type { Post, Category, RemoteDB } from './types.js';
+import type { Post, Category, RemoteDB, Media, Comment, Helia, OrbitDB, Voyager } from './types.js';
 import { localStorageStore } from './utils.js';
 import { LANGUAGES } from './i18n/index.js';
 
 // Create writable stores
-export const identity = writable(null)
-export const identities = writable(null)
-export const settingsDB = writable(null)
-export const postsDB = writable(null)
+export const identity = writable<{ id: string } | null>(null);
+export const identities = writable<{ id: string }[] | null>(null);
+export const settingsDB = writable<OrbitDB | null>(null);
+export const postsDB = writable<OrbitDB | null>(null);
 
-export const initialAddress = writable<string | null>(null)
-export const remoteDBs = writable<RemoteDB[]>([])
-export const selectedDBAddress = writable<string | null>(null)
-export const remoteDBsDatabases = writable(null)
-export const blogName = writable<string>('New Blog')
-export const blogDescription = writable<string>('Change your blog description in the settings')
-export const categories = writable<string[]>(['General', 'Technology', 'Science', 'Art', 'Music', 'Sports', 'Politics', 'Economy', 'Entertainment', 'Other'])
-export const selectedPostId = writable<string | null>(null)
-export const postsDBAddress = writable<string | null>(null)
-export const seedPhrase = writable<string | null>(null)
-export const helia = writable()
-export const libp2p = writable()
-export const orbitdb = writable()
-export const voyager = writable()
+export const initialAddress = writable<string | null>(null);
+export const remoteDBs = writable<RemoteDB[]>([]);
+export const selectedDBAddress = writable<string | null>(null);
+export const remoteDBsDatabases = writable<OrbitDB | null>(null);
+export const blogName = writable<string>('New Blog');
+export const blogDescription = writable<string>('Change your blog description in the settings');
+export const categories = writable<string[]>(['General', 'Technology', 'Science', 'Art', 'Music', 'Sports', 'Politics', 'Economy', 'Entertainment', 'Other']);
+export const selectedPostId = writable<string | null>(null);
+export const postsDBAddress = writable<string | null>(null);
+export const seedPhrase = writable<string | null>(null);
+export const helia = writable<Helia | null>(null);
+export const libp2p = writable<Helia['libp2p'] | null>(null);
+export const orbitdb = writable<OrbitDB | null>(null);
+export const voyager = writable<Voyager | null>(null);
+
 // Local storage-backed UI state stores
 export const showDBManager = localStorageStore('showDBManager', false);
 export const showPeers = localStorageStore('showPeers', false);
@@ -40,20 +41,23 @@ aiApiKey.subscribe(value => localStorage.setItem('aiApiKey', value));
 aiApiUrl.subscribe(value => localStorage.setItem('aiApiUrl', value));
 
 // Sample data
-const samplePosts: Post[] = [ ];
+const samplePosts: Post[] = [];
 
 export const posts = writable<Post[]>(samplePosts);
 export const searchQuery = writable('');
 export const selectedCategory = writable<Category | 'All'>('All');
 
 // Add commentsDB to your store exports
-export const commentsDB = writable(null);
-export const commentsDBAddress = writable(null);
-export const allComments = writable([]);
+export const commentsDB = writable<OrbitDB | null>(null);
+export const commentsDBAddress = writable<string | null>(null);
+export const allComments = writable<Comment[]>([]);
 
 // Add a store for the media database
-export const mediaDB = writable(null);
-export const mediaDBAddress = writable(null);
-export const allMedia = writable([]);
+export const mediaDB = writable<OrbitDB | null>(null);
+export const mediaDBAddress = writable<string | null>(null);
+export const allMedia = writable<Media[]>([]);
+
+// Store for tracking the current language direction
+export const isRTL = writable(false);
 
 

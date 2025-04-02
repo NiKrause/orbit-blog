@@ -9,6 +9,41 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* RTL Support */
+[dir="rtl"] {
+  text-align: right;
+}
+
+[dir="rtl"] .fixed-controls {
+  right: auto;
+  left: 4rem;
+}
+
+[dir="rtl"] button.fixed {
+  left: 4rem !important;
+  right: auto !important;
+}
+
+[dir="rtl"] .share-button {
+  left: 20px !important;
+  right: auto !important;
+}
+
+[dir="rtl"] .sidebar {
+  right: 0;
+  left: auto;
+}
+
+[dir="rtl"] .fixed.top-0.left-0 {
+  right: 0;
+  left: auto;
+}
+
+[dir="rtl"] .fixed.top-4.left-4 {
+  right: 4rem;
+  left: auto;
+}
+
 body {
   margin: 0;
   min-width: 320px;

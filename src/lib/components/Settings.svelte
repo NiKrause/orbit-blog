@@ -1,9 +1,7 @@
 <script lang="ts">
   import { _ } from 'svelte-i18n';
   import { preventDefault } from 'svelte/legacy';
-  import type { Writable } from 'svelte/store';
-  import type { RemoteDB } from '../types.js';
-  import { settingsDB, blogName, blogDescription, categories, seedPhrase, libp2p, orbitdb, enabledLanguages, aiApiKey, aiApiUrl } from '../store.js';
+  import { settingsDB, blogName, blogDescription, categories, seedPhrase, libp2p, orbitdb, enabledLanguages, aiApiKey, aiApiUrl, identity, isRTL } from '../store.js';
   import { encryptSeedPhrase } from '../cryptoUtils.js';
   import { LANGUAGES } from '../i18n/index.js';
 
@@ -104,7 +102,7 @@
   }
 </script>
 
-<div class="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 {$isRTL ? 'rtl' : 'ltr'}">
   <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">{$_('settings')}</h2>
   
   <!-- Blog Settings Accordion -->
@@ -409,5 +407,34 @@
 <style>
   .rotate-180 {
     transform: rotate(180deg);
+  }
+
+  /* RTL specific styles */
+  :global([dir="rtl"]) .flex {
+    flex-direction: row-reverse;
+  }
+
+  :global([dir="rtl"]) .space-x-2 > * + * {
+    margin-right: 0.5rem;
+    margin-left: 0;
+  }
+
+  :global([dir="rtl"]) .gap-2 > * + * {
+    margin-right: 0.5rem;
+    margin-left: 0;
+  }
+
+  :global([dir="rtl"]) .text-left {
+    text-align: right;
+  }
+
+  :global([dir="rtl"]) .ml-1 {
+    margin-right: 0.25rem;
+    margin-left: 0;
+  }
+
+  :global([dir="rtl"]) .mr-1 {
+    margin-left: 0.25rem;
+    margin-right: 0;
   }
 </style> 

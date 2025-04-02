@@ -1,14 +1,16 @@
 <script lang="ts">
   import { _ } from 'svelte-i18n';
-  import { helia } from '$lib/store';
+  import { helia } from '$lib/store.js';
   import { onMount, onDestroy } from 'svelte';
-  import type { Connection } from '@libp2p/interface-connection';
+  import type { Connection, Helia } from '$lib/types.js';
+  import { isRTL } from '$lib/store.js';
   
   interface PeerInfo {
     id: string;
     shortId: string;
     connected: boolean;
     transport: string;
+    address: string;
   }
   
   let peers: PeerInfo[] = $state([]);
@@ -33,7 +35,7 @@
   function updatePeersList() {
     if ($helia?.libp2p) {
       const connections = $helia.libp2p.getConnections();
-      peers = connections.map(conn => ({
+      peers = connections.map((conn: Connection) => ({
         id: conn.remotePeer.toString(),
         shortId: getShortPeerId(conn.remotePeer.toString()),
         connected: conn.status === 'open',
@@ -69,7 +71,7 @@
   });
 </script>
 
-<div class="space-y-1">
+<div class="space-y-1 {$isRTL ? 'rtl' : 'ltr'}">
   {#if peers.length === 0}
     <p class="text-[8px] text-gray-500 dark:text-gray-400">{$_('no_peers_connected')}</p>
   {:else}
@@ -78,10 +80,17 @@
         class="flex items-center py-0.5 px-1 rounded text-[8px] text-gray-800 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700"
         title={peer.address}
       >
-        <span class="mr-1">{peer.shortId}</span>
-        <span class={`h-1.5 w-1.5 rounded-full mr-1 ${peer.connected ? 'bg-green-500' : 'bg-red-500'}`}></span>
+        <span class="{$isRTL ? 'ml-1' : 'mr-1'}">{peer.shortId}</span>
+        <span class={`h-1.5 w-1.5 rounded-full {$isRTL ? 'ml-1' : 'mr-1'} ${peer.connected ? 'bg-green-500' : 'bg-red-500'}`}></span>
         <span class="text-gray-600 dark:text-gray-400">{peer.transport}</span>
       </div>
     {/each}
   {/if}
-</div> 
+</div>
+
+<style>
+  /* RTL specific styles */
+  :global([dir="rtl"]) .flex {
+    flex-direction: row-reverse;
+  }
+</style> 

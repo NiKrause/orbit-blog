@@ -1,9 +1,10 @@
 <script lang="ts">
   import { _ } from 'svelte-i18n';
-  import { helia } from '$lib/store';
+  import { helia } from '$lib/store.js';
   import { onMount } from 'svelte';
-  import type { Connection } from '@libp2p/interface-connection'
+  import type { Helia } from '$lib/types.js';
   import WebRTCTester from './WebRTCTester.svelte';
+  import { isRTL } from '$lib/store.js';
   
   interface PeerInfo {
     id: string;
@@ -12,6 +13,19 @@
     streams: number;
     direction: string;
     multiaddr: string;
+  }
+
+  interface Connection {
+    remotePeer: {
+      toString: () => string;
+    };
+    remoteAddr: {
+      toString: () => string;
+    };
+    status: string;
+    streams: any[];
+    direction: string;
+    close: () => Promise<void>;
   }
   
   let peers: PeerInfo[] = $state([]);
@@ -35,7 +49,7 @@
   function updatePeersList() {
     if ($helia?.libp2p) {
       const connections = $helia.libp2p.getConnections();
-      peers = connections.map(conn => ({
+      peers = connections.map((conn: Connection) => ({
         id: conn.remotePeer.toString(),
         connected: conn.status === 'open',
         transport: getTransportFromMultiaddr(conn),
@@ -43,13 +57,12 @@
         direction: conn.direction,
         multiaddr: conn.remoteAddr.toString()
       }));
-      // console.log('Updated peers list:', peers);
     }
   }
   
   async function disconnectPeer(peerId: string) {
     if ($helia?.libp2p) {
-      const connection = $helia.libp2p.getConnections().find(conn => conn.remotePeer.toString() === peerId);
+      const connection = $helia.libp2p.getConnections().find((conn: Connection) => conn.remotePeer.toString() === peerId);
       if (connection) {
         try {
           await connection.close();
@@ -68,14 +81,12 @@
   }
   
   function hasWebRTCConnection(_peers: PeerInfo[]): boolean {
-    // console.log('peers', _peers)
-
     return _peers.some(peer => peer.multiaddr.startsWith('/webrtc'));
   }
 
   async function disconnectNonWebRTC() {
     if ($helia?.libp2p) {
-      const nonWebRTCConnections = $helia.libp2p.getConnections().filter(conn => !conn.remoteAddr.toString().startsWith('/webrtc'));
+      const nonWebRTCConnections = $helia.libp2p.getConnections().filter((conn: Connection) => !conn.remoteAddr.toString().startsWith('/webrtc'));
       
       for (const connection of nonWebRTCConnections) {
         try {
@@ -103,21 +114,19 @@
     if ($helia?.libp2p) {
       updatePeersList();
       
-      $helia.libp2p.addEventListener('peer:connect', (event) => {
+      $helia.libp2p.addEventListener('peer:connect', (event: CustomEvent) => {
         updatePeersList();
       });
       
-      $helia.libp2p.addEventListener('peer:disconnect', (event) => {
+      $helia.libp2p.addEventListener('peer:disconnect', (event: CustomEvent) => {
         console.log('Peer disconnected:', event.detail);
         updatePeersList();
       });
-
     }
   });
-  
 </script>
 
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 {$isRTL ? 'rtl' : 'ltr'}">
   <div class="mb-4 text-sm">
     <div class="flex items-center space-x-2">
       <span class="text-gray-600 dark:text-gray-400">{$_('peer_id')}:</span>
@@ -180,7 +189,7 @@
               >
                 <span>{peer.id}</span>
                 <!-- Tooltip -->
-                <div class="invisible group-hover:visible absolute left-0 bottom-full mb-2 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
+                <div class="invisible group-hover:visible absolute {$isRTL ? 'right-0' : 'left-0'} bottom-full mb-2 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
                   {peer.multiaddr}
                 </div>
               </td>
@@ -202,7 +211,6 @@
                   onclick={() => disconnectPeer(peer.id)}
                   title={$_('disconnect')}
                 >
-                  <!-- You can use an icon library like FontAwesome for a disconnect icon -->
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                   </svg>
@@ -237,5 +245,24 @@
   
   input:checked ~ .dot {
     transform: translateX(100%);
+  }
+
+  /* RTL specific styles */
+  :global([dir="rtl"]) .flex {
+    flex-direction: row-reverse;
+  }
+
+  :global([dir="rtl"]) .space-x-2 > * + * {
+    margin-right: 0.5rem;
+    margin-left: 0;
+  }
+
+  :global([dir="rtl"]) .gap-2 > * + * {
+    margin-right: 0.5rem;
+    margin-left: 0;
+  }
+
+  :global([dir="rtl"]) .text-left {
+    text-align: right;
   }
 </style>

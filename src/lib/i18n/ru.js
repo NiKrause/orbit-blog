@@ -236,7 +236,7 @@ export default {
   
   // Загрузка блога
   "connecting_network_loading_blog": "Подключение к одноранговой сети и загрузка данных блога...",
-  "loading_peer_to_peer_blog": "Загрузка одорангового блога",
+  "loading_peer_to_peer_blog": "Загрузка однорангового блога",
   
   // Переключатель темы
   "toggle_theme": "Переключить тему",

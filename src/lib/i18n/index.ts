@@ -1,9 +1,11 @@
 import { init, register, locale } from 'svelte-i18n';
+import { isRTL } from '../store.js';
 
 // Definiere die verfügbaren Sprachen
 export const LANGUAGES = {
   en: 'English',
   de: 'Deutsch',
+  nl: 'Nederlands',
   fr: 'Français',
   es: 'Español',
   it: 'Italiano',
@@ -13,11 +15,15 @@ export const LANGUAGES = {
   tr: 'Türkçe'
 };
 
+// Define RTL languages
+const RTL_LANGUAGES = ['ar'];
+
 // Registriere die Übersetzungsdateien
 const registerTranslations = () => {
   // Mit expliziten Dateierweiterungen
   register('en', () => import('./en.js'));
   register('de', () => import('./de.js'));
+  register('nl', () => import('./nl.js'));
   register('fr', () => import('./fr.js'));
   register('es', () => import('./es.js'));
   register('it', () => import('./it.js'));
@@ -62,7 +68,16 @@ function getInitialLocale(): string {
 export const setLanguage = (newLocale: string) => {
   locale.set(newLocale);
   
-  // Speichere die ausgewählte Sprache im localStorage, wenn im Browser
+  // Update RTL direction based on language
+  isRTL.set(RTL_LANGUAGES.includes(newLocale));
+  
+  // Update document direction
+  if (typeof document !== 'undefined') {
+    document.documentElement.dir = RTL_LANGUAGES.includes(newLocale) ? 'rtl' : 'ltr';
+    document.documentElement.lang = newLocale;
+  }
+  
+  // Save the selected language in localStorage if in browser
   if (typeof window !== 'undefined') {
     localStorage.setItem('language', newLocale);
   }
@@ -74,6 +89,13 @@ export const loadSavedLanguage = () => {
     const savedLanguage = localStorage.getItem('language');
     if (savedLanguage && Object.keys(LANGUAGES).includes(savedLanguage)) {
       locale.set(savedLanguage);
+      isRTL.set(RTL_LANGUAGES.includes(savedLanguage));
+      
+      // Update document direction
+      if (typeof document !== 'undefined') {
+        document.documentElement.dir = RTL_LANGUAGES.includes(savedLanguage) ? 'rtl' : 'ltr';
+        document.documentElement.lang = savedLanguage;
+      }
     }
   }
 };

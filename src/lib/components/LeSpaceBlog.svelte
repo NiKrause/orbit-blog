@@ -69,7 +69,8 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     commentsDB,
     commentsDBAddress,
     mediaDB,
-    mediaDBAddress
+    mediaDBAddress,
+    isRTL
   } from '$lib/store';
 
   let blockstore = new LevelBlockstore('./helia-blocks');
@@ -93,6 +94,11 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   let settingsDBUpdateHandler;
 
   let showWebRTCTester = false;
+
+  // Update sidebar position based on RTL
+  $: sidebarPosition = $isRTL ? 'right' : 'left';
+  $: sidebarButtonPosition = $isRTL ? 'right' : 'left';
+  $: sidebarTriggerPosition = $isRTL ? 'right' : 'left';
 
   if(!encryptedSeedPhrase) {
       console.log('no seed phrase, generating new one')
@@ -463,6 +469,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   <meta name="msapplication-navbutton-color" content="#000000">
   <meta name="msapplication-TileColor" content="#000000">
   <meta name="msapplication-TileImage" content="{$blogName}">
+  <meta name="dir" content={$isRTL ? 'rtl' : 'ltr'}>
 </svelte:head>
 {#if showPasswordModal}
   <PasswordModal 
@@ -487,11 +494,11 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         transition:fade
       ></div>
       
-      <div in:fly={{ x: -400, duration: 400, easing: cubicOut }} 
-           out:fly={{ x: -400, duration: 400, easing: cubicOut }}
-           class="fixed top-0 left-0 h-full z-40 max-w-[80vw]">
+      <div in:fly={{ x: $isRTL ? 400 : -400, duration: 400, easing: cubicOut }} 
+           out:fly={{ x: $isRTL ? 400 : -400, duration: 400, easing: cubicOut }}
+           class="fixed top-0 {sidebarPosition}-0 h-full z-40 max-w-[80vw]">
         <button
-          class="absolute top-2 right-1 z-50 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-full p-1 shadow-sm transition-all duration-300 focus:outline-none"
+          class="absolute top-2 {sidebarButtonPosition}-1 z-50 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-full p-1 shadow-sm transition-all duration-300 focus:outline-none"
           on:click={toggleSidebar}
           aria-label={$_('close')}>
           <div class="w-4 h-4 text-gray-800 dark:text-gray-200">
@@ -503,7 +510,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     {:else}
       <!-- Fixed toggle button when sidebar is hidden -->
       <button
-        class="fixed top-4 left-4 z-50 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-full p-1 shadow-sm transition-all duration-300 focus:outline-none"
+        class="fixed top-4 {sidebarButtonPosition}-4 z-50 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-full p-1 shadow-sm transition-all duration-300 focus:outline-none"
         on:click={toggleSidebar}
         aria-label={$_('show_editor')}>
         <div class="w-4 h-4 text-gray-800 dark:text-gray-200">
@@ -513,7 +520,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       
       <!-- Sidebar trigger area for edge detection -->
       <div 
-        class="w-8 h-full fixed top-0 left-0 z-10 cursor-pointer" 
+        class="w-8 h-full fixed top-0 {sidebarTriggerPosition}-0 z-10 cursor-pointer" 
         on:click={toggleSidebar}
         on:mouseenter={handleMouseEnter}
         aria-label={$_('show_sidebar')}>
@@ -658,6 +665,11 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     gap: 1rem;
     align-items: center;
     z-index: 50;
+  }
+
+  [dir="rtl"] :global(.fixed-controls) {
+    right: auto;
+    left: 4rem;
   }
 
   :global(.control-button) {

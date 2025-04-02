@@ -9,11 +9,13 @@
   import DOMPurify from 'dompurify';
   import { unixfs } from '@helia/unixfs';
   import { _ } from 'svelte-i18n';
+  import mermaid from 'mermaid';
 
   // Local imports
-  import type { BlogPost, Comment } from '$lib/types';
-  import { commentsDB, mediaDB, helia } from '$lib/store';
-  import { formatTimestamp } from '$lib/dateUtils';
+  import type { BlogPost, Comment } from '$lib/types.js';
+  import { commentsDB, mediaDB, helia, isRTL } from '$lib/store.js';
+  import { formatTimestamp } from '$lib/dateUtils.js';
+
   /**
    * Component props interface
    */
@@ -35,6 +37,13 @@
   
   // Cache for IPFS content
   let mediaCache = new Map();
+
+  // Initialize mermaid with your preferred config
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'default',
+    securityLevel: 'loose'
+  });
 
   // Markdown configuration
   marked.setOptions({
@@ -155,6 +164,15 @@
       return defaultImageRenderer(href, title, text);
     };
 
+    // Add custom code renderer to handle Mermaid
+    const originalCodeRenderer = renderer.code.bind(renderer);
+    renderer.code = (code, language) => {
+      if (language === 'mermaid') {
+        return `<div class="mermaid">${code}</div>`;
+      }
+      return originalCodeRenderer(code, language);
+    };
+
     marked.use({ renderer, extensions: [accordionExtension] });
   }
 
@@ -164,6 +182,10 @@
   function updateRenderedContent(): void {
     if (post?.content) {
       renderedContent = renderContent(post.content);
+      // Wait for next tick to ensure content is in DOM
+      setTimeout(async () => {
+        await renderMermaidDiagrams();
+      }, 0);
     }
   }
 
@@ -174,10 +196,11 @@
    */
   function renderContent(content: string): string {
     return DOMPurify.sanitize(marked(content), {
-      ADD_TAGS: ['details', 'summary', 'div', 'iframe'],
+      ADD_TAGS: ['details', 'summary', 'div', 'iframe', 'svg', 'g', 'path', 'polygon'],
       ADD_ATTR: [
         'id', 'class', 'aria-controls', 'aria-expanded', 'aria-labelledby', 'role',
-        'src', 'width', 'height', 'frameborder', 'allow', 'allowfullscreen'
+        'src', 'width', 'height', 'frameborder', 'allow', 'allowfullscreen',
+        'viewBox', 'd', 'fill', 'stroke', 'points', 'transform'
       ],
       ALLOW_DATA_ATTR: true
     });
@@ -352,6 +375,13 @@
       node.setAttribute('referrerpolicy', 'no-referrer');
     }
   });
+
+  // Add this function to render Mermaid diagrams after content update
+  async function renderMermaidDiagrams(): Promise<void> {
+    await mermaid.run({
+      querySelector: '.mermaid'
+    });
+  }
 </script>
 
 <style>
@@ -408,6 +438,19 @@
   :global(details[open] .accordion-header::after) {
     transform: rotate(180deg);
   }
+
+  /* Add to your existing styles */
+  :global(.mermaid) {
+    margin: 1rem 0;
+    background-color: white;
+    padding: 1rem;
+    border-radius: 0.5rem;
+  }
+
+  /* Dark mode support */
+  :global(.dark .mermaid) {
+    background-color: #1f2937;
+  }
 </style>
 
 <article class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
@@ -424,8 +467,6 @@
       {post.category}
     </span>
   </div>
-  
- 
   
   <div class="prose dark:prose-invert max-w-none mb-6">
     {@html renderedContent}

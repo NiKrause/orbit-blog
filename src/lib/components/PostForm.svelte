@@ -2,13 +2,13 @@
   import { preventDefault } from 'svelte/legacy';
   import { _, locale } from 'svelte-i18n';
 
-  import type { Category } from '$lib/types';
+  import type { Category } from '$lib/types.js';
   import { marked } from 'marked';
   import DOMPurify from 'dompurify';
-  import { postsDB, categories, selectedPostId, identity, enabledLanguages } from '$lib/store';
+  import { postsDB, categories, selectedPostId, identity, enabledLanguages, isRTL } from '$lib/store.js';
   import MediaUploader from './MediaUploader.svelte';
-  import { TranslationService } from '../services/translationService';
-  import { aiApiKey, aiApiUrl } from '../store';
+  import { TranslationService } from '$lib/services/translationService.js';
+  import { aiApiKey, aiApiUrl } from '$lib/store.js';
   import LanguageStatusLED from './LanguageStatusLED.svelte';
 
   let title = $state('');
@@ -16,10 +16,10 @@
   let category: Category = $state('');
   let showPreview = $state(false);
   let showMediaUploader = $state(false);
-  let selectedMedia = $state([]);
+  let selectedMedia = $state<string[]>([]);
   let isTranslating = $state(false);
   let translationError = $state('');
-  let translationStatuses = $state({});
+  let translationStatuses = $state<Record<string, 'success' | 'error' | 'default'>>({});
 
   async function handleSubmit() {
     console.log('Creating new post:', { title, category });
@@ -31,6 +31,7 @@
           _id,
           title,
           content,
+          language: $locale,
           category,
           createdAt: Date.now(),
           updatedAt: Date.now(),
@@ -153,7 +154,7 @@
   }
 </script>
 
-<form onsubmit={preventDefault(handleSubmit)} class="space-y-4 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+<form onsubmit={preventDefault(handleSubmit)} class="space-y-4 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md {$isRTL ? 'rtl' : 'ltr'}">
   <h2 class="text-2xl font-bold mb-4 text-gray-900 dark:text-white">{$_('create_new_post')}</h2>
   
   <div>
@@ -281,3 +282,34 @@
     </div>
   {/if}
 </form>
+
+<style>
+  /* RTL specific styles */
+  :global([dir="rtl"]) .flex {
+    flex-direction: row-reverse;
+  }
+
+  :global([dir="rtl"]) .space-x-2 > * + * {
+    margin-right: 0.5rem;
+    margin-left: 0;
+  }
+
+  :global([dir="rtl"]) .gap-2 > * + * {
+    margin-right: 0.5rem;
+    margin-left: 0;
+  }
+
+  :global([dir="rtl"]) .text-left {
+    text-align: right;
+  }
+
+  :global([dir="rtl"]) .ml-1 {
+    margin-right: 0.25rem;
+    margin-left: 0;
+  }
+
+  :global([dir="rtl"]) .mr-1 {
+    margin-left: 0.25rem;
+    margin-right: 0;
+  }
+</style>

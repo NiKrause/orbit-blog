@@ -1,5 +1,7 @@
 <script lang="ts">
   import { _ } from 'svelte-i18n';
+  import { isRTL } from '$lib/store.js';
+  
   interface Props {
     isOpen?: boolean;
     onConfirm?: (options: { dropLocal: boolean; unpinVoyager: boolean }) => void;
@@ -33,7 +35,7 @@
 </script>
 
 <div class:hidden={!isOpen} class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-  <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-lg w-full">
+  <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-lg w-full {$isRTL ? 'rtl' : 'ltr'}">
     <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">{title}</h2>
     
     <div class="space-y-4">
@@ -41,7 +43,7 @@
 
       {#if showOptions}
         <div class="space-y-2">
-          <div class="flex items-center space-x-2">
+          <div class="flex items-center {$isRTL ? 'space-x-reverse' : 'space-x-2'}">
             <input 
               type="checkbox" 
               id="dropLocal" 
@@ -53,7 +55,7 @@
             </label>
           </div>
           
-          <div class="flex items-center space-x-2">
+          <div class="flex items-center {$isRTL ? 'space-x-reverse' : 'space-x-2'}">
             <input 
               type="checkbox" 
               id="unpinVoyager" 
@@ -67,7 +69,7 @@
         </div>
       {/if}
 
-      <div class="flex space-x-4 mt-4">
+      <div class="flex {$isRTL ? 'space-x-reverse' : 'space-x-4'} mt-4">
         <button 
           class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
           on:click={handleConfirm}
@@ -83,4 +85,21 @@
       </div>
     </div>
   </div>
-</div> 
+</div>
+
+<style>
+  /* RTL specific styles */
+  :global([dir="rtl"]) .flex {
+    flex-direction: row-reverse;
+  }
+
+  :global([dir="rtl"]) .space-x-2 > * + * {
+    margin-right: 0.5rem;
+    margin-left: 0;
+  }
+
+  :global([dir="rtl"]) .space-x-4 > * + * {
+    margin-right: 1rem;
+    margin-left: 0;
+  }
+</style> 
