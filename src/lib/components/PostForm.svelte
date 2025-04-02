@@ -103,9 +103,18 @@
         language: $locale
       };
 
-      const translations = await TranslationService.translatePost(post);
+      const translations = await TranslationService.translatePost(
+        post,
+        (lang, status) => {
+          // Update status immediately for each language
+          translationStatuses = {
+            ...translationStatuses,
+            [lang]: status === 'processing' ? 'default' : status
+          };
+        }
+      );
 
-      // Update statuses based on translations
+      // Save translations
       for (const [lang, translatedPost] of Object.entries(translations)) {
         try {
           const _id = crypto.randomUUID();
@@ -117,17 +126,19 @@
             identity: $identity.id,
             mediaIds: selectedMedia,
           });
-          translationStatuses[lang] = 'success';
         } catch (error) {
-          translationStatuses[lang] = 'error';
           console.error(`Error saving translation for ${lang}:`, error);
+          translationStatuses = {
+            ...translationStatuses,
+            [lang]: 'error'
+          };
         }
       }
 
       // Clear form after successful translation and posting
       title = '';
       content = '';
-      category = 'Bitcoin';
+      category = '';
       selectedMedia = [];
       showPreview = false;
       translationError = '';
@@ -235,9 +246,9 @@
       type="button"
       onclick={handleTranslate}
       disabled={isTranslating}
-      class="inline-flex items-center gap-2 bg-green-600 dark:bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-700 dark:hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors disabled:opacity-50"
+      class="inline-flex items-center gap-2 bg-indigo-600 dark:bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors disabled:opacity-50"
     >
-      <div class="flex items-center">
+      <div class="grid grid-cols-3 gap-1">
         {#each [...$enabledLanguages] as lang}
           <LanguageStatusLED 
             language={lang} 
