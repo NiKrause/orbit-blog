@@ -1,6 +1,6 @@
 export default {
   // Genel
-  "app_title": "OrbitDB Blog",
+  "app_title": "Le Space Blog",
   "loading": "Yükleniyor...",
   "cancel": "İptal",
   "save": "Kaydet",

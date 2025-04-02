@@ -2,7 +2,7 @@
   import { run } from 'svelte/legacy';
   import { _, locale } from 'svelte-i18n';
 
-  import { posts, selectedPostId, identity, postsDB, aiApiKey, aiApiUrl } from '$lib/store';
+  import { posts, selectedPostId, identity, postsDB, aiApiKey, aiApiUrl, enabledLanguages } from '$lib/store';
   import { formatDate, formatTimestamp } from '$lib/dateUtils';
 
   import { marked } from 'marked';
@@ -17,6 +17,7 @@
   // Import html2pdf for PDF generation
   import html2pdf from 'html2pdf.js';
 
+  import LanguageStatusLED from './LanguageStatusLED.svelte';
 
   let searchQuery = $state('');
   let selectedCategory: Category | 'All' = $state('All');
@@ -41,6 +42,8 @@
   // Add these state variables with the other state declarations at the top
   let isTranslating = $state(false);
   let translationError = $state('');
+
+  let translationStatuses = $state({});
 
   // Combined filtering function
   function filterPosts() {
@@ -125,6 +128,7 @@
           _id: selectedPost._id,
           title: editedTitle,
           content: editedContent,
+          language: $locale,
           category: editedCategory,
           createdAt: new Date(editedCreatedAt).getTime(),
           updatedAt: new Date(editedUpdatedAt).getTime(),
@@ -380,51 +384,55 @@ ${convertMarkdownToLatex(selectedPost.content)}
     return $postsDB.access.write.includes($identity.id) || $postsDB.access.write.includes("*");
   }
 
-  // Add this function with the other functions
+  // Modify the handleTranslate function similarly to the PostForm version
   async function handleTranslate() {
-    console.log('handleTranslate', $aiApiKey, $aiApiUrl);
     if (!$aiApiKey || !$aiApiUrl) {
       translationError = $_('translation_config_missing');
       return;
     }
 
-    if (!editedTitle || !editedContent || !editedCategory) {
-      translationError = $_('fill_required_fields');
-      return;
-    }
-
     isTranslating = true;
     translationError = '';
+    
+    // Reset statuses
+    translationStatuses = Object.fromEntries([...$enabledLanguages].map(lang => [lang, 'default']));
 
     try {
       const post = {
         title: editedTitle,
         content: editedContent,
         category: editedCategory,
-        language: $locale // Assuming original content is in English
+        language: $locale
       };
 
       const translations = await TranslationService.translatePost(post);
 
-      // Save all translations
+      // Update statuses based on translations
       for (const [lang, translatedPost] of Object.entries(translations)) {
-        const _id = crypto.randomUUID();
-        await $postsDB.put({
-          _id,
-          ...translatedPost,
-          createdAt: new Date(editedCreatedAt).getTime(),
-          updatedAt: new Date(editedUpdatedAt).getTime(),
-          identity: $identity.id,
-          mediaIds: selectedMedia,
-        });
-        console.log('translatedPost', translatedPost);
+        try {
+          const _id = crypto.randomUUID();
+          await $postsDB.put({
+            _id,
+            ...translatedPost,
+            createdAt: new Date(editedCreatedAt).getTime(),
+            updatedAt: new Date(editedUpdatedAt).getTime(),
+            identity: $identity.id,
+            mediaIds: selectedMedia,
+          });
+          translationStatuses[lang] = 'success';
+        } catch (error) {
+          translationStatuses[lang] = 'error';
+          console.error(`Error saving translation for ${lang}:`, error);
+        }
       }
 
-      translationError = '';
       editMode = false;
+      translationError = '';
     } catch (error) {
       console.error('Translation error:', error);
       translationError = $_('translation_failed');
+      // Mark all as error if general translation fails
+      translationStatuses = Object.fromEntries([...$enabledLanguages].map(lang => [lang, 'error']));
     } finally {
       isTranslating = false;
     }
@@ -628,8 +636,20 @@ ${convertMarkdownToLatex(selectedPost.content)}
                   type="button"
                   onclick={handleTranslate}
                   disabled={isTranslating}
-                  class="bg-green-600 dark:bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-700 dark:hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors disabled:opacity-50"
+                  class="inline-flex items-center gap-2 bg-green-600 dark:bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-700 dark:hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors disabled:opacity-50"
                 >
+                  <div class="flex items-center">
+                    {#each [...$enabledLanguages] as lang}
+                      <LanguageStatusLED 
+                        language={lang} 
+                        status={
+                          translationStatuses[lang] === 'success' ? 'success' :
+                          translationStatuses[lang] === 'error' ? 'error' : 
+                          'default'
+                        }
+                      />
+                    {/each}
+                  </div>
                   {#if isTranslating}
                     {$_('translating')}...
                   {:else}

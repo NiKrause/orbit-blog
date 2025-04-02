@@ -27,7 +27,7 @@ async function queryTXT(domain: string) {
             return data.initialAddress;
         }
     } catch (error) {
-        console.info('OrbitBlog InitialAddress query not available:');
+        console.info('LeSpaceBlog InitialAddress query not available:');
     }
     return '';
 }

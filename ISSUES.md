@@ -1,8 +1,8 @@
 <table border="0" cellspacing="0" cellpadding="0">
   <tr>
       <td>
-      <h1>Orbit-Blog</h1>A local-first & peer-to-peer blog powered by OrbitDB which replicates between browsers and mobile apps. IPFS (only)</td>
-    <td><img src="./public/orbitbloglogo-700.png" width="300" alt="Orbit Blog Logo"></td>
+      <h1>Le Space-Blog</h1>A local-first & peer-to-peer blog powered by OrbitDB which replicates between browsers and mobile apps. IPFS (only)</td>
+    <td><img src="./public/orbitbloglogo-700.png" width="300" alt="Le Space Blog Logo"></td>
   </tr>
 </table>
 Note! This software is currently in alpha version status and thus may change, break backwards compatibility or contain major issues. It has not been security audited. Use it accordingly.

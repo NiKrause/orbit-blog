@@ -5,10 +5,11 @@
   import type { Category } from '$lib/types';
   import { marked } from 'marked';
   import DOMPurify from 'dompurify';
-  import { postsDB, categories, selectedPostId, identity } from '$lib/store';
+  import { postsDB, categories, selectedPostId, identity, enabledLanguages } from '$lib/store';
   import MediaUploader from './MediaUploader.svelte';
   import { TranslationService } from '../services/translationService';
   import { aiApiKey, aiApiUrl } from '../store';
+  import LanguageStatusLED from './LanguageStatusLED.svelte';
 
   let title = $state('');
   let content = $state('');
@@ -18,6 +19,7 @@
   let selectedMedia = $state([]);
   let isTranslating = $state(false);
   let translationError = $state('');
+  let translationStatuses = $state({});
 
   async function handleSubmit() {
     console.log('Creating new post:', { title, category });
@@ -89,28 +91,37 @@
 
     isTranslating = true;
     translationError = '';
+    
+    // Reset statuses
+    translationStatuses = Object.fromEntries([...$enabledLanguages].map(lang => [lang, 'default']));
 
     try {
       const post = {
         title,
         content,
         category,
-        language: $locale // Assuming original content is in English
+        language: $locale
       };
 
       const translations = await TranslationService.translatePost(post);
 
-      // Save all translations
+      // Update statuses based on translations
       for (const [lang, translatedPost] of Object.entries(translations)) {
-        const _id = crypto.randomUUID();
-        await $postsDB.put({
-          _id,
-          ...translatedPost,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-          identity: $identity.id,
-          mediaIds: selectedMedia,
-        });
+        try {
+          const _id = crypto.randomUUID();
+          await $postsDB.put({
+            _id,
+            ...translatedPost,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            identity: $identity.id,
+            mediaIds: selectedMedia,
+          });
+          translationStatuses[lang] = 'success';
+        } catch (error) {
+          translationStatuses[lang] = 'error';
+          console.error(`Error saving translation for ${lang}:`, error);
+        }
       }
 
       // Clear form after successful translation and posting
@@ -123,6 +134,8 @@
     } catch (error) {
       console.error('Translation error:', error);
       translationError = $_('translation_failed');
+      // Mark all as error if general translation fails
+      translationStatuses = Object.fromEntries([...$enabledLanguages].map(lang => [lang, 'error']));
     } finally {
       isTranslating = false;
     }
@@ -222,8 +235,20 @@
       type="button"
       onclick={handleTranslate}
       disabled={isTranslating}
-      class="bg-green-600 dark:bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-700 dark:hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors disabled:opacity-50"
+      class="inline-flex items-center gap-2 bg-green-600 dark:bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-700 dark:hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors disabled:opacity-50"
     >
+      <div class="flex items-center">
+        {#each [...$enabledLanguages] as lang}
+          <LanguageStatusLED 
+            language={lang} 
+            status={
+              translationStatuses[lang] === 'success' ? 'success' :
+              translationStatuses[lang] === 'error' ? 'error' : 
+              'default'
+            }
+          />
+        {/each}
+      </div>
       {#if isTranslating}
         {$_('translating')}...
       {:else}

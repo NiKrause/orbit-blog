@@ -1,6 +1,6 @@
 export default {
   // عام
-  "app_title": "مدونة OrbitDB",
+  "app_title": "مدونة Le Space",
   "loading": "جاري التحميل...",
   "cancel": "إلغاء",
   "save": "حفظ",

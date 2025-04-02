@@ -1,4 +1,4 @@
 <script>
-	import OrbitBlog from './lib/components/OrbitBlog.svelte';
+	import LeSpaceBlog from './lib/components/LeSpaceBlog.svelte';
 </script>
-<OrbitBlog/>
+<LeSpaceBlog/>

@@ -13,7 +13,7 @@ export { default as PostList } from './components/PostList.svelte';
 export { default as Settings } from './components/Settings.svelte';
 export { default as Sidebar } from './components/Sidebar.svelte';
 export { default as ThemeToggle } from './components/ThemeToggle.svelte';
-export { default as OrbitBlog } from './components/OrbitBlog.svelte';
+export { default as LeSpaceBlog } from './components/LeSpaceBlog.svelte';
 
 export * from './config.js';
 export * from './cryptoUtils.js';

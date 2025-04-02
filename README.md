@@ -1,10 +1,10 @@
 <table border="0" cellspacing="0" cellpadding="0">
   <tr>
       <td>
-      <h1>Orbit-Blog</h1>
+      <h1>Le Space-Blog</h1>
       <p>A local-first & peer-to-peer blog powered by OrbitDB which replicates between browsers and mobile apps.</p>
       </td>
-    <td><img src="./public/orbitbloglogo-700.png" width="300" alt="Orbit Blog Logo"></td>
+    <td><img src="./public/orbitbloglogo-700.png" width="300" alt="Le Space Blog Logo"></td>
   </tr>
 </table>
 
@@ -12,7 +12,7 @@
 
 ## Description
 
-Orbit-Blog is a decentralized blogging application that leverages OrbitDB for peer-to-peer data replication and IPFS for content storage. It enables users to create, manage, and share blog content in a decentralized manner, so blog posts are stored with the blog author and their readers maintain a replica via peer-to-peer connections.
+Le Space-Blog is a decentralized blogging application that leverages OrbitDB for peer-to-peer data replication and IPFS for content storage. It enables users to create, manage, and share blog content in a decentralized manner, so blog posts are stored with the blog author and their readers maintain a replica via peer-to-peer connections.
 
 ## Installation
 

@@ -1,6 +1,6 @@
 export default {
   // General
-  "app_title": "OrbitDB Blog",
+  "app_title": "Le Space Blog",
   "loading": "Cargando...",
   "cancel": "Cancelar",
   "save": "Guardar",

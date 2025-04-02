@@ -1,4 +1,4 @@
-# Orbit-Blog Release Plan
+# Le Space-Blog Release Plan
 
 ## Current Version: 0.2
 

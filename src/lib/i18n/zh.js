@@ -1,6 +1,6 @@
 export default {
   // 通用
-  "app_title": "OrbitDB 博客",
+  "app_title": "Le Space 博客",
   "loading": "加载中...",
   "cancel": "取消",
   "save": "保存",

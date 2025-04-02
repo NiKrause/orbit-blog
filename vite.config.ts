@@ -45,9 +45,9 @@ export default defineConfig(({ command, mode }) => {
           enabled: true
         },
         manifest: {
-          name: 'Orbit Blog',
-          short_name: 'OrbitDB',
-          description: 'A local-first, peer-to-peer blog powered by OrbitDB',
+          name: 'Le Space Blog',
+          short_name: 'Le Space Blog',
+          description: 'A decentralized blogging application that leverages OrbitDB for peer-to-peer data replication and IPFS for content storage.',
           theme_color: '#ffffff',
           icons: [
             {
@@ -131,7 +131,7 @@ export default defineConfig(({ command, mode }) => {
       build: {
         lib: {
           entry: path.resolve(__dirname, 'src/lib/index.ts'),
-          name: 'OrbitBlog',
+          name: 'LeSpaceBlog',
           fileName: 'index'
         },
         rollupOptions: {
