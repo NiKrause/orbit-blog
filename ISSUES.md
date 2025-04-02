@@ -15,7 +15,8 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 ### Todos, Features, Issues
 - Todos:
-    - [ ] Peer-to-Peer between browsers broken (WebRTC upgrade from circuite-relay-v2)
+    - [ ] Bug: Peer-to-Peer between browsers broken (WebRTC upgrade from circuit-relay-v2)
+    - [ ] Feature: Add synchronous password encryption to a blogPost 
     - [ ] Bug: locks & keys in sidebar are updating too late
     - [ ] Feature: when adding IPFS-image links into markdown, it should also parse external CIDs not just cids which are inside our media library
     - [x] Bug: Website in browsers and mobile apps pwa is cached too long: nginx must send no-cache header

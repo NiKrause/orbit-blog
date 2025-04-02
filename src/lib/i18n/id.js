@@ -256,9 +256,12 @@ export default {
     "translate_and_post": "Terjemahkan & Posting",
     "translating": "Menerjemahkan",
     "translation_config_missing": "Silakan konfigurasi pengaturan terjemahan AI terlebih dahulu",
-    "fill_required_fields": "Silakan isi semua field yang diperlukan sebelum menerjemahkan",
+    "fill_required_fields": "Silakan isi semua field yang diperlukan",
     "translation_failed": "Terjemahan gagal. Silakan coba lagi",
     "no_posts_in_language": "Tidak ada postingan tersedia dalam bahasa {language}",
     "original_language": "Bahasa asli",
-    "translated_from": "Diterjemahkan dari {language}"
+    "translated_from": "Diterjemahkan dari {language}",
+    "encrypt_post": "Enkripsi posting",
+    "post_will_be_encrypted": "Posting akan dienkripsi",
+    "invalid_password": "Kata sandi tidak valid. Silakan coba lagi."
   }

@@ -99,4 +99,140 @@ export function isEncryptedSeedPhrase(data: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Encrypts a blog post with a password
+ */
+export async function encryptPost(post: { title: string; content: string }, password: string): Promise<{ encryptedTitle: string; encryptedContent: string }> {
+  const enc = new TextEncoder();
+  const salt = window.crypto.getRandomValues(new Uint8Array(16));
+  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+  
+  const key = await getKeyFromPassword(password, salt);
+  
+  // Encrypt title and content separately
+  const encryptedTitle = await window.crypto.subtle.encrypt(
+    {
+      name: 'AES-GCM',
+      iv
+    },
+    key,
+    enc.encode(post.title)
+  );
+  
+  const encryptedContent = await window.crypto.subtle.encrypt(
+    {
+      name: 'AES-GCM',
+      iv
+    },
+    key,
+    enc.encode(post.content)
+  );
+  
+  // Combine salt, iv, and encrypted data for each field
+  const combinedTitle = new Uint8Array(salt.length + iv.length + new Uint8Array(encryptedTitle).length);
+  combinedTitle.set(salt, 0);
+  combinedTitle.set(iv, salt.length);
+  combinedTitle.set(new Uint8Array(encryptedTitle), salt.length + iv.length);
+  
+  const combinedContent = new Uint8Array(salt.length + iv.length + new Uint8Array(encryptedContent).length);
+  combinedContent.set(salt, 0);
+  combinedContent.set(iv, salt.length);
+  combinedContent.set(new Uint8Array(encryptedContent), salt.length + iv.length);
+  
+  // Convert to base64 for string storage
+  return {
+    encryptedTitle: btoa(String.fromCharCode(...combinedTitle)),
+    encryptedContent: btoa(String.fromCharCode(...combinedContent))
+  };
+}
+
+/**
+ * Decrypts a blog post with a password
+ */
+export async function decryptPost(encryptedData: { title: string; content: string }, password: string): Promise<{ title: string; content: string }> {
+  try {
+    // Validate input
+    if (!encryptedData.title || !encryptedData.content) {
+      throw new Error('Missing encrypted title or content');
+    }
+
+    // Log the encrypted data for debugging (remove in production)
+    console.log('Encrypted title:', encryptedData.title);
+    console.log('Encrypted content:', encryptedData.content);
+
+    // Check if the data is base64 encoded
+    if (!isValidBase64(encryptedData.title) || !isValidBase64(encryptedData.content)) {
+      throw new Error('Invalid base64 encoding');
+    }
+
+    // Convert from base64 to array for both fields
+    const encryptedTitleBytes = Uint8Array.from(atob(encryptedData.title), c => c.charCodeAt(0));
+    const encryptedContentBytes = Uint8Array.from(atob(encryptedData.content), c => c.charCodeAt(0));
+    
+    // Extract salt, iv, and encrypted data for both fields
+    const salt = encryptedTitleBytes.slice(0, 16);
+    const iv = encryptedTitleBytes.slice(16, 28);
+    const titleData = encryptedTitleBytes.slice(28);
+    const contentData = encryptedContentBytes.slice(28);
+    console.log('titleData', titleData);
+    console.log('contentData', contentData);
+    const key = await getKeyFromPassword(password, salt);
+    
+    // Decrypt both fields
+    const decryptedTitle = await window.crypto.subtle.decrypt(
+      {
+        name: 'AES-GCM',
+        iv
+      },
+      key,
+      titleData
+    );
+    console.log('decryptedTitle', new TextDecoder().decode(decryptedTitle));
+    const decryptedContent = await window.crypto.subtle.decrypt(
+      {
+        name: 'AES-GCM',
+        iv
+      },
+      key,
+      contentData
+    );
+    console.log('decryptedContent', decryptedContent);
+    console.log('decryptedTitle', new TextDecoder().decode(decryptedTitle));
+    console.log('decryptedContent', new TextDecoder().decode(decryptedContent));
+    return {
+      title: new TextDecoder().decode(decryptedTitle),
+      content: new TextDecoder().decode(decryptedContent)
+    };
+  } catch (error) {
+    console.error('Decryption failed:', error);
+    // Include more details in the error message
+    throw new Error(`Decryption failed: ${error.message}`);
+  }
+}
+
+// Helper function to validate base64 strings
+function isValidBase64(str: string): boolean {
+  try {
+    // Check if the string matches base64 pattern
+    return /^[A-Za-z0-9+/]*={0,2}$/.test(str);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Checks if a post is encrypted
+ */
+export function isEncryptedPost(post: { title: string; content: string }): boolean {
+  try {
+    // Attempt to decode as base64
+    const decodedTitle = atob(post.title);
+    const decodedContent = atob(post.content);
+    // A properly encrypted post would be long enough
+    return decodedTitle.length > 50 && decodedContent.length > 50;
+  } catch {
+    return false;
+  }
 } 

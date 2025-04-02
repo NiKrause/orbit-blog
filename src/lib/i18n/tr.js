@@ -245,5 +245,9 @@ export default {
   "date_format": "dd.MM.yyyy 'saat' HH:mm",
   
   // Çeşitli
-  "unknown": "Bilinmiyor"
+  "unknown": "Bilinmiyor",
+  fill_required_fields: 'Lütfen tüm zorunlu alanları doldurun',
+  encrypt_post: 'Gönderiyi şifrele',
+  post_will_be_encrypted: 'Gönderi şifrelenecek',
+  invalid_password: 'Geçersiz şifre. Lütfen tekrar deneyin.',
 }

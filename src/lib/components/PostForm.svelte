@@ -10,6 +10,8 @@
   import { TranslationService } from '$lib/services/translationService.js';
   import { aiApiKey, aiApiUrl } from '$lib/store.js';
   import LanguageStatusLED from './LanguageStatusLED.svelte';
+  import { encryptPost } from '$lib/cryptoUtils.js';
+  import PostPasswordPrompt from './PostPasswordPrompt.svelte';
 
   let title = $state('');
   let content = $state('');
@@ -20,6 +22,10 @@
   let isTranslating = $state(false);
   let translationError = $state('');
   let translationStatuses = $state<Record<string, 'success' | 'error' | 'default'>>({});
+  let isEncrypting = $state(true);
+  let showPasswordPrompt = $state(false);
+  let encryptionPassword = $state('');
+  let encryptionError = $state('');
 
   async function handleSubmit() {
     console.log('Creating new post:', { title, category });
@@ -27,7 +33,8 @@
       try {
         const _id = crypto.randomUUID();
         console.log('Creating post with _id:', _id);
-        await $postsDB.put({
+        
+        let postData = {
           _id,
           title,
           content,
@@ -37,7 +44,21 @@
           updatedAt: Date.now(),
           identity: $identity.id,
           mediaIds: selectedMedia,
-        });
+        };
+
+        // If post is encrypted, store encrypted data
+        if (isEncrypting) {
+          console.log('Encrypting post', encryptionPassword);
+          const encryptedData = await encryptPost({ title, content }, encryptionPassword);
+          postData = {
+            ...postData,
+            title: encryptedData.encryptedTitle,
+            content: encryptedData.encryptedContent,
+            isEncrypted: true
+          };
+        }
+
+        await $postsDB.put(postData);
         //get all posts
         const posts = await $postsDB.all();
         console.log('All posts:', posts);
@@ -48,6 +69,8 @@
         category = '';
         selectedMedia = [];
         showPreview = false;
+        isEncrypting = false;
+        encryptionPassword = '';
         
         $selectedPostId = _id;
       } catch (error) {
@@ -152,6 +175,22 @@
       isTranslating = false;
     }
   }
+
+  async function handleEncrypt() {
+    if (!title || !content) {
+      encryptionError = $_('fill_required_fields');
+      return;
+    }
+    showPasswordPrompt = true;
+  }
+
+  async function handlePasswordSubmit(event: CustomEvent) {
+    console.log('handlePasswordSubmit', event);
+    encryptionPassword = event.detail.password;
+    isEncrypting = true;
+    showPasswordPrompt = false;
+    encryptionError = '';
+  }
 </script>
 
 <form onsubmit={preventDefault(handleSubmit)} class="space-y-4 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md {$isRTL ? 'rtl' : 'ltr'}">
@@ -245,6 +284,24 @@
   <div class="flex justify-between items-center mt-4">
     <button
       type="button"
+      onclick={handleEncrypt}
+      class="inline-flex items-center gap-2 bg-indigo-600 dark:bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
+    >
+      {#if isEncrypting}
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+        </svg>
+        {$_('post_will_be_encrypted')}
+      {:else}
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
+        </svg>
+        {$_('encrypt_post')}
+      {/if}
+    </button>
+
+    <button
+      type="button"
       onclick={handleTranslate}
       disabled={isTranslating}
       class="inline-flex items-center gap-2 bg-indigo-600 dark:bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors disabled:opacity-50"
@@ -281,7 +338,23 @@
       {translationError}
     </div>
   {/if}
+
+  {#if encryptionError}
+    <div class="mt-2 text-red-600 dark:text-red-400">
+      {encryptionError}
+    </div>
+  {/if}
 </form>
+
+{#if showPasswordPrompt}
+  <PostPasswordPrompt 
+    post={{ title, content }}
+    on:cancel={() => showPasswordPrompt = false}
+    mode={isEncrypting ? 'encrypt' : 'decrypt'}
+    on:postDecrypted={handlePasswordSubmit}
+    on:passwordSubmitted={handlePasswordSubmit}
+  />
+{/if}
 
 <style>
   /* RTL specific styles */

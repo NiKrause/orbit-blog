@@ -256,9 +256,12 @@ export default {
     "translate_and_post": "Μετάφραση & Δημοσίευση",
     "translating": "Μετάφραση",
     "translation_config_missing": "Παρακαλώ ρυθμίστε πρώτα τις ρυθμίσεις μετάφρασης AI",
-    "fill_required_fields": "Παρακαλώ συμπληρώστε όλα τα απαιτούμενα πεδία πριν τη μετάφραση",
+    "fill_required_fields": "Παρακαλώ συμπληρώστε όλα τα απαιτούμενα πεδία",
     "translation_failed": "Η μετάφραση απέτυχε. Παρακαλώ δοκιμάστε ξανά",
     "no_posts_in_language": "Δεν υπάρχουν διαθέσιμες δημοσιεύσεις στα {language}",
     "original_language": "Αρχική γλώσσα",
-    "translated_from": "Μεταφράστηκε από {language}"
+    "translated_from": "Μεταφράστηκε από {language}",
+    "encrypt_post": "Κρυπτογράφηση ανάρτησης",
+    "post_will_be_encrypted": "Η ανάρτηση θα κρυπτογραφηθεί",
+    "invalid_password": "Μη έγκυρος κωδικός. Παρακαλώ δοκιμάστε ξανά."
   }

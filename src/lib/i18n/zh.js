@@ -245,5 +245,9 @@ export default {
   "date_format": "yyyy年MM月dd日 HH:mm",
   
   // 杂项
-  "unknown": "未知"
+  "unknown": "未知",
+  fill_required_fields: '请填写所有必填字段',
+  encrypt_post: '加密帖子',
+  post_will_be_encrypted: '帖子将被加密',
+  invalid_password: '密码无效。请重试。',
 }

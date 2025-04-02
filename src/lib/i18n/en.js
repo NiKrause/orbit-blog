@@ -256,9 +256,12 @@ export default {
   "translate_and_post": "Translate & Post",
   "translating": "Translating",
   "translation_config_missing": "Please configure AI translation settings first",
-  "fill_required_fields": "Please fill in all required fields before translating",
+  "fill_required_fields": "Please fill in all required fields",
   "translation_failed": "Translation failed. Please try again",
   "no_posts_in_language": "No posts available in {language}",
   "original_language": "Original language",
-  "translated_from": "Translated from {language}"
+  "translated_from": "Translated from {language}",
+  "encrypt_post": "Encrypt Post",
+  "post_will_be_encrypted": "Post will be encrypted",
+  "invalid_password": "Invalid password. Please try again."
 }

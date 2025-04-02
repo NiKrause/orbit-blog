@@ -245,5 +245,9 @@ export default {
   "date_format": "dd/MM/yyyy 'a las' HH:mm",
   
   // Miscelánea
-  "unknown": "Desconocido"
+  "unknown": "Desconocido",
+  fill_required_fields: 'Por favor, complete todos los campos requeridos',
+  encrypt_post: 'Cifrar publicación',
+  post_will_be_encrypted: 'La publicación será cifrada',
+  invalid_password: 'Contraseña inválida. Por favor, inténtelo de nuevo.',
 }

@@ -256,9 +256,12 @@ export default {
     "translate_and_post": "अनुवाद करें और पोस्ट करें",
     "translating": "अनुवाद हो रहा है",
     "translation_config_missing": "कृपया पहले AI अनुवाद सेटिंग्स कॉन्फ़िगर करें",
-    "fill_required_fields": "कृपया अनुवाद करने से पहले सभी आवश्यक फ़ील्ड भरें",
+    "fill_required_fields": "कृपया सभी आवश्यक फ़ील्ड भरें",
     "translation_failed": "अनुवाद विफल। कृपया पुनः प्रयास करें",
     "no_posts_in_language": "{language} में कोई पोस्ट उपलब्ध नहीं",
     "original_language": "मूल भाषा",
-    "translated_from": "{language} से अनुवादित"
+    "translated_from": "{language} से अनुवादित",
+    "encrypt_post": "पोस्ट को एन्क्रिप्ट करें",
+    "post_will_be_encrypted": "पोस्ट एन्क्रिप्ट की जाएगी",
+    "invalid_password": "अमान्य पासवर्ड। कृपया पुनः प्रयास करें।"
   }

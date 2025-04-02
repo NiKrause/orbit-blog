@@ -256,9 +256,12 @@ export default {
     "translate_and_post": "Traduzir & Postar",
     "translating": "Traduzindo",
     "translation_config_missing": "Por favor, configure as configurações de tradução IA primeiro",
-    "fill_required_fields": "Por favor, preencha todos os campos obrigatórios antes de traduzir",
+    "fill_required_fields": "Por favor, preencha todos os campos obrigatórios",
     "translation_failed": "Falha na tradução. Por favor, tente novamente",
     "no_posts_in_language": "Nenhuma postagem disponível em {language}",
     "original_language": "Idioma original",
-    "translated_from": "Traduzido do {language}"
+    "translated_from": "Traduzido do {language}",
+    "encrypt_post": "Criptografar post",
+    "post_will_be_encrypted": "O post será criptografado",
+    "invalid_password": "Senha inválida. Por favor, tente novamente."
   }

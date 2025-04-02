@@ -256,9 +256,12 @@ export default {
     "translate_and_post": "Vertalen & Plaatsen",
     "translating": "Vertalen",
     "translation_config_missing": "Configureer eerst de AI vertaal instellingen",
-    "fill_required_fields": "Vul alle verplichte velden in voordat je gaat vertalen",
+    "fill_required_fields": "Vul alle verplichte velden in",
     "translation_failed": "Vertaling mislukt. Probeer het opnieuw",
     "no_posts_in_language": "Geen berichten beschikbaar in {language}",
     "original_language": "Originele taal",
-    "translated_from": "Vertaald uit {language}"
+    "translated_from": "Vertaald uit {language}",
+    "encrypt_post": "Bericht versleutelen",
+    "post_will_be_encrypted": "Het bericht wordt versleuteld",
+    "invalid_password": "Ongeldig wachtwoord. Probeer het opnieuw."
   }

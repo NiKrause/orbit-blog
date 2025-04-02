@@ -15,6 +15,12 @@
   import type { BlogPost, Comment } from '$lib/types.js';
   import { commentsDB, mediaDB, helia, isRTL } from '$lib/store.js';
   import { formatTimestamp } from '$lib/dateUtils.js';
+  import { postsDB, categories, selectedPostId, identity, enabledLanguages } from '$lib/store.js';
+  import { TranslationService } from '$lib/services/translationService.js';
+  import { aiApiKey, aiApiUrl } from '$lib/store.js';
+  import LanguageStatusLED from './LanguageStatusLED.svelte';
+  import { decryptPost, isEncryptedPost } from '$lib/cryptoUtils.js';
+  import PostPasswordPrompt from './PostPasswordPrompt.svelte';
 
   /**
    * Component props interface
@@ -37,6 +43,19 @@
   
   // Cache for IPFS content
   let mediaCache = new Map();
+
+  let title = $state('');
+  let content = $state('');
+  let category: Category = $state('');
+  let showPreview = $state(false);
+  let showMediaUploader = $state(false);
+  let selectedMedia = $state<string[]>([]);
+  let isTranslating = $state(false);
+  let translationError = $state('');
+  let translationStatuses = $state<Record<string, 'success' | 'error' | 'default'>>({});
+  let isEncrypted = $state(false);
+  let showPasswordPrompt = $state(false);
+  let decryptionError = $state('');
 
   // Initialize mermaid with your preferred config
   mermaid.initialize({
@@ -278,15 +297,6 @@
     }
   }
 
-  /**
-   * Formats a date string to a readable format
-   * @param {string} dateString - ISO date string
-   * @returns {string} Formatted date string
-   */
-  function formatDate(dateString: string): string {
-    if (!dateString) return '';
-    return DateTime.fromISO(dateString).toLocaleString(DateTime.DATETIME_MED);
-  }
 
   // Lifecycle and Effects
   onMount(async () => {
@@ -302,7 +312,6 @@
       updateRenderedContent();
     } else {
       updateRenderedContent();
-      //console.log('Media DB or post is not available');
     }
   });
 
@@ -322,8 +331,25 @@
       });
     }
   });
+  
+
   $effect(() => {
-    console.log('post', post);
+    if ($selectedPostId) {
+      const post = $postsDB.get($selectedPostId);
+      console.log('post', post);
+      if (post) {
+        title = post.title;
+        content = post.content;
+        category = post.category;
+        selectedMedia = post.mediaIds || [];
+        console.log('post', post);
+        isEncrypted = post.isEncrypted || isEncryptedPost({ title, content });
+        console.log('isEncrypted', isEncrypted);
+        if (isEncrypted) {
+          showPasswordPrompt = true;
+        }
+      }
+    }
   });
 
   function isAllowedDomain(src: string): boolean {
@@ -381,6 +407,21 @@
     await mermaid.run({
       querySelector: '.mermaid'
     });
+  }
+
+  async function handlePasswordSubmit(event: CustomEvent) {
+    try {
+      console.log('title', title);
+      console.log('content',content)
+      const decryptedData = await decryptPost({ title, content }, event.detail.password);
+      console.log('decryptedData', decryptedData);
+      title = decryptedData.title;
+      content = decryptedData.content;
+      showPasswordPrompt = false;
+      decryptionError = '';
+    } catch (error) {
+      decryptionError = $_('invalid_password');
+    }
   }
 </script>
 
@@ -454,96 +495,104 @@
 </style>
 
 <article class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-  <h1 class="text-4xl font-bold mb-2 text-gray-900 dark:text-white">{post.title}</h1>
-  <div class="flex space-x-4 text-sm text-gray-500 dark:text-gray-400 mb-4">
-    <span title={post.identity || 'Unknown'}>
-      {$_('by')} {post.identity ? `...${post.identity.slice(-5)}` : $_('unknown')}
-    </span>
-    <span>{formatTimestamp(post.createdAt || post.date)}</span>
-    {#if post.updatedAt && post.updatedAt !== post.createdAt}
-      <span>({$_('updated')}: {formatTimestamp(post.updatedAt)})</span>
-    {/if}
-    <span class="px-2 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full">
-      {post.category}
-    </span>
-  </div>
-  
-  <div class="prose dark:prose-invert max-w-none mb-6">
-    {@html renderedContent}
-  </div>
-
-  <section class="mt-8">
-    <h3 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">{$_('comments')} ({comments.length})</h3>
-    {#each comments as comment}
-      <div class="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-        <div class="flex items-center mb-2">
-          <strong class="text-gray-900 dark:text-white">{comment.author}</strong>
-          <span class="ml-2 text-sm text-gray-500 dark:text-gray-400">
-            {formatTimestamp(comment.createdAt)}
-          </span>
-        </div>
-        <p class="text-gray-700 dark:text-gray-300">{comment.content}</p>
-      </div>
-    {/each}
-
-     <!-- Display attached media gallery if there are media items -->
-  {#if postMedia.length > 0}
-  <div class="mt-4 mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-    <h3 class="text-lg font-medium mb-2 text-gray-900 dark:text-white">{$_('media')}</h3>
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-      {#each postMedia as media}
-        {#if media.type.startsWith('image/')}
-          <a href={media.url || `https://ipfs.io/ipfs/${media.cid}`} target="_blank" rel="noopener noreferrer" 
-             class="block overflow-hidden rounded-lg">
-            <img src={media.url || `https://ipfs.io/ipfs/${media.cid}`} alt={media.name}
-                 class="w-full h-auto object-cover" />
-          </a>
-        {:else if media.type.startsWith('video/')}
-          <video controls class="w-full rounded-lg">
-            <source src={media.url || `https://ipfs.io/ipfs/${media.cid}`} type={media.type}>
-            {$_('browser_no_video_support')}
-          </video>
-        {:else if media.type.startsWith('audio/')}
-          <audio controls class="w-full">
-            <source src={media.url || `https://ipfs.io/ipfs/${media.cid}`} type={media.type}>
-            {$_('browser_no_audio_support')}
-          </audio>
-        {:else}
-          <a href={media.url || `https://ipfs.io/ipfs/${media.cid}`} 
-             target="_blank" rel="noopener noreferrer" 
-             class="flex items-center p-3 bg-gray-100 dark:bg-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-500 transition">
-            <span class="truncate">{media.name} ({(media.size / 1024).toFixed(2)} KB)</span>
-          </a>
-        {/if}
-      {/each}
+  {#if isEncrypted && showPasswordPrompt}
+    <PostPasswordPrompt 
+      mode={isEncrypted ? 'decrypt' : 'encrypt'}
+      post={{ title, content }}
+      on:postDecrypted={handlePasswordSubmit}
+    />
+  {:else}
+    <h1 class="text-4xl font-bold mb-2 text-gray-900 dark:text-white">{title}</h1>
+    <div class="flex space-x-4 text-sm text-gray-500 dark:text-gray-400 mb-4">
+      <span title={post.identity || 'Unknown'}>
+        {$_('by')} {post.identity ? `...${post.identity.slice(-5)}` : $_('unknown')}
+      </span>
+      <span>{formatTimestamp(post.createdAt || post.date)}</span>
+      {#if post.updatedAt && post.updatedAt !== post.createdAt}
+        <span>({$_('updated')}: {formatTimestamp(post.updatedAt)})</span>
+      {/if}
+      <span class="px-2 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full">
+        {post.category}
+      </span>
     </div>
-  </div>
-{/if}
+    
+    <div class="prose dark:prose-invert max-w-none mb-6">
+      {@html renderedContent}
+    </div>
 
-    <form onsubmit={preventDefault(addComment)} class="mt-6">
-      <div class="mb-4">
-        <input
-          type="text"
-          bind:value={commentAuthor}
-          placeholder={$_('your_name')}
-          required
-          class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-        />
+    <section class="mt-8">
+      <h3 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">{$_('comments')} ({comments.length})</h3>
+      {#each comments as comment}
+        <div class="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+          <div class="flex items-center mb-2">
+            <strong class="text-gray-900 dark:text-white">{comment.author}</strong>
+            <span class="ml-2 text-sm text-gray-500 dark:text-gray-400">
+              {formatTimestamp(comment.createdAt)}
+            </span>
+          </div>
+          <p class="text-gray-700 dark:text-gray-300">{comment.content}</p>
+        </div>
+      {/each}
+
+       <!-- Display attached media gallery if there are media items -->
+      {#if postMedia.length > 0}
+      <div class="mt-4 mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+        <h3 class="text-lg font-medium mb-2 text-gray-900 dark:text-white">{$_('media')}</h3>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          {#each postMedia as media}
+            {#if media.type.startsWith('image/')}
+              <a href={media.url || `https://ipfs.io/ipfs/${media.cid}`} target="_blank" rel="noopener noreferrer" 
+                 class="block overflow-hidden rounded-lg">
+                <img src={media.url || `https://ipfs.io/ipfs/${media.cid}`} alt={media.name}
+                     class="w-full h-auto object-cover" />
+              </a>
+            {:else if media.type.startsWith('video/')}
+              <video controls class="w-full rounded-lg">
+                <source src={media.url || `https://ipfs.io/ipfs/${media.cid}`} type={media.type}>
+                {$_('browser_no_video_support')}
+              </video>
+            {:else if media.type.startsWith('audio/')}
+              <audio controls class="w-full">
+                <source src={media.url || `https://ipfs.io/ipfs/${media.cid}`} type={media.type}>
+                {$_('browser_no_audio_support')}
+              </audio>
+            {:else}
+              <a href={media.url || `https://ipfs.io/ipfs/${media.cid}`} 
+                 target="_blank" rel="noopener noreferrer" 
+                 class="flex items-center p-3 bg-gray-100 dark:bg-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-500 transition">
+                <span class="truncate">{media.name} ({(media.size / 1024).toFixed(2)} KB)</span>
+              </a>
+            {/if}
+          {/each}
+        </div>
       </div>
-      <div class="mb-4">
-        <textarea
-          bind:value={newComment}
-          placeholder={$_('write_a_comment')}
-          required
-          class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white min-h-[100px]"
-        ></textarea>
-      </div>
-      <button 
-        type="submit"
-        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition"
-      >
-        {$_('add_comment')}
-      </button>
-    </form>
-  </section>
+    {/if}
+
+      <form onsubmit={preventDefault(addComment)} class="mt-6">
+        <div class="mb-4">
+          <input
+            type="text"
+            bind:value={commentAuthor}
+            placeholder={$_('your_name')}
+            required
+            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+          />
+        </div>
+        <div class="mb-4">
+          <textarea
+            bind:value={newComment}
+            placeholder={$_('write_a_comment')}
+            required
+            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white min-h-[100px]"
+          ></textarea>
+        </div>
+        <button 
+          type="submit"
+          class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition"
+        >
+          {$_('add_comment')}
+        </button>
+      </form>
+    </section>
+  {/if}
 </article>

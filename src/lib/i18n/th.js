@@ -256,9 +256,12 @@ export default {
     "translate_and_post": "แปลและโพสต์",
     "translating": "กำลังแปล",
     "translation_config_missing": "โปรดกำหนดค่าการตั้งค่าการแปล AI ก่อน",
-    "fill_required_fields": "โปรดกรอกฟิลด์ที่จำเป็นทั้งหมดก่อนแปล",
+    "fill_required_fields": "กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน",
     "translation_failed": "การแปลล้มเหลว โปรดลองอีกครั้ง",
     "no_posts_in_language": "ไม่มีโพสต์ในภาษา {language}",
     "original_language": "ภาษาต้นฉบับ",
-    "translated_from": "แปลจากภาษา {language}"
+    "translated_from": "แปลจากภาษา {language}",
+    "encrypt_post": "เข้ารหัสโพสต์",
+    "post_will_be_encrypted": "โพสต์จะถูกเข้ารหัส",
+    "invalid_password": "รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง"
   }

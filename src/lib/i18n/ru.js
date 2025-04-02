@@ -245,5 +245,9 @@ export default {
   "date_format": "dd.MM.yyyy 'в' HH:mm",
   
   // Разное
-  "unknown": "Неизвестно"
+  "unknown": "Неизвестно",
+  fill_required_fields: 'Пожалуйста, заполните все обязательные поля',
+  encrypt_post: 'Зашифровать пост',
+  post_will_be_encrypted: 'Пост будет зашифрован',
+  invalid_password: 'Неверный пароль. Пожалуйста, попробуйте снова.',
 }

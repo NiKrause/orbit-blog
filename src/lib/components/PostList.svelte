@@ -18,6 +18,8 @@
   import html2pdf from 'html2pdf.js';
 
   import LanguageStatusLED from './LanguageStatusLED.svelte';
+  import { encryptPost } from '$lib/cryptoUtils.js';
+  import PostPasswordPrompt from './PostPasswordPrompt.svelte';
 
   let searchQuery = $state('');
   let selectedCategory: Category | 'All' = $state('All');
@@ -47,6 +49,12 @@
 
   let showPreview = $state(false);
 
+  // Add these state variables at the top with other state declarations
+  let isEncrypting = $state(false);
+  let showPasswordPrompt = $state(false);
+  let encryptionPassword = $state('');
+  let encryptionError = $state('');
+
   // Combined filtering function
   function filterPosts() {
     const currentLanguage = $locale;
@@ -73,9 +81,9 @@
   }
 
   // Update displayed posts when any filter changes
-  $effect(() => {
-    displayedPosts = filterPosts();
-  });
+  // $effect(() => {
+  //   // displayedPosts = filterPosts();
+  // });
 
   // Watch for changes in posts, locale, selectedCategory, and searchTerm
   $effect(() => {
@@ -84,6 +92,9 @@
   });
 
   let selectedPost = $derived($selectedPostId ? displayedPosts.find(post => post._id === $selectedPostId) : null);
+  $effect(() => {
+    console.log('selectedPost', selectedPost);
+  });
 
   onMount(() => {
     console.log('PostList component mounted');
@@ -125,8 +136,7 @@
   async function saveEditedPost() {
     if (selectedPost && editedTitle && editedContent) {
       try {
-        console.log('selectedPost', selectedPost);
-        const updatedPost = {
+        let updatedPost = {
           _id: selectedPost._id,
           title: editedTitle,
           content: editedContent,
@@ -137,10 +147,26 @@
           identity: $identity.id,
           mediaIds: selectedMedia
         };
-        console.log('updatedPost', updatedPost);
+
+        // If post is being encrypted or was previously encrypted
+        if (isEncrypting || selectedPost.isEncrypted) {
+          const encryptedData = await encryptPost(
+            { title: editedTitle, content: editedContent }, 
+            encryptionPassword
+          );
+          updatedPost = {
+            ...updatedPost,
+            title: encryptedData.encryptedTitle,
+            content: encryptedData.encryptedContent,
+            isEncrypted: true
+          };
+        }
+
         await $postsDB.put(updatedPost);
         console.info('Post updated successfully', updatedPost);
         editMode = false;
+        isEncrypting = false;
+        encryptionPassword = '';
         $selectedPostId = updatedPost._id;
       } catch (error) {
         console.error('Error updating post:', error);
@@ -386,7 +412,6 @@ ${convertMarkdownToLatex(selectedPost.content)}
     return $postsDB.access.write.includes($identity.id) || $postsDB.access.write.includes("*");
   }
 
-  // Modify the handleTranslate function similarly to the PostForm version
   async function handleTranslate() {
     if (!$aiApiKey || !$aiApiUrl) {
       translationError = $_('translation_config_missing');
@@ -439,6 +464,46 @@ ${convertMarkdownToLatex(selectedPost.content)}
       isTranslating = false;
     }
   }
+
+  // Add this function to handle encryption request
+  async function handleEncrypt() {
+    if (!editedTitle || !editedContent) {
+      encryptionError = $_('fill_required_fields');
+      return;
+    }
+    showPasswordPrompt = true;
+  }
+
+
+  async function postDecrypted(event: CustomEvent) {
+    try {
+      const decryptedData = event.detail.post;
+      editedTitle = decryptedData.title;
+      editedContent = decryptedData.content;
+      showPasswordPrompt = false;
+      encryptionError = '';
+      
+      // Update both selectedPost and the post in displayedPosts
+      const decryptedPost = {
+        ...selectedPost,
+        title: decryptedData.title,
+        content: decryptedData.content
+      };
+      selectedPost = decryptedPost;
+      
+      // Update the post in displayedPosts array
+      const postIndex = displayedPosts.findIndex(p => p._id === selectedPost._id);
+      if (postIndex !== -1) {
+        displayedPosts[postIndex] = decryptedPost;
+        displayedPosts = [...displayedPosts]; // Trigger reactivity
+      }
+      
+      editMode = false;
+    } catch (error) {
+      encryptionError = $_('invalid_password');
+    }
+  }
+
 </script>
 
 <div class="space-y-4 {$isRTL ? 'rtl' : 'ltr'}">
@@ -675,6 +740,23 @@ ${convertMarkdownToLatex(selectedPost.content)}
                 </button>
                 <button
                   type="button"
+                  onclick={handleEncrypt}
+                  class="inline-flex items-center gap-2 bg-indigo-600 dark:bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
+                >
+                  {#if isEncrypting || selectedPost.isEncrypted}
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                    </svg>
+                    {$_('post_will_be_encrypted')}
+                  {:else}
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
+                    </svg>
+                    {$_('encrypt_post')}
+                  {/if}
+                </button>
+                <button
+                  type="button"
                   onclick={saveEditedPost}
                   class="bg-indigo-600 dark:bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
                 >
@@ -793,6 +875,18 @@ ${convertMarkdownToLatex(selectedPost.content)}
   </div>
 {/if}
 
+{#if showPasswordPrompt}
+  <PostPasswordPrompt
+    mode={isEncrypting ? 'encrypt' : 'decrypt'}
+    on:cancel={() => showPasswordPrompt = false}
+    post={{
+      title: editedTitle,
+      content: editedContent
+    }}
+
+    on:postDecrypted={postDecrypted}
+  />
+{/if} 
 <style>
 
   h3 {

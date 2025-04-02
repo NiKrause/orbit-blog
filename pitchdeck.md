@@ -26,15 +26,15 @@ Content creators and enterprises face critical challenges:
 
 DecentraSol provides a comprehensive decentralized content ecosystem:
 
-* 📝 **Local-First Blog Platform**
-  - Full data ownership
+* 📝 **Le Space Blogging System**
+  - Publish & subscribe blog posts via peer-to-peer network   
+  - Full data ownership (local-first)
   - Offline-first capability
-  - Blockchain agnostic
   
 * 🔗 **Enterprise Pinning Service**
   - High availability
   - Professional SLAs
-  - Fiat payment gateway
+  - Fiat & Crypto payment gateways
 
 ---
 
@@ -44,7 +44,7 @@ DecentraSol provides a comprehensive decentralized content ecosystem:
 
 * 🏢 Crypto Projects & DAOs
 * 🛡️ Privacy-focused Enterprises
-* ✍️ Web3 Content Creators
+* ✍️ Content Creators (Web2 and Web3)
 * 🌱 Traditional Business Migration
 
 ### Market Size

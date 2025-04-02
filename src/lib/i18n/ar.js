@@ -248,5 +248,9 @@ export default {
   "language": "اللغة",
   
   // متفرقات
-  "unknown": "غير معروف"
+  "unknown": "غير معروف",
+  fill_required_fields: 'يرجى ملء جميع الحقول المطلوبة',
+  encrypt_post: 'تشفير المنشور',
+  post_will_be_encrypted: 'سيتم تشفير المنشور',
+  invalid_password: 'كلمة مرور غير صالحة. يرجى المحاولة مرة أخرى.',
 }

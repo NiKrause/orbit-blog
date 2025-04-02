@@ -245,5 +245,9 @@ export default {
   "date_format": "dd.MM.yyyy 'um' HH:mm",
   
   // Misc
-  "unknown": "Unbekannt"
+  "unknown": "Unbekannt",
+  fill_required_fields: 'Bitte füllen Sie alle erforderlichen Felder aus',
+  encrypt_post: 'Beitrag verschlüsseln',
+  post_will_be_encrypted: 'Beitrag wird verschlüsselt',
+  invalid_password: 'Ungültiges Passwort. Bitte versuchen Sie es erneut.',
 }

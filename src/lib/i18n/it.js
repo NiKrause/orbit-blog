@@ -245,5 +245,9 @@ export default {
   "date_format": "dd/MM/yyyy 'alle' HH:mm",
   
   // Varie
-  "unknown": "Sconosciuto"
+  "unknown": "Sconosciuto",
+  fill_required_fields: 'Inserisci tutti i campi obbligatori',
+  encrypt_post: 'Cripta post',
+  post_will_be_encrypted: 'Il post verrà criptato',
+  invalid_password: 'Password non valida. Riprova.',
 }
