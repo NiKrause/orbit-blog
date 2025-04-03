@@ -2,6 +2,7 @@ import { get } from 'svelte/store';
 import { aiApiKey, aiApiUrl, enabledLanguages } from '../store';
 import type { BlogPost } from '../types';
 import OpenAI from 'openai';
+import { encryptPost } from '$lib/cryptoUtils.js';
 
 interface TranslationRequest {
   text: string;
@@ -20,7 +21,9 @@ interface TranslateAndSaveOptions {
     content: string;
     category: string;
     language: string;
+    isEncrypted?: boolean;
   };
+  encryptionPassword?: string;
   postsDB: any; // Use proper type from your DB
   identity: any; // Use proper type from your identity
   mediaIds?: string[];
@@ -145,7 +148,8 @@ Only respond with the translated text, without any additional commentary.`;
       identity,
       mediaIds = [],
       timestamps = { createdAt: Date.now(), updatedAt: Date.now() },
-      onStatusUpdate
+      onStatusUpdate,
+      encryptionPassword
     } = options;
 
     if (!get(aiApiKey) || !get(aiApiUrl)) {
@@ -165,14 +169,33 @@ Only respond with the translated text, without any additional commentary.`;
       for (const [lang, translatedPost] of Object.entries(translations)) {
         try {
           const _id = crypto.randomUUID();
-          await postsDB.put({
+          let postData = {
             _id,
             ...translatedPost,
             createdAt: timestamps.createdAt,
             updatedAt: timestamps.updatedAt,
             identity: identity.id,
             mediaIds,
-          });
+          };
+
+          // If original post was encrypted, encrypt the translation too
+          if (post.isEncrypted && encryptionPassword) {
+            const encryptedData = await encryptPost(
+              { 
+                title: translatedPost.title, 
+                content: translatedPost.content 
+              }, 
+              encryptionPassword
+            );
+            postData = {
+              ...postData,
+              title: encryptedData.encryptedTitle,
+              content: encryptedData.encryptedContent,
+              isEncrypted: true
+            };
+          }
+
+          await postsDB.put(postData);
           translationStatuses[lang] = 'success';
         } catch (error) {
           console.error(`Error saving translation for ${lang}:`, error);

@@ -116,8 +116,10 @@
           title,
           content,
           category,
-          language: $locale
+          language: $locale,
+          isEncrypted: isEncrypting
         },
+        encryptionPassword: encryptionPassword,
         postsDB: $postsDB,
         identity: $identity,
         mediaIds: selectedMedia,

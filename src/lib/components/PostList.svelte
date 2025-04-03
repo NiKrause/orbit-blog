@@ -412,7 +412,8 @@ ${convertMarkdownToLatex(selectedPost.content)}
         title: editedTitle,
         content: editedContent,
         category: editedCategory,
-        language: $locale
+        language: $locale,
+        isEncrypted: isEncrypting 
       };
 
       const result = await TranslationService.translateAndSavePost({
@@ -423,8 +424,10 @@ ${convertMarkdownToLatex(selectedPost.content)}
         timestamps: {
           createdAt: new Date(editedCreatedAt).getTime(),
           updatedAt: new Date(editedUpdatedAt).getTime()
-        }
-      });
+        },
+        encryptionPassword: encryptionPassword,
+        isEncrypting: isEncrypting
+      })
 
       if (result.success) {
         translationStatuses = result.translationStatuses;
