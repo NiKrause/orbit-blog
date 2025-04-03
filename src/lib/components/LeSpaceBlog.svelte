@@ -370,20 +370,58 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       console.log("all of remoteDBsDatabases", savedDBs, new Date().toISOString());
       const _remoteDBs = savedDBs.map(entry => entry.value);
       console.info('Remote DBs list:', _remoteDBs);
+      
+      // Process each database
       _remoteDBs.forEach(async db => {
-        const _db = await $orbitdb.open(db.postsAddress);
-        db.access = _db.access
-        _db.all().then(_posts => {
-          db.postsCount = _posts.length
-          console.log('_db', _db)
-          console.log('posts', _posts)
-        }).finally(() => {
-          // console.log('db', db)
-        })
-      })
+        // Load each database independently
+      //   if (db.postsAddress) {
+      //     console.log('loading postsDB', db.postsAddress)
+      //     $orbitdb.open(db.postsAddress)
+      //       .then(async postsDB => {
+      //         console.log('postsDB loaded', postsDB)
+      //         db.access = postsDB.access;
+      //         const posts = await postsDB.all();
+      //         db.postsCount = posts.length;
+      //       })
+      //       .catch(error => {
+      //         console.info(`Posts database not available for ${db.name}:`, error);
+      //         db.postsCount = 0;
+      //       });
+      //   }
+
+      //   if (db.commentsAddress) {
+      //     console.log('loading commentsDB', db.commentsAddress)
+      //     $orbitdb.open(db.commentsAddress)
+      //       .then(async commentsDB => {
+      //         console.log('commentsDB loaded', commentsDB)
+      //         const comments = await commentsDB.all();
+      //         db.commentsCount = comments.length;
+      //       })
+      //       .catch(error => {
+      //         console.info(`Comments database not available for ${db.name}:`, error);
+      //         db.commentsCount = 0;
+      //       });
+      //   }
+
+      //   if (db.mediaAddress) {
+      //     console.log('loading mediaDB', db.mediaAddress)
+      //     $orbitdb.open(db.mediaAddress)
+      //       .then(async mediaDB => {
+      //         console.log('mediaDB loaded', mediaDB)
+      //         const media = await mediaDB.all();
+      //         db.mediaCount = media.length;
+      //       })
+      //       .catch(error => {
+      //         console.info(`Media database not available for ${db.name}:`, error);
+      //         db.mediaCount = 0;
+      //       });
+      //   }
+      });
+
       $remoteDBs = _remoteDBs;
     };
-    loadRemoteDBs().catch(err => console.error('Error loading remote DBs:', err));
+    
+    loadRemoteDBs() //.catch(err => console.error('Error loading remote DBs:', err));
   }
   $settingsDB?.events.on('update', async (entry) => {
       console.log('Setting database update:', entry);

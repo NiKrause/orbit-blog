@@ -250,14 +250,21 @@ export default {
   encrypt_post: 'Cripta post',
   post_will_be_encrypted: 'Il post verrà criptato',
   invalid_password: 'Password non valida. Riprova.',
-  "no_posts_in_language": "Aucun article disponible en {language}",
-  "original_language": "Langue d'origine",
-  "translated_from": "Traduit de {language}",
-  "enter_encryption_password_explanation": "Veuillez entrer votre mot de passe pour chiffrer votre article. Le mot de passe ne quitte pas votre appareil. Lors de la sauvegarde, l'article sera chiffré avec le mot de passe et NE sera PAS stocké sur votre appareil. Pour voir l'article, vous devrez entrer le mot de passe pour le déchiffrer.",
-  "enter_password_to_encrypt": "Entrez le mot de passe pour chiffrer l'article",
-  "encrypt": "Chiffrer l'article lors de la sauvegarde",
-  "enter_password_to_view": "Entrez le mot de passe pour voir l'article",
-  "decrypt_post": "Déchiffrer l'article",
-  "encrypted_post": "Article chiffré",
-  "post_will_be_decrypted": "Déchiffrer l'article"
+  "no_posts_in_language": "Nessun post disponibile in {language}",
+  "original_language": "Lingua originale",
+  "translated_from": "Tradotto da {language}",
+  "enter_encryption_password_explanation": "Inserisci la password per crittografare il tuo post. La password non lascerà il tuo dispositivo. Durante il salvataggio, il post verrà crittografato con la password e NON verrà memorizzato sul tuo dispositivo. Per visualizzare il post, dovrai inserire la password per decrittografarlo.",
+  "enter_password_to_encrypt": "Inserisci la password per crittografare il post",
+  "encrypt": "Crittografa il post durante il salvataggio",
+  "enter_password_to_view": "Inserisci la password per visualizzare il post",
+  "decrypt_post": "Decrittografa il post",
+  "encrypted_post": "Post crittografato",
+  "post_will_be_decrypted": "Il post verrà decrittografato",
+  "language": "Lingua",
+  
+  // Database Addresses
+  "posts_db_address": "Indirizzo del database dei post",
+  "comments_db_address": "Indirizzo del database dei commenti",
+  "media_db_address": "Indirizzo del database dei media",
+  "address_not_available": "Indirizzo non disponibile"
 }

@@ -259,5 +259,12 @@ export default {
   "enter_password_to_view": "Gönderiyi görüntülemek için şifre girin",
   "decrypt_post": "Gönderiyi şifresini çöz",
   "encrypted_post": "Şifrelenmiş gönderi",
-  "post_will_be_decrypted": "Gönderi şifresi çözülecek"
+  "post_will_be_decrypted": "Gönderi şifresi çözülecek",
+  "language": "Dil",
+  
+  // Database Addresses
+  "posts_db_address": "Gönderi veritabanı adresi",
+  "comments_db_address": "Yorum veritabanı adresi",
+  "media_db_address": "Medya veritabanı adresi",
+  "address_not_available": "Adres mevcut değil"
 }

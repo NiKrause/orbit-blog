@@ -27,8 +27,6 @@
   let showConfirmModal = $state(false);
   let dbToRemove: string | null = null;
 
-
-
   async function generateQRCode(text: string) {
     try {
       qrCodeDataUrl = await QRCode.toDataURL(text, {
@@ -152,7 +150,7 @@
             db.postsAddress = postsAddressEntry.value.value;
             const postsDb = await $orbitdb.open(db.postsAddress);
             const allPosts = await postsDb.all();
-            console.log('allPosts', allPosts);
+            db.postsCount = allPosts.length;
             $posts = allPosts.map(entry => ({
               ...entry.value,
               identity: entry.identity
@@ -168,7 +166,7 @@
             db.commentsAddress = commentsAddressEntry.value.value;
             const commentsDb = await $orbitdb.open(db.commentsAddress);
             const _allComments = await commentsDb.all();
-            console.log('allComments', allComments);
+            db.commentsCount = _allComments.length;
             $allComments = _allComments.map(entry => ({
               ...entry.value,
               identity: entry.identity
@@ -182,7 +180,7 @@
             db.mediaAddress = mediaAddressEntry.value.value;
             const mediaDb = await $orbitdb.open(db.mediaAddress);
             const _allMedia = await mediaDb.all();
-            console.log('allMedia', allMedia);
+            db.mediaCount = _allMedia.length;
             $allMedia = _allMedia.map(entry => ({
               ...entry.value,
               identity: entry.identity
@@ -223,7 +221,6 @@
       
       try {
         const success = await addRemoteDBToStore(dbAddress, dbPeerId, dbName);
-         
         if (success) {
           console.log($_('database_added_successfully'), dbAddress);
         } else {
@@ -320,7 +317,6 @@
       const dropPromises = [];
       
       if (options.dropLocal) {
-        // Drop local database copies
         for (const entry of [postsAddressEntry, commentsAddressEntry, mediaAddressEntry]) {
           if (entry?.value?.value) {
             dropPromises.push(
@@ -579,8 +575,8 @@
             />
             <button 
               title={$_('copy_to_clipboard')}
-                ontouchstart={() => copyToClipboard($settingsDB?.address || '')} 
-                onclick={() => copyToClipboard($settingsDB?.address || '')} 
+              ontouchstart={() => copyToClipboard($settingsDB?.address || '')} 
+              onclick={() => copyToClipboard($settingsDB?.address || '')} 
               class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
               📋
             </button>
@@ -720,15 +716,50 @@
                     {/if}
                     
                     <div>
-                      <div class="font-medium text-gray-900 dark:text-white flex items-center">
-                        {db.name}
+                      <div class="font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                        <span 
+                          title={`
+Database Name: ${db.name}
+Database ID: ${db.id}
+Main Address: ${db.address}
+Posts DB Address: ${db.postsAddress || 'Not available'}
+Comments DB Address: ${db.commentsAddress || 'Not available'}
+Media DB Address: ${db.mediaAddress || 'Not available'}
+Posts Count: ${db.postsCount !== undefined ? db.postsCount : 'Unknown'}
+Comments Count: ${db.commentsCount !== undefined ? db.commentsCount : 'Unknown'}
+Media Count: ${db.mediaCount !== undefined ? db.mediaCount : 'Unknown'}
+Write Access: ${db.access?.write?.includes($identity?.id) ? 'Yes' : 'No'}
+Pinned to Voyager: ${db.pinnedToVoyager ? 'Yes' : 'No'}
+Last Processed: ${db.lastProcessed || 'Never'}
+Last Attempt: ${db.lastAttempt || 'Never'}
+Fetch Later: ${db.fetchLater ? 'Yes' : 'No'}
+`.trim()}>
+                          {db.name}
+                        </span>
                         
-                        <!-- Post Count Badge -->
-                        {#if db.postsCount !== undefined}
-                          <span class="ml-2 px-2 py-0.5 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-100 rounded-full text-xs font-medium" title="Number of posts">
-                            {db.postsCount} {$_('posts')}
-                          </span>
-                        {/if}
+                        <!-- Database Counts -->
+                        <div class="flex gap-2">
+                          {#if db.postsCount !== undefined}
+                            <span class="px-2 py-0.5 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-100 rounded-full text-xs font-medium" 
+                                  title={`${$_('posts_db_address')}: ${db.postsAddress || $_('address_not_available')}`}>
+                              {db.postsCount} {$_('posts')}
+                            </span>
+                          {/if}
+                          
+                          {#if db.commentsCount !== undefined}
+                            <span class="px-2 py-0.5 bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-100 rounded-full text-xs font-medium" 
+                                  title={`${$_('comments_db_address')}: ${db.commentsAddress || $_('address_not_available')}`}>
+                              {db.commentsCount} {$_('comments')}
+                            </span>
+                          {/if}
+                          
+                          {#if db.mediaCount !== undefined}
+                            <span class="px-2 py-0.5 bg-purple-100 dark:bg-purple-800 text-purple-800 dark:text-purple-100 rounded-full text-xs font-medium" 
+                                  title={`${$_('media_db_address')}: ${db.mediaAddress || $_('address_not_available')}`}>
+                              {db.mediaCount} {$_('media')}
+                            </span>
+                          {/if}
+                        </div>
                       </div>
                       <div class="text-sm text-gray-500 dark:text-gray-400 truncate">{db.address}</div>
                     </div>

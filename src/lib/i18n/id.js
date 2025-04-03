@@ -270,5 +270,11 @@ export default {
     "enter_password_to_view": "Masukkan kata sandi untuk melihat posting",
     "decrypt_post": "Dekripsi posting",
     "encrypted_post": "Posting terenkripsi",
-    "post_will_be_decrypted": "Dekripsi posting"
+    "post_will_be_decrypted": "Dekripsi posting",
+  
+    // Database Addresses
+    "posts_db_address": "Alamat database posting",
+    "comments_db_address": "Alamat database komentar",
+    "media_db_address": "Alamat database media",
+    "address_not_available": "Alamat tidak tersedia"
   }

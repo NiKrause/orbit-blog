@@ -26,8 +26,14 @@ export interface RemoteDB {
   _id: string;
   name: string;
   address: string;
+  postsAddress?: string;
+  commentsAddress?: string;
+  mediaAddress?: string;
+  fetchLater: boolean;
   date: string;
   postsCount?: number;
+  commentsCount?: number;
+  mediaCount?: number;
   access?: {
     write?: string[];
   };

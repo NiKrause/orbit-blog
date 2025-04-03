@@ -248,6 +248,12 @@ export default {
     "select_language": "Επιλογή γλώσσας",
     "language": "Γλώσσα",
   
+    // Database Addresses
+    "posts_db_address": "Διεύθυνση βάσης δεδομένων αναρτήσεων",
+    "comments_db_address": "Διεύθυνση βάσης δεδομένων σχολίων",
+    "media_db_address": "Διεύθυνση βάσης δεδομένων μέσων",
+    "address_not_available": "Η διεύθυνση δεν είναι διαθέσιμη",
+  
     // Διάφορα
     "unknown": "Άγνωστο",
     "ai_translation_settings": "Ρυθμίσεις Μετάφρασης AI",

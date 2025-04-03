@@ -259,5 +259,12 @@ export default {
   "enter_password_to_view": "Entrez le mot de passe pour voir l'article",
   "decrypt_post": "Déchiffrer l'article",
   "encrypted_post": "Article chiffré",
-  "post_will_be_decrypted": "Déchiffrer l'article"
+  "post_will_be_decrypted": "Déchiffrer l'article",
+  "language": "Langue",
+  
+  // Database Addresses
+  "posts_db_address": "Adresse de la base de données des publications",
+  "comments_db_address": "Adresse de la base de données des commentaires",
+  "media_db_address": "Adresse de la base de données des médias",
+  "address_not_available": "Adresse non disponible"
 }

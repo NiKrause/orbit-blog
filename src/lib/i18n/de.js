@@ -259,5 +259,12 @@ export default {
   "enter_password_to_view": "Passwort zum Anzeigen des Beitrags eingeben",
   "decrypt_post": "Beitrag entschlüsseln",
   "encrypted_post": "Verschlüsselter Beitrag",
-  "post_will_be_decrypted": "Beitrag wird entschlüsselt"
+  "post_will_be_decrypted": "Beitrag wird entschlüsselt",
+  "language": "Sprache",
+  
+  // Database Addresses
+  "posts_db_address": "Posts-Datenbank-Adresse",
+  "comments_db_address": "Kommentare-Datenbank-Adresse",
+  "media_db_address": "Medien-Datenbank-Adresse",
+  "address_not_available": "Adresse nicht verfügbar"
 }

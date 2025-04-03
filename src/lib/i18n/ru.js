@@ -259,5 +259,12 @@ export default {
   "enter_password_to_view": "Введите пароль для просмотра записи",
   "decrypt_post": "Расшифровать запись",
   "encrypted_post": "Зашифрованная запись",
-  "post_will_be_decrypted": "Расшифровать запись"
+  "post_will_be_decrypted": "Расшифровать запись",
+  "language": "Язык",
+  
+  // Database Addresses
+  "posts_db_address": "Адрес базы данных постов",
+  "comments_db_address": "Адрес базы данных комментариев",
+  "media_db_address": "Адрес базы данных медиа",
+  "address_not_available": "Адрес недоступен"
 }

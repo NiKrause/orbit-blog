@@ -270,5 +270,11 @@ export default {
     "enter_password_to_view": "กรอกรหัสผ่านเพื่อดูโพสต์",
     "decrypt_post": "ถอดรหัสโพสต์",
     "encrypted_post": "โพสต์ที่เข้ารหัสแล้ว",
-    "post_will_be_decrypted": "ถอดรหัสโพสต์"
+    "post_will_be_decrypted": "ถอดรหัสโพสต์",
+  
+    // Database Addresses
+    "posts_db_address": "ที่อยู่ฐานข้อมูลโพสต์",
+    "comments_db_address": "ที่อยู่ฐานข้อมูลความคิดเห็น",
+    "media_db_address": "ที่อยู่ฐานข้อมูลสื่อ",
+    "address_not_available": "ไม่พบที่อยู่"
   }

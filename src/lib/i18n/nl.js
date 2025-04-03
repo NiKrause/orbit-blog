@@ -248,6 +248,12 @@ export default {
     "select_language": "Taal selecteren",
     "language": "Taal",
   
+    // Database Addresses
+    "posts_db_address": "Adres van de berichtendatabase",
+    "comments_db_address": "Adres van de reactiedatabase",
+    "media_db_address": "Adres van de mediadatabase",
+    "address_not_available": "Adres niet beschikbaar",
+  
     // Diversen
     "unknown": "Onbekend",
     "ai_translation_settings": "AI Vertaal Instellingen",
@@ -258,17 +264,17 @@ export default {
     "translation_config_missing": "Configureer eerst de AI vertaal instellingen",
     "fill_required_fields": "Vul alle verplichte velden in",
     "translation_failed": "Vertaling mislukt. Probeer het opnieuw",
-    "no_posts_in_language": "Nessun post disponibile in {language}",
-    "original_language": "Lingua originale",
-    "translated_from": "Tradotto da {language}",
-    "encrypt_post": "Cripta post",
-    "post_will_be_encrypted": "Cripta",
-    "invalid_password": "Password non valida. Per favore riprova.",
-    "enter_encryption_password_explanation": "Inserisci la password per criptare il tuo post. La password non lascia il tuo dispositivo. Quando salvi il post, questo verrà criptato con la password e NON sarà memorizzato sul tuo dispositivo. Per visualizzare il post, dovrai inserire la password per decifrarlo.",
-    "enter_password_to_encrypt": "Inserisci la password per criptare il post",
-    "encrypt": "Cripta post al salvataggio",
-    "enter_password_to_view": "Inserisci la password per visualizzare il post",
-    "decrypt_post": "Decripta post",
-    "encrypted_post": "Post criptato",
-    "post_will_be_decrypted": "Decripta post"
+    "no_posts_in_language": "Geen berichten beschikbaar in {language}",
+    "original_language": "Oorspronkelijke taal",
+    "translated_from": "Vertaald uit {language}",
+    "encrypt_post": "Bericht versleutelen",
+    "post_will_be_encrypted": "Bericht zal worden versleuteld",
+    "invalid_password": "Ongeldig wachtwoord. Probeer het opnieuw.",
+    "enter_encryption_password_explanation": "Voer een wachtwoord in om je bericht te versleutelen. Het wachtwoord verlaat je apparaat niet. Bij het opslaan wordt het bericht versleuteld met het wachtwoord en wordt NIET op je apparaat opgeslagen. Om het bericht te bekijken, moet je het wachtwoord invoeren om het te ontsleutelen.",
+    "enter_password_to_encrypt": "Voer wachtwoord in om het bericht te versleutelen",
+    "encrypt": "Versleutel bericht bij opslaan",
+    "enter_password_to_view": "Voer wachtwoord in om het bericht te bekijken",
+    "decrypt_post": "Bericht ontsleutelen",
+    "encrypted_post": "Versleuteld bericht",
+    "post_will_be_decrypted": "Bericht zal worden ontsleuteld"
   }

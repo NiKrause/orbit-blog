@@ -270,5 +270,11 @@ export default {
     "enter_password_to_view": "पोस्ट देखने के लिए पासवर्ड दर्ज करें",
     "decrypt_post": "पोस्ट डिक्रिप्ट करें",
     "encrypted_post": "एन्क्रिप्टेड पोस्ट",
-    "post_will_be_decrypted": "पोस्ट डिक्रिप्ट होगी"
+    "post_will_be_decrypted": "पोस्ट डिक्रिप्ट होगी",
+  
+    // Database Addresses
+    "posts_db_address": "पोस्ट डेटाबेस का पता",
+    "comments_db_address": "टिप्पणी डेटाबेस का पता",
+    "media_db_address": "मीडिया डेटाबेस का पता",
+    "address_not_available": "पता उपलब्ध नहीं है"
   }

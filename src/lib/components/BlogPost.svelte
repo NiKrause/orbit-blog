@@ -307,23 +307,6 @@
     }
   });
 
-  $effect(() => {
-    if ($commentsDB) {
-      loadComments();
-      
-      $commentsDB.events.on('update', async (entry) => {
-        if (entry?.payload?.op === 'PUT') {
-          const comment = entry.payload.value;
-          if (comment.postId === post._id) {
-            await loadComments();
-          }
-        } else if (entry?.payload?.op === 'DEL') {
-          await loadComments();
-        }
-      });
-    }
-  });
-
   $effect(async () => {
     if ($selectedPostId) {
       const post = await $postsDB.get($selectedPostId);
@@ -340,6 +323,20 @@
         if (isEncrypted) {
           showPasswordPrompt = true;
         }
+        if ($commentsDB) {
+        loadComments();
+        
+        $commentsDB.events.on('update', async (entry) => {
+          if (entry?.payload?.op === 'PUT') {
+            const comment = entry.payload.value;
+            if (comment.postId === post._id) {
+              await loadComments();
+            }
+          } else if (entry?.payload?.op === 'DEL') {
+            await loadComments();
+          }
+        });
+      }
       }
     }
   });

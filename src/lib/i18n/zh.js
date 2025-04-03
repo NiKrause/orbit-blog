@@ -259,5 +259,12 @@ export default {
   "enter_password_to_view": "输入密码以查看帖子",
   "decrypt_post": "解密帖子",
   "encrypted_post": "加密的帖子",
-  "post_will_be_decrypted": "解密帖子"
+  "post_will_be_decrypted": "解密帖子",
+  "language": "语言",
+  
+  // Database Addresses
+  "posts_db_address": "文章数据库地址",
+  "comments_db_address": "评论数据库地址",
+  "media_db_address": "媒体数据库地址",
+  "address_not_available": "地址不可用"
 }

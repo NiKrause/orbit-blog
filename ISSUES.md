@@ -16,9 +16,14 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 ### Todos, Features, Issues
 - Todos:
     - [ ] Bug: Peer-to-Peer between browsers broken (WebRTC upgrade from circuit-relay-v2)
-    - [ ] Feature: Add synchronous password encryption to a blogPost 
-    - [ ] Bug: locks & keys in sidebar are updating too late
+    - [ ] Feature: Instead of an own article link external
+        - [ ] in posts it needs filetype link which syncs the remote db (with all comments and media)
+        
+    - [ ] Feature: if a IPFS-CID is discovered during saving of the article it should be directly gathered from the IPFS-network and added to the posts media ids and pinned to the local Helia node  
+    - [ ] Feature: if a IPFS-CID is discovered in preview mode, it should be loaded and pinned locally too! 
+    - [x] Bug: locks & keys in sidebar are updating too late
     - [ ] Feature: when adding IPFS-image links into markdown, it should also parse external CIDs not just cids which are inside our media library
+    - [x] Feature: Add synchronous password encryption to a blogPost 
     - [x] Bug: Website in browsers and mobile apps pwa is cached too long: nginx must send no-cache header
     - [x] Feature: Privacy Statement
     - [x] Feature: add Github Link
@@ -45,11 +50,12 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [ ] BUG: issue with tailwind components - tailwind components are not activated when importing blog lib! 
     - [x] Feature: default orbit blog address configurable by nginx config location .orbitblog 
     - [ ] Feature: default orbit blog address configurable by ethereum, polygon, namecoin, bitcoin, arweave? (possible by hostname) 
-    - ]x] Feature: PDF export from a post content
+    - [x] Feature: PDF export from a post content
     - [ ] Feature: AI prompt templates + file upload e.g. 
-        - [ ] Feature: correct my spelling
         - [x] Feature: translate to English, Spanish, etc.
-    - [ ] Settings 
+        - [ ] Feature: correct my spelling
+        - [ ] Feature: Extract all arguments and premises of an text or url auto-create a mermaid diagram
+    -  [ ] Settings 
         - [ ] Feature: Configure a logo
         - [ ] Feature: activate a navigation
         - [ ] Feature: Configure a favicon
@@ -80,6 +86,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [x] peerId is a new one after each page load even if we have a persistent identity
     - [?] can it be useful to have a new peerId even if identity is persistent? What would be the draw back?   
 - UI related
+    - [ ] Feature: Enable an optional card overview of all posts 
     - [ ] Feature: order posts by an id and make post list draggable
     - [ ] Feature: creating a new blog should be easier then the moment (one button click)
     - [ ] Feature: when loading blog first time and posts are getting replicated they do not appear one by one as they come (loaded but not reactively displayed)

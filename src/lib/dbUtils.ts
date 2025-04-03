@@ -2,7 +2,13 @@ import { get } from 'svelte/store';
 import { helia, orbitdb, blogName, categories, blogDescription, postsDBAddress, postsDB, posts, settingsDB, remoteDBs, commentsDB, mediaDB, remoteDBsDatabases, commentsDBAddress, mediaDBAddress, identity, identities, voyager } from './store';
 import type { RemoteDB } from './types';
 import { IPFSAccessController } from '@orbitdb/core';
-
+/**
+ * Adds a remote database to the store
+ * @param address - The address of the remote database
+ * @param peerId - The peer ID of the remote database
+ * @param name - The name of the remote database
+ * @returns True if the database was added successfully, false otherwise
+ */
 export async function addRemoteDBToStore(address: string, peerId: string, name?: string) {
   console.log('addRemoteDBToStore', address, peerId, name)
   const heliaInstance = get(helia);
@@ -40,19 +46,54 @@ export async function addRemoteDBToStore(address: string, peerId: string, name?:
         identities: identitiesInstance,
         AccessController: IPFSAccessController({write: [identityInstance.id]})
       });
-      const addedPosts = await voyagerInstance.add(postsDb.address)
-      console.log('addedPostsToVoyager', addedPosts)
+      voyagerInstance?.add(postsDb.address)
+        .then(added => console.log('addedPostsToVoyager', added))
+        .catch(err => console.error('Failed to add posts to voyager:', err));
+
+      // Create comments database (new)
+      const commentsDb = await voyagerInstance.orbitdb.open(`${name}-comments`, {
+        type: 'documents',
+        create: true,
+        overwrite: false,
+        directory: './orbitdb/comments',
+        identity: identityInstance,
+        identities: identitiesInstance,
+        // Comments can be written by anyone
+        AccessController: IPFSAccessController({write: ["*"]})
+      });
+      voyagerInstance?.add(commentsDb.address)
+        .then(added => console.log('addedCommentsToVoyager', added))
+        .catch(err => console.error('Failed to add comments to voyager:', err));
+
+      // Create media database (new)
+      const mediaDb = await voyagerInstance.orbitdb.open(`${name}-media`, {
+        type: 'documents',
+        create: true,
+        overwrite: false,
+        directory: './orbitdb/media',
+        identity: identityInstance,
+        identities: identitiesInstance,
+        AccessController: IPFSAccessController({write: [identityInstance.id]})
+      });
+      voyagerInstance?.add(mediaDb.address)
+        .then(added => console.log('addedMediaToVoyager', added))
+        .catch(err => console.error('Failed to add media to voyager:', err));
 
       // Initialize the settings
       await settingsDb.put({ _id: 'blogName', value: name });
       await settingsDb.put({ _id: 'blogDescription', value: 'please change' });
       await settingsDb.put({ _id: 'postsDBAddress', value: postsDb.address.toString() });
+      // Add new settings entries
+      await settingsDb.put({ _id: 'commentsDBAddress', value: commentsDb.address.toString() });
+      await settingsDb.put({ _id: 'mediaDBAddress', value: mediaDb.address.toString() });
 
       newDB = {
         id: crypto.randomUUID(),
         name: name,
         address: settingsDb.address.toString(),
         postsAddress: postsDb.address.toString(),
+        commentsAddress: commentsDb.address.toString(),
+        mediaAddress: mediaDb.address.toString(),
         fetchLater: false,
         date: new Date().toISOString().split('T')[0]
       };
@@ -219,11 +260,8 @@ export async function switchToRemoteDB(address: string, showModal = false) {
   let retry = true;
   let cancelOperation = false;
   
-  let isModalOpen = showModal;
   let blogNameValue;
   let categoriesValue; 
-  let access;
-  let postsCount;  
   
   const voyagerInstance = get(voyager);
   
@@ -280,54 +318,84 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         console.log('blogDescriptionValue', blogDescriptionValue);
         console.log('postsDBAddressValue', postsDBAddressValue);
 
-        // Posts DB
-        const postsInstance = await openOrCreateDB(voyagerInstance, dbContents, 'postsDBAddress', {
+        // Track counts for later update
+        let postsCount = 0;
+        let commentsCount = 0;
+        let mediaCount = 0;
+
+        // Create promises for all DB operations
+        const postsPromise = openOrCreateDB(voyagerInstance, dbContents, 'postsDBAddress', {
           name: 'posts',
           directory: './orbitdb/posts',
           writeAccess: [get(identity).id],
           store: postsDB,
           addressStore: postsDBAddress
-        }, canWriteToSettings, db);
+        }, canWriteToSettings, db)
+        .then(async postsInstance => {
+          if (postsInstance) {
+            const allPosts = (await postsInstance.all()).map(post => {
+              const { _id, ...rest } = post.value;
+              return { 
+                ...rest,
+                _id: _id,
+                content: rest.content || rest.value?.content,
+                title: rest.title || rest.value?.title,
+                date: rest.date || rest.value?.date,
+              };
+            });
+            postsCount = allPosts.length;
+            posts.set(allPosts);
+            return { instance: postsInstance, access: postsInstance.access };
+          }
+          return null;
+        });
 
-        if (postsInstance) {
-          // Ensure we have the latest data by getting all posts
-          const allPosts = (await postsInstance.all()).map(post => {
-            const { _id, ...rest } = post.value;
-            return { 
-              ...rest,
-              _id: _id,
-              content: rest.content || rest.value?.content,
-              title: rest.title || rest.value?.title,
-              date: rest.date || rest.value?.date,
-            };
-          });
-          
-          console.log(`Loaded ${allPosts.length} posts with content:`, allPosts);
-          postsCount = allPosts.length;
-          access = postsInstance.access;
-          
-          // Set posts store with the loaded data
-          await new Promise(resolve => setTimeout(resolve, 100)); // Small delay to ensure DB is ready
-          posts.set(allPosts);
-        }
-
-        // Comments DB
-        await openOrCreateDB(voyagerInstance, dbContents, 'commentsDBAddress', {
+        const commentsPromise = openOrCreateDB(voyagerInstance, dbContents, 'commentsDBAddress', {
           name: 'comments',
           directory: './orbitdb/comments',
           writeAccess: ["*"],
           store: commentsDB,
           addressStore: commentsDBAddress
-        }, canWriteToSettings, db);
+        }, canWriteToSettings, db)
+        .then(async commentsInstance => {
+          if (commentsInstance) {
+            const allComments = await commentsInstance.all();
+            commentsCount = allComments.length;
+          }
+        });
 
-        // Media DB
-        await openOrCreateDB(voyagerInstance, dbContents, 'mediaDBAddress', {
+        const mediaPromise = openOrCreateDB(voyagerInstance, dbContents, 'mediaDBAddress', {
           name: 'media',
           directory: './orbitdb/media',
           writeAccess: [get(identity).id],
           store: mediaDB,
           addressStore: mediaDBAddress
-        }, canWriteToSettings, db);
+        }, canWriteToSettings, db)
+        .then(async mediaInstance => {
+          if (mediaInstance) {
+            const allMedia = await mediaInstance.all();
+            mediaCount = allMedia.length;
+          }
+        });
+
+        // Wait for all operations to complete
+        const [postsResult] = await Promise.all([postsPromise, commentsPromise, mediaPromise]);
+        
+        // Update remote DBs with the counts and access info
+        remoteDBs.update(dbs => {
+          return dbs.map(db => {
+            if (db.address === address) {
+              return {
+                ...db, 
+                postsCount, 
+                commentsCount, 
+                mediaCount, 
+                access: postsResult?.access
+              };
+            }
+            return db;
+          });
+        });
 
         retry = false; // Stop retrying if all data is fetched
       } else {
@@ -345,15 +413,6 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       const existingDBs = await remoteDBsDatabase.all();
       if (!existingDBs.some(db => db.value?.address === address)) {
         await addRemoteDBToStore(address, '', blogNameValue || 'Loading...');
-      } else {
-        remoteDBs.update(dbs => {
-          return dbs.map(db => {
-            if (db.address === address) {
-              return {...db, postsCount, access};
-            }
-            return db;
-          });
-        });
       }
     }
   }

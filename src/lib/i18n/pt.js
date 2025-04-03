@@ -248,6 +248,12 @@ export default {
     "select_language": "Selecionar idioma",
     "language": "Idioma",
   
+    // Database Addresses
+    "posts_db_address": "Endereço do banco de dados de posts",
+    "comments_db_address": "Endereço do banco de dados de comentários",
+    "media_db_address": "Endereço do banco de dados de mídia",
+    "address_not_available": "Endereço não disponível",
+  
     // Diversos
     "unknown": "Desconhecido",
     "ai_translation_settings": "Configurações de Tradução IA",

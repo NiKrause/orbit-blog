@@ -263,4 +263,10 @@ export default {
   "no_posts_in_language": "لا توجد منشورات متاحة باللغة {language}",
   "original_language": "اللغة الأصلية",
   "translated_from": "مترجم من {language}",
+  
+  // Database Addresses
+  "posts_db_address": "عنوان قاعدة بيانات المنشورات",
+  "comments_db_address": "عنوان قاعدة بيانات التعليقات",
+  "media_db_address": "عنوان قاعدة بيانات الوسائط",
+  "address_not_available": "العنوان غير متاح"
 }
