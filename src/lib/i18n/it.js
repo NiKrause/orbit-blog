@@ -250,4 +250,14 @@ export default {
   encrypt_post: 'Cripta post',
   post_will_be_encrypted: 'Il post verrà criptato',
   invalid_password: 'Password non valida. Riprova.',
+  "no_posts_in_language": "Aucun article disponible en {language}",
+  "original_language": "Langue d'origine",
+  "translated_from": "Traduit de {language}",
+  "enter_encryption_password_explanation": "Veuillez entrer votre mot de passe pour chiffrer votre article. Le mot de passe ne quitte pas votre appareil. Lors de la sauvegarde, l'article sera chiffré avec le mot de passe et NE sera PAS stocké sur votre appareil. Pour voir l'article, vous devrez entrer le mot de passe pour le déchiffrer.",
+  "enter_password_to_encrypt": "Entrez le mot de passe pour chiffrer l'article",
+  "encrypt": "Chiffrer l'article lors de la sauvegarde",
+  "enter_password_to_view": "Entrez le mot de passe pour voir l'article",
+  "decrypt_post": "Déchiffrer l'article",
+  "encrypted_post": "Article chiffré",
+  "post_will_be_decrypted": "Déchiffrer l'article"
 }

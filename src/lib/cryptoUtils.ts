@@ -153,21 +153,14 @@ export async function encryptPost(post: { title: string; content: string }, pass
  */
 export async function decryptPost(encryptedData: { title: string; content: string }, password: string): Promise<{ title: string; content: string }> {
   try {
-    // Validate input
     if (!encryptedData.title || !encryptedData.content) {
       throw new Error('Missing encrypted title or content');
     }
 
-    // Log the encrypted data for debugging (remove in production)
-    console.log('Encrypted title:', encryptedData.title);
-    console.log('Encrypted content:', encryptedData.content);
-
-    // Check if the data is base64 encoded
     if (!isValidBase64(encryptedData.title) || !isValidBase64(encryptedData.content)) {
       throw new Error('Invalid base64 encoding');
     }
 
-    // Convert from base64 to array for both fields
     const encryptedTitleBytes = Uint8Array.from(atob(encryptedData.title), c => c.charCodeAt(0));
     const encryptedContentBytes = Uint8Array.from(atob(encryptedData.content), c => c.charCodeAt(0));
     
@@ -176,8 +169,6 @@ export async function decryptPost(encryptedData: { title: string; content: strin
     const iv = encryptedTitleBytes.slice(16, 28);
     const titleData = encryptedTitleBytes.slice(28);
     const contentData = encryptedContentBytes.slice(28);
-    console.log('titleData', titleData);
-    console.log('contentData', contentData);
     const key = await getKeyFromPassword(password, salt);
     
     // Decrypt both fields
@@ -189,7 +180,6 @@ export async function decryptPost(encryptedData: { title: string; content: strin
       key,
       titleData
     );
-    console.log('decryptedTitle', new TextDecoder().decode(decryptedTitle));
     const decryptedContent = await window.crypto.subtle.decrypt(
       {
         name: 'AES-GCM',
@@ -198,9 +188,7 @@ export async function decryptPost(encryptedData: { title: string; content: strin
       key,
       contentData
     );
-    console.log('decryptedContent', decryptedContent);
-    console.log('decryptedTitle', new TextDecoder().decode(decryptedTitle));
-    console.log('decryptedContent', new TextDecoder().decode(decryptedContent));
+
     return {
       title: new TextDecoder().decode(decryptedTitle),
       content: new TextDecoder().decode(decryptedContent)

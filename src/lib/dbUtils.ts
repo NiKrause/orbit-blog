@@ -237,13 +237,19 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       const orbitdbInstance = get(orbitdb);
       if (!orbitdbInstance) throw new Error("OrbitDB not initialized");
       
+      // First clear the posts store to prevent stale data display
+      posts.set([]);
+      
       const db = await voyagerInstance.orbitdb.open(address);
      
       const added = await voyagerInstance.add(db.address)
       db.pinnedToVoyager = added;
       console.log(`settingsDB ${address} added to voyager`, added)
+      
+      // Set the settings DB store
       settingsDB.set(db);
      
+      // Get all settings data
       const dbContents = await db.all();
       console.log('try to switch to remote dbContents', dbContents);
 
@@ -257,10 +263,11 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       categoriesValue = dbContents.find(content => content.key === 'categories')?.value?.value || ['please add categories']; // Fetch categories
       console.log('categoriesValue', categoriesValue);
 
+      // Update stores with settings data
       if (blogNameValue) blogName.set(blogNameValue);
       if (blogDescriptionValue) blogDescription.set(blogDescriptionValue);
       if (postsDBAddressValue) postsDBAddress.set(postsDBAddressValue);
-      if (categoriesValue) categories.set(categoriesValue); // Set categories
+      if (categoriesValue) categories.set(categoriesValue);
 
       // Check if we have write access to the settings database
       const identityId = get(identity).id;
@@ -283,20 +290,24 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         }, canWriteToSettings, db);
 
         if (postsInstance) {
+          // Ensure we have the latest data by getting all posts
           const allPosts = (await postsInstance.all()).map(post => {
             const { _id, ...rest } = post.value;
             return { 
               ...rest,
-              _id:   _id,
-              content: rest.content || rest.value?.content, // Handle potential nesting
+              _id: _id,
+              content: rest.content || rest.value?.content,
               title: rest.title || rest.value?.title,
               date: rest.date || rest.value?.date,
-              // Add any other fields you need
             };
           });
+          
           console.log(`Loaded ${allPosts.length} posts with content:`, allPosts);
           postsCount = allPosts.length;
           access = postsInstance.access;
+          
+          // Set posts store with the loaded data
+          await new Promise(resolve => setTimeout(resolve, 100)); // Small delay to ensure DB is ready
           posts.set(allPosts);
         }
 
@@ -304,7 +315,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         await openOrCreateDB(voyagerInstance, dbContents, 'commentsDBAddress', {
           name: 'comments',
           directory: './orbitdb/comments',
-          writeAccess: ["*"], // Allow anyone to comment
+          writeAccess: ["*"],
           store: commentsDB,
           addressStore: commentsDBAddress
         }, canWriteToSettings, db);
@@ -320,23 +331,21 @@ export async function switchToRemoteDB(address: string, showModal = false) {
 
         retry = false; // Stop retrying if all data is fetched
       } else {
-        await new Promise(resolve => setTimeout(resolve, 500)); // Wait for 500ms before retrying
+        await new Promise(resolve => setTimeout(resolve, 500)); // Wait before retrying
       }
     }
     return true;
   } catch (error) {
     console.error('Failed to switch to remote DB:', error);
-    // return false;
+    return false;
   } finally {
-    // Check if the database already exists in the store before adding it
+    // Update remote DBs store
     const remoteDBsDatabase = get(remoteDBsDatabases);
     if (remoteDBsDatabase) {
       const existingDBs = await remoteDBsDatabase.all();
       if (!existingDBs.some(db => db.value?.address === address)) {
-        // Only add if it doesn't exist already
-        addRemoteDBToStore(address, '', blogNameValue || 'Loading...');
+        await addRemoteDBToStore(address, '', blogNameValue || 'Loading...');
       } else {
-        // Update existing with postsCount and access
         remoteDBs.update(dbs => {
           return dbs.map(db => {
             if (db.address === address) {
@@ -347,6 +356,5 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         });
       }
     }
-
   }
 } 

@@ -260,8 +260,15 @@ export default {
     "translation_failed": "การแปลล้มเหลว โปรดลองอีกครั้ง",
     "no_posts_in_language": "ไม่มีโพสต์ในภาษา {language}",
     "original_language": "ภาษาต้นฉบับ",
-    "translated_from": "แปลจากภาษา {language}",
+    "translated_from": "แปลจาก {language}",
     "encrypt_post": "เข้ารหัสโพสต์",
-    "post_will_be_encrypted": "โพสต์จะถูกเข้ารหัส",
-    "invalid_password": "รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง"
+    "post_will_be_encrypted": "เข้ารหัส",
+    "invalid_password": "รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง",
+    "enter_encryption_password_explanation": "กรุณากรอกรหัสผ่านเพื่อเข้ารหัสโพสต์ของคุณ รหัสผ่านจะไม่ถูกส่งออกจากอุปกรณ์ เมื่อบันทึก โพสต์จะถูกเข้ารหัสด้วยรหัสผ่านและจะไม่ถูกเก็บไว้ในอุปกรณ์ของคุณ เมื่อดูโพสต์ คุณจะต้องกรอกรหัสผ่านเพื่อถอดรหัส",
+    "enter_password_to_encrypt": "กรอกรหัสผ่านเพื่อเข้ารหัสโพสต์",
+    "encrypt": "เข้ารหัสโพสต์เมื่อบันทึก",
+    "enter_password_to_view": "กรอกรหัสผ่านเพื่อดูโพสต์",
+    "decrypt_post": "ถอดรหัสโพสต์",
+    "encrypted_post": "โพสต์ที่เข้ารหัสแล้ว",
+    "post_will_be_decrypted": "ถอดรหัสโพสต์"
   }

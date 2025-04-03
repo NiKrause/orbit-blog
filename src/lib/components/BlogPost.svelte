@@ -13,13 +13,10 @@
 
   // Local imports
   import type { BlogPost, Comment } from '$lib/types.js';
-  import { commentsDB, mediaDB, helia, isRTL } from '$lib/store.js';
+  import { commentsDB, mediaDB, helia, isRTL, posts } from '$lib/store.js';
   import { formatTimestamp } from '$lib/dateUtils.js';
   import { postsDB, categories, selectedPostId, identity, enabledLanguages } from '$lib/store.js';
-  import { TranslationService } from '$lib/services/translationService.js';
-  import { aiApiKey, aiApiUrl } from '$lib/store.js';
-  import LanguageStatusLED from './LanguageStatusLED.svelte';
-  import { decryptPost, isEncryptedPost } from '$lib/cryptoUtils.js';
+  import { isEncryptedPost } from '$lib/cryptoUtils.js';
   import PostPasswordPrompt from './PostPasswordPrompt.svelte';
 
   /**
@@ -47,12 +44,7 @@
   let title = $state('');
   let content = $state('');
   let category: Category = $state('');
-  let showPreview = $state(false);
-  let showMediaUploader = $state(false);
   let selectedMedia = $state<string[]>([]);
-  let isTranslating = $state(false);
-  let translationError = $state('');
-  let translationStatuses = $state<Record<string, 'success' | 'error' | 'default'>>({});
   let isEncrypted = $state(false);
   let showPasswordPrompt = $state(false);
   let decryptionError = $state('');
@@ -331,19 +323,19 @@
       });
     }
   });
-  
 
-  $effect(() => {
+  $effect(async () => {
     if ($selectedPostId) {
-      const post = $postsDB.get($selectedPostId);
+      const post = await $postsDB.get($selectedPostId);
       console.log('post', post);
       if (post) {
-        title = post.title;
-        content = post.content;
-        category = post.category;
-        selectedMedia = post.mediaIds || [];
+        title = post.value.title;
+        content = post.value.content;
+        category = post.value.category;
+        selectedMedia = post.value.mediaIds || [];
         console.log('post', post);
-        isEncrypted = post.isEncrypted || isEncryptedPost({ title, content });
+        isEncrypted = post.value.isEncrypted || isEncryptedPost({ title, content });
+        console.log('isEncryptedPost function', isEncryptedPost({ title, content }));
         console.log('isEncrypted', isEncrypted);
         if (isEncrypted) {
           showPasswordPrompt = true;
@@ -409,19 +401,45 @@
     });
   }
 
-  async function handlePasswordSubmit(event: CustomEvent) {
-    try {
-      console.log('title', title);
-      console.log('content',content)
-      const decryptedData = await decryptPost({ title, content }, event.detail.password);
-      console.log('decryptedData', decryptedData);
-      title = decryptedData.title;
-      content = decryptedData.content;
-      showPasswordPrompt = false;
-      decryptionError = '';
-    } catch (error) {
-      decryptionError = $_('invalid_password');
+
+  async function handlePostDecrypted(event: CustomEvent) {
+    console.log('handlePostDecrypted');
+    const decryptedData = event.detail.post;
+    
+    // Update local state
+    title = decryptedData.title;
+    content = decryptedData.content;
+    
+    // Update the global posts store
+    if ($postsDB) {
+      const currentPost = await $postsDB.get(post._id);
+      if (currentPost) {
+        const updatedPost = {
+          ...currentPost.value,
+          title: decryptedData.title,
+          content: decryptedData.content,
+          isDecrypted: true
+        };
+        // Update the posts store
+        $posts = $posts.map(p => {
+          if (p._id === post._id) {
+            return updatedPost;
+          }
+          return p;
+        });
+      }
     }
+    
+    // Update rendered content
+    renderedContent = renderContent(decryptedData.content);
+    
+    showPasswordPrompt = false;
+    decryptionError = '';
+    
+    // Wait for next tick to ensure content is in DOM
+    setTimeout(async () => {
+      await renderMermaidDiagrams();
+    }, 0);
   }
 </script>
 
@@ -499,7 +517,12 @@
     <PostPasswordPrompt 
       mode={isEncrypted ? 'decrypt' : 'encrypt'}
       post={{ title, content }}
-      on:postDecrypted={handlePasswordSubmit}
+      on:postDecrypted={handlePostDecrypted}
+      on:cancel={() => {
+        console.log('cancel');
+        showPasswordPrompt = false;
+      }}
+      on:passwordSubmitted={handlePasswordSubmitted}
     />
   {:else}
     <h1 class="text-4xl font-bold mb-2 text-gray-900 dark:text-white">{title}</h1>

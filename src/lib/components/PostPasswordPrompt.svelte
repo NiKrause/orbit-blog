@@ -16,8 +16,10 @@
     console.log('mode', mode);
   });
   let { post, mode }: Props = $props();
+  console.log('post', post);
+  console.log('mode', mode);
   const dispatch = createEventDispatcher();
-  
+   
   let password = $state('');
   let errorMessage = $state('');
   let isProcessing = $state(false);
@@ -32,6 +34,7 @@
         const decryptedPost = await decryptPost(post, password);
         dispatch('postDecrypted', { post: decryptedPost });
       } else {
+        console.log('encrypting post submitted password', password);
         // For encryption, just pass the password back
         dispatch('passwordSubmitted', { password });
       }
@@ -73,7 +76,13 @@
         <button
           type="button"
           class="px-4 py-2 bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
-          onclick={() => dispatch('cancel')}
+          onclick={() => {
+            console.log('cancel');
+            password = '';
+            errorMessage = '';
+            isProcessing = false;
+            dispatch('cancel');
+          }}
         >
           {$_('cancel')}
         </button>

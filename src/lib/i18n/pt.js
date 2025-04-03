@@ -260,8 +260,15 @@ export default {
     "translation_failed": "Falha na tradução. Por favor, tente novamente",
     "no_posts_in_language": "Nenhuma postagem disponível em {language}",
     "original_language": "Idioma original",
-    "translated_from": "Traduzido do {language}",
-    "encrypt_post": "Criptografar post",
-    "post_will_be_encrypted": "O post será criptografado",
-    "invalid_password": "Senha inválida. Por favor, tente novamente."
+    "translated_from": "Traduzido de {language}",
+    "encrypt_post": "Criptografar postagem",
+    "post_will_be_encrypted": "Criptografar",
+    "invalid_password": "Senha inválida. Por favor, tente novamente.",
+    "enter_encryption_password_explanation": "Por favor, insira sua senha para criptografar sua postagem. A senha não sai do seu dispositivo. Ao salvar, a postagem será criptografada com a senha e NÃO será armazenada no seu dispositivo. Para ver a postagem, você precisará inserir a senha para descriptografar.",
+    "enter_password_to_encrypt": "Insira a senha para criptografar a postagem",
+    "encrypt": "Criptografar postagem ao salvar",
+    "enter_password_to_view": "Insira a senha para ver a postagem",
+    "decrypt_post": "Descriptografar postagem",
+    "encrypted_post": "Postagem criptografada",
+    "post_will_be_decrypted": "Descriptografar postagem"
   }

@@ -258,10 +258,17 @@ export default {
     "translation_config_missing": "कृपया पहले AI अनुवाद सेटिंग्स कॉन्फ़िगर करें",
     "fill_required_fields": "कृपया सभी आवश्यक फ़ील्ड भरें",
     "translation_failed": "अनुवाद विफल। कृपया पुनः प्रयास करें",
-    "no_posts_in_language": "{language} में कोई पोस्ट उपलब्ध नहीं",
+    "no_posts_in_language": "{language} में कोई पोस्ट उपलब्ध नहीं है",
     "original_language": "मूल भाषा",
     "translated_from": "{language} से अनुवादित",
-    "encrypt_post": "पोस्ट को एन्क्रिप्ट करें",
-    "post_will_be_encrypted": "पोस्ट एन्क्रिप्ट की जाएगी",
-    "invalid_password": "अमान्य पासवर्ड। कृपया पुनः प्रयास करें।"
+    "encrypt_post": "पोस्ट एन्क्रिप्ट करें",
+    "post_will_be_encrypted": "पोस्ट एन्क्रिप्ट होगी",
+    "invalid_password": "अमान्य पासवर्ड। कृपया पुनः प्रयास करें।",
+    "enter_encryption_password_explanation": "कृपया अपनी पोस्ट को एन्क्रिप्ट करने के लिए पासवर्ड दर्ज करें। पासवर्ड आपके डिवाइस से बाहर नहीं जाता। सहेजते समय, पोस्ट पासवर्ड से एन्क्रिप्ट होगी और आपके डिवाइस पर स्टोर नहीं होगी। पोस्ट देखने के लिए, आपको डिक्रिप्ट करने के लिए पासवर्ड दर्ज करना होगा।",
+    "enter_password_to_encrypt": "पोस्ट एन्क्रिप्ट करने के लिए पासवर्ड दर्ज करें",
+    "encrypt": "सहेजते समय पोस्ट एन्क्रिप्ट करें",
+    "enter_password_to_view": "पोस्ट देखने के लिए पासवर्ड दर्ज करें",
+    "decrypt_post": "पोस्ट डिक्रिप्ट करें",
+    "encrypted_post": "एन्क्रिप्टेड पोस्ट",
+    "post_will_be_decrypted": "पोस्ट डिक्रिप्ट होगी"
   }

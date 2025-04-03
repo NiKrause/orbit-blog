@@ -250,4 +250,14 @@ export default {
   encrypt_post: '加密帖子',
   post_will_be_encrypted: '帖子将被加密',
   invalid_password: '密码无效。请重试。',
+  "no_posts_in_language": "没有{language}的帖子",
+  "original_language": "原始语言",
+  "translated_from": "从{language}翻译",
+  "enter_encryption_password_explanation": "请输入密码以加密您的帖子。密码不会离开您的设备。保存时，帖子将使用密码加密，并且不会存储在您的设备上。查看帖子时，您需要输入密码以解密。",
+  "enter_password_to_encrypt": "输入密码以加密帖子",
+  "encrypt": "保存时加密帖子",
+  "enter_password_to_view": "输入密码以查看帖子",
+  "decrypt_post": "解密帖子",
+  "encrypted_post": "加密的帖子",
+  "post_will_be_decrypted": "解密帖子"
 }

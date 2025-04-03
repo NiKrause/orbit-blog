@@ -250,4 +250,14 @@ export default {
   encrypt_post: 'Beitrag verschlüsseln',
   post_will_be_encrypted: 'Beitrag wird verschlüsselt',
   invalid_password: 'Ungültiges Passwort. Bitte versuchen Sie es erneut.',
+  "no_posts_in_language": "Keine Beiträge in {language} verfügbar",
+  "original_language": "Originalsprache",
+  "translated_from": "Übersetzt aus {language}",
+  "enter_encryption_password_explanation": "Bitte geben Sie Ihr Passwort ein, um Ihren Beitrag zu verschlüsseln. Das Passwort verlässt Ihr Gerät nicht. Beim Speichern wird der Beitrag mit dem Passwort verschlüsselt und NICHT auf Ihrem Gerät gespeichert. Beim Anzeigen des Beitrags müssen Sie das Passwort eingeben, um den Beitrag zu entschlüsseln.",
+  "enter_password_to_encrypt": "Passwort zum Verschlüsseln des Beitrags eingeben",
+  "encrypt": "Beitrag beim Speichern verschlüsseln",
+  "enter_password_to_view": "Passwort zum Anzeigen des Beitrags eingeben",
+  "decrypt_post": "Beitrag entschlüsseln",
+  "encrypted_post": "Verschlüsselter Beitrag",
+  "post_will_be_decrypted": "Beitrag wird entschlüsselt"
 }

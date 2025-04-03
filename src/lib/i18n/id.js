@@ -258,10 +258,17 @@ export default {
     "translation_config_missing": "Silakan konfigurasi pengaturan terjemahan AI terlebih dahulu",
     "fill_required_fields": "Silakan isi semua field yang diperlukan",
     "translation_failed": "Terjemahan gagal. Silakan coba lagi",
-    "no_posts_in_language": "Tidak ada postingan tersedia dalam bahasa {language}",
+    "no_posts_in_language": "Tidak ada posting tersedia dalam {language}",
     "original_language": "Bahasa asli",
     "translated_from": "Diterjemahkan dari {language}",
     "encrypt_post": "Enkripsi posting",
-    "post_will_be_encrypted": "Posting akan dienkripsi",
-    "invalid_password": "Kata sandi tidak valid. Silakan coba lagi."
+    "post_will_be_encrypted": "Enkripsi",
+    "invalid_password": "Kata sandi tidak valid. Silakan coba lagi.",
+    "enter_encryption_password_explanation": "Silakan masukkan kata sandi Anda untuk mengenkripsi posting Anda. Kata sandi tidak meninggalkan perangkat Anda. Saat menyimpan, posting akan dienkripsi dengan kata sandi dan TIDAK akan disimpan di perangkat Anda. Untuk melihat posting, Anda perlu memasukkan kata sandi untuk mendekripsi.",
+    "enter_password_to_encrypt": "Masukkan kata sandi untuk mengenkripsi posting",
+    "encrypt": "Enkripsi posting saat menyimpan",
+    "enter_password_to_view": "Masukkan kata sandi untuk melihat posting",
+    "decrypt_post": "Dekripsi posting",
+    "encrypted_post": "Posting terenkripsi",
+    "post_will_be_decrypted": "Dekripsi posting"
   }

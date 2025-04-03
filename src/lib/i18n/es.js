@@ -250,4 +250,14 @@ export default {
   encrypt_post: 'Cifrar publicación',
   post_will_be_encrypted: 'La publicación será cifrada',
   invalid_password: 'Contraseña inválida. Por favor, inténtelo de nuevo.',
+  "no_posts_in_language": "No hay publicaciones disponibles en {language}",
+  "original_language": "Idioma original",
+  "translated_from": "Traducido de {language}",
+  "enter_encryption_password_explanation": "Por favor, introduzca su contraseña para cifrar su publicación. La contraseña no sale de su dispositivo. Al guardar, la publicación será cifrada con la contraseña y NO se almacenará en su dispositivo. Para ver la publicación, necesitará introducir la contraseña para descifrarla.",
+  "enter_password_to_encrypt": "Introduzca la contraseña para cifrar la publicación",
+  "encrypt": "Cifrar publicación al guardar",
+  "enter_password_to_view": "Introduzca la contraseña para ver la publicación",
+  "decrypt_post": "Descifrar publicación",
+  "encrypted_post": "Publicación cifrada",
+  "post_will_be_decrypted": "La publicación será descifrada"
 }

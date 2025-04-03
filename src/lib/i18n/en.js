@@ -262,6 +262,13 @@ export default {
   "original_language": "Original language",
   "translated_from": "Translated from {language}",
   "encrypt_post": "Encrypt Post",
-  "post_will_be_encrypted": "Post will be encrypted",
-  "invalid_password": "Invalid password. Please try again."
+  "post_will_be_encrypted": "Encrypt",
+  "invalid_password": "Invalid password. Please try again.",
+  "enter_encryption_password_explanation": "Please enter your password to encrypt your post. The password does not leave your device. When saving the post, the post will be encrypted with the password and NOT stored on your device. When viewing the post, you will need to enter the password to decrypt the post.",
+  "enter_password_to_encrypt": "Enter password to encrypt post",
+  "encrypt": "Encrypt post on save",
+  "enter_password_to_view": "Enter password to view post",
+  "decrypt_post": "Decrypt post",
+  "encrypted_post": "Encrypted post",
+  "post_will_be_decrypted": "Decrypt post"
 }

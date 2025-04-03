@@ -8,7 +8,6 @@
   import { postsDB, categories, selectedPostId, identity, enabledLanguages, isRTL } from '$lib/store.js';
   import MediaUploader from './MediaUploader.svelte';
   import { TranslationService } from '$lib/services/translationService.js';
-  import { aiApiKey, aiApiUrl } from '$lib/store.js';
   import LanguageStatusLED from './LanguageStatusLED.svelte';
   import { encryptPost } from '$lib/cryptoUtils.js';
   import PostPasswordPrompt from './PostPasswordPrompt.svelte';
@@ -22,7 +21,7 @@
   let isTranslating = $state(false);
   let translationError = $state('');
   let translationStatuses = $state<Record<string, 'success' | 'error' | 'default'>>({});
-  let isEncrypting = $state(true);
+  let isEncrypting = $state(false);
   let showPasswordPrompt = $state(false);
   let encryptionPassword = $state('');
   let encryptionError = $state('');
@@ -46,7 +45,6 @@
           mediaIds: selectedMedia,
         };
 
-        // If post is encrypted, store encrypted data
         if (isEncrypting) {
           console.log('Encrypting post', encryptionPassword);
           const encryptedData = await encryptPost({ title, content }, encryptionPassword);
@@ -165,6 +163,16 @@
     showPasswordPrompt = false;
     encryptionError = '';
   }
+
+  async function handlePostDecrypted(event: CustomEvent) {
+    const decryptedData = event.detail.post;
+    console.log('handlePostDecrypted', decryptedData);
+    // Update the post data
+    title = decryptedData.title;
+    content = decryptedData.content;
+    showPasswordPrompt = false;
+    encryptionError = '';
+  }
 </script>
 
 <form onsubmit={preventDefault(handleSubmit)} class="space-y-4 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md {$isRTL ? 'rtl' : 'ltr'}">
@@ -261,17 +269,17 @@
       onclick={handleEncrypt}
       class="inline-flex items-center gap-2 bg-indigo-600 dark:bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
     >
-      {#if isEncrypting}
+      <!-- {#if isEncrypting}
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
         </svg>
         {$_('post_will_be_encrypted')}
-      {:else}
+      {:else} -->
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
         </svg>
         {$_('encrypt_post')}
-      {/if}
+      <!-- {/if} -->
     </button>
 
     <button
@@ -324,8 +332,8 @@
   <PostPasswordPrompt 
     post={{ title, content }}
     on:cancel={() => showPasswordPrompt = false}
-    mode={isEncrypting ? 'encrypt' : 'decrypt'}
-    on:postDecrypted={handlePasswordSubmit}
+    mode={'encrypt'}
+    on:postDecrypted={handlePostDecrypted}
     on:passwordSubmitted={handlePasswordSubmit}
   />
 {/if}

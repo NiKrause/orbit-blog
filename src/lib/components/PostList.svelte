@@ -3,7 +3,7 @@
   import { _, locale } from 'svelte-i18n';
 
   import { posts, selectedPostId, identity, postsDB, aiApiKey, aiApiUrl, enabledLanguages, isRTL } from '$lib/store.js';
-  import { formatDate, formatTimestamp } from '$lib/dateUtils.js';
+  import { formatTimestamp } from '$lib/dateUtils.js';
 
   import { marked } from 'marked';
   import DOMPurify from 'dompurify';
@@ -21,7 +21,7 @@
   import { encryptPost } from '$lib/cryptoUtils.js';
   import PostPasswordPrompt from './PostPasswordPrompt.svelte';
 
-  let searchQuery = $state('');
+  let searchTerm = $state('');
   let selectedCategory: Category | 'All' = $state('All');
   // let selectedPostId: string | null = null;
   let hoveredPostId = $state<string | null>(null); // Track the ID of the hovered post
@@ -38,7 +38,6 @@
   let showDeleteConfirm = $state(false);
   let postToDelete = $state<Post | null>(null);
 
-  let searchTerm = $state('');
   let displayedPosts = $state([]);
 
   // Add these state variables with the other state declarations at the top
@@ -71,7 +70,6 @@
         const matchesCategory = selectedCategory === 'All' || selectedCategory === undefined || 
                               post.category === selectedCategory;
 
-        // Search term filter
         const matchesSearch = !searchTerm || 
                             post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             post.content.toLowerCase().includes(searchTerm.toLowerCase());
@@ -80,21 +78,12 @@
       .sort((a, b) => (b.createdAt || b.date) - (a.createdAt || a.date));
   }
 
-  // Update displayed posts when any filter changes
-  // $effect(() => {
-  //   // displayedPosts = filterPosts();
-  // });
-
-  // Watch for changes in posts, locale, selectedCategory, and searchTerm
   $effect(() => {
     const _ = [$posts, $locale, selectedCategory, searchTerm];
     displayedPosts = filterPosts();
   });
 
   let selectedPost = $derived($selectedPostId ? displayedPosts.find(post => post._id === $selectedPostId) : null);
-  $effect(() => {
-    console.log('selectedPost', selectedPost);
-  });
 
   onMount(() => {
     console.log('PostList component mounted');
@@ -460,36 +449,43 @@ ${convertMarkdownToLatex(selectedPost.content)}
     showPasswordPrompt = true;
   }
 
-
-  async function postDecrypted(event: CustomEvent) {
-    try {
-      const decryptedData = event.detail.post;
-      editedTitle = decryptedData.title;
-      editedContent = decryptedData.content;
-      showPasswordPrompt = false;
-      encryptionError = '';
-      
-      // Update both selectedPost and the post in displayedPosts
-      const decryptedPost = {
-        ...selectedPost,
-        title: decryptedData.title,
-        content: decryptedData.content
-      };
-      selectedPost = decryptedPost;
-      
-      // Update the post in displayedPosts array
-      const postIndex = displayedPosts.findIndex(p => p._id === selectedPost._id);
-      if (postIndex !== -1) {
-        displayedPosts[postIndex] = decryptedPost;
-        displayedPosts = [...displayedPosts]; // Trigger reactivity
-      }
-      
-      editMode = false;
-    } catch (error) {
-      encryptionError = $_('invalid_password');
-    }
+  function passwordSubmitted(event: CustomEvent) {
+    console.log('passwordSubmitted', event.detail.password);
+    encryptionPassword = event.detail.password;
+    isEncrypting = true;
+    showPasswordPrompt = false;
+    encryptionError = '';
   }
 
+  async function handlePostDecrypted(event: CustomEvent) {
+    const decryptedData = event.detail.post;
+    editedTitle = decryptedData.title;
+    editedContent = decryptedData.content;
+    
+    if (selectedPost) {
+      // Update the posts store
+      $posts = $posts.map(post => {
+        if (post._id === selectedPost._id) {
+          const updatedPost = { ...post };
+          updatedPost.title = decryptedData.title;
+          updatedPost.content = decryptedData.content;
+          updatedPost.createdAt = post.createdAt;
+          updatedPost.updatedAt = post.updatedAt;
+          updatedPost.date = post.date;
+          // Also update the decrypted status
+          updatedPost.isDecrypted = true;
+          return updatedPost;
+        }
+        return post;
+      });
+
+      // Force update of displayedPosts
+      displayedPosts = filterPosts();
+    }
+    
+    showPasswordPrompt = false;
+    encryptionError = '';
+  }
 </script>
 
 <div class="space-y-4 {$isRTL ? 'rtl' : 'ltr'}">
@@ -497,7 +493,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
     <input
       type="text"
       placeholder={$_('search_posts')}
-      bind:value={searchQuery}
+      bind:value={searchTerm}
       class="flex-1 rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
     />
     <label for="edit-category" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{$_('category')}</label>
@@ -570,7 +566,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
               <div class="flex justify-between items-start">
                 <div class="flex-1">
                   <h3 class="font-medium text-gray-900 dark:text-white overflow-hidden whitespace-nowrap" title={post.title}>
-                    {truncateTitle(post.title, 40)}
+                    {post.isDecrypted ? truncateTitle(post.title, 40) : truncateTitle(post.isEncrypted ? $_('encrypted_post') : post.title, 40)}
                   </h3>
                   <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-1">
                     <span>
@@ -743,7 +739,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
                     </svg>
-                    {$_('post_will_be_encrypted')}
+                    {$_('decrypt_post')}
                   {:else}
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
@@ -871,16 +867,20 @@ ${convertMarkdownToLatex(selectedPost.content)}
   </div>
 {/if}
 
-{#if showPasswordPrompt}
+{#if showPasswordPrompt && selectedPost}
   <PostPasswordPrompt
-    mode={isEncrypting ? 'encrypt' : 'decrypt'}
-    on:cancel={() => showPasswordPrompt = false}
+    mode={selectedPost.isEncrypted? 'decrypt' : 'encrypt'}
+    on:passwordSubmitted={passwordSubmitted}
+    on:postDecrypted={handlePostDecrypted}
+    on:cancel={() => {
+      console.log('cancel');
+      showPasswordPrompt = false;
+      isEncrypting = false;
+    }}
     post={{
       title: editedTitle,
       content: editedContent
     }}
-
-    on:postDecrypted={postDecrypted}
   />
 {/if} 
 <style>

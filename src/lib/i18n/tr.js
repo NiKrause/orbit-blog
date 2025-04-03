@@ -250,4 +250,14 @@ export default {
   encrypt_post: 'Gönderiyi şifrele',
   post_will_be_encrypted: 'Gönderi şifrelenecek',
   invalid_password: 'Geçersiz şifre. Lütfen tekrar deneyin.',
+  "no_posts_in_language": "{language} dilinde gönderi bulunmuyor",
+  "original_language": "Orijinal dil",
+  "translated_from": "{language} dilinden çevrildi",
+  "enter_encryption_password_explanation": "Lütfen gönderinizi şifrelemek için şifrenizi girin. Şifre cihazınızdan çıkmaz. Kaydederken, gönderi şifre ile şifrelenecek ve cihazınızda saklanmayacaktır. Gönderiyi görüntülemek için, şifreyi çözmek için şifrenizi girmeniz gerekecektir.",
+  "enter_password_to_encrypt": "Gönderiyi şifrelemek için şifre girin",
+  "encrypt": "Kaydederken gönderiyi şifrele",
+  "enter_password_to_view": "Gönderiyi görüntülemek için şifre girin",
+  "decrypt_post": "Gönderiyi şifresini çöz",
+  "encrypted_post": "Şifrelenmiş gönderi",
+  "post_will_be_decrypted": "Gönderi şifresi çözülecek"
 }
