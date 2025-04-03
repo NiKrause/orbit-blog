@@ -488,144 +488,149 @@ async checkBrowserSupport() {
   }
 </script>
 
-<div class="fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-center justify-center">
-  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-    <div class="flex justify-between items-center mb-4">
-      <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{$_('webrtc_network_test')}</h2>
-      <button
-        class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-        on:click={closeModal}
-        title={$_('webrtc_close')}
-        aria-label={$_('webrtc_close')}
-      >
-        ✕
-      </button>
+<div class="fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-center justify-center p-4 sm:p-0">
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-[95vw] sm:max-w-4xl mx-auto max-h-[90vh] overflow-y-auto relative">
+    <!-- Add sticky header -->
+    <div class="sticky top-0 bg-white dark:bg-gray-800 border-b dark:border-gray-700 p-4 sm:p-6">
+      <div class="flex justify-between items-center">
+        <h2 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{$_('webrtc_network_test')}</h2>
+        <button
+          class="p-2 -mr-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+          on:click={closeModal}
+          title={$_('webrtc_close')}
+          aria-label={$_('webrtc_close')}
+        >
+          ✕
+        </button>
+      </div>
     </div>
 
-    {#if !isTestingInProgress && testProgress === 0}
-      <button 
-        class="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700 mb-4"
-        on:click={startTests}
-      >
-        {$_('start_network_tests')}
-      </button>
-    {/if}
+    <div class="p-4 sm:p-6">
+      {#if !isTestingInProgress && testProgress === 0}
+        <button 
+          class="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700 mb-4"
+          on:click={startTests}
+        >
+          {$_('start_network_tests')}
+        </button>
+      {/if}
 
-    {#if isTestingInProgress || true}
-      <div class="mb-4">
-        <div class="text-sm text-gray-600 dark:text-gray-400 mb-2">{currentTest}</div>
-        <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-          <div 
-            class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" 
-            style="width: {testProgress}%"
-          ></div>
-        </div>
-      </div>
-    {/if}
-
-    {#if testProgress === 100 || true}
-      <div class="space-y-4">
-        <!-- Browser Support -->
-        <div class="border dark:border-gray-700 rounded-lg p-4">
-          <h3 class="font-bold mb-2 text-gray-900 dark:text-white">{$_('browser_support')}</h3>
-          {#each Object.entries(testResults.browserSupport) as [feature, supported]}
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-600 dark:text-gray-400">{feature}</span>
-              <span class={supported ? 'text-green-500' : 'text-red-500'}>
-                {supported ? '✓' : '✗'}
-              </span>
-            </div>
-          {/each}
-        </div>
-
-        <!-- Network Info -->
-        <div class="border dark:border-gray-700 rounded-lg p-4">
-          <h3 class="font-bold mb-2 text-gray-900 dark:text-white">{$_('network_information')}</h3>
-          {#each Object.entries(testResults.networkInfo) as [key, value]}
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-600 dark:text-gray-400">{key}</span>
-              <span class="text-gray-900 dark:text-white">{value}</span>
-            </div>
-          {/each}
-        </div>
-
-        <!-- STUN/TURN Tests -->
-        <div class="border dark:border-gray-700 rounded-lg p-4">
-          <h3 class="font-bold mb-2 text-gray-900 dark:text-white">{$_('connectivity_tests')}</h3>
-          <div class="text-sm">
-            <div class="flex justify-between mb-2">
-              <span class="text-gray-600 dark:text-gray-400">{$_('stun_connectivity')}</span>
-              <span class={testResults.stunTests.working ? 'text-green-500' : 'text-red-500'}>
-                {testResults.stunTests.working ? '✓ {$_("working")}' : '✗ {$_("failed")}'}
-              </span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-600 dark:text-gray-400">{$_('nat_type')}</span>
-              <span class={testResults.symmetricNAT ? 'text-red-500' : 'text-green-500'}>
-                {testResults.symmetricNAT ? $_('symmetric_nat_warning') : $_('non_symmetric_nat')}
-              </span>
-            </div>
+      {#if isTestingInProgress || true}
+        <div class="mb-4">
+          <div class="text-sm text-gray-600 dark:text-gray-400 mb-2">{currentTest}</div>
+          <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+            <div 
+              class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" 
+              style="width: {testProgress}%"
+            ></div>
           </div>
         </div>
+      {/if}
 
-        <!-- Throughput Tests -->
-        {#if testResults.throughputTests.throughputMBps}
-          <div class="border dark:border-gray-700 rounded-lg p-4">
-            <h3 class="font-bold mb-2 text-gray-900 dark:text-white">Performance</h3>
-            <div class="text-sm">
-              <div class="flex justify-between">
-                <span class="text-gray-600 dark:text-gray-400">Throughput</span>
-                <span class="text-gray-900 dark:text-white">
-                  {testResults.throughputTests.throughputMBps.toFixed(2)} MB/s
+      {#if testProgress === 100 || true}
+        <div class="space-y-4">
+          <!-- Browser Support -->
+          <div class="border dark:border-gray-700 rounded-lg p-3 sm:p-4">
+            <h3 class="font-bold mb-2 text-gray-900 dark:text-white text-sm sm:text-base">{$_('browser_support')}</h3>
+            {#each Object.entries(testResults.browserSupport) as [feature, supported]}
+              <div class="flex justify-between text-xs sm:text-sm">
+                <span class="text-gray-600 dark:text-gray-400">{feature}</span>
+                <span class={supported ? 'text-green-500' : 'text-red-500'}>
+                  {supported ? '✓' : '✗'}
+                </span>
+              </div>
+            {/each}
+          </div>
+
+          <!-- Network Info -->
+          <div class="border dark:border-gray-700 rounded-lg p-3 sm:p-4">
+            <h3 class="font-bold mb-2 text-gray-900 dark:text-white text-sm sm:text-base">{$_('network_information')}</h3>
+            {#each Object.entries(testResults.networkInfo) as [key, value]}
+              <div class="flex justify-between text-xs sm:text-sm break-all">
+                <span class="text-gray-600 dark:text-gray-400 mr-2">{key}</span>
+                <span class="text-gray-900 dark:text-white text-right">{value}</span>
+              </div>
+            {/each}
+          </div>
+
+          <!-- STUN/TURN Tests -->
+          <div class="border dark:border-gray-700 rounded-lg p-3 sm:p-4">
+            <h3 class="font-bold mb-2 text-gray-900 dark:text-white text-sm sm:text-base">{$_('connectivity_tests')}</h3>
+            <div class="text-xs sm:text-sm">
+              <div class="flex justify-between mb-2">
+                <span class="text-gray-600 dark:text-gray-400">{$_('stun_connectivity')}</span>
+                <span class={testResults.stunTests.working ? 'text-green-500' : 'text-red-500'}>
+                  {testResults.stunTests.working ? '✓ {$_("working")}' : '✗ {$_("failed")}'}
                 </span>
               </div>
               <div class="flex justify-between">
-                <span class="text-gray-600 dark:text-gray-400">Latency</span>
-                <span class="text-gray-900 dark:text-white">
-                  {testResults.throughputTests.latency.toFixed(0)} ms
+                <span class="text-gray-600 dark:text-gray-400">{$_('nat_type')}</span>
+                <span class={testResults.symmetricNAT ? 'text-red-500' : 'text-green-500'}>
+                  {testResults.symmetricNAT ? $_('symmetric_nat_warning') : $_('non_symmetric_nat')}
                 </span>
               </div>
             </div>
           </div>
-        {/if}
 
-        <!-- VPN Detection -->
-        <div class="border dark:border-gray-700 rounded-lg p-4">
-          <h3 class="font-bold mb-2 text-gray-900 dark:text-white">VPN Detection</h3>
-          <div class="text-sm">
-            <div class="flex justify-between mb-2">
-              <span class="text-gray-600 dark:text-gray-400">VPN Detected</span>
-              <span class={testResults.vpnDetection?.isVpnDetected ? 'text-yellow-500' : 'text-green-500'}>
-                {testResults.vpnDetection?.isVpnDetected ? 'Yes' : 'No'}
-              </span>
-            </div>
-            
-            {#if testResults.vpnDetection?.publicIPs}
-              <div class="mt-2">
-                <h4 class="font-semibold mb-1 text-gray-800 dark:text-gray-300">Detected IP Addresses:</h4>
-                {#each testResults.vpnDetection.publicIPs as ip}
-                  <div class="mb-2 p-2 bg-gray-50 dark:bg-gray-700 rounded">
-                    <div class="font-mono text-gray-700 dark:text-gray-300">{ip}</div>
-                    {#if testResults.vpnDetection.ipLocations[ip]}
-                      <div class="text-xs text-gray-600 dark:text-gray-400">
-                        {#if !testResults.vpnDetection.ipLocations[ip].error}
-                          Location: {testResults.vpnDetection.ipLocations[ip].city}, 
-                          {testResults.vpnDetection.ipLocations[ip].region}, 
-                          {testResults.vpnDetection.ipLocations[ip].country}
-                          <br>
-                          Organization: {testResults.vpnDetection.ipLocations[ip].org}
-                        {:else}
-                          {testResults.vpnDetection.ipLocations[ip].error}
-                        {/if}
-                      </div>
-                    {/if}
-                  </div>
-                {/each}
+          <!-- Throughput Tests -->
+          {#if testResults.throughputTests.throughputMBps}
+            <div class="border dark:border-gray-700 rounded-lg p-3 sm:p-4">
+              <h3 class="font-bold mb-2 text-gray-900 dark:text-white text-sm sm:text-base">Performance</h3>
+              <div class="text-xs sm:text-sm">
+                <div class="flex justify-between">
+                  <span class="text-gray-600 dark:text-gray-400">Throughput</span>
+                  <span class="text-gray-900 dark:text-white">
+                    {testResults.throughputTests.throughputMBps.toFixed(2)} MB/s
+                  </span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-600 dark:text-gray-400">Latency</span>
+                  <span class="text-gray-900 dark:text-white">
+                    {testResults.throughputTests.latency.toFixed(0)} ms
+                  </span>
+                </div>
               </div>
-            {/if}
+            </div>
+          {/if}
+
+          <!-- VPN Detection -->
+          <div class="border dark:border-gray-700 rounded-lg p-3 sm:p-4">
+            <h3 class="font-bold mb-2 text-gray-900 dark:text-white text-sm sm:text-base">VPN Detection</h3>
+            <div class="text-xs sm:text-sm">
+              <div class="flex justify-between mb-2">
+                <span class="text-gray-600 dark:text-gray-400">VPN Detected</span>
+                <span class={testResults.vpnDetection?.isVpnDetected ? 'text-yellow-500' : 'text-green-500'}>
+                  {testResults.vpnDetection?.isVpnDetected ? 'Yes' : 'No'}
+                </span>
+              </div>
+              
+              {#if testResults.vpnDetection?.publicIPs}
+                <div class="mt-2">
+                  <h4 class="font-semibold mb-1 text-gray-800 dark:text-gray-300">Detected IP Addresses:</h4>
+                  {#each testResults.vpnDetection.publicIPs as ip}
+                    <div class="mb-2 p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                      <div class="font-mono text-gray-700 dark:text-gray-300 break-all">{ip}</div>
+                      {#if testResults.vpnDetection.ipLocations[ip]}
+                        <div class="text-xs text-gray-600 dark:text-gray-400">
+                          {#if !testResults.vpnDetection.ipLocations[ip].error}
+                            Location: {testResults.vpnDetection.ipLocations[ip].city}, 
+                            {testResults.vpnDetection.ipLocations[ip].region}, 
+                            {testResults.vpnDetection.ipLocations[ip].country}
+                            <br>
+                            Organization: {testResults.vpnDetection.ipLocations[ip].org}
+                          {:else}
+                            {testResults.vpnDetection.ipLocations[ip].error}
+                          {/if}
+                        </div>
+                      {/if}
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+            </div>
           </div>
         </div>
-      </div>
-    {/if}
+      {/if}
+    </div>
   </div>
 </div> 
