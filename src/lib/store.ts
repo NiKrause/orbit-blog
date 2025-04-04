@@ -13,6 +13,7 @@ export const initialAddress = writable<string | null>(null);
 export const remoteDBs = writable<RemoteDB[]>([]);
 export const selectedDBAddress = writable<string | null>(null);
 export const remoteDBsDatabases = writable<OrbitDB | null>(null);
+export const profilePictureCid = writable<string | null>(null);
 export const blogName = writable<string>('New Blog');
 export const blogDescription = writable<string>('Change your blog description in the settings');
 export const categories = writable<string[]>(['General', 'Technology', 'Science', 'Art', 'Music', 'Sports', 'Politics', 'Economy', 'Entertainment', 'Other']);

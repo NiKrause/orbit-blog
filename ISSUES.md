@@ -16,8 +16,8 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 ### Todos, Features, Issues
 - Todos:
     - [ ] UI-Bug: Navigation tattered.
-    - [ ] UI-BUG: If old posts doesn't have a language it will not be displayed
-    - [ ] UI-Bug: If a post isn't translated into the current language, try fallback languages
+    - [x] UI-BUG: If old posts doesn't have a language it will never be displayed (and swallowed by the system)
+    - [ ] UI-Bug: If a post isn't translated into the current language, try other fallback (browser) languages other wise en, zh, hi, es
     - [ ] UI-Bug: iOS-Mobile looks terrible.
     - [ ] GDPR-Question: When entering the website and loading remote blocks they get stored on the local browser, what does the GDPR says to that? 
         - [ ] GDPR is only about personal data e.g. a token in local storage is personal data, being transparent is never an issue.
@@ -63,7 +63,8 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
         - [ ] Feature: correct my spelling
         - [ ] Feature: Extract all arguments and premises of an text or url auto-create a mermaid diagram
     -  [ ] Settings 
-        - [ ] Feature: Configure a logo
+        - [x] Feature: Configure a logo or profile pic 
+        - [ ] Feature: Logo round or cornered, sizes must be modifiable
         - [ ] Feature: activate a navigation
         - [ ] Feature: Configure a favicon
         - [ ] Feature: configure a different css style

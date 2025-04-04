@@ -37,6 +37,11 @@ export default {
   // Blog
   "blog_name": "Blog Name",
   "blog_description": "Blog Description",
+  "please_select_image": "Please select an image",
+  "upload_picture": "Upload Picture",
+  "change_picture": "Change Picture",
+  "image_too_large": "Image is too large",
+  "media_db_not_initialized": "Media database or IPFS not initialized",
   "blog_settings": "Blog Settings",
   "enabled_languages": "Language Settings",
   "available_languages": "Available Languages",
@@ -171,6 +176,7 @@ export default {
   "error_cloning_database": "Error cloning database",
   "drop_local_database_copies": "Drop local database copies",
   "unpin_from_voyager_node": "Unpin from Voyager node",
+  "this_will_delete_all_translations": "This will delete all translations",
   
   // Connected Peers
   "connected_peers": "Connected Peers",

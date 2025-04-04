@@ -300,12 +300,15 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       console.log('postsDBAddressValue', postsDBAddressValue);
       categoriesValue = dbContents.find(content => content.key === 'categories')?.value?.value || ['please add categories']; // Fetch categories
       console.log('categoriesValue', categoriesValue);
+      const profilePictureValue = dbContents.find(content => content.key === 'profilePicture')?.value?.value;
+      console.log('profilePictureValue', profilePictureValue);
 
       // Update stores with settings data
       if (blogNameValue) blogName.set(blogNameValue);
       if (blogDescriptionValue) blogDescription.set(blogDescriptionValue);
       if (postsDBAddressValue) postsDBAddress.set(postsDBAddressValue);
       if (categoriesValue) categories.set(categoriesValue);
+      if (profilePictureValue) profilePictureCid.set(profilePictureValue);
 
       // Check if we have write access to the settings database
       const identityId = get(identity).id;
@@ -313,7 +316,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       console.log('Write access to settings:', canWriteToSettings);
 
       // Check if all required data is available
-      if (blogNameValue && blogDescriptionValue && postsDBAddressValue && categoriesValue) {
+      if (blogNameValue && blogDescriptionValue && postsDBAddressValue)  {
         console.log('blogNameValue', blogNameValue);
         console.log('blogDescriptionValue', blogDescriptionValue);
         console.log('postsDBAddressValue', postsDBAddressValue);

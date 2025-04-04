@@ -1,10 +1,12 @@
 <script lang="ts">
   import { _ } from 'svelte-i18n';
   import { preventDefault } from 'svelte/legacy';
-  import { settingsDB, blogName, blogDescription, categories, seedPhrase, libp2p, orbitdb, enabledLanguages, aiApiKey, aiApiUrl, identity, isRTL } from '../store.js';
+  import { settingsDB, profilePictureCid, blogName, blogDescription, categories, seedPhrase, libp2p, orbitdb, enabledLanguages, aiApiKey, aiApiUrl, identity, isRTL, mediaDB, helia } from '../store.js';
   import { encryptSeedPhrase } from '../cryptoUtils.js';
   import { LANGUAGES } from '../i18n/index.js';
-
+  import { unixfs } from '@helia/unixfs';
+  import { onMount, onDestroy } from 'svelte';
+  import { getImageUrlFromHelia, revokeImageUrl } from '../utils/mediaUtils.js';
   let persistentSeedPhrase = false; // Default to true since we're always encrypting now
   let showChangePasswordModal = $state(false);
   let newPassword = $state('');
@@ -24,6 +26,31 @@
     identity: false,
     security: false,
     aiSettings: false
+  });
+
+  
+  let uploading = $state(false);
+  let fs: UnixFS; // UnixFS instance
+
+  onMount(async () => {
+    console.log('Component mounted, checking for existing profile picture');
+    if ($settingsDB) {
+      const result = await $settingsDB.get('profilePicture');
+      console.log('Retrieved profile picture from settings:', result);
+      if (result?.value?.value) {
+        $profilePictureCid = result.value.value;
+        console.log('Set profile picture CID from settings:', $profilePictureCid);
+      }
+    } else {
+      console.log('SettingsDB not initialized during mount');
+    }
+    
+    if ($helia) {
+      fs = unixfs($helia);
+      console.log('UnixFS initialized during mount');
+    } else {
+      console.log('Helia not initialized during mount');
+    }
   });
 
   function toggleSection(section: keyof typeof openSections) {
@@ -100,6 +127,80 @@
       console.error('Error copying text to clipboard:', err);
     });
   }
+
+  async function handleProfilePictureUpload(event) {
+    const file = event.target.files[0];
+    console.log('File selected:', file);
+
+    if (!file || !file.type.startsWith('image/')) {
+      errorMessage = $_('please_select_image');
+      console.log('Invalid file type or no file selected');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      errorMessage = $_('image_too_large');
+      console.log('File too large:', file.size);
+      return;
+    }
+
+    if (!$mediaDB || !$helia) {
+      errorMessage = $_('media_db_not_initialized');
+      console.log('MediaDB or Helia not initialized:', { mediaDB: !!$mediaDB, helia: !!$helia });
+      return;
+    }
+
+    if (!fs) {
+      fs = unixfs($helia);
+      console.log('UnixFS initialized');
+    }
+
+    uploading = true;
+    errorMessage = '';
+
+    try {
+      // Read file as arrayBuffer
+      const buffer = await file.arrayBuffer();
+      const fileBytes = new Uint8Array(buffer);
+      console.log('File read as bytes, size:', fileBytes.length);
+
+      // Add to IPFS
+      const cid = await fs.addBytes(fileBytes);
+      console.log('File added to IPFS, CID:', cid.toString());
+
+      // Store metadata in OrbitDB
+      const mediaId = crypto.randomUUID();
+      await $mediaDB.put({
+        _id: mediaId,
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        cid: cid.toString(),
+        createdAt: new Date().toISOString()
+      });
+      console.log('Media metadata stored in OrbitDB:', mediaId);
+
+      // Store profile picture reference in settings
+      await $settingsDB.put({ _id: 'profilePicture', value: cid.toString() });
+      console.log('Profile picture CID stored in settings:', cid.toString());
+      
+      $profilePictureCid = cid.toString();
+      console.log('Profile picture CID updated in component state:', $profilePictureCid);
+    } catch (error) {
+      console.error('Error uploading profile picture:', error);
+      errorMessage = error.message || $_('failed_to_upload');
+    } finally {
+      uploading = false;
+    }
+  }
+
+  onDestroy(() => {
+    if ($profilePictureCid) {
+      getImageUrlFromHelia($profilePictureCid, fs).then(url => {
+        if (url) revokeImageUrl(url);
+      });
+    }
+  });
 </script>
 
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 {$isRTL ? 'rtl' : 'ltr'}">
@@ -122,26 +223,77 @@
     </button>
     {#if openSections.blogSettings}
       <div class="p-4 border-t">
-        <div class="space-y-4">
-          <div>
-            <label class="block text-gray-700 dark:text-gray-300">{$_('blog_name')}</label>
-            <input type="text" class="w-full p-2 border rounded" 
-              value={$blogName} 
-              onchange={(event: Event) => {
-                const target = event.target as HTMLInputElement;
-                $settingsDB?.put({ _id: 'blogName', value: target.value })
-              }}
+        <div class="flex items-start space-x-4">
+          <!-- Profile Picture Section -->
+          <div class="flex flex-col items-center space-y-2">
+            <div class="w-32 h-32 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 relative">
+              {#await getImageUrlFromHelia($profilePictureCid, fs)}
+                <div class="w-full h-full flex items-center justify-center">
+                  <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400"></div>
+                </div>
+              {:then imageUrl}
+                {#if imageUrl}
+                  <img 
+                    src={imageUrl}
+                    alt="Profile" 
+                    class="w-full h-full object-cover"
+                    onload={() => {
+                      console.log('Image loaded successfully from Helia');
+                    }}
+                  />
+                {:else}
+                  <div class="w-full h-full flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                    </svg>
+                  </div>
+                {/if}
+              {:catch error}
+                <div class="w-full h-full flex items-center justify-center text-red-500">
+                  <span class="text-sm">Error loading image</span>
+                </div>
+              {/await}
+            </div>
+            <input
+              type="file"
+              id="profile-picture"
+              class="hidden"
+              accept="image/*"
+              onchange={handleProfilePictureUpload}
             />
+            <label
+              for="profile-picture"
+              class="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white text-sm py-1 px-3 rounded transition-colors"
+            >
+              {$profilePictureCid ? $_('change_picture') : $_('upload_picture')}
+            </label>
+            {#if errorMessage}
+              <p class="text-red-500 text-sm">{errorMessage}</p>
+            {/if}
           </div>
-          <div>
-            <label class="block text-gray-700 dark:text-gray-300">{$_('blog_description')}</label>
-            <input type="text" class="w-full p-2 border rounded" 
-              value={$blogDescription} 
-              onchange={(event: Event) => {
-                const target = event.target as HTMLInputElement;
-                $settingsDB?.put({ _id: 'blogDescription', value: target.value })
-              }}
-            />
+
+          <!-- Blog Info Section -->
+          <div class="flex-1 space-y-4">
+            <div>
+              <label class="block text-gray-700 dark:text-gray-300">{$_('blog_name')}</label>
+              <input type="text" class="w-full p-2 border rounded" 
+                value={$blogName} 
+                onchange={(event: Event) => {
+                  const target = event.target as HTMLInputElement;
+                  $settingsDB?.put({ _id: 'blogName', value: target.value })
+                }}
+              />
+            </div>
+            <div>
+              <label class="block text-gray-700 dark:text-gray-300">{$_('blog_description')}</label>
+              <input type="text" class="w-full p-2 border rounded" 
+                value={$blogDescription} 
+                onchange={(event: Event) => {
+                  const target = event.target as HTMLInputElement;
+                  $settingsDB?.put({ _id: 'blogDescription', value: target.value })
+                }}
+              />
+            </div>
           </div>
         </div>
       </div>

@@ -43,6 +43,8 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   import { initHashRouter, isLoadingRemoteBlog } from '$lib/router';
   import { setupPeerEventListeners } from '$lib/peerConnections';
   import { switchToRemoteDB } from '$lib/dbUtils';
+  import { getImageUrlFromHelia } from '$lib/utils/mediaUtils.js';
+  import { unixfs } from '@helia/unixfs';
   // Store imports
   import { 
     initialAddress,
@@ -55,6 +57,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     showDBManager, 
     showPeers, 
     showSettings, 
+    profilePictureCid,
     blogName, 
     libp2p, 
     helia, 
@@ -99,6 +102,8 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   $: sidebarPosition = $isRTL ? 'right' : 'left';
   $: sidebarButtonPosition = $isRTL ? 'right' : 'left';
   $: sidebarTriggerPosition = $isRTL ? 'right' : 'left';
+
+  let fs;
 
   if(!encryptedSeedPhrase) {
       console.log('no seed phrase, generating new one')
@@ -158,6 +163,11 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     routerUnsubscribe = await initHashRouter();
 
     setupPeerEventListeners($libp2p);
+
+    if ($helia) {
+      fs = unixfs($helia);
+      console.log('UnixFS initialized');
+    }
   }
 
   $:if($initialAddress) {
@@ -312,6 +322,20 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       }
     })
 
+    $settingsDB.get('profilePicture').then(result => {
+      if (result?.value?.value) {
+        $profilePictureCid = result.value.value;
+        console.log('Set profile picture CID from settings:', $profilePictureCid);
+      }
+    });
+  }
+
+  // Add logging for profilePictureCid changes
+  $: {
+    if ($profilePictureCid) {
+      console.log('Profile picture CID changed:', $profilePictureCid);
+    }
+  }
 
   $settingsDB.events.on('update', 
     async (entry) => {
@@ -320,9 +344,12 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         if(entry.payload.key==='blogName') $blogName = rest.value;
         if(entry.payload.key==='blogDescription') $blogDescription = rest.value;
         if(entry.payload.key==='categories') $categories = rest.value;
+        if(entry.payload.key==='profilePicture') {
+          console.log('Profile picture updated:', rest.value);
+          $profilePictureCid = rest.value;
+        }
        } else if (entry?.payload?.op === 'DEL') { }
     });
-  }
 
   $:if($postsDB){
 
@@ -475,7 +502,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       alert('Settings database is not available.');
     }
   }
-
 </script>
 <svelte:head>
   <title>{$blogName} {__APP_VERSION__}</title>
@@ -518,9 +544,9 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   />
 {:else}
   <main class="flex min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors"
-    on:touchstart={handleTouchStart}
-    on:touchmove={handleTouchMove}
-    on:touchend={handleTouchEnd}>
+    ontouchstart={handleTouchStart}
+    ontouchmove={handleTouchMove}
+    ontouchend={handleTouchEnd}>
     
 
     <!-- Sidebar Component with animation -->
@@ -528,7 +554,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       <!-- Add overlay -->
       <div 
         class="fixed inset-0 bg-black bg-opacity-50 z-30"
-        on:click={toggleSidebar}
+        onclick={toggleSidebar}
         transition:fade
       ></div>
       
@@ -537,7 +563,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
            class="fixed top-0 {sidebarPosition}-0 h-full z-40 max-w-[80vw]">
         <button
           class="absolute top-2 {sidebarButtonPosition}-1 z-50 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-full p-1 shadow-sm transition-all duration-300 focus:outline-none"
-          on:click={toggleSidebar}
+          onclick={toggleSidebar}
           aria-label={$_('close')}>
           <div class="w-4 h-4 text-gray-800 dark:text-gray-200">
             <FaTimes />
@@ -549,7 +575,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       <!-- Fixed toggle button when sidebar is hidden -->
       <button
         class="fixed top-4 {sidebarButtonPosition}-4 z-50 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-full p-1 shadow-sm transition-all duration-300 focus:outline-none"
-        on:click={toggleSidebar}
+        onclick={toggleSidebar}
         aria-label={$_('show_editor')}>
         <div class="w-4 h-4 text-gray-800 dark:text-gray-200">
           <FaBars />
@@ -559,8 +585,8 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       <!-- Sidebar trigger area for edge detection -->
       <div 
         class="w-8 h-full fixed top-0 {sidebarTriggerPosition}-0 z-10 cursor-pointer" 
-        on:click={toggleSidebar}
-        on:mouseenter={handleMouseEnter}
+        onclick={toggleSidebar}
+        onmouseenter={handleMouseEnter}
         aria-label={$_('show_sidebar')}>
       </div>
     {/if}
@@ -571,11 +597,51 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         <LoadingBlog />
       {:else}
         <div class="max-w-7xl mx-auto py-8 px-4">
-            <h1 class="text-4xl font-bold text-center mb-8 text-gray-900 dark:text-white">
-              {$blogName}
-            </h1>
-            <h6 class="text-sm text-center mb-8 text-gray-900 dark:text-white">{$blogDescription}</h6>
-            <h6 class="text-xs text-center mb-8 text-gray-900 dark:text-white">{__APP_VERSION__}</h6>
+          <div class="flex items-center justify-center mb-8 gap-4">
+            <div class="w-24 h-24 overflow-hidden bg-gray-200 dark:bg-gray-700 relative flex-shrink-0">
+              {#if $profilePictureCid}
+                {#await getImageUrlFromHelia($profilePictureCid, fs)}
+                  <div class="w-full h-full flex items-center justify-center">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400"></div>
+                  </div>
+                {:then imageUrl}
+                  {#if imageUrl}
+                    <img 
+                      src={imageUrl}
+                      alt="Profile" 
+                      class="w-full h-full object-cover"
+                      onload={() => {
+                        console.log('Image loaded successfully from Helia');
+                      }}
+                    />
+                  {:else}
+                    <div class="w-full h-full flex items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                      </svg>
+                    </div>
+                  {/if}
+                {:catch error}
+                  <div class="w-full h-full flex items-center justify-center text-red-500">
+                    <span class="text-sm">Error</span>
+                  </div>
+                {/await}
+              {:else}
+                <div class="w-full h-full flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+              {/if}
+            </div>
+            <div class="text-center">
+              <h1 class="text-4xl font-bold text-gray-900 dark:text-white">
+                {$blogName}
+              </h1>
+              <h6 class="text-sm text-gray-900 dark:text-white">{$blogDescription}</h6>
+              <h6 class="text-xs text-gray-900 dark:text-white">{__APP_VERSION__}</h6>
+            </div>
+          </div>
 
           {#if $showDBManager}
             <DBManager />
