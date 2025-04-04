@@ -16,6 +16,8 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 ### Todos, Features, Issues
 - Todos:
     - [ ] UI-Bug: Navigation tattered.
+    - [ ] UI-BUG: If old posts doesn't have a language it will not be displayed
+    - [ ] UI-Bug: If a post isn't translated into the current language, try fallback languages
     - [ ] UI-Bug: iOS-Mobile looks terrible.
     - [ ] GDPR-Question: When entering the website and loading remote blocks they get stored on the local browser, what does the GDPR says to that? 
         - [ ] GDPR is only about personal data e.g. a token in local storage is personal data, being transparent is never an issue.

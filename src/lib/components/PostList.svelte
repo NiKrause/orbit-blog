@@ -58,14 +58,15 @@
   function filterPosts() {
     const currentLanguage = $locale;
     
-    // First check if there are any posts in the current language
-    const hasPostsInCurrentLanguage = $posts.some(post => post.language === currentLanguage);
     return $posts
       .filter(post => {
-        // Language filter
-        const matchesLanguage = hasPostsInCurrentLanguage 
-          ? post.language === currentLanguage
-          : post.language === undefined && post.translatedFrom === undefined;
+        // Language filter - show posts that either:
+        // 1. Match the current language
+        // 2. Have no language specified and no translations (legacy posts)
+        const matchesLanguage = 
+          post.language === currentLanguage || 
+          (!post.language && !post.translatedFrom);
+
         // Category filter
         const matchesCategory = selectedCategory === 'All' || selectedCategory === undefined || 
                               post.category === selectedCategory;
@@ -73,6 +74,7 @@
         const matchesSearch = !searchTerm || 
                             post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             post.content.toLowerCase().includes(searchTerm.toLowerCase());
+                            
         return matchesLanguage && matchesCategory && matchesSearch;
       })
       .sort((a, b) => (b.createdAt || b.date) - (a.createdAt || a.date));
