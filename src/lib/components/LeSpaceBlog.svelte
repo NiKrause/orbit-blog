@@ -328,6 +328,20 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         console.log('Set profile picture CID from settings:', $profilePictureCid);
       }
     });
+
+    $settingsDB?.events.on('update', 
+      async (entry) => {
+        if (entry?.payload?.op === 'PUT') {
+          const { _id, ...rest } = entry.payload.value;
+          if(entry.payload.key==='blogName') $blogName = rest.value;
+          if(entry.payload.key==='blogDescription') $blogDescription = rest.value;
+          if(entry.payload.key==='categories') $categories = rest.value;
+          if(entry.payload.key==='profilePicture') {
+            console.log('Profile picture updated:', rest.value);
+            $profilePictureCid = rest.value;
+          }
+        } else if (entry?.payload?.op === 'DEL') { }
+    });
   }
 
   // Add logging for profilePictureCid changes
@@ -336,20 +350,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       console.log('Profile picture CID changed:', $profilePictureCid);
     }
   }
-
-  $settingsDB.events.on('update', 
-    async (entry) => {
-      if (entry?.payload?.op === 'PUT') {
-        const { _id, ...rest } = entry.payload.value;
-        if(entry.payload.key==='blogName') $blogName = rest.value;
-        if(entry.payload.key==='blogDescription') $blogDescription = rest.value;
-        if(entry.payload.key==='categories') $categories = rest.value;
-        if(entry.payload.key==='profilePicture') {
-          console.log('Profile picture updated:', rest.value);
-          $profilePictureCid = rest.value;
-        }
-       } else if (entry?.payload?.op === 'DEL') { }
-    });
 
   $:if($postsDB){
 
