@@ -368,23 +368,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       setTimeout(async () => {
         await switchToRemoteDB($settingsDB.address);
       }, 3500);
-      // if (entry?.payload?.op === 'PUT') {
-      //   const { _id, ...rest } = entry.payload.value;
-      //   console.log('entry', entry);
-        
-      //   posts.update(current => {
-      //     // Remove any existing post with the same _id
-      //     const filtered = current.filter(post => post._id !== _id);
-      //     // Add the updated/new post
-      //     return [...filtered, { 
-      //       ...rest, 
-      //       _id: _id,
-      //       identity: entry.identity
-      //     }];
-      //   });
-      // } else if (entry?.payload?.op === 'DEL') {
-      //   posts.update(current => current.filter(post => post._id !== entry.payload.key));
-      // }
     });
   }
 
@@ -500,6 +483,13 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       }
     } else {
       alert('Settings database is not available.');
+    }
+  }
+
+  $: {
+    if ($helia && !fs) {
+      fs = unixfs($helia);
+      console.log('LeSpaceBlog - UnixFS initialized');
     }
   }
 </script>
