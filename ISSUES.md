@@ -15,21 +15,24 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 ### Todos, Features, Issues
 - Todos:
+    - [ ] add a publish state (unpublished / published) to PostList and PostForm and only show published posts 
     - [ ] UI-Bug: Navigation tattered.
-    - [x] UI-BUG: If old posts doesn't have a language it will never be displayed (and swallowed by the system)
-    - [ ] UI-Bug: If a post isn't translated into the current language, try other fallback (browser) languages other wise en, zh, hi, es
     - [ ] UI-Bug: iOS-Mobile looks terrible.
-    - [ ] GDPR-Question: When entering the website and loading remote blocks they get stored on the local browser, what does the GDPR says to that? 
-        - [ ] GDPR is only about personal data e.g. a token in local storage is personal data, being transparent is never an issue.
+    - [ ] UI-Bug: If a post isn't translated into the current language, try other fallback (browser) languages other wise en, zh, hi, es
     - [ ] UI-Bug: Translate button doesn't do anything while translating - we need to animate the button a little bit better (LED's need to reactively work while translation is ongoing)
+    - [ ] Feature: when adding IPFS-image links into markdown, it should also parse external CIDs not just cids which are inside our media library
     - [ ] Bug: Peer-to-Peer between browsers broken (WebRTC upgrade from circuit-relay-v2)
     - [ ] Feature: Instead of an own article link external
         - [ ] in posts it needs filetype link which syncs the remote db (with all comments and media)
 
     - [ ] Feature: if a IPFS-CID is discovered during saving of the article it should be directly gathered from the IPFS-network and added to the posts media ids and pinned to the local Helia node  
     - [ ] Feature: if a IPFS-CID is discovered in preview mode, it should be loaded and pinned locally too! 
-    - [x] Bug: locks & keys in sidebar are updating too late
-    - [ ] Feature: when adding IPFS-image links into markdown, it should also parse external CIDs not just cids which are inside our media library
+    - [ ] Bug: locks & keys in sidebar are updating too late
+    - [x] Feature: make use of @libp2p/logging
+    - [x] GDPR-Question: When entering the website and loading remote blocks they get stored on the local browser, what does the GDPR says to that? 
+    - [x] Feature: use @libp2p/logging package
+    - [x] UI-BUG: If old posts doesn't have a language it will never be displayed (and swallowed by the system)
+        - [ ] GDPR is only about personal data e.g. a token in local storage is personal data, being transparent is never an issue.
     - [x] Feature: Add synchronous password encryption to a blogPost 
     - [x] Bug: Website in browsers and mobile apps pwa is cached too long: nginx must send no-cache header
     - [x] Feature: Privacy Statement

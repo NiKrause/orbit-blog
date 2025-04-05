@@ -18,6 +18,7 @@
   import { postsDB, categories, selectedPostId, identity, enabledLanguages } from '$lib/store.js';
   import { isEncryptedPost } from '$lib/cryptoUtils.js';
   import PostPasswordPrompt from './PostPasswordPrompt.svelte';
+  import { info, debug, error } from '../utils/logger'
 
   /**
    * Component props interface
@@ -152,7 +153,7 @@
       mediaCache.set(cid, url);
       return url;
     } catch (error) {
-      console.error(`Error fetching from IPFS (${cid}):`, error);
+      error('Error fetching from IPFS:', error);
       return `https://dweb.link/ipfs/${cid}`;
     }
   }
@@ -244,7 +245,7 @@
         }) || []
       ).then(results => results.filter(Boolean));
     } catch (error) {
-      console.error('Error loading media:', error);
+      error('Error loading media:', error);
     }
   }
 
@@ -261,7 +262,7 @@
         .map(entry => entry.value)
         .filter(comment => comment.postId === post._id);
     } catch (error) {
-      console.error('Error loading comments:', error);
+      error('Error loading comments:', error);
     }
   }
 
@@ -285,7 +286,7 @@
       commentAuthor = '';
       await loadComments();
     } catch (error) {
-      console.error('Error adding comment:', error);
+      error('Error adding comment:', error);
     }
   }
 
@@ -310,16 +311,16 @@
   $effect(async () => {
     if ($selectedPostId) {
       const post = await $postsDB.get($selectedPostId);
-      console.log('post', post);
+      info('post', post);
       if (post) {
         title = post.value.title;
         content = post.value.content;
         category = post.value.category;
         selectedMedia = post.value.mediaIds || [];
-        console.log('post', post);
+        info('post', post);
         isEncrypted = post.value.isEncrypted || isEncryptedPost({ title, content });
-        console.log('isEncryptedPost function', isEncryptedPost({ title, content }));
-        console.log('isEncrypted', isEncrypted);
+        info('isEncryptedPost function', isEncryptedPost({ title, content }));
+        info('isEncrypted', isEncrypted);
         if (isEncrypted) {
           showPasswordPrompt = true;
         }
@@ -400,7 +401,7 @@
 
 
   async function handlePostDecrypted(event: CustomEvent) {
-    console.log('handlePostDecrypted');
+    info('handlePostDecrypted');
     const decryptedData = event.detail.post;
     
     // Update local state
@@ -516,7 +517,7 @@
       post={{ title, content }}
       on:postDecrypted={handlePostDecrypted}
       on:cancel={() => {
-        console.log('cancel');
+        info('cancel');
         showPasswordPrompt = false;
       }}
       on:passwordSubmitted={handlePasswordSubmitted}

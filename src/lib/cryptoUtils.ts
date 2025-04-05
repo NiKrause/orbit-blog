@@ -1,3 +1,5 @@
+import { error } from './utils/logger'
+
 // Utility functions for encryption/decryption of seed phrases
 
 /**
@@ -82,7 +84,7 @@ export async function decryptSeedPhrase(encryptedData: string, password: string)
     
     return new TextDecoder().decode(decrypted);
   } catch (error) {
-    console.error('Decryption failed:', error);
+    error('Decryption failed:', error);
     throw new Error('Invalid password or corrupted data');
   }
 }
@@ -194,8 +196,7 @@ export async function decryptPost(encryptedData: { title: string; content: strin
       content: new TextDecoder().decode(decryptedContent)
     };
   } catch (error) {
-    console.error('Decryption failed:', error);
-    // Include more details in the error message
+    error('Error decrypting post:', error);
     throw new Error(`Decryption failed: ${error.message}`);
   }
 }

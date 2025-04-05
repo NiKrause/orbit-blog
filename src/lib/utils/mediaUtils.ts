@@ -1,4 +1,5 @@
 import type { UnixFS } from '@helia/unixfs';
+import { error } from './logger'
 
 export async function getImageUrlFromHelia(cid: string, fs: UnixFS | null): Promise<string> {
   console.log('getImageUrlFromHelia', cid, fs);
@@ -15,7 +16,7 @@ export async function getImageUrlFromHelia(cid: string, fs: UnixFS | null): Prom
     console.log('Created blob URL:', url);
     return url;
   } catch (error) {
-    console.error('Error getting image from Helia:', error);
+    error('Error getting image URL from Helia:', error);
     return '';
   }
 }

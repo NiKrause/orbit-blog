@@ -10,6 +10,7 @@
   import { IPFSAccessController } from '@orbitdb/core';
   import ConfirmModal from './ConfirmModal.svelte';
   import type { RemoteDB } from '$lib/types.js';
+  import { error } from '../utils/logger'
 
   let dbAddress = $state('');
   let dbName = $state('');
@@ -34,7 +35,7 @@
         margin: 2,
       });
     } catch (error) {
-      console.error('Error generating QR code:', error);
+      error('Error generating QR code:', error);
     }
   }
 
@@ -49,7 +50,7 @@
         requestAnimationFrame(scanQRCode);
       }
     } catch (error) {
-      console.error('Error accessing camera:', error);
+      error('Error accessing camera:', error);
       showScanner = false;
     }
   }
@@ -96,7 +97,7 @@
 
       requestAnimationFrame(scanQRCode);
     } catch (error) {
-      console.error('Error scanning QR code:', error);
+      error('Error scanning QR code:', error);
       requestAnimationFrame(scanQRCode);
     }
   }
@@ -192,7 +193,7 @@
           
           console.log(`Successfully processed queued database: ${db.name}`);
         } catch (error) {
-          console.error(`Error processing queued database ${db.name}:`, error);
+          error(`Error processing queued database ${db.name}:`, error);
           db.lastAttempt = new Date().toISOString();
           await $remoteDBsDatabases.put({ _id: db.id, ...db });
         }
@@ -201,7 +202,7 @@
       $remoteDBs = [...$remoteDBs];
       
     } catch (error) {
-      console.error('Error processing database queue:', error);
+      error('Error processing database queue:', error);
     } finally {
       isQueueRunning = false;
     }
@@ -357,7 +358,7 @@
       console.log(`Successfully removed database: ${db.name}`);
       
     } catch (error) {
-      console.error(`Error dropping database ${db.name}:`, error);
+      error(`Error dropping database ${db.name}:`, error);
       throw error;
     }
   }
@@ -367,7 +368,7 @@
     navigator.clipboard.writeText(text).then(() => {
       console.log('Text copied to clipboard:', text);
     }).catch(err => {
-      console.error('Error copying text to clipboard:', err);
+      error('Error copying text to clipboard:', err);
     });
   }
   run(() => {
@@ -550,7 +551,7 @@
       }, 2000);
       
     } catch (error) {
-      console.error('Error cloning database:', error);
+      error('Error cloning database:', error);
       modalMessage = `${$_('error_cloning_database')}: ${error.message}`;
       setTimeout(() => {
         isModalOpen = false;

@@ -7,6 +7,7 @@
   import { unixfs } from '@helia/unixfs';
   import { onMount, onDestroy } from 'svelte';
   import { getImageUrlFromHelia, revokeImageUrl } from '../utils/mediaUtils.js';
+  import { info, debug, error } from '../utils/logger'
   let persistentSeedPhrase = false; // Default to true since we're always encrypting now
   let showChangePasswordModal = $state(false);
   let newPassword = $state('');
@@ -33,23 +34,23 @@
   let fs: UnixFS; // UnixFS instance
 
   onMount(async () => {
-    console.log('Component mounted, checking for existing profile picture');
+    info('Component mounted, checking for existing profile picture');
     if ($settingsDB) {
       const result = await $settingsDB.get('profilePicture');
-      console.log('Retrieved profile picture from settings:', result);
+      info('Retrieved profile picture from settings:', result);
       if (result?.value?.value) {
         $profilePictureCid = result.value.value;
-        console.log('Set profile picture CID from settings:', $profilePictureCid);
+        info('Set profile picture CID from settings:', $profilePictureCid);
       }
     } else {
-      console.log('SettingsDB not initialized during mount');
+      info('SettingsDB not initialized during mount');
     }
     
     if ($helia) {
       fs = unixfs($helia);
-      console.log('UnixFS initialized during mount');
+      info('UnixFS initialized during mount');
     } else {
-      console.log('Helia not initialized during mount');
+      info('Helia not initialized during mount');
     }
   });
 
@@ -94,7 +95,7 @@
         successMessage = '';
       }, 2000);
     } catch (error) {
-      console.error('Error changing password:', error);
+      error('Error changing password:', error);
       errorMessage = $_('failed_to_change_password');
     }
   }
@@ -109,8 +110,8 @@
       $settingsDB?.put({ _id: 'categories', value: $categories });
       //log the settingsDB address
       //log settingsdb name
-      console.log('settingsDB address', $settingsDB?.address.toString())
-      console.log('settingsDB name', $settingsDB?.name)
+      debug('settingsDB address', $settingsDB?.address.toString())
+      debug('settingsDB name', $settingsDB?.name)
       newCategory = '';
     }
   }
@@ -122,7 +123,7 @@
 
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text).then(() => {
-      console.log('Text copied to clipboard:', text);
+      info('Text copied to clipboard:', text);
     }).catch(err => {
       console.error('Error copying text to clipboard:', err);
     });
@@ -130,29 +131,29 @@
 
   async function handleProfilePictureUpload(event) {
     const file = event.target.files[0];
-    console.log('File selected:', file);
+    info('File selected:', file);
 
     if (!file || !file.type.startsWith('image/')) {
       errorMessage = $_('please_select_image');
-      console.log('Invalid file type or no file selected');
+      info('Invalid file type or no file selected');
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) { // 5MB limit
       errorMessage = $_('image_too_large');
-      console.log('File too large:', file.size);
+      info('File too large:', file.size);
       return;
     }
 
     if (!$mediaDB || !$helia) {
       errorMessage = $_('media_db_not_initialized');
-      console.log('MediaDB or Helia not initialized:', { mediaDB: !!$mediaDB, helia: !!$helia });
+      info('MediaDB or Helia not initialized:', { mediaDB: !!$mediaDB, helia: !!$helia });
       return;
     }
 
     if (!fs) {
       fs = unixfs($helia);
-      console.log('UnixFS initialized');
+      info('UnixFS initialized');
     }
 
     uploading = true;
@@ -162,11 +163,11 @@
       // Read file as arrayBuffer
       const buffer = await file.arrayBuffer();
       const fileBytes = new Uint8Array(buffer);
-      console.log('File read as bytes, size:', fileBytes.length);
+      info('File read as bytes, size:', fileBytes.length);
 
       // Add to IPFS
       const cid = await fs.addBytes(fileBytes);
-      console.log('File added to IPFS, CID:', cid.toString());
+      info('File added to IPFS, CID:', cid.toString());
 
       // Store metadata in OrbitDB
       const mediaId = crypto.randomUUID();
@@ -178,16 +179,16 @@
         cid: cid.toString(),
         createdAt: new Date().toISOString()
       });
-      console.log('Media metadata stored in OrbitDB:', mediaId);
+      info('Media metadata stored in OrbitDB:', mediaId);
 
       // Store profile picture reference in settings
       await $settingsDB.put({ _id: 'profilePicture', value: cid.toString() });
-      console.log('Profile picture CID stored in settings:', cid.toString());
+      info('Profile picture CID stored in settings:', cid.toString());
       
       $profilePictureCid = cid.toString();
-      console.log('Profile picture CID updated in component state:', $profilePictureCid);
+      info('Profile picture CID updated in component state:', $profilePictureCid);
     } catch (error) {
-      console.error('Error uploading profile picture:', error);
+      error('Error uploading profile picture:', error);
       errorMessage = error.message || $_('failed_to_upload');
     } finally {
       uploading = false;

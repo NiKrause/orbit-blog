@@ -2,6 +2,7 @@
   import { _ } from 'svelte-i18n';
   import { postsDB } from '$lib/store';
   import type { Post } from '$lib/types';
+  import { info, error } from '../utils/logger'
 
   interface Props {
     post: Post;
@@ -13,7 +14,7 @@
   let author = $state('');
 
   async function handleSubmit() {
-    console.log('Adding comment to post:', post._id);
+    info('Adding comment to post:', post._id);
     if (newComment && author) {
       try {
         const comment = {
@@ -30,17 +31,17 @@
         };
 
         // Delete the old post first
-        console.log('Deleting post:', post);
+        info('Deleting post:', post);
         await $postsDB.del(post._id);
-        console.log('Adding post again with new comments:', post);
+        info('Adding post again with new comments:', post);
         // Then add the updated post as a new entry
         await $postsDB.put(post)
 
-        console.info('Comment added successfully');
+        info('Comment added successfully');
         newComment = '';
         author = '';
       } catch (error) {
-        console.error('Error adding comment:', error);
+        error('Error adding comment:', error);
       }
     }
   }
@@ -54,15 +55,15 @@
       };
 
       // Delete the old post first
-      console.log('Deleting post:', post);
+      info('Deleting post:', post);
       await $postsDB.del(post._id);
       
       // Then add the updated post as a new entry
       await $postsDB.put(post);
 
-      console.info('Comment deleted successfully');
+      info('Comment deleted successfully');
     } catch (error) {
-      console.error('Error deleting comment:', error);
+      error('Error deleting comment:', error);
     }
   }
 </script>

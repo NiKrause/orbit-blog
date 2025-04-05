@@ -3,6 +3,7 @@ import { aiApiKey, aiApiUrl, enabledLanguages } from '../store';
 import type { BlogPost } from '../types';
 import OpenAI from 'openai';
 import { encryptPost } from '$lib/cryptoUtils.js';
+import { info, error } from '../utils/logger'
 
 interface TranslationRequest {
   text: string;
@@ -77,7 +78,7 @@ Only respond with the translated text, without any additional commentary.`;
         translatedText: completion.choices[0].message.content || '',
       };
     } catch (error) {
-      console.error('Translation error:', error);
+      error('Translation error:', error);
       throw error;
     }
   }
@@ -91,7 +92,7 @@ Only respond with the translated text, without any additional commentary.`;
     
     // Translate to each enabled language
     for (const lang of enabledLangs) {
-      console.log('lang', lang);
+      info('lang', lang);
       if (lang === sourceLanguage) {
         translations[lang] = post;
         continue;
@@ -127,9 +128,9 @@ Only respond with the translated text, without any additional commentary.`;
           language: lang,
           translatedFrom: sourceLanguage
         };
-        console.log('translations', translations);
+        info('translations', translations);
       } catch (error) {
-        console.error(`Failed to translate to ${lang}:`, error);
+        error(`Failed to translate to ${lang}:`, error);
         translations[lang] = {
           ...post,
           language: lang,
@@ -198,7 +199,7 @@ Only respond with the translated text, without any additional commentary.`;
           await postsDB.put(postData);
           translationStatuses[lang] = 'success';
         } catch (error) {
-          console.error(`Error saving translation for ${lang}:`, error);
+          error(`Error saving translation for ${lang}:`, error);
           translationStatuses[lang] = 'error';
         }
       }
@@ -208,7 +209,7 @@ Only respond with the translated text, without any additional commentary.`;
         translationStatuses
       };
     } catch (error) {
-      console.error('Translation error:', error);
+      error('Translation error:', error);
       return {
         success: false,
         error: 'translation_failed',

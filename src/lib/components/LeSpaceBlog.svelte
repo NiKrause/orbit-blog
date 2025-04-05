@@ -76,6 +76,8 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     isRTL
   } from '$lib/store';
 
+  import { info, debug, warn, error } from '../utils/logger.js'
+
   let blockstore = new LevelBlockstore('./helia-blocks');
   let datastore = new LevelDatastore('./helia-data');
 
@@ -106,7 +108,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   let fs;
 
   if(!encryptedSeedPhrase) {
-      console.log('no seed phrase, generating new one')
+      info('no seed phrase, generating new one')
       $seedPhrase = generateMnemonic();
       initializeApp();
   }
@@ -134,16 +136,16 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   async function initializeApp() {
     if (!seedPhrase) return;
     
-    console.log('initializeApp')
+    info('initializeApp')
     
     const masterSeed = generateMasterSeed($seedPhrase, "password");
     const { hex } = await generateAndSerializeKey(masterSeed.subarray(0, 32))
     const privKeyBuffer = uint8ArrayFromString(hex, 'hex');
     const _keyPair = await privateKeyFromProtobuf(privKeyBuffer);
     $libp2p = await createLibp2p({ privateKey: _keyPair, ...libp2pOptions })
-    console.log('libp2p', $libp2p)
+    debug('libp2p', $libp2p)
     $helia = await createHelia({ libp2p: $libp2p, datastore, blockstore })
-    console.log('helia', $helia)
+    debug('helia', $helia)
     // const ret = await getIdentity($helia, $seedPhrase) //DID identity
       // = ret.identity
     // $identities = ret.identities
@@ -158,7 +160,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       directory: './orbitdb',
     })
     const addr = multiaddr(multiaddrs[0])
-    console.log('voyager', voyager)
+    info('voyager', voyager)
     $voyager = await Voyager({ orbitdb: $orbitdb, address: addr})
     routerUnsubscribe = await initHashRouter();
 
@@ -166,12 +168,12 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 
     if ($helia) {
       fs = unixfs($helia);
-      console.log('UnixFS initialized');
+      info('UnixFS initialized');
     }
   }
 
   $:if($initialAddress) {
-    console.log('initialAddress', $initialAddress);
+    info('initialAddress', $initialAddress);
     sidebarVisible = false;
   }
   
@@ -196,12 +198,12 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       await $settingsDB?.close();
       await $postsDB?.close();
     } catch (error) {
-      console.error('Error closing OrbitDB connections:', error);
+      error('Error closing OrbitDB connections:', error);
     }
   })
 
   $:if($orbitdb && $voyager){
-    console.log('connecting to voyager')
+    info('connecting to voyager')
     $voyager?.orbitdb.open('settings', {
           type: 'documents',
           create: true,
@@ -215,9 +217,9 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
           window.settingsDB = _db;
           $voyager?.add(_db.address).then((ret) => {
             $settingsDB.pinnedToVoyager = ret;
-            console.log('voyager added settingsDB', ret)
-          }).catch( err => console.log('voyager error', err))
-        }).catch( err => console.log('error', err))
+            info('voyager added settingsDB', ret)
+          }).catch( err => warn('voyager error', err))
+        }).catch( err => warn('error', err))
         
         $voyager?.orbitdb.open('posts', {
           type: 'documents',
@@ -230,11 +232,11 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         }).then(_db => {
           $postsDB = _db;
           window.postsDB = _db;
-          $voyager?.add(_db.address).then((ret) => console.log('voyager added postsDB '+_db.address, ret))
-          console.log('postsDB', _db.address.toString())
+          $voyager?.add(_db.address).then((ret) => info('voyager added postsDB '+_db.address, ret))
+          info('postsDB', _db.address.toString())
           $postsDBAddress = _db.address.toString()
 
-        }).catch( err => console.log('error', err))
+        }).catch( err => warn('error', err))
 
         $voyager?.orbitdb.open('remote-dbs', {
           type: 'documents',
@@ -246,8 +248,8 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         }).then(_db => {
           $remoteDBsDatabases = _db;
           window.remoteDBsDatabases = _db;
-          $voyager?.add(_db.address).then((ret) => console.log('voyager added remoteDBsDatabases '+_db.address, ret))
-        }).catch(err => console.error('Error opening remote DBs database:', err));
+          $voyager?.add(_db.address).then((ret) => info('voyager added remoteDBsDatabases '+_db.address, ret))
+        }).catch(err => warn('Error opening remote DBs database:', err));
 
         // // Add this to the initializeApp function after other database initializations
         $voyager?.orbitdb.open('comments', {
@@ -260,10 +262,10 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
           AccessController: IPFSAccessController({write: ["*"]}),
         }).then(_db => {
           $commentsDB = _db;
-          console.log('commentsDB', _db)
+          info('commentsDB', _db)
           window.commentsDB = _db;
-          $voyager?.add(_db.address).then((ret) => console.log('voyager added commentsDB '+_db.address, ret))
-        }).catch(err => console.log('error', err))
+          $voyager?.add(_db.address).then((ret) => info('voyager added commentsDB '+_db.address, ret))
+        }).catch(err => warn('error', err))
 
         // // Add this to initialize the media database
         $voyager?.orbitdb.open('media', {
@@ -276,10 +278,10 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
           AccessController: IPFSAccessController({write: [$identity.id]}), 
         }).then(_db => {
           $mediaDB = _db;
-          console.log('mediaDB', _db)
+          info('mediaDB', _db)
           window.mediaDB = _db;
-          $voyager?.add(_db.address).then((ret) => console.log('voyager added mediaDB '+_db.address, ret))
-        }).catch(err => console.log('error initializing media database', err))
+          $voyager?.add(_db.address).then((ret) => info('voyager added mediaDB '+_db.address, ret))
+        }).catch(err => warn('error initializing media database', err))
   }
 
   $:if($settingsDB && (!$blogName || !$blogDescription || !$categories || !$postsDBAddress)) {
@@ -300,7 +302,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         } else if($postsDBAddress && $postsDB.address){
           const postsDBAddress = $postsDB?.address.toString()
           $settingsDB?.put({ _id: 'postsDBAddress', value: postsDBAddress});
-          $settingsDB?.all().then(result => console.log('settingsDB.all()', result))
+          $settingsDB?.all().then(result => debug('settingsDB.all()', result))
         }
       }
     )
@@ -310,7 +312,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       } else if($commentsDB && $commentsDB.address){
         const commentsDBAddress = $commentsDB?.address.toString()
         $settingsDB?.put({ _id: 'commentsDBAddress', value: commentsDBAddress});
-        $settingsDB?.all().then(result => console.log('settingsDB.all()', result))
+        $settingsDB?.all().then(result => debug('settingsDB.all()', result))
       }
     })
     $settingsDB.get('mediaDBAddress').then(result => {
@@ -318,14 +320,14 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       } else if($mediaDB && $mediaDB.address){
         const mediaDBAddress = $mediaDB?.address.toString()
         $settingsDB?.put({ _id: 'mediaDBAddress', value: mediaDBAddress});
-        $settingsDB?.all().then(result => console.log('settingsDB.all()', result))
+        $settingsDB?.all().then(result => debug('settingsDB.all()', result))
       }
     })
 
     $settingsDB.get('profilePicture').then(result => {
       if (result?.value?.value) {
         $profilePictureCid = result.value.value;
-        console.log('Set profile picture CID from settings:', $profilePictureCid);
+        info('Set profile picture CID from settings:', $profilePictureCid);
       }
     });
 
@@ -337,7 +339,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
           if(entry.payload.key==='blogDescription') $blogDescription = rest.value;
           if(entry.payload.key==='categories') $categories = rest.value;
           if(entry.payload.key==='profilePicture') {
-            console.log('Profile picture updated:', rest.value);
+            info('Profile picture updated:', rest.value);
             $profilePictureCid = rest.value;
           }
         } else if (entry?.payload?.op === 'DEL') { }
@@ -347,24 +349,24 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   // Add logging for profilePictureCid changes
   $: {
     if ($profilePictureCid) {
-      console.log('Profile picture CID changed:', $profilePictureCid);
+      info('Profile picture CID changed:', $profilePictureCid);
     }
   }
 
   $:if($postsDB){
 
     $postsDB.all().then(_posts => {
-      console.log('posts', _posts);
+      info('posts', _posts);
       $posts = _posts.map(entry => ({
         ...entry.value,
         identity: entry.identity // This contains the creator's identity
       }));
 
-    }).catch(err => console.error('Error opening posts database:', err));
+    }).catch(err => warn('Error opening posts database:', err));
 
 
     $postsDB.events.on('update', async (entry) => {
-      console.log('Posts database update:', entry);
+      info('Posts database update:', entry);
       setTimeout(async () => {
         await switchToRemoteDB($settingsDB.address);
       }, 3500);
@@ -372,14 +374,14 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   }
 
   $:if($remoteDBsDatabases){
-    console.info('Remote DBs database opened successfully:', $remoteDBsDatabases);
+    info('Remote DBs database opened successfully:', $remoteDBsDatabases);
     
     const loadRemoteDBs = async () => {
-      console.log('Starting to load remote DBs...');
+      info('Starting to load remote DBs...');
       const savedDBs = await $remoteDBsDatabases.all();
-      console.log("all of remoteDBsDatabases", savedDBs, new Date().toISOString());
+      info("all of remoteDBsDatabases", savedDBs, new Date().toISOString());
       const _remoteDBs = savedDBs.map(entry => entry.value);
-      console.info('Remote DBs list:', _remoteDBs);
+      info('Remote DBs list:', _remoteDBs);
       
       // Process each database
       _remoteDBs.forEach(async db => {
@@ -397,7 +399,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       //         console.info(`Posts database not available for ${db.name}:`, error);
       //         db.postsCount = 0;
       //       });
-      //   }
 
       //   if (db.commentsAddress) {
       //     console.log('loading commentsDB', db.commentsAddress)
@@ -434,13 +435,13 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     loadRemoteDBs() //.catch(err => console.error('Error loading remote DBs:', err));
   }
   $settingsDB?.events.on('update', async (entry) => {
-      console.log('Setting database update:', entry);
+      info('Setting database update:', entry);
       if (entry?.payload?.op === 'PUT') {
         const { _id, ...rest } = entry.payload.value;
-        console.log('settingsDB update:', rest);
+        info('settingsDB update:', rest);
         settingsDB.update(current => [...current, { ...rest, _id: _id }]);
       } else if (entry?.payload?.op === 'DEL') {
-        console.log('settingsDB delete:', entry.payload.key);
+        info('settingsDB delete:', entry.payload.key);
         settingsDB.update(current => current.filter(post => post._id !== entry.payload.key));
       }
     });
@@ -479,7 +480,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         showNotification = true;
         setTimeout(() => showNotification = false, 3000); // Hide notification after 3 seconds
       } catch (err) {
-        console.error('Failed to copy address: ', err);
+        error('Failed to copy address: ', err);
       }
     } else {
       alert('Settings database is not available.');
@@ -489,7 +490,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   $: {
     if ($helia && !fs) {
       fs = unixfs($helia);
-      console.log('LeSpaceBlog - UnixFS initialized');
+      info('LeSpaceBlog - UnixFS initialized');
     }
   }
 </script>
@@ -601,7 +602,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
                       alt="Profile" 
                       class="w-full h-full object-cover"
                       onload={() => {
-                        console.log('Image loaded successfully from Helia');
+                        info('Image loaded successfully from Helia');
                       }}
                     />
                   {:else}

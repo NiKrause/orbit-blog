@@ -1,6 +1,7 @@
 import { readable, derived, writable, get } from 'svelte/store';
 import { switchToRemoteDB } from './dbUtils';
 import { initialAddress } from './store';
+import { info, debug, error } from './utils/logger'
 const domain = window.location.hostname;
 const isBrowser = typeof window !== 'undefined';
 
@@ -11,7 +12,7 @@ async function queryTXT(domain: string) {
     const url = `https://${domain}/.orbitblog`;
 
     try {
-        console.log('querying initialAddress for domain', url);
+        debug('querying initialAddress for domain', url);
         const response = await fetch(url, {
             headers: {
                 'Accept': 'application/json',
@@ -23,11 +24,11 @@ async function queryTXT(domain: string) {
         });
         const data = await response.json();
         if (data.initialAddress) {
-            console.log('initialAddress', data.initialAddress);
+            info('initialAddress', data.initialAddress);
             return data.initialAddress;
         }
     } catch (error) {
-        console.info('LeSpaceBlog InitialAddress query not available:');
+        info('LeSpaceBlog InitialAddress query not available:');
     }
     return '';
 }
@@ -73,13 +74,13 @@ export async function initHashRouter() {
     const _initialAddressDNS =  await queryTXT(domain);
     if (_initialAddressRouter || _initialAddressDNS) {
         const _initialAddress = _initialAddressRouter || _initialAddressDNS;
-        console.log('initialAddress', _initialAddress);
+        info('initialAddress', _initialAddress);
         
         await switchToRemoteDB(_initialAddress, true)
         initialAddress.set(_initialAddress);
-        console.log('Initial remote blog load success');
+        info('Initial remote blog load success');
         await setTimeout(async () => {
-            console.log('Setting isLoadingRemoteBlog to false');
+            debug('Setting isLoadingRemoteBlog to false');
             isLoadingRemoteBlog.set(false);
         }, 1000);
         // console.log('Switching to remote blog again');
@@ -92,21 +93,21 @@ export async function initHashRouter() {
     // Subscribe to address changes
     const unsubscribe = orbitDBAddress.subscribe(async (address) => {
         if (address && address !== previousAddress) {
-            console.log('Detected OrbitDB address in URL:', address);
+            info('Detected OrbitDB address in URL:', address);
             previousAddress = address;
             try {
                 // Set loading state to true when we start loading a remote blog
                 isLoadingRemoteBlog.set(true);
                 const success = await switchToRemoteDB(address, true);
                 if (success) {
-                    console.log('Successfully switched to database from URL:', address);
+                    info('Successfully switched to database from URL:', address);
                 }
                 else {
-                    console.error('Failed to switch to database from URL:', address);
+                    info('Failed to switch to database from URL:', address);
                 }
             }
             catch (error) {
-                console.error('Error switching to database from URL:', error);
+                error('Error switching to database from URL:', error);
             }
             finally {
                 // Set loading state to false when finished, whether successful or not

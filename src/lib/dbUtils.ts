@@ -2,6 +2,7 @@ import { get } from 'svelte/store';
 import { helia, orbitdb, blogName, categories, blogDescription, postsDBAddress, profilePictureCid, postsDB, posts, settingsDB, remoteDBs, commentsDB, mediaDB, remoteDBsDatabases, commentsDBAddress, mediaDBAddress, identity, identities, voyager } from './store';
 import type { RemoteDB } from './types';
 import { IPFSAccessController } from '@orbitdb/core';
+import { error } from './utils/logger'
 /**
  * Adds a remote database to the store
  * @param address - The address of the remote database
@@ -48,7 +49,7 @@ export async function addRemoteDBToStore(address: string, peerId: string, name?:
       });
       voyagerInstance?.add(postsDb.address)
         .then(added => console.log('addedPostsToVoyager', added))
-        .catch(err => console.error('Failed to add posts to voyager:', err));
+        .catch(err => error('Failed to add posts to voyager:', err));
 
       // Create comments database (new)
       const commentsDb = await voyagerInstance.orbitdb.open(`${name}-comments`, {
@@ -63,7 +64,7 @@ export async function addRemoteDBToStore(address: string, peerId: string, name?:
       });
       voyagerInstance?.add(commentsDb.address)
         .then(added => console.log('addedCommentsToVoyager', added))
-        .catch(err => console.error('Failed to add comments to voyager:', err));
+        .catch(err => error('Failed to add comments to voyager:', err));
 
       // Create media database (new)
       const mediaDb = await voyagerInstance.orbitdb.open(`${name}-media`, {
@@ -77,7 +78,7 @@ export async function addRemoteDBToStore(address: string, peerId: string, name?:
       });
       voyagerInstance?.add(mediaDb.address)
         .then(added => console.log('addedMediaToVoyager', added))
-        .catch(err => console.error('Failed to add media to voyager:', err));
+        .catch(err => error('Failed to add media to voyager:', err));
 
       // Initialize the settings
       await settingsDb.put({ _id: 'blogName', value: name });
@@ -134,7 +135,7 @@ export async function addRemoteDBToStore(address: string, peerId: string, name?:
           console.log(`Fetched ${allPosts.length} posts from remote database`);
           newDB.fetchLater = false;
         } catch (error) {
-          console.error('Error opening posts database, will try later:', error);
+          error('Error opening posts database, will try later:', error);
         }
       }
     }
@@ -158,7 +159,7 @@ export async function addRemoteDBToStore(address: string, peerId: string, name?:
     }
     return false;
   } catch (error) {
-    console.error('Error adding database to store:', error);
+    error('Error adding database to store:', error);
     return false;
   }
 }
@@ -195,7 +196,7 @@ async function openOrCreateDB(
       config.addressStore.set(dbAddressValue);
       return dbInstance;
     } catch (error) {
-      console.error(`Failed to open ${config.name} database:`, error);
+      error(`Failed to open ${config.name} database:`, error);
       if (!canWriteToSettings) {
         console.log(`No write access to settings - skipping ${config.name} database creation`);
       }
@@ -219,7 +220,7 @@ async function openOrCreateDB(
       await settingsDB.put({ _id: dbKey, value: dbAddress });
       return dbInstance;
     } catch (error) {
-      console.error(`Failed to create ${config.name} database:`, error);
+      error(`Failed to create ${config.name} database:`, error);
     }
   } else {
     console.log(`No ${config.name} database address found and no write access to create one`);
@@ -408,7 +409,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
     }
     return true;
   } catch (error) {
-    console.error('Failed to switch to remote DB:', error);
+    error('Failed to switch to remote DB:', error);
     return false;
   } finally {
     // Update remote DBs store

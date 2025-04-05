@@ -18,7 +18,9 @@ import { circuitRelayTransport } from '@libp2p/circuit-relay-v2'
 import { ping } from '@libp2p/ping'
 import { dcutr } from '@libp2p/dcutr'
 import { autoNAT } from '@libp2p/autonat'
-// output of: console.log(server.peerId.privateKey.toString('hex'))
+import { info, debug } from './lib/utils/logger'
+
+// output of: info(server.peerId.privateKey.toString('hex'))
 const relayPrivKey = '08011240821cb6bc3d4547fcccb513e82e4d718089f8a166b23ffcd4a436754b6b0774cf07447d1693cd10ce11ef950d7517bad6e9472b41a927cd17fc3fb23f8c70cd99'
 // the peer id of the above key
 // const relayId = '12D3KooWAJjbRkp8FPF5MKgMU53aUTxWkqvDrs4zc1VMbwRwfsbE'
@@ -68,14 +70,14 @@ const server = await createLibp2p({
 })
 
 server.addEventListener('peer:connect', async event => {
-  console.log('peer:connect', event.detail)
+  debug('peer:connect', event.detail)
 })
 
 server.addEventListener('peer:disconnect', async event => {
-  console.log('peer:disconnect', event.detail)
+  debug('peer:disconnect', event.detail)
   server.peerStore.delete(event.detail)
 })
 
-console.log(server.peerId.toString())
-console.log('p2p addr: ', server.getMultiaddrs().map((ma) => ma.toString()))
+info(server.peerId.toString())
+info('p2p addr: ', server.getMultiaddrs().map((ma) => ma.toString()))
 // generates a deterministic address: /ip4/127.0.0.1/tcp/33519/ws/p2p/12D3KooWAJjbRkp8FPF5MKgMU53aUTxWkqvDrs4zc1VMbwRwfsbE

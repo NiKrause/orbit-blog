@@ -20,6 +20,7 @@
   import LanguageStatusLED from './LanguageStatusLED.svelte';
   import { encryptPost } from '$lib/cryptoUtils.js';
   import PostPasswordPrompt from './PostPasswordPrompt.svelte';
+  import { info, error } from '../utils/logger'
 
   let searchTerm = $state('');
   let selectedCategory: Category | 'All' = $state('All');
@@ -88,7 +89,7 @@
   let selectedPost = $derived($selectedPostId ? displayedPosts.find(post => post._id === $selectedPostId) : null);
 
   onMount(() => {
-    console.log('PostList component mounted');
+    info('PostList component mounted');
     if (displayedPosts.length > 0 && !$selectedPostId) {
       $selectedPostId = displayedPosts[0]._id;
     }
@@ -154,13 +155,13 @@
         }
 
         await $postsDB.put(updatedPost);
-        console.info('Post updated successfully', updatedPost);
+        info('Post updated successfully', updatedPost);
         editMode = false;
         isEncrypting = false;
         encryptionPassword = '';
         $selectedPostId = updatedPost._id;
       } catch (error) {
-        console.error('Error updating post:', error);
+        error('Error updating post:', error);
       }
     }
   }
@@ -194,14 +195,14 @@
         await $postsDB.del(post._id);
       }
 
-      console.info('Posts deleted successfully');
+      info('Posts deleted successfully');
       if ($selectedPostId === postToDelete._id && displayedPosts.length > 1) {
         $selectedPostId = displayedPosts[0]._id;
       }
       showDeleteConfirm = false;
       postToDelete = null;
     } catch (error) {
-      console.error('Error deleting posts:', error);
+      error('Error deleting posts:', error);
     }
   }
 
@@ -455,7 +456,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
   }
 
   function passwordSubmitted(event: CustomEvent) {
-    console.log('passwordSubmitted', event.detail.password);
+    info('passwordSubmitted', event.detail.password);
     encryptionPassword = event.detail.password;
     isEncrypting = true;
     showPasswordPrompt = false;
@@ -878,7 +879,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
     on:passwordSubmitted={passwordSubmitted}
     on:postDecrypted={handlePostDecrypted}
     on:cancel={() => {
-      console.log('cancel');
+      info('cancel');
       showPasswordPrompt = false;
       isEncrypting = false;
     }}

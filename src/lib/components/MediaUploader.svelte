@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { mediaDB, helia } from '$lib/store';
   import { unixfs } from '@helia/unixfs';
+  import { error } from '../utils/logger'
 
   let { onMediaSelected = (mediaCid: string) => {} } = $props();
 
@@ -36,7 +37,7 @@
       const allMedia = await $mediaDB.all();
       mediaList = allMedia.map(entry => entry.value);
     } catch (error) {
-      console.error('Error loading media:', error);
+      error('Error loading media:', error);
       errorMessage = 'Failed to load media';
     }
   }
@@ -108,7 +109,7 @@
       
       await loadMedia();
     } catch (error) {
-      console.error('Error uploading files:', error);
+      error('Error uploading files:', error);
       errorMessage = error.message || 'Failed to upload files';
     } finally {
       uploading = false;
@@ -125,7 +126,7 @@
       await $mediaDB.del(mediaId);
       await loadMedia();
     } catch (error) {
-      console.error('Error deleting media:', error);
+      error('Error deleting media:', error);
       errorMessage = 'Failed to delete media';
     }
   }

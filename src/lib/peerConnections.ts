@@ -1,5 +1,6 @@
 import type { Libp2p } from 'libp2p';
 import { writable } from 'svelte/store';
+import { info, debug, error } from './utils/logger'
 
 // Store for connected peers count
 export const connectedPeersCount = writable<number>(0);
@@ -17,47 +18,47 @@ export function setupPeerEventListeners(libp2p: Libp2p) {
   // Set up peer discovery listener
   libp2p.addEventListener('peer:discovery', async (evt) => {
     const peer = evt.detail;
-    console.log(`Peer ${libp2p.peerId.toString()} discovered: ${peer.id.toString()}`);
-    console.log('peer.multiaddrs', peer);
+    info(`Peer ${libp2p.peerId.toString()} discovered: ${peer.id.toString()}`);
+    debug('peer.multiaddrs', peer);
     
     // Check if we're already connected to this peer
     const connections = libp2p.getConnections(peer.id);
     if (!connections || connections.length === 0) {
-      console.log(`Dialing new peer: ${peer.id.toString()}`);
+      info(`Dialing new peer: ${peer.id.toString()}`);
       
       // Try each multiaddr until one succeeds
       let connected = false;
       for (const addr of peer.multiaddrs) {
         try {
-          console.log('dialing', addr.toString());
+          debug('dialing', addr.toString());
           await libp2p.dial(addr);
-          console.log('Successfully dialed:', addr.toString());
+          info('Successfully dialed:', addr.toString());
           connected = true;
           break; // Exit the loop once successfully connected
         } catch (error) {
-          console.warn(`Failed to dial ${addr.toString()}:`, error.message);
+          error(`Failed to dial ${addr.toString()}:`, error);
         }
       }
       
       if (!connected) {
-        console.error(`Failed to connect to peer ${peer.id.toString()} on all addresses`);
+        error(`Failed to connect to peer ${peer.id.toString()} on all addresses`);
       }
     } else {
-      console.log(`Already connected to peer: ${peer.id.toString()}`);
+      info(`Already connected to peer: ${peer.id.toString()}`);
     }
   });
 
   // Set up peer connection listener
   libp2p.addEventListener('peer:connect', (evt) => {
-    console.log('peer:connect event', evt.detail.toString());
-    console.log('Connected to %s', evt.detail.toString());
+    debug('peer:connect event', evt.detail.toString());
+    info('Connected to %s', evt.detail.toString());
     updateConnectedPeersCount(libp2p);
   });
   
   // Set up peer disconnection listener
   libp2p.addEventListener('peer:disconnect', (evt) => {
-    console.log('peer:disconnect event', evt.detail.toString());
-    console.log('Disconnected from %s', evt.detail.toString());
+    debug('peer:disconnect event', evt.detail.toString());
+    info('Disconnected from %s', evt.detail.toString());
     updateConnectedPeersCount(libp2p);
   });
 }

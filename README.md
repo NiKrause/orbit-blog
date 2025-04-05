@@ -43,6 +43,37 @@ Visit our IPNS link (requires [IPFS Companion](https://docs.ipfs.tech/install/ip
 - ✅ URL hash routing for blog sharing
 - ✅ LibP2P-Transport via secure Websocket, WebRTC and Webtransport
 
+## Logging Configuration
+
+The application uses a flexible logging system with different log levels to help with debugging and monitoring. You can configure the logging level through the browser's console or by setting the `LOG_LEVEL` environment variable.
+
+### Available Log Levels
+- `error`: Critical errors that need immediate attention
+- `warn`: Warning messages for potential issues
+- `info`: General information about application state
+- `debug`: Detailed debugging information
+- `trace`: Very detailed tracing information
+
+### How to Configure Log Levels
+
+#### In Browser Console
+1. Open your browser's developer tools (F12 or right-click -> Inspect)
+2. Go to the Console tab
+3. Set the desired log level by typing:
+   ```javascript
+   localStorage.setItem('LOG_LEVEL', 'debug'); // Replace 'debug' with your desired level
+   ```
+4. Refresh the page to apply the changes
+
+#### Using Environment Variables
+When running the application locally, you can set the log level using an environment variable:
+```bash
+LOG_LEVEL=debug npm run dev
+```
+
+### Default Log Level
+By default, the application logs at the `info` level, which provides a good balance between useful information and console clutter.
+
 ## Roadmap
 
 ### In Development
