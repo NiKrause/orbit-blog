@@ -17,12 +17,12 @@ echo "IPFS name orbitblog updated with CID $cid"
 # ssh -t root@ipfs.le-space.de "cd docker/ipfs/willschenk && docker-compose exec ipfs ipfs add $cid"
 # echo "IPFS CID $cid added to ipfs.le-space.de"
 # Pin the CID to ipfs.le-space.de
-ssh -t root@ipfs.le-space.de "cd docker/ipfs/willschenk && docker-compose exec ipfs ipfs pin add $cid"
+ssh -t root@ipfs.le-space.de "ipfs pin add $cid"
 echo "IPFS CID $cid pinned to ipfs.le-space.de"
 
 
 # echo the result of name resolve should be the same as the cid
-result=$(ssh -t root@ipfs.le-space.de "cd docker/ipfs/willschenk && docker-compose exec ipfs ipfs name resolve --nocache /ipns/k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g" | tr -d '\r' | tr -d '\n')
+result=$(ssh -t root@ipfs.le-space.de "ipfs name resolve --nocache /ipns/k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g" | tr -d '\r' | tr -d '\n')
 
 # Debug with hexdump to see exactly what characters we're getting
 echo "Result raw:"
