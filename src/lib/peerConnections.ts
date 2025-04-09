@@ -1,7 +1,7 @@
 import type { Libp2p } from 'libp2p';
 import { writable } from 'svelte/store';
-import { info, debug, error } from './utils/logger'
-
+import { multiaddr } from '@multiformats/multiaddr';
+import { info, debug, error } from './utils/logger.js'
 // Store for connected peers count
 export const connectedPeersCount = writable<number>(0);
 
@@ -9,9 +9,9 @@ export const connectedPeersCount = writable<number>(0);
  * Setup event listeners for libp2p peer discovery and connections
  * @param libp2p The libp2p instance to set up listeners for
  */
-export function setupPeerEventListeners(libp2p: Libp2p) {
+export function  setupPeerEventListeners(libp2p: Libp2p) {
   if (!libp2p) return;
-  
+
   // Update connected peers count initially
   updateConnectedPeersCount(libp2p);
   
@@ -34,7 +34,7 @@ export function setupPeerEventListeners(libp2p: Libp2p) {
           await libp2p.dial(addr);
           info('Successfully dialed:', addr.toString());
           connected = true;
-          break; // Exit the loop once successfully connected
+          // break; // Exit the loop once successfully connected
         } catch (error) {
           error(`Failed to dial ${addr.toString()}:`, error);
         }

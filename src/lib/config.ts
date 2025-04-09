@@ -37,7 +37,7 @@ if(_VITE_SEED_NODES || _VITE_SEED_NODES_DEV || _MODE) {
 
 export let multiaddrs = MODE === 'development'?VITE_SEED_NODES_DEV:VITE_SEED_NODES
 let pubSubPeerDiscoveryTopics = MODE === 'development'?VITE_P2P_PUPSUB_DEV:VITE_P2P_PUPSUB_DEV
-        
+       
 export const bootstrapConfig = {list: multiaddrs};
 import type { Libp2pOptions } from '@libp2p/interface'
 
@@ -64,23 +64,31 @@ export const libp2pOptions: Libp2pOptions = {
              }
          }),
         webRTCDirect(),
-        circuitRelayTransport({ discoverRelays: 1 } as any) // TODO: Update with correct type after checking latest @libp2p/circuit-relay-v2 types
+        circuitRelayTransport({ discoverRelays: 1 }) 
         // kadDHT({}),
     ],
     connectionEncrypters: [noise()],
     streamMuxers: [
         yamux(),
     ],
+    connectionManager: {
+        inboundStreamProtocolNegotiationTimeout: 1e4,
+        inboundUpgradeTimeout: 1e4,
+        outboundStreamProtocolNegotiationTimeout: 1e4,
+        outboundUpgradeTimeout: 1e4,
+    },
     connectionGater: {
         denyDialMultiaddr: () => {
             return false
         }
     },
+    
     peerDiscovery: [
         bootstrap(bootstrapConfig),
         pubsubPeerDiscovery({
             interval: 10000,
-            topics: pubSubPeerDiscoveryTopics, // defaults to ['_peer-discovery._p2p._pubsub']
+            topics: pubSubPeerDiscoveryTopics,
+            // topics: ['doichain._peer-discovery._p2p._pubsub'], //pubSubPeerDiscoveryTopics, // defaults to ['_peer-discovery._p2p._pubsub']
             listenOnly: false,
         })
     ],
@@ -90,10 +98,6 @@ export const libp2pOptions: Libp2pOptions = {
         ping: ping(),
         autoNAT: autoNAT(),
         dcutr: dcutr(),
-        pubsub: gossipsub({ allowPublishToZeroTopicPeers: true, canRelayMessage: true })
-    },
-    connectionManager: {
-        autoDial: true,
-        minConnections: 3,
-    },
+        pubsub: gossipsub({ allowPublishToZeroTopicPeers: true, canRelayMessage: true, emitSelf: true, }),
+    }
 }

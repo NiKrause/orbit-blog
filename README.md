@@ -13,6 +13,7 @@
 ## Description
 
 Le Space-Blog is a decentralized blogging application that leverages OrbitDB for peer-to-peer data replication and IPFS for content storage. It enables users to create, manage, and share blog content in a decentralized manner, so blog posts are stored with the blog author and their readers maintain a replica via peer-to-peer connections.
+Since this would require the blog author to leave his browser open 24/7 for the readers to read the blog, soon we offer blog pinning nodes for blog authors, which can be run at home (self hosted) on your desktop or as RaspberryPi image in your living room, as docker image if you want to install it on a cloud server or as a paid service.
 
 ## Installation
 
@@ -45,25 +46,11 @@ Visit our IPNS link (requires [IPFS Companion](https://docs.ipfs.tech/install/ip
 
 ## Logging Configuration
 
-The application uses a flexible logging system with different log levels to help with debugging and monitoring. You can configure the logging level through the browser's console or by setting the `LOG_LEVEL` environment variable.
+The web application uses the flexible libp2p logging system. You can configure the logging level through the browser's console. Checkout the following log levels:
+localStorage.setItem('debug', 'le-space:*') observers the le-space blog internals db and replication operations
+localStorage.setItem('debug', 'libp2p:circuit-relay:*,libp2p:discovery:*,libp2p:dcutr:*') observes circuit-relay, peer discovery, dcutr important for peer-to-peer communication between browsers
+localStorage.setItem('debug', 'libp2p:*,helia:*,le-space:blog:*') observers all logs of libp2p, helia and le-space blog
 
-### Available Log Levels
-- `error`: Critical errors that need immediate attention
-- `warn`: Warning messages for potential issues
-- `info`: General information about application state
-- `debug`: Detailed debugging information
-- `trace`: Very detailed tracing information
-
-### How to Configure Log Levels
-
-#### In Browser Console
-1. Open your browser's developer tools (F12 or right-click -> Inspect)
-2. Go to the Console tab
-3. Set the desired log level by typing:
-   ```javascript
-   localStorage.setItem('LOG_LEVEL', 'debug'); // Replace 'debug' with your desired level
-   ```
-4. Refresh the page to apply the changes
 
 #### Using Environment Variables
 When running the application locally, you can set the log level using an environment variable:

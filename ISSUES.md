@@ -15,7 +15,10 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 ### Todos, Features, Issues
 - Todos:
+    - [ ] BUG: add remote db didn't work (mermaid)
+    - [ ] BUG: during a demo with a blogger, I couldn't add his orbitdb address
     - [ ] add a publish state (unpublished / published) to PostList and PostForm and only show published posts 
+    - [ ] bug: when unpublish a translated post other related posts in other languages should be unpublished too?
     - [ ] UI-Bug: Navigation tattered.
     - [ ] UI-Bug: iOS-Mobile looks terrible.
     - [ ] UI-Bug: If a post isn't translated into the current language, try other fallback (browser) languages other wise en, zh, hi, es

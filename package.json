@@ -28,10 +28,15 @@
     "build": "vite build",
     "build:lib": "vite build --mode lib",
     "preview": "vite preview",
+    "test": "mocha test/**/*.test.js",
+    "test:watch": "mocha test/**/*.test.js --watch",
     "ipfs-publish": "npm version patch && npm run build && ./ipfs-publish.sh",
     "check": "svelte-check --tsconfig ./tsconfig.json"
   },
   "devDependencies": {
+    "chai": "5.1.2",
+    "mocha": "11.1.0",
+    "node-fetch": "4.0.0-beta.4",
     "@sveltejs/package": "^2.3.10",
     "@sveltejs/vite-plugin-svelte": "^4.0.4",
     "@tailwindcss/forms": "^0.5.10",
