@@ -18,8 +18,8 @@ import { BROWSER, DEV } from 'esm-env'
 let VITE_SEED_NODES = import.meta.env.VITE_SEED_NODES.replace('\n','').split(',')
 let VITE_SEED_NODES_DEV = import.meta.env.VITE_SEED_NODES_DEV.replace('\n','').split(',')
 let MODE = import.meta.env.MODE
-let VITE_P2P_PUPSUB_DEV = import.meta.env.VITE_P2P_PUPSUB_DEV || '';
-let VITE_P2P_PUPSUB = import.meta.env.VITE_P2P_PUPSUB || '';
+let VITE_P2P_PUPSUB_DEV = import.meta.env.VITE_P2P_PUPSUB_DEV.replace('\n','').split(',') || '';
+let VITE_P2P_PUPSUB = import.meta.env.VITE_P2P_PUPSUB.replace('\n','').split(',') || '';
 
 let _VITE_SEED_NODES_DEV = process.env.VITE_SEED_NODES_DEV || '';
 let _VITE_SEED_NODES = process.env.VITE_SEED_NODES || '';
