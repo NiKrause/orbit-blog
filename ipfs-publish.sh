@@ -22,7 +22,7 @@ echo "IPFS CID $cid pinned to ipfs.le-space.de"
 
 
 # echo the result of name resolve should be the same as the cid
-result=$(ssh -t root@ipfs.le-space.de "ipfs name resolve --nocache /ipns/k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g" | tr -d '\r' | tr -d '\n')
+result=$(ssh -t root@ipfs.le-space.de "su ipfs -c 'ipfs name resolve --nocache /ipns/k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g'" | tr -d '\r' | tr -d '\n')
 
 # Debug with hexdump to see exactly what characters we're getting
 echo "Result raw:"

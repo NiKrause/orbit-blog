@@ -36,7 +36,7 @@ if(_VITE_SEED_NODES || _VITE_SEED_NODES_DEV || _MODE) {
 }
 
 export let multiaddrs = MODE === 'development'?VITE_SEED_NODES_DEV:VITE_SEED_NODES
-let pubSubPeerDiscoveryTopics = MODE === 'development'?VITE_P2P_PUPSUB_DEV:VITE_P2P_PUPSUB_DEV
+let pubSubPeerDiscoveryTopics = MODE === 'development'?VITE_P2P_PUPSUB_DEV:VITE_P2P_PUPSUB
        
 export const bootstrapConfig = {list: multiaddrs};
 import type { Libp2pOptions } from '@libp2p/interface'
