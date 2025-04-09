@@ -16,6 +16,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 ### Todos, Features, Issues
 - Todos:
     - [ ] BUG: add remote db didn't work (mermaid)
+    - [ ] Feature: Implement IPNS-OrbitDB-blockchain-link: Store an OrbitDB-Address in a blockchain transaction (e.g. Namecoin) name: ipns/example.com / ipns/ipnspubkey value: /orbitdb/address - when a website / app is loaded via ipns e.g. example-com/ipns.localhost:8081 pwa can extract the ipns name from the hostname and lookup an OrbitDB from a blockchain to load as default! Also set x-ipfs-path in nginx header
     - [ ] BUG: during a demo with a blogger, I couldn't add his orbitdb address
     - [ ] add a publish state (unpublished / published) to PostList and PostForm and only show published posts 
     - [ ] bug: when unpublish a translated post other related posts in other languages should be unpublished too?

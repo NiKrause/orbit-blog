@@ -532,8 +532,8 @@ ${convertMarkdownToLatex(selectedPost.content)}
             onclick={() => selectPost(post._id)}
             onmouseover={() => hoveredPostId = post._id}
             onmouseout={() => hoveredPostId = null}
-            ontouchstart={(e) => { e.preventDefault(); }}
-            ontouchend={(e) => { e.preventDefault(); }}
+            ontouchstart={(e) => { e.stopPropagation(); selectPost(post._id) }}
+            ontouchend={(e) => { e.stopPropagation(); selectPost(post._id) }}
             role="button"
             tabindex="0"
             onkeydown={(e) => e.key === 'Enter' && selectPost(post._id)}
