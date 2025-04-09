@@ -32,6 +32,7 @@
   let editedCategory: Category = $state();
   let editedUpdatedAt = $state('');
   let editedCreatedAt = $state('');
+  let editedPublished = $state(false);
   let showHistory = $state(false);
   let postHistory = $state<Post[]>([]);
   let showMediaUploader = $state(false);
@@ -61,6 +62,10 @@
     
     return $posts
       .filter(post => {
+        
+        // For users without write access, only show published posts
+        if (!hasWriteAccess() &&post.published === false) return false;
+
         // Language filter - show posts that either:
         // 1. Match the current language
         // 2. Have no language specified and no translations (legacy posts)
@@ -122,6 +127,7 @@
     editedUpdatedAt = new Date(post.updatedAt).toISOString().slice(0, 16);
     editedCreatedAt = new Date(post.createdAt).toISOString().slice(0, 16);
     selectedMedia = post.mediaIds || [];
+    editedPublished = post.published ?? false;
     editMode = true;
   }
 
@@ -137,7 +143,8 @@
           createdAt: new Date(editedCreatedAt).getTime(),
           updatedAt: new Date(editedUpdatedAt).getTime(),
           identity: $identity.id,
-          mediaIds: selectedMedia
+          mediaIds: selectedMedia,
+          published: editedPublished
         };
 
         // If post is being encrypted or was previously encrypted
@@ -642,6 +649,16 @@ ${convertMarkdownToLatex(selectedPost.content)}
                   bind:value={editedCreatedAt}
                   class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 />
+              </div>
+
+              <div class="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="edit-published"
+                  bind:checked={editedPublished}
+                  class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                />
+                <label for="edit-published" class="text-sm text-gray-700 dark:text-gray-300">{$_('publish_post')}</label>
               </div>
 
               <div>

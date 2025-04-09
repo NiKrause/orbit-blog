@@ -12,6 +12,7 @@ export interface Post {
   translatedFrom?: string;
   originalPostId?: string;
   comments?: Comment[];
+  published?: boolean;
 }
 
 export interface Comment {

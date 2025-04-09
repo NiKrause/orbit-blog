@@ -25,6 +25,7 @@
   let showPasswordPrompt = $state(false);
   let encryptionPassword = $state('');
   let encryptionError = $state('');
+  let published = $state(false);
 
   async function handleSubmit() {
     console.log('Creating new post:', { title, category });
@@ -43,6 +44,7 @@
           updatedAt: Date.now(),
           identity: $identity.id,
           mediaIds: selectedMedia,
+          published
         };
 
         if (isEncrypting) {
@@ -266,6 +268,16 @@
   {/if}
 
   <div class="flex justify-between items-center mt-4">
+    <div class="flex items-center space-x-2">
+      <input
+        type="checkbox"
+        id="publish"
+        bind:checked={published}
+        class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+      />
+      <label for="publish" class="text-sm text-gray-700 dark:text-gray-300">{$_('publish_post')}</label>
+    </div>
+
     <button
       type="button"
       onclick={handleEncrypt}
