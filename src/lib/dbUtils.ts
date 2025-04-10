@@ -2,7 +2,7 @@ import { get } from 'svelte/store';
 import { helia, orbitdb, blogName, categories, blogDescription, postsDBAddress, profilePictureCid, postsDB, posts, settingsDB, remoteDBs, commentsDB, mediaDB, remoteDBsDatabases, commentsDBAddress, mediaDBAddress, identity, identities, voyager } from './store';
 import type { RemoteDB } from './types';
 import { IPFSAccessController } from '@orbitdb/core';
-import { error } from './utils/logger'
+import { error } from './utils/logger.js'
 /**
  * Adds a remote database to the store
  * @param address - The address of the remote database
@@ -191,6 +191,7 @@ async function openOrCreateDB(
   if (dbAddressValue) {
     try {
       const dbInstance = await voyagerInstance.orbitdb.open(dbAddressValue);
+      await voyagerInstance.add(dbInstance.address);
       console.log(`${config.name} ${dbAddressValue} loaded`);
       config.store.set(dbInstance);
       config.addressStore.set(dbAddressValue);

@@ -15,14 +15,16 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 ### Todos, Features, Issues
 - Todos:
-    - [ ] BUG: add remote db didn't work (mermaid)
-    - [ ] Feature: Implement IPNS-OrbitDB-blockchain-link: Store an OrbitDB-Address in a blockchain transaction (e.g. Namecoin) name: ipns/example.com / ipns/ipnspubkey value: /orbitdb/address - when a website / app is loaded via ipns e.g. example-com/ipns.localhost:8081 pwa can extract the ipns name from the hostname and lookup an OrbitDB from a blockchain to load as default! Also set x-ipfs-path in nginx header
+    - [ ] Feature: Make voyager host configurable via settings (everybody should be able to use its private voyager(s))
+    - [ ] Feature: Implement IPNS-OrbitDB-blockchain-link: Store an OrbitDB-Address in a blockchain transaction (e.g. Namecoin) name: ipns/example.com / ipns/ipnspubkey value: /orbitdb/address - when a website / app is loaded via ipns e.g. example-com/ipns.localhost:8081 pwa can extract the ipns name from the hostname and lookup an OrbitDB from a blockchain to load as default! Also set x-ipfs-path in nginx header.
     - [ ] BUG: during a demo with a blogger, I couldn't add his orbitdb address
-    - [ ] add a publish state (unpublished / published) to PostList and PostForm and only show published posts 
-    - [ ] bug: when unpublish a translated post other related posts in other languages should be unpublished too?
+    - [ ] BUG: add remote db didn't work (mermaid)
+    - [x] add a publish state (unpublished / published) to PostList and PostForm and only show published posts 
+    - [ ] bug: when unpublish a translated post other related posts in other languages should be unpublished too (optional)
+    - [ ] bug: when deleting a translated post other related posts in other languages should be deleted too (optional)
     - [ ] UI-Bug: Navigation tattered.
     - [ ] UI-Bug: iOS-Mobile looks terrible.
-    - [ ] UI-Bug: If a post isn't translated into the current language, try other fallback (browser) languages other wise en, zh, hi, es
+    - [ ] UI-Bug: If a post isn't translated into the current language, try other fallback (browser) languages otherwise en, zh, hi, es
     - [ ] UI-Bug: Translate button doesn't do anything while translating - we need to animate the button a little bit better (LED's need to reactively work while translation is ongoing)
     - [ ] Feature: when adding IPFS-image links into markdown, it should also parse external CIDs not just cids which are inside our media library
     - [ ] Bug: Peer-to-Peer between browsers broken (WebRTC upgrade from circuit-relay-v2)

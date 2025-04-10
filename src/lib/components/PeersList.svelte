@@ -22,8 +22,9 @@
     if (remoteAddr.includes('/webrtc')) return 'WebRTC';
     if (remoteAddr.includes('/wss') || remoteAddr.includes('/tls/sni/')) return 'WSS';
     if (remoteAddr.includes('/ws')) return 'WS';
-    if (remoteAddr.includes('/webtransport')) return 'WebTrans';
+    if (remoteAddr.includes('/webtransport')) return 'WebTransport';
     if (remoteAddr.includes('/tcp')) return 'TCP';
+    if (remoteAddr.includes('/p2p-circuit')) return 'Circuit';
     
     return 'Other';
   }
