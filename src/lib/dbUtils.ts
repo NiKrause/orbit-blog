@@ -1,8 +1,16 @@
 import { get } from 'svelte/store';
-import { helia, orbitdb, blogName, categories, blogDescription, postsDBAddress, profilePictureCid, postsDB, posts, settingsDB, remoteDBs, commentsDB, mediaDB, remoteDBsDatabases, commentsDBAddress, mediaDBAddress, identity, identities, voyager } from './store';
-import type { RemoteDB } from './types';
+import { helia, orbitdb, blogName, categories, blogDescription, postsDBAddress, profilePictureCid, postsDB, posts, settingsDB, remoteDBs, commentsDB, mediaDB, remoteDBsDatabases, commentsDBAddress, mediaDBAddress, identity, identities, voyager, loadingState } from './store.js';
+import type { RemoteDB } from './types.js';
 import { IPFSAccessController } from '@orbitdb/core';
 import { error, info, debug, warn } from './utils/logger.js'
+
+
+// Add this helper function
+function updateLoadingState(step: string, detail: string = '', progress: number = 0) {
+  loadingState.set({ step, detail, progress });
+  debug('Loading State:', { step, detail, progress });
+}
+
 /**
  * Adds a remote database to the store
  * @param address - The address of the remote database
@@ -233,6 +241,36 @@ async function openOrCreateDB(
 }
 
 /**
+ * Updates a remote database entry with counts and addresses
+ * @param address - The address of the database to update
+ * @param updates - Object containing the new values to update
+ */
+function updateRemoteDBEntry(
+  address: string,
+  updates: {
+    postsCount?: number;
+    commentsCount?: number;
+    mediaCount?: number;
+    postsDBAddress?: string;
+    commentsDBAddress?: string;
+    mediaDBAddress?: string;
+    access?: any;
+  }
+) {
+  remoteDBs.update(dbs => {
+    return dbs.map(db => {
+      if (db.address === address) {
+        return {
+          ...db,
+          ...updates
+        };
+      }
+      return db;
+    });
+  });
+}
+
+/**
  * Switches the application to use a remote OrbitDB database
  * 
  * This function performs a complete database switch operation by:
@@ -267,25 +305,29 @@ export async function switchToRemoteDB(address: string, showModal = false) {
   
   let blogNameValue;
   let categoriesValue; 
-  let profilePictureValue;
   
   const voyagerInstance = get(voyager);
   
-  // Get existing remote DB information to preserve
-  const existingRemoteDBs = get(remoteDBs);
-  const existingDB = existingRemoteDBs.find(db => db.address === address);
-  const existingPostsCount = existingDB?.postsCount;
-  
   try {
+    updateLoadingState('initializing', 'Starting database switch...', 5);
+
     while (retry && !cancelOperation) {
       const orbitdbInstance = get(orbitdb);
       if (!orbitdbInstance) throw new Error("OrbitDB not initialized");
       
+      // Connect to peers
+      updateLoadingState('connecting_peers', 'Connecting to P2P network...', 10);
+      const heliaInstance = get(helia);
+      const peers = await heliaInstance?.libp2p?.getPeers();
+      updateLoadingState('connecting_peers', `Connected to ${peers?.length || 0} peers`, 20);
+      
       // First clear the posts store to prevent stale data display
       posts.set([]);
       
+      updateLoadingState('identifying_db', `Opening database: ${address}`, 30);
       const db = await voyagerInstance.orbitdb.open(address);
      
+      updateLoadingState('loading_settings', 'Pinning database to Voyager...', 35);
       const added = await voyagerInstance.add(db.address)
       db.pinnedToVoyager = added;
       info(`settingsDB ${address} added to voyager`, added)
@@ -294,6 +336,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       settingsDB.set(db);
      
       // Get all settings data
+      updateLoadingState('loading_settings', 'Loading blog configuration...', 40);
       const dbContents = await db.all();
       info('try to switch to remote dbContents', dbContents);
 
@@ -313,6 +356,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       const profilePictureValue = dbContents.find(content => content.key === 'profilePicture')?.value?.value;
       info('profilePictureValue', profilePictureValue);
 
+      updateLoadingState('loading_settings', 'Processing blog settings...', 50);
       // Update stores with settings data
       if (blogNameValue) blogName.set(blogNameValue);
       if (blogDescriptionValue) blogDescription.set(blogDescriptionValue);
@@ -321,7 +365,12 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       if (mediaDBAddressValue) mediaDBAddress.set(mediaDBAddressValue);
       if (categoriesValue) categories.set(categoriesValue);
       if (profilePictureValue) profilePictureCid.set(profilePictureValue);
-
+      
+      updateRemoteDBEntry(address, {
+        postsDBAddress: postsDBAddressValue,
+        commentsDBAddress: commentsDBAddressValue,
+        mediaDBAddress: mediaDBAddressValue
+      });
       // Check if we have write access to the settings database
       const identityId = get(identity).id;
       const canWriteToSettings = hasWriteAccess(db, identityId);
@@ -341,6 +390,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         let commentsDBAddress = '';
         let mediaDBAddress = '';
 
+        updateLoadingState('loading_posts', 'Opening posts database...', 60);
         // Create promises for all DB operations
         const postsPromise = openOrCreateDB(voyagerInstance, dbContents, 'postsDBAddress', {
           name: 'posts',
@@ -371,6 +421,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
           return null;
         });
 
+        updateLoadingState('loading_comments', 'Opening comments database...', 70);
         const commentsPromise = openOrCreateDB(voyagerInstance, dbContents, 'commentsDBAddress', {
           name: 'comments',
           directory: './orbitdb/comments',
@@ -389,6 +440,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
           }
         });
 
+        updateLoadingState('loading_media', 'Opening media database...', 80);
         const mediaPromise = openOrCreateDB(voyagerInstance, dbContents, 'mediaDBAddress', {
           name: 'media',
           directory: './orbitdb/media',
@@ -407,41 +459,32 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         });
 
         // Wait for all operations to complete
-        info('waiting for all operations to complete')
+        updateLoadingState('loading_media', 'Finalizing database loading...', 90);
         const [postsResult] = await Promise.all([postsPromise, commentsPromise, mediaPromise]);
-        info('all operations complete')
+        
         // Update remote DBs with the counts and access info
-        remoteDBs.update(dbs => {
-          return dbs.map(db => {
-            info('updating address', db.address, address)
-            if (db.address === address) {
-              info('updating remote db', db)
-              info('commentsDBAddress',  commentsDBAddress)
-              info('mediaDBAddress', mediaDBAddress)
-              return {
-                ...db, 
-                postsCount, 
-                commentsCount, 
-                mediaCount, 
-                postsDBAddress,
-                commentsDBAddress,
-                mediaDBAddress,
-                access: postsResult?.access
-              }; 
-            }
-            console.log('updated remote db', db)
-            return db;
-          });
+        updateRemoteDBEntry(address, {
+          postsCount,
+          commentsCount,
+          mediaCount,
+          postsDBAddress,
+          commentsDBAddress,
+          mediaDBAddress,
+          access: postsResult?.access
         });
+
+        updateLoadingState('complete', 'Blog loaded successfully!', 100);
         info('remoteDBs', get(remoteDBs))
         retry = false; // Stop retrying if all data is fetched
       } else {
+        updateLoadingState('loading_settings', 'Waiting for required data...', 45);
         await new Promise(resolve => setTimeout(resolve, 500)); // Wait before retrying
       }
     }
     return true;
   } catch (_error) {
     error('Failed to switch to remote DB:', _error);
+    updateLoadingState('error', `Error: ${_error.message}`, 0);
     return false;
   } finally {
     // Update remote DBs store

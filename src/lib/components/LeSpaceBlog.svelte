@@ -37,17 +37,18 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   import { FaBars, FaTimes } from 'svelte-icons/fa';
 
   // Local utilities and config
-  import { libp2pOptions, multiaddrs } from '$lib/config';
-  import { encryptSeedPhrase } from '$lib/cryptoUtils';
-  import { generateMasterSeed, generateAndSerializeKey } from '$lib/utils';
-  import { initHashRouter, isLoadingRemoteBlog } from '$lib/router';
-  import { setupPeerEventListeners } from '$lib/peerConnections';
-  import { switchToRemoteDB } from '$lib/dbUtils';
+  import { libp2pOptions, multiaddrs } from '$lib/config.js';
+  import { encryptSeedPhrase } from '$lib/cryptoUtils.js';
+  import { generateMasterSeed, generateAndSerializeKey } from '$lib/utils.js';
+  import { initHashRouter, isLoadingRemoteBlog } from '$lib/router.js';
+  import { setupPeerEventListeners } from '$lib/peerConnections.js';
+  import { switchToRemoteDB } from '$lib/dbUtils.js';
   import { getImageUrlFromHelia } from '$lib/utils/mediaUtils.js';
   import { unixfs } from '@helia/unixfs';
   // Store imports
   import { 
     initialAddress,
+    loadingState,
     postsDB, 
     postsDBAddress, 
     posts, 
@@ -585,7 +586,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     <!-- Main Content -->
     <div class="flex-1 overflow-x-hidden">
       {#if $isLoadingRemoteBlog}
-        <LoadingBlog />
+        <LoadingBlog loadingState={$loadingState} />
       {:else}
         <div class="max-w-7xl mx-auto py-8 px-4">
           <div class="flex items-center justify-center mb-8 gap-4">

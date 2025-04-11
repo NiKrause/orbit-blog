@@ -1,20 +1,46 @@
 <script lang="ts">
   import { _ } from 'svelte-i18n';
 
-  interface Props {
-    message?: string;
+  interface LoadingState {
+    step: string;
+    detail?: string;
+    progress?: number;
   }
 
-  let { message = $_('connecting_network_loading_blog') }: Props = $props();
+  interface Props {
+    message?: string;
+    loadingState?: LoadingState;
+  }
+
+  let { 
+    message = $_('connecting_network_loading_blog'),
+    loadingState = { step: 'initializing', detail: '', progress: 0 }
+  }: Props = $props();
+
+  // Map loading steps to user-friendly messages
+  const stepMessages = {
+    'initializing': $_('initializing'),
+    'connecting_peers': $_('connecting_to_peers'),
+    'identifying_db': $_('identifying_database'),
+    'loading_settings': $_('loading_blog_settings'),
+    'loading_posts': $_('loading_posts'),
+    'loading_comments': $_('loading_comments'),
+    'loading_media': $_('loading_media'),
+    'complete': $_('loading_complete')
+  };
 </script>
 
 <div class="loading-overlay">
   <div class="loading-container">
     <h2 class="loading-title">{$_('loading_peer_to_peer_blog')}</h2>
-    <p class="loading-message">{message}</p>
+    <p class="loading-message">{stepMessages[loadingState.step] || message}</p>
+    {#if loadingState.detail}
+      <p class="loading-detail">{loadingState.detail}</p>
+    {/if}
     <div class="progress-container">
-      <div class="progress-bar"></div>
+      <div class="progress-bar" style="width: {loadingState.progress}%"></div>
     </div>
+    <p class="version-text">{__APP_VERSION__}</p>
   </div>
 </div>
 
@@ -65,9 +91,21 @@
   .progress-bar {
     height: 100%;
     background: linear-gradient(90deg, #4f46e5, #818cf8);
-    animation: loading 2s infinite ease-in-out;
-    background-size: 200% 100%;
+    transition: width 0.3s ease-in-out;
     border-radius: 4px;
+  }
+
+  .version-text {
+    font-size: 0.6rem;
+    color: #999;
+    margin-top: 0.5rem;
+  }
+
+  .loading-detail {
+    font-size: 0.8rem;
+    color: #666;
+    margin-bottom: 1rem;
+    font-style: italic;
   }
 
   :global(.dark) .loading-container {
@@ -84,6 +122,14 @@
 
   :global(.dark) .progress-container {
     background-color: #374151;
+  }
+
+  :global(.dark) .version-text {
+    color: #6b7280;
+  }
+
+  :global(.dark) .loading-detail {
+    color: #9ca3af;
   }
 
   @keyframes loading {

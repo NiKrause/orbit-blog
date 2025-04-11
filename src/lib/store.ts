@@ -8,7 +8,11 @@ export const identity = writable<{ id: string } | null>(null);
 export const identities = writable<{ id: string }[] | null>(null);
 export const settingsDB = writable<OrbitDB | null>(null);
 export const postsDB = writable<OrbitDB | null>(null);
-
+export const loadingState = writable({
+  step: 'initializing',
+  detail: '',
+  progress: 0
+});
 export const initialAddress = writable<string | null>(null);
 export const remoteDBs = writable<RemoteDB[]>([]);
 export const selectedDBAddress = writable<string | null>(null);

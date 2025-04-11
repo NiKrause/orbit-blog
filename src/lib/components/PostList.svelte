@@ -20,7 +20,7 @@
   import LanguageStatusLED from './LanguageStatusLED.svelte';
   import { encryptPost } from '$lib/cryptoUtils.js';
   import PostPasswordPrompt from './PostPasswordPrompt.svelte';
-  import { info, error } from '../utils/logger'
+  import { info, error } from '../utils/logger.js'
 
   let searchTerm = $state('');
   let selectedCategory: Category | 'All' = $state('All');
@@ -121,6 +121,7 @@
 
   function editPost(post: Post, event: MouseEvent) {
     event.stopPropagation();
+    $selectedPostId = post._id;
     editedTitle = post.title;
     editedContent = post.content;
     editedCategory = post.category;
@@ -167,7 +168,7 @@
         isEncrypting = false;
         encryptionPassword = '';
         $selectedPostId = updatedPost._id;
-      } catch (error) {
+      } catch (_error) {
         error('Error updating post:', error);
       }
     }
