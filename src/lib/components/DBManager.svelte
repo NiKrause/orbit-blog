@@ -723,9 +723,9 @@
 Database Name: ${db.name}
 Database ID: ${db.id}
 Main Address: ${db.address}
-Posts DB Address: ${db.postsAddress || 'Not available'}
-Comments DB Address: ${db.commentsAddress || 'Not available'}
-Media DB Address: ${db.mediaAddress || 'Not available'}
+Posts DB Address: ${db.postsDBAddress || 'Not available'}
+Comments DB Address: ${db.commentsDBAddress || 'Not available'}
+Media DB Address: ${db.mediaDBAddress || 'Not available'}
 Posts Count: ${db.postsCount !== undefined ? db.postsCount : 'Unknown'}
 Comments Count: ${db.commentsCount !== undefined ? db.commentsCount : 'Unknown'}
 Media Count: ${db.mediaCount !== undefined ? db.mediaCount : 'Unknown'}

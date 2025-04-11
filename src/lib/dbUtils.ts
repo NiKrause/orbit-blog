@@ -2,7 +2,7 @@ import { get } from 'svelte/store';
 import { helia, orbitdb, blogName, categories, blogDescription, postsDBAddress, profilePictureCid, postsDB, posts, settingsDB, remoteDBs, commentsDB, mediaDB, remoteDBsDatabases, commentsDBAddress, mediaDBAddress, identity, identities, voyager } from './store';
 import type { RemoteDB } from './types';
 import { IPFSAccessController } from '@orbitdb/core';
-import { error, info, debug } from './utils/logger.js'
+import { error, info, debug, warn } from './utils/logger.js'
 /**
  * Adds a remote database to the store
  * @param address - The address of the remote database
@@ -187,7 +187,7 @@ async function openOrCreateDB(
   settingsDB: any
 ) {
   const dbAddressValue = dbContents.find(content => content.key === dbKey)?.value?.value;
-  console.log(`Found ${dbKey}:`, dbAddressValue);
+  info(`Found ${dbKey}:`, dbAddressValue);
 
   if (dbAddressValue) {
     try {
@@ -195,7 +195,7 @@ async function openOrCreateDB(
       await voyagerInstance.add(dbInstance.address);
       console.log(`${config.name} ${dbAddressValue} loaded`);
       config.store.set(dbInstance);
-      config.addressStore.set(dbAddressValue);
+      // config.addressStore.set(dbAddressValue);
       return dbInstance;
     } catch (_error) {
       error(`Failed to open ${config.name} database:`, _error);
@@ -204,6 +204,7 @@ async function openOrCreateDB(
       }
     }
   } else if (canWriteToSettings) {
+    info('creating new database', config.name)
     try {
       const dbInstance = await voyagerInstance.orbitdb.open(config.name, {
         type: 'documents',
@@ -217,15 +218,16 @@ async function openOrCreateDB(
       await voyagerInstance.add(dbInstance.address);
       config.store.set(dbInstance);
       const dbAddress = dbInstance.address.toString();
-      config.addressStore.set(dbAddress);
+      // config.addressStore.set(dbAddress);
       // Store in settings
+      info('storing dbAddress in settings', dbAddress)
       await settingsDB.put({ _id: dbKey, value: dbAddress });
       return dbInstance;
     } catch (_error) {
       error(`Failed to create ${config.name} database:`, _error);
     }
   } else {
-    console.log(`No ${config.name} database address found and no write access to create one`);
+    warn(`No ${config.name} database address found and no write access to create one`);
   }
   return null;
 }
@@ -286,49 +288,58 @@ export async function switchToRemoteDB(address: string, showModal = false) {
      
       const added = await voyagerInstance.add(db.address)
       db.pinnedToVoyager = added;
-      console.log(`settingsDB ${address} added to voyager`, added)
+      info(`settingsDB ${address} added to voyager`, added)
       
       // Set the settings DB store
       settingsDB.set(db);
      
       // Get all settings data
       const dbContents = await db.all();
-      console.log('try to switch to remote dbContents', dbContents);
+      info('try to switch to remote dbContents', dbContents);
 
       // Set values from dbContents
       blogNameValue = dbContents.find(content => content.key === 'blogName')?.value?.value;
-      console.log('blogNameValue', blogNameValue);
+      info('blogNameValue', blogNameValue);
       const blogDescriptionValue = dbContents.find(content => content.key === 'blogDescription')?.value?.value;
-      console.log('blogDescriptionValue', blogDescriptionValue);
+      info('blogDescriptionValue', blogDescriptionValue);
       const postsDBAddressValue = dbContents.find(content => content.key === 'postsDBAddress')?.value?.value;
-      console.log('postsDBAddressValue', postsDBAddressValue);
+      info('postsDBAddressValue', postsDBAddressValue);
+      const commentsDBAddressValue = dbContents.find(content => content.key === 'commentsDBAddress')?.value?.value;
+      info('commentsDBAddressValue', commentsDBAddressValue);
+      const mediaDBAddressValue = dbContents.find(content => content.key === 'mediaDBAddress')?.value?.value;
+      info('mediaDBAddressValue', mediaDBAddressValue);
       categoriesValue = dbContents.find(content => content.key === 'categories')?.value?.value || ['please add categories']; // Fetch categories
-      console.log('categoriesValue', categoriesValue);
+      info('categoriesValue', categoriesValue);
       const profilePictureValue = dbContents.find(content => content.key === 'profilePicture')?.value?.value;
-      console.log('profilePictureValue', profilePictureValue);
+      info('profilePictureValue', profilePictureValue);
 
       // Update stores with settings data
       if (blogNameValue) blogName.set(blogNameValue);
       if (blogDescriptionValue) blogDescription.set(blogDescriptionValue);
       if (postsDBAddressValue) postsDBAddress.set(postsDBAddressValue);
+      if (commentsDBAddressValue) commentsDBAddress.set(commentsDBAddressValue);
+      if (mediaDBAddressValue) mediaDBAddress.set(mediaDBAddressValue);
       if (categoriesValue) categories.set(categoriesValue);
       if (profilePictureValue) profilePictureCid.set(profilePictureValue);
 
       // Check if we have write access to the settings database
       const identityId = get(identity).id;
       const canWriteToSettings = hasWriteAccess(db, identityId);
-      console.log('Write access to settings:', canWriteToSettings);
+      info('Write access to settings:', canWriteToSettings);
 
       // Check if all required data is available
       if (blogNameValue && blogDescriptionValue && postsDBAddressValue)  {
-        console.log('blogNameValue', blogNameValue);
-        console.log('blogDescriptionValue', blogDescriptionValue);
-        console.log('postsDBAddressValue', postsDBAddressValue);
+        info('blogNameValue', blogNameValue);
+        info('blogDescriptionValue', blogDescriptionValue);
+        info('postsDBAddressValue', postsDBAddressValue);
 
         // Track counts for later update
         let postsCount = 0;
         let commentsCount = 0;
         let mediaCount = 0;
+        let postsDBAddress = '';
+        let commentsDBAddress = '';
+        let mediaDBAddress = '';
 
         // Create promises for all DB operations
         const postsPromise = openOrCreateDB(voyagerInstance, dbContents, 'postsDBAddress', {
@@ -340,6 +351,9 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         }, canWriteToSettings, db)
         .then(async postsInstance => {
           if (postsInstance) {
+            info('postsInstance', postsInstance)
+            postsDBAddress = postsInstance.address.toString()
+            await get(settingsDB).put({ _id: 'postsDBAddress', value: postsDBAddress });
             const allPosts = (await postsInstance.all()).map(post => {
               const { _id, ...rest } = post.value;
               return { 
@@ -366,6 +380,10 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         }, canWriteToSettings, db)
         .then(async commentsInstance => {
           if (commentsInstance) {
+            info('commentsInstance', commentsInstance)
+            commentsDBAddress = commentsInstance.address.toString()
+            await get(settingsDB).put({ _id: 'commentsDBAddress', value: commentsDBAddress });
+            
             const allComments = await commentsInstance.all();
             commentsCount = allComments.length;
           }
@@ -380,30 +398,42 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         }, canWriteToSettings, db)
         .then(async mediaInstance => {
           if (mediaInstance) {
+            info('mediaInstance', mediaInstance)
+            mediaDBAddress = mediaInstance.address.toString()
+            await get(settingsDB).put({ _id: 'mediaDBAddress', value: mediaDBAddress });
             const allMedia = await mediaInstance.all();
             mediaCount = allMedia.length;
           }
         });
 
         // Wait for all operations to complete
+        info('waiting for all operations to complete')
         const [postsResult] = await Promise.all([postsPromise, commentsPromise, mediaPromise]);
-        
+        info('all operations complete')
         // Update remote DBs with the counts and access info
         remoteDBs.update(dbs => {
           return dbs.map(db => {
+            info('updating address', db.address, address)
             if (db.address === address) {
+              info('updating remote db', db)
+              info('commentsDBAddress',  commentsDBAddress)
+              info('mediaDBAddress', mediaDBAddress)
               return {
                 ...db, 
                 postsCount, 
                 commentsCount, 
                 mediaCount, 
+                postsDBAddress,
+                commentsDBAddress,
+                mediaDBAddress,
                 access: postsResult?.access
-              };
+              }; 
             }
+            console.log('updated remote db', db)
             return db;
           });
         });
-
+        info('remoteDBs', get(remoteDBs))
         retry = false; // Stop retrying if all data is fetched
       } else {
         await new Promise(resolve => setTimeout(resolve, 500)); // Wait before retrying
