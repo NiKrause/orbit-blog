@@ -37,6 +37,11 @@ export default {
     // Blog
     "blog_name": "Nama Blog",
     "blog_description": "Deskripsi Blog",
+    "please_select_image": "Silakan pilih gambar",
+    "upload_picture": "Unggah Gambar",
+    "change_picture": "Ubah Gambar",
+    "image_too_large": "Gambar terlalu besar",
+    "media_db_not_initialized": "Basis data media atau IPFS belum diinisialisasi",
     "blog_settings": "Pengaturan Blog",
     "enabled_languages": "Pengaturan Bahasa",
     "available_languages": "Bahasa Tersedia",
@@ -169,8 +174,9 @@ export default {
     "registering_new_database": "Mendaftarkan database baru...",
     "clone_completed_successfully": "Klon berhasil diselesaikan",
     "error_cloning_database": "Error saat mengklon database",
-    "drop_local_database_copies": "Hapus salinan database lokal",
-    "unpin_from_voyager_node": "Lepas sematan dari node Voyager",
+    "drop_local_database_copies": "Hapus salinan basis data lokal",
+    "unpin_from_voyager_node": "Lepas dari node Voyager",
+    "this_will_delete_all_translations": "Ini akan menghapus semua terjemahan",
   
     // Peer Terhubung
     "connected_peers": "Peer Terhubung",
@@ -270,11 +276,23 @@ export default {
     "enter_password_to_view": "Masukkan kata sandi untuk melihat posting",
     "decrypt_post": "Dekripsi posting",
     "encrypted_post": "Posting terenkripsi",
-    "post_will_be_decrypted": "Dekripsi posting",
+    "post_will_be_decrypted": "Postingan akan didekripsi",
   
     // Database Addresses
     "posts_db_address": "Alamat database posting",
     "comments_db_address": "Alamat database komentar",
     "media_db_address": "Alamat database media",
-    "address_not_available": "Alamat tidak tersedia"
+    "address_not_available": "Alamat tidak tersedia",
+  
+    // Loading States
+    "initializing": "Menginisialisasi...",
+    "connecting_to_peers": "Menghubungkan ke peer...",
+    "identifying_database": "Mengidentifikasi database...",
+    "loading_blog_settings": "Memuat pengaturan blog...",
+    "loading_posts": "Memuat postingan...",
+    "loading_comments": "Memuat komentar...",
+    "loading_media": "Memuat media...",
+    "loading_complete": "Pemuatan selesai",
+    "publish_post": "Publikasikan postingan",
+    "encryption_failed": "Enkripsi gagal"
   }

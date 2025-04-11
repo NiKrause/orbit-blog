@@ -246,25 +246,36 @@ export default {
   
   // Varie
   "unknown": "Sconosciuto",
-  fill_required_fields: 'Inserisci tutti i campi obbligatori',
-  encrypt_post: 'Cripta post',
-  post_will_be_encrypted: 'Il post verrà criptato',
-  invalid_password: 'Password non valida. Riprova.',
+  "fill_required_fields": "Si prega di compilare tutti i campi richiesti",
+  "encrypt_post": "Crittografa il post",
+  "post_will_be_encrypted": "Il post sarà crittografato",
+  "invalid_password": "Password non valida. Si prega di riprovare.",
   "no_posts_in_language": "Nessun post disponibile in {language}",
   "original_language": "Lingua originale",
   "translated_from": "Tradotto da {language}",
-  "enter_encryption_password_explanation": "Inserisci la password per crittografare il tuo post. La password non lascerà il tuo dispositivo. Durante il salvataggio, il post verrà crittografato con la password e NON verrà memorizzato sul tuo dispositivo. Per visualizzare il post, dovrai inserire la password per decrittografarlo.",
+  "enter_encryption_password_explanation": "Inserisci la password per crittografare il tuo post. La password non lascia il tuo dispositivo. Durante il salvataggio, il post sarà crittografato con la password e NON sarà memorizzato sul tuo dispositivo. Per visualizzare il post, dovrai inserire la password per decrittografarlo.",
   "enter_password_to_encrypt": "Inserisci la password per crittografare il post",
   "encrypt": "Crittografa il post durante il salvataggio",
   "enter_password_to_view": "Inserisci la password per visualizzare il post",
   "decrypt_post": "Decrittografa il post",
   "encrypted_post": "Post crittografato",
-  "post_will_be_decrypted": "Il post verrà decrittografato",
-  "language": "Lingua",
+  "post_will_be_decrypted": "Il post sarà decrittografato",
+  "publish_post": "Pubblica l'articolo",
+  "encryption_failed": "Crittografia fallita",
   
   // Database Addresses
   "posts_db_address": "Indirizzo del database dei post",
   "comments_db_address": "Indirizzo del database dei commenti",
   "media_db_address": "Indirizzo del database dei media",
-  "address_not_available": "Indirizzo non disponibile"
+  "address_not_available": "Indirizzo non disponibile",
+  
+  // Loading states
+  "initializing": "Inizializzazione...",
+  "connecting_to_peers": "Connessione ai peer...",
+  "identifying_database": "Identificazione del database...",
+  "loading_blog_settings": "Caricamento delle impostazioni del blog...",
+  "loading_posts": "Caricamento dei post...",
+  "loading_comments": "Caricamento dei commenti...",
+  "loading_media": "Caricamento dei media...",
+  "loading_complete": "Caricamento completato"
 }

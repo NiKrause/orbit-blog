@@ -57,6 +57,11 @@ export default {
     "passwords_do_not_match": "Οι κωδικοί δεν ταιριάζουν",
     "password_changed_successfully": "Ο κωδικός άλλαξε επιτυχώς",
     "failed_to_change_password": "Αποτυχία αλλαγής κωδικού",
+    "please_select_image": "Παρακαλώ επιλέξτε μια εικόνα",
+    "upload_picture": "Μεταφόρτωση Εικόνας",
+    "change_picture": "Αλλαγή Εικόνας",
+    "image_too_large": "Η εικόνα είναι πολύ μεγάλη",
+    "media_db_not_initialized": "Η βάση δεδομένων πολυμέσων ή το IPFS δεν έχει αρχικοποιηθεί",
     
     // Δημοσιεύσεις
     "blog_posts": "Δημοσιεύσεις Ιστολογίου",
@@ -171,6 +176,7 @@ export default {
     "error_cloning_database": "Σφάλμα κατά την κλωνοποίηση της βάσης δεδομένων",
     "drop_local_database_copies": "Απόρριψη τοπικών αντιγράφων βάσης δεδομένων",
     "unpin_from_voyager_node": "Ξεκαρφίτσωμα από κόμβο Voyager",
+    "this_will_delete_all_translations": "Αυτό θα διαγράψει όλες τις μεταφράσεις",
   
     // Συνδεδεμένοι Κόμβοι
     "connected_peers": "Συνδεδεμένοι Κόμβοι",
@@ -276,5 +282,15 @@ export default {
     "enter_password_to_view": "Εισάγετε κωδικό για προβολή της ανάρτησης",
     "decrypt_post": "Αποκρυπτογράφηση ανάρτησης",
     "encrypted_post": "Κρυπτογραφημένη ανάρτηση",
-    "post_will_be_decrypted": "Η ανάρτηση θα αποκρυπτογραφηθεί"
+    "post_will_be_decrypted": "Η ανάρτηση θα αποκρυπτογραφηθεί",
+    "publish_post": "Δημοσίευση ανάρτησης",
+    "initializing": "Εκκίνηση...",
+    "connecting_to_peers": "Σύνδεση με peers...",
+    "identifying_database": "Αναγνώριση βάσης δεδομένων...",
+    "loading_blog_settings": "Φόρτωση ρυθμίσεων ιστολογίου...",
+    "loading_posts": "Φόρτωση αναρτήσεων...",
+    "loading_comments": "Φόρτωση σχολίων...",
+    "loading_media": "Φόρτωση μέσων...",
+    "loading_complete": "Η φόρτωση ολοκληρώθηκε",
+    "encryption_failed": "Αποτυχία κρυπτογράφησης"
   }

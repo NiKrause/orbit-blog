@@ -57,6 +57,11 @@ export default {
     "passwords_do_not_match": "As senhas não correspondem",
     "password_changed_successfully": "Senha alterada com sucesso",
     "failed_to_change_password": "Falha ao alterar a senha",
+    "please_select_image": "Por favor, selecione uma imagem",
+    "upload_picture": "Enviar Imagem",
+    "change_picture": "Alterar Imagem",
+    "image_too_large": "A imagem é muito grande",
+    "media_db_not_initialized": "Banco de dados de mídia ou IPFS não inicializado",
     
     // Postagens
     "blog_posts": "Postagens do Blog",
@@ -171,6 +176,7 @@ export default {
     "error_cloning_database": "Erro ao clonar banco de dados",
     "drop_local_database_copies": "Descartar cópias locais do banco de dados",
     "unpin_from_voyager_node": "Desafixar do nó Voyager",
+    "this_will_delete_all_translations": "Isso excluirá todas as traduções",
   
     // Pares Conectados
     "connected_peers": "Pares Conectados",
@@ -276,5 +282,15 @@ export default {
     "enter_password_to_view": "Insira a senha para ver a postagem",
     "decrypt_post": "Descriptografar postagem",
     "encrypted_post": "Postagem criptografada",
-    "post_will_be_decrypted": "Descriptografar postagem"
+    "post_will_be_decrypted": "O post será descriptografado",
+    "initializing": "Inicializando...",
+    "connecting_to_peers": "Conectando aos pares...",
+    "identifying_database": "Identificando banco de dados...",
+    "loading_blog_settings": "Carregando configurações do blog...",
+    "loading_posts": "Carregando posts...",
+    "loading_comments": "Carregando comentários...",
+    "loading_media": "Carregando mídia...",
+    "loading_complete": "Carregamento concluído",
+    "publish_post": "Publicar post",
+    "encryption_failed": "Falha na criptografia"
   }

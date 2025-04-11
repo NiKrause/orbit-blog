@@ -246,25 +246,36 @@ export default {
   
   // 杂项
   "unknown": "未知",
-  fill_required_fields: '请填写所有必填字段',
-  encrypt_post: '加密帖子',
-  post_will_be_encrypted: '帖子将被加密',
-  invalid_password: '密码无效。请重试。',
-  "no_posts_in_language": "没有{language}的帖子",
+  "fill_required_fields": "请填写所有必填字段",
+  "encrypt_post": "加密文章",
+  "post_will_be_encrypted": "文章将被加密",
+  "invalid_password": "密码无效。请重试。",
+  "no_posts_in_language": "没有{language}的文章",
   "original_language": "原始语言",
   "translated_from": "从{language}翻译",
-  "enter_encryption_password_explanation": "请输入密码以加密您的帖子。密码不会离开您的设备。保存时，帖子将使用密码加密，并且不会存储在您的设备上。查看帖子时，您需要输入密码以解密。",
-  "enter_password_to_encrypt": "输入密码以加密帖子",
-  "encrypt": "保存时加密帖子",
-  "enter_password_to_view": "输入密码以查看帖子",
-  "decrypt_post": "解密帖子",
-  "encrypted_post": "加密的帖子",
-  "post_will_be_decrypted": "解密帖子",
-  "language": "语言",
+  "enter_encryption_password_explanation": "请输入密码来加密您的文章。密码不会离开您的设备。保存时，文章将使用密码加密，并且不会存储在您的设备上。要查看文章，您需要输入密码来解密。",
+  "enter_password_to_encrypt": "输入密码以加密文章",
+  "encrypt": "保存时加密文章",
+  "enter_password_to_view": "输入密码以查看文章",
+  "decrypt_post": "解密文章",
+  "encrypted_post": "已加密文章",
+  "post_will_be_decrypted": "文章将被解密",
+  "publish_post": "发布文章",
+  "encryption_failed": "加密失败",
   
   // Database Addresses
   "posts_db_address": "文章数据库地址",
   "comments_db_address": "评论数据库地址",
   "media_db_address": "媒体数据库地址",
-  "address_not_available": "地址不可用"
+  "address_not_available": "地址不可用",
+  
+  // Loading States
+  "initializing": "正在初始化...",
+  "connecting_to_peers": "正在连接到节点...",
+  "identifying_database": "正在识别数据库...",
+  "loading_blog_settings": "正在加载博客设置...",
+  "loading_posts": "正在加载文章...",
+  "loading_comments": "正在加载评论...",
+  "loading_media": "正在加载媒体...",
+  "loading_complete": "加载完成"
 }

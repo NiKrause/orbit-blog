@@ -249,18 +249,18 @@ export default {
   
   // متفرقات
   "unknown": "غير معروف",
-  "fill_required_fields": 'يرجى ملء جميع الحقول المطلوبة',
+  "fill_required_fields": "يرجى ملء جميع الحقول المطلوبة",
   "encrypt_post": "تشفير المنشور",
   "post_will_be_encrypted": "سيتم تشفير المنشور",
   "invalid_password": "كلمة مرور غير صالحة. يرجى المحاولة مرة أخرى.",
-  "enter_encryption_password_explanation": "يرجى إدخال كلمة المرور لتشفير منشورك. لا تغادر كلمة المرور جهازك. عند الحفظ، سيتم تشفير المنشور بكلمة المرور ولن يتم تخزينه على جهازك. لعرض المنشور، ستحتاج إلى إدخال كلمة المرور لفك التشفير.",
+  "enter_encryption_password_explanation": "يرجى إدخال كلمة المرور لتشفير منشورك. كلمة المرور لا تغادر جهازك. عند الحفظ، سيتم تشفير المنشور بكلمة المرور ولن يتم تخزينه على جهازك. لعرض المنشور، ستحتاج إلى إدخال كلمة المرور لفك تشفيره.",
   "enter_password_to_encrypt": "أدخل كلمة المرور لتشفير المنشور",
   "encrypt": "تشفير المنشور عند الحفظ",
   "enter_password_to_view": "أدخل كلمة المرور لعرض المنشور",
   "decrypt_post": "فك تشفير المنشور",
   "encrypted_post": "منشور مشفر",
   "post_will_be_decrypted": "سيتم فك تشفير المنشور",
-  "no_posts_in_language": "لا توجد منشورات متاحة باللغة {language}",
+  "no_posts_in_language": "لا توجد منشورات متاحة بـ {language}",
   "original_language": "اللغة الأصلية",
   "translated_from": "مترجم من {language}",
   
@@ -268,5 +268,19 @@ export default {
   "posts_db_address": "عنوان قاعدة بيانات المنشورات",
   "comments_db_address": "عنوان قاعدة بيانات التعليقات",
   "media_db_address": "عنوان قاعدة بيانات الوسائط",
-  "address_not_available": "العنوان غير متاح"
+  "address_not_available": "العنوان غير متاح",
+  
+  // Loading states
+  "initializing": "جاري التهيئة...",
+  "connecting_to_peers": "جاري الاتصال بالنظير...",
+  "identifying_database": "جاري تحديد قاعدة البيانات...",
+  "loading_blog_settings": "جاري تحميل إعدادات المدونة...",
+  "loading_posts": "جاري تحميل المنشورات...",
+  "loading_comments": "جاري تحميل التعليقات...",
+  "loading_media": "جاري تحميل الوسائط...",
+  "loading_complete": "اكتمل التحميل",
+  
+  // New keys
+  "publish_post": "نشر المنشور",
+  "encryption_failed": "فشل التشفير"
 }

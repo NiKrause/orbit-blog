@@ -246,25 +246,36 @@ export default {
   
   // Misc
   "unknown": "Unbekannt",
-  fill_required_fields: 'Bitte füllen Sie alle erforderlichen Felder aus',
-  encrypt_post: 'Beitrag verschlüsseln',
-  post_will_be_encrypted: 'Beitrag wird verschlüsselt',
-  invalid_password: 'Ungültiges Passwort. Bitte versuchen Sie es erneut.',
+  "fill_required_fields": "Bitte füllen Sie alle erforderlichen Felder aus",
+  "encrypt_post": "Beitrag verschlüsseln",
+  "post_will_be_encrypted": "Beitrag wird verschlüsselt",
+  "invalid_password": "Ungültiges Passwort. Bitte versuchen Sie es erneut.",
   "no_posts_in_language": "Keine Beiträge in {language} verfügbar",
   "original_language": "Originalsprache",
   "translated_from": "Übersetzt aus {language}",
-  "enter_encryption_password_explanation": "Bitte geben Sie Ihr Passwort ein, um Ihren Beitrag zu verschlüsseln. Das Passwort verlässt Ihr Gerät nicht. Beim Speichern wird der Beitrag mit dem Passwort verschlüsselt und NICHT auf Ihrem Gerät gespeichert. Beim Anzeigen des Beitrags müssen Sie das Passwort eingeben, um den Beitrag zu entschlüsseln.",
+  "enter_encryption_password_explanation": "Bitte geben Sie Ihr Passwort ein, um Ihren Beitrag zu verschlüsseln. Das Passwort verlässt Ihr Gerät nicht. Beim Speichern wird der Beitrag mit dem Passwort verschlüsselt und NICHT auf Ihrem Gerät gespeichert. Um den Beitrag anzuzeigen, müssen Sie das Passwort eingeben, um ihn zu entschlüsseln.",
   "enter_password_to_encrypt": "Passwort zum Verschlüsseln des Beitrags eingeben",
   "encrypt": "Beitrag beim Speichern verschlüsseln",
   "enter_password_to_view": "Passwort zum Anzeigen des Beitrags eingeben",
   "decrypt_post": "Beitrag entschlüsseln",
   "encrypted_post": "Verschlüsselter Beitrag",
   "post_will_be_decrypted": "Beitrag wird entschlüsselt",
-  "language": "Sprache",
+  "publish_post": "Beitrag veröffentlichen",
+  "encryption_failed": "Verschlüsselung fehlgeschlagen",
   
   // Database Addresses
   "posts_db_address": "Posts-Datenbank-Adresse",
   "comments_db_address": "Kommentare-Datenbank-Adresse",
   "media_db_address": "Medien-Datenbank-Adresse",
-  "address_not_available": "Adresse nicht verfügbar"
+  "address_not_available": "Adresse nicht verfügbar",
+  
+  // Loading States
+  "initializing": "Initialisiere...",
+  "connecting_to_peers": "Verbinde mit Peers...",
+  "identifying_database": "Identifiziere Datenbank...",
+  "loading_blog_settings": "Lade Blog-Einstellungen...",
+  "loading_posts": "Lade Beiträge...",
+  "loading_comments": "Lade Kommentare...",
+  "loading_media": "Lade Medien...",
+  "loading_complete": "Laden abgeschlossen"
 }

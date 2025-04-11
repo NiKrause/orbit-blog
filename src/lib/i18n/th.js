@@ -37,6 +37,11 @@ export default {
     // บล็อก
     "blog_name": "ชื่อบล็อก",
     "blog_description": "คำอธิบายบล็อก",
+    "please_select_image": "กรุณาเลือกภาพ",
+    "upload_picture": "อัปโหลดรูปภาพ",
+    "change_picture": "เปลี่ยนรูปภาพ",
+    "image_too_large": "รูปภาพมีขนาดใหญ่เกินไป",
+    "media_db_not_initialized": "ฐานข้อมูลสื่อหรือ IPFS ยังไม่ได้เริ่มต้น",
     "blog_settings": "การตั้งค่าบล็อก",
     "enabled_languages": "การตั้งค่าภาษา",
     "available_languages": "ภาษาที่มี",
@@ -111,7 +116,6 @@ export default {
     "drag_files_here": "ลากไฟล์มาที่นี่หรือคลิกเพื่ออัปโหลด",
     "select_files": "เลือกไฟล์",
     "failed_to_load_media": "โหลดสื่อไม่สำเร็จ",
-    "media_database_not_initialized": "ฐานข้อมูลสื่อหรือ IPFS ไม่ได้เริ่มต้น",
     "file_too_large": "ไฟล์ {name} มีขนาดใหญ่เกินไป ขนาดสูงสุดคือ 10MB",
     "failed_to_upload_files": "อัปโหลดไฟล์ไม่สำเร็จ",
     "failed_to_delete_media": "ลบสื่อไม่สำเร็จ",
@@ -171,6 +175,7 @@ export default {
     "error_cloning_database": "เกิดข้อผิดพลาดในการโคลนฐานข้อมูล",
     "drop_local_database_copies": "ลบสำเนาฐานข้อมูลท้องถิ่น",
     "unpin_from_voyager_node": "เลิกปักหมุดจากโหนด Voyager",
+    "this_will_delete_all_translations": "การดำเนินการนี้จะลบการแปลทั้งหมด",
   
     // เพียร์ที่เชื่อมต่อ
     "connected_peers": "เพียร์ที่เชื่อมต่อ",
@@ -270,11 +275,23 @@ export default {
     "enter_password_to_view": "กรอกรหัสผ่านเพื่อดูโพสต์",
     "decrypt_post": "ถอดรหัสโพสต์",
     "encrypted_post": "โพสต์ที่เข้ารหัสแล้ว",
-    "post_will_be_decrypted": "ถอดรหัสโพสต์",
+    "post_will_be_decrypted": "โพสต์จะถูกถอดรหัส",
   
     // Database Addresses
     "posts_db_address": "ที่อยู่ฐานข้อมูลโพสต์",
     "comments_db_address": "ที่อยู่ฐานข้อมูลความคิดเห็น",
     "media_db_address": "ที่อยู่ฐานข้อมูลสื่อ",
-    "address_not_available": "ไม่พบที่อยู่"
+    "address_not_available": "ไม่พบที่อยู่",
+  
+    // Loading states
+    "initializing": "กำลังเริ่มต้น...",
+    "connecting_to_peers": "กำลังเชื่อมต่อกับ peers...",
+    "identifying_database": "กำลังระบุฐานข้อมูล...",
+    "loading_blog_settings": "กำลังโหลดการตั้งค่าบล็อก...",
+    "loading_posts": "กำลังโหลดโพสต์...",
+    "loading_comments": "กำลังโหลดความคิดเห็น...",
+    "loading_media": "กำลังโหลดสื่อ...",
+    "loading_complete": "โหลดเสร็จสมบูรณ์",
+    "publish_post": "เผยแพร่โพสต์",
+    "encryption_failed": "การเข้ารหัสล้มเหลว"
   }

@@ -57,6 +57,11 @@ export default {
   "passwords_do_not_match": "Şifreler eşleşmiyor",
   "password_changed_successfully": "Şifre başarıyla değiştirildi",
   "failed_to_change_password": "Şifre değiştirilemedi",
+  "please_select_image": "Lütfen bir resim seçin",
+  "upload_picture": "Resim Yükle",
+  "change_picture": "Resmi Değiştir",
+  "image_too_large": "Resim çok büyük",
+  "media_db_not_initialized": "Medya veritabanı veya IPFS başlatılmadı",
   
   // Yazılar
   "blog_posts": "Blog Yazıları",
@@ -170,7 +175,8 @@ export default {
   "clone_completed_successfully": "Klonlama başarıyla tamamlandı",
   "error_cloning_database": "Veritabanı klonlama hatası",
   "drop_local_database_copies": "Yerel veritabanı kopyalarını sil",
-  "unpin_from_voyager_node": "Voyager düğümünden sabitlemeyi kaldır",
+  "unpin_from_voyager_node": "Voyager düğümünden kaldır",
+  "this_will_delete_all_translations": "Bu işlem tüm çevirileri silecek",
   
   // Bağlı Eşler
   "connected_peers": "Bağlı Eşler",
@@ -266,5 +272,17 @@ export default {
   "posts_db_address": "Gönderi veritabanı adresi",
   "comments_db_address": "Yorum veritabanı adresi",
   "media_db_address": "Medya veritabanı adresi",
-  "address_not_available": "Adres mevcut değil"
+  "address_not_available": "Adres mevcut değil",
+  
+  // Loading States
+  "initializing": "Başlatılıyor...",
+  "connecting_to_peers": "Eşlere bağlanılıyor...",
+  "identifying_database": "Veritabanı tanımlanıyor...",
+  "loading_blog_settings": "Blog ayarları yükleniyor...",
+  "loading_posts": "Gönderiler yükleniyor...",
+  "loading_comments": "Yorumlar yükleniyor...",
+  "loading_media": "Medya yükleniyor...",
+  "loading_complete": "Yükleme tamamlandı",
+  "publish_post": "Gönderiyi Yayınla",
+  "encryption_failed": "Şifreleme başarısız oldu"
 }

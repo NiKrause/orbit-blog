@@ -261,20 +261,32 @@ export default {
     "no_posts_in_language": "{language} में कोई पोस्ट उपलब्ध नहीं है",
     "original_language": "मूल भाषा",
     "translated_from": "{language} से अनुवादित",
-    "encrypt_post": "पोस्ट एन्क्रिप्ट करें",
-    "post_will_be_encrypted": "पोस्ट एन्क्रिप्ट होगी",
+    "encrypt_post": "पोस्ट को एन्क्रिप्ट करें",
+    "post_will_be_encrypted": "पोस्ट एन्क्रिप्ट की जाएगी",
     "invalid_password": "अमान्य पासवर्ड। कृपया पुनः प्रयास करें।",
-    "enter_encryption_password_explanation": "कृपया अपनी पोस्ट को एन्क्रिप्ट करने के लिए पासवर्ड दर्ज करें। पासवर्ड आपके डिवाइस से बाहर नहीं जाता। सहेजते समय, पोस्ट पासवर्ड से एन्क्रिप्ट होगी और आपके डिवाइस पर स्टोर नहीं होगी। पोस्ट देखने के लिए, आपको डिक्रिप्ट करने के लिए पासवर्ड दर्ज करना होगा।",
-    "enter_password_to_encrypt": "पोस्ट एन्क्रिप्ट करने के लिए पासवर्ड दर्ज करें",
-    "encrypt": "सहेजते समय पोस्ट एन्क्रिप्ट करें",
+    "enter_encryption_password_explanation": "कृपया अपनी पोस्ट को एन्क्रिप्ट करने के लिए पासवर्ड दर्ज करें। पासवर्ड आपके डिवाइस से बाहर नहीं जाता है। सेव करने पर, पोस्ट पासवर्ड के साथ एन्क्रिप्ट की जाएगी और आपके डिवाइस पर संग्रहीत नहीं की जाएगी। पोस्ट देखने के लिए, आपको इसे डिक्रिप्ट करने के लिए पासवर्ड दर्ज करना होगा।",
+    "enter_password_to_encrypt": "पोस्ट को एन्क्रिप्ट करने के लिए पासवर्ड दर्ज करें",
+    "encrypt": "सेव करने पर पोस्ट को एन्क्रिप्ट करें",
     "enter_password_to_view": "पोस्ट देखने के लिए पासवर्ड दर्ज करें",
-    "decrypt_post": "पोस्ट डिक्रिप्ट करें",
+    "decrypt_post": "पोस्ट को डिक्रिप्ट करें",
     "encrypted_post": "एन्क्रिप्टेड पोस्ट",
-    "post_will_be_decrypted": "पोस्ट डिक्रिप्ट होगी",
+    "post_will_be_decrypted": "पोस्ट डिक्रिप्ट की जाएगी",
+    "publish_post": "पोस्ट प्रकाशित करें",
+    "encryption_failed": "एन्क्रिप्शन विफल",
   
     // Database Addresses
     "posts_db_address": "पोस्ट डेटाबेस का पता",
     "comments_db_address": "टिप्पणी डेटाबेस का पता",
     "media_db_address": "मीडिया डेटाबेस का पता",
-    "address_not_available": "पता उपलब्ध नहीं है"
+    "address_not_available": "पता उपलब्ध नहीं है",
+  
+    // Loading states
+    "initializing": "आरंभ किया जा रहा है...",
+    "connecting_to_peers": "साथियों से जुड़ रहा है...",
+    "identifying_database": "डेटाबेस की पहचान की जा रही है...",
+    "loading_blog_settings": "ब्लॉग सेटिंग्स लोड की जा रही हैं...",
+    "loading_posts": "पोस्ट लोड की जा रही हैं...",
+    "loading_comments": "टिप्पणियाँ लोड की जा रही हैं...",
+    "loading_media": "मीडिया लोड किया जा रहा है...",
+    "loading_complete": "लोडिंग पूर्ण"
   }

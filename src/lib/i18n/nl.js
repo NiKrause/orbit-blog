@@ -268,13 +268,25 @@ export default {
     "original_language": "Oorspronkelijke taal",
     "translated_from": "Vertaald uit {language}",
     "encrypt_post": "Bericht versleutelen",
-    "post_will_be_encrypted": "Bericht zal worden versleuteld",
+    "post_will_be_encrypted": "Het bericht wordt versleuteld",
     "invalid_password": "Ongeldig wachtwoord. Probeer het opnieuw.",
-    "enter_encryption_password_explanation": "Voer een wachtwoord in om je bericht te versleutelen. Het wachtwoord verlaat je apparaat niet. Bij het opslaan wordt het bericht versleuteld met het wachtwoord en wordt NIET op je apparaat opgeslagen. Om het bericht te bekijken, moet je het wachtwoord invoeren om het te ontsleutelen.",
-    "enter_password_to_encrypt": "Voer wachtwoord in om het bericht te versleutelen",
-    "encrypt": "Versleutel bericht bij opslaan",
-    "enter_password_to_view": "Voer wachtwoord in om het bericht te bekijken",
+    "enter_encryption_password_explanation": "Voer uw wachtwoord in om uw bericht te versleutelen. Het wachtwoord verlaat uw apparaat niet. Tijdens het opslaan wordt het bericht versleuteld met het wachtwoord en wordt het NIET op uw apparaat opgeslagen. Om het bericht te bekijken, moet u het wachtwoord invoeren om het te ontsleutelen.",
+    "enter_password_to_encrypt": "Voer wachtwoord in om bericht te versleutelen",
+    "encrypt": "Bericht versleutelen bij opslaan",
+    "enter_password_to_view": "Voer wachtwoord in om bericht te bekijken",
     "decrypt_post": "Bericht ontsleutelen",
     "encrypted_post": "Versleuteld bericht",
-    "post_will_be_decrypted": "Bericht zal worden ontsleuteld"
+    "post_will_be_decrypted": "Het bericht wordt ontsleuteld",
+    "publish_post": "Bericht publiceren",
+    "encryption_failed": "Versleuteling mislukt",
+  
+    // Loading States
+    "initializing": "Initialiseren...",
+    "connecting_to_peers": "Verbinden met peers...",
+    "identifying_database": "Database identificeren...",
+    "loading_blog_settings": "Bloginstellingen laden...",
+    "loading_posts": "Berichten laden...",
+    "loading_comments": "Reacties laden...",
+    "loading_media": "Media laden...",
+    "loading_complete": "Laden voltooid"
   }
