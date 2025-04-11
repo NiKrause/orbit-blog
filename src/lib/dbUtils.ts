@@ -2,7 +2,7 @@ import { get } from 'svelte/store';
 import { helia, orbitdb, blogName, categories, blogDescription, postsDBAddress, profilePictureCid, postsDB, posts, settingsDB, remoteDBs, commentsDB, mediaDB, remoteDBsDatabases, commentsDBAddress, mediaDBAddress, identity, identities, voyager } from './store';
 import type { RemoteDB } from './types';
 import { IPFSAccessController } from '@orbitdb/core';
-import { error } from './utils/logger.js'
+import { error, info, debug } from './utils/logger.js'
 /**
  * Adds a remote database to the store
  * @param address - The address of the remote database
@@ -11,7 +11,7 @@ import { error } from './utils/logger.js'
  * @returns True if the database was added successfully, false otherwise
  */
 export async function addRemoteDBToStore(address: string, peerId: string, name?: string) {
-  console.log('addRemoteDBToStore', address, peerId, name)
+  info('addRemoteDBToStore', address, peerId, name)
   const heliaInstance = get(helia);
   const orbitdbInstance = get(orbitdb);
   const identityInstance = get(identity);
@@ -37,7 +37,7 @@ export async function addRemoteDBToStore(address: string, peerId: string, name?:
         AccessController: IPFSAccessController({write: [identityInstance.id]})
       });
       const addedSettings = await voyagerInstance.add(settingsDb.address)
-      console.log('addedSettingsToVoyager', addedSettings)
+      debug('addedSettingsToVoyager', addedSettings)
       const postsDb = await voyagerInstance.orbitdb.open(`${name}-posts`, {
         type: 'documents',
         create: true,
@@ -100,6 +100,7 @@ export async function addRemoteDBToStore(address: string, peerId: string, name?:
       };
     } else {
       // Handle remote database
+      debug('handle remote database', address, peerId, name)
       if (peerId && heliaInstance && !heliaInstance.libp2p) {
         console.log('dialing peer', peerId)
         const peer = await heliaInstance.libp2p.dial(peerId);
@@ -117,7 +118,7 @@ export async function addRemoteDBToStore(address: string, peerId: string, name?:
       
       // Try to open the remote settings database
       settingsDb = await orbitdbInstance.open(address);
-      
+      debug('settingsDb', settingsDb)
       // Try to get blog name
       const blogNameEntry = await settingsDb.get('blogName');
       if (blogNameEntry?.value?.value) {
@@ -134,8 +135,8 @@ export async function addRemoteDBToStore(address: string, peerId: string, name?:
           const allPosts = await postsDb.all();
           console.log(`Fetched ${allPosts.length} posts from remote database`);
           newDB.fetchLater = false;
-        } catch (error) {
-          error('Error opening posts database, will try later:', error);
+        } catch (_error) {
+          error('Error opening posts database, will try later:',_error);
         }
       }
     }
@@ -158,8 +159,8 @@ export async function addRemoteDBToStore(address: string, peerId: string, name?:
       return true;
     }
     return false;
-  } catch (error) {
-    error('Error adding database to store:', error);
+  } catch (_error) {
+    error('Error adding database to store:', _error);
     return false;
   }
 }
@@ -196,8 +197,8 @@ async function openOrCreateDB(
       config.store.set(dbInstance);
       config.addressStore.set(dbAddressValue);
       return dbInstance;
-    } catch (error) {
-      error(`Failed to open ${config.name} database:`, error);
+    } catch (_error) {
+      error(`Failed to open ${config.name} database:`, _error);
       if (!canWriteToSettings) {
         console.log(`No write access to settings - skipping ${config.name} database creation`);
       }
@@ -220,8 +221,8 @@ async function openOrCreateDB(
       // Store in settings
       await settingsDB.put({ _id: dbKey, value: dbAddress });
       return dbInstance;
-    } catch (error) {
-      error(`Failed to create ${config.name} database:`, error);
+    } catch (_error) {
+      error(`Failed to create ${config.name} database:`, _error);
     }
   } else {
     console.log(`No ${config.name} database address found and no write access to create one`);
@@ -409,8 +410,8 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       }
     }
     return true;
-  } catch (error) {
-    error('Failed to switch to remote DB:', error);
+  } catch (_error) {
+    error('Failed to switch to remote DB:', _error);
     return false;
   } finally {
     // Update remote DBs store

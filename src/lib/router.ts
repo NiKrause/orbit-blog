@@ -1,7 +1,7 @@
 import { readable, derived, writable, get } from 'svelte/store';
 import { switchToRemoteDB } from './dbUtils';
 import { initialAddress } from './store';
-import { info, debug, error } from './utils/logger'
+import { info, debug, error } from './utils/logger.js';
 const domain = window.location.hostname;
 const isBrowser = typeof window !== 'undefined';
 
@@ -106,8 +106,8 @@ export async function initHashRouter() {
                     info('Failed to switch to database from URL:', address);
                 }
             }
-            catch (error) {
-                error('Error switching to database from URL:', error);
+            catch (_error) {
+                error('Error switching to database from URL:', _error);
             }
             finally {
                 // Set loading state to false when finished, whether successful or not

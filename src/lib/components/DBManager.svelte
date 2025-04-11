@@ -10,7 +10,7 @@
   import { IPFSAccessController } from '@orbitdb/core';
   import ConfirmModal from './ConfirmModal.svelte';
   import type { RemoteDB } from '$lib/types.js';
-  import { error } from '../utils/logger'
+  import { error, debug } from '../utils/logger.js'
 
   let dbAddress = $state('');
   let dbName = $state('');
@@ -107,37 +107,37 @@
     
     try {
       isQueueRunning = true;
-      console.log('Processing database queue...');
+      debug('Processing database queue...');
       
       const dbsToFetch = $remoteDBs.filter(db => db.fetchLater);
       
       if (dbsToFetch.length === 0) {
-        console.log('No databases in the queue.');
+        debug('No databases in the queue.');
         
         // Clear the interval since there's nothing to process
         if (queueCheckInterval) {
           clearInterval(queueCheckInterval);
           queueCheckInterval = undefined;
-          console.log('Queue checking stopped - no databases in queue');
+          debug('Queue checking stopped - no databases in queue');
         }
         
         return;
       }
       
-      console.log(`Found ${dbsToFetch.length} database(s) in the queue.`);
+      debug(`Found ${dbsToFetch.length} database(s) in the queue.`);
       
       for (const db of dbsToFetch) {
         try {
-          console.log(`Processing queued database: ${db.name} (${db.address})`);
+          debug(`Processing queued database: ${db.name} (${db.address})`);
           
           const settingsDb = await $orbitdb.open(db.address);
           const settingsData = await settingsDb.all()
-          console.log('settingsData', settingsData);
-          console.log('settingsDb', settingsDb);
+          debug('settingsData', settingsData);
+          debug('settingsDb', settingsDb);
           if (!db.name || db.name === 'Unknown Blog') {
-            console.log('db.name', db.name);
+            debug('db.name', db.name);
             const blogNameEntry = await settingsDb.get('blogName');
-            console.log('blogNameEntry', blogNameEntry);
+            debug('blogNameEntry', blogNameEntry);
             if (blogNameEntry?.value?.value) {
               db.name = blogNameEntry.value.value;
               db.fetchLater = false;
@@ -145,7 +145,7 @@
           }
           
           // Check and open posts database
-          console.log('Checking posts database...');
+          debug('Checking posts database...');
           const postsAddressEntry = await settingsDb.get('postsDBAddress');
           if (postsAddressEntry?.value?.value) {
             db.postsAddress = postsAddressEntry.value.value;
@@ -157,11 +157,11 @@
               identity: entry.identity
             }));
             db.fetchLater = false;
-            console.log(`Successfully fetched ${allPosts.length} posts from ${db.name}`);
+            debug(`Successfully fetched ${allPosts.length} posts from ${db.name}`);
           } else db.fetchLater = true;
 
           // Check and open comments database
-          console.log('Checking comments database...');
+          debug('Checking comments database...');
           const commentsAddressEntry = await settingsDb.get('commentsDBAddress');
           if (commentsAddressEntry?.value?.value) {
             db.commentsAddress = commentsAddressEntry.value.value;
@@ -175,7 +175,7 @@
           }
 
           // Check and open media database
-          console.log('Checking media database...');
+          debug('Checking media database...');
           const mediaAddressEntry = await settingsDb.get('mediaDBAddress');
           if (mediaAddressEntry?.value?.value) {
             db.mediaAddress = mediaAddressEntry.value.value;
@@ -191,7 +191,7 @@
           
           await $remoteDBsDatabases.put({ _id: db.id, ...db });
           
-          console.log(`Successfully processed queued database: ${db.name}`);
+          debug(`Successfully processed queued database: ${db.name}`);
         } catch (error) {
           error(`Error processing queued database ${db.name}:`, error);
           db.lastAttempt = new Date().toISOString();
@@ -215,7 +215,7 @@
   });
 
   async function addRemoteDB() {
-    console.log('Adding DB:', { dbAddress, dbName , dbPeerId});
+    debug('Adding DB:', { dbAddress, dbName , dbPeerId});
     if (dbAddress || dbName) {
       isModalOpen = true;
       modalMessage = isLocalDB ? $_('creating_local_database') : $_('connecting_to_remote_database');
@@ -223,9 +223,9 @@
       try {
         const success = await addRemoteDBToStore(dbAddress, dbPeerId, dbName);
         if (success) {
-          console.log($_('database_added_successfully'), dbAddress);
+          debug($_('database_added_successfully'), dbAddress);
         } else {
-          console.log($_('failed_to_add_database_queued'));
+          debug($_('failed_to_add_database_queued'));
         }
         
         dbAddress = '';
@@ -234,7 +234,7 @@
         
         // If any databases need to be fetched later and there's no queue interval running, start it
         if ($remoteDBs.some(db => db.fetchLater) && !queueCheckInterval) {
-          console.log('Starting queue checking - new database added to queue');
+          debug('Starting queue checking - new database added to queue');
           queueCheckInterval = window.setInterval(processQueue, 30 * 1000);
           processQueue(); // Process immediately
         }
@@ -253,13 +253,13 @@
         
         // Same check here for the error case where we queue the DB
         if (!queueCheckInterval) {
-          console.log('Starting queue checking - new database added to queue after error');
+          debug('Starting queue checking - new database added to queue after error');
           queueCheckInterval = window.setInterval(processQueue, 30 * 1000);
           processQueue(); // Process immediately
         }
       }
     } else {
-      console.log($_('missing_required_fields'));
+      debug($_('missing_required_fields'));
     }
   }
 
@@ -323,7 +323,7 @@
             dropPromises.push(
               $orbitdb.open(entry.value.value).then(async (database) => {
                 await database.drop();
-                console.log(`Dropped database: ${entry.value.value}`);
+                debug(`Dropped database: ${entry.value.value}`);
               })
             );
           }
@@ -338,7 +338,7 @@
         // Unpin from Voyager
         for (const entry of [postsAddressEntry, commentsAddressEntry, mediaAddressEntry]) {
           if (entry?.value?.value) {
-            console.log('unpinning from voyager', entry.value.value);
+            debug('unpinning from voyager', entry.value.value);
             dropPromises.push(
               $voyager.remove(entry.value.value).catch(err => 
                 console.warn(`Failed to unpin from Voyager: ${entry.value.value}`, err)
@@ -355,7 +355,7 @@
       }
       
       await Promise.all(dropPromises);
-      console.log(`Successfully removed database: ${db.name}`);
+      debug(`Successfully removed database: ${db.name}`);
       
     } catch (error) {
       error(`Error dropping database ${db.name}:`, error);
@@ -366,7 +366,7 @@
 
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text).then(() => {
-      console.log('Text copied to clipboard:', text);
+      debug('Text copied to clipboard:', text);
     }).catch(err => {
       error('Error copying text to clipboard:', err);
     });
@@ -376,11 +376,11 @@
       const hasQueuedDBs = $remoteDBs.some(db => db.fetchLater);
       
       if (hasQueuedDBs && !queueCheckInterval) {
-        console.log('Starting queue checking - databases found in queue');
+        debug('Starting queue checking - databases found in queue');
         queueCheckInterval = window.setInterval(processQueue, 30 * 1000); // every 30 seconds
         processQueue(); // Process immediately on setup
       } else if (!hasQueuedDBs && queueCheckInterval) {
-        console.log('Clearing queue checking - no databases in queue');
+        debug('Clearing queue checking - no databases in queue');
         clearInterval(queueCheckInterval);
         queueCheckInterval = undefined;
       }
@@ -401,7 +401,7 @@
       // Create a new database name with identity suffix
       const identitySuffix = $identity?.id?.slice(-5) || 'xxxxx';
       const newDbName = `${sourceDb.name}_${identitySuffix}`;
-      console.log('newDbName', newDbName);
+      debug('newDbName', newDbName);
       
       // Step 1: Create and setup new settings database
       modalMessage = $_('creating_new_settings_database');
@@ -464,7 +464,7 @@
       
       // Step 4: Copy settings (excluding database addresses)
       modalMessage = $_('copying_settings');
-      console.log('copying settings', sourceSettingsDb);
+      debug('copying settings', sourceSettingsDb);
       const settings = await sourceSettingsDb.all();
       for (const entry of settings) {
         // Skip database address entries - we'll add these later
@@ -479,22 +479,22 @@
       
       // Step 5: Copy posts
       modalMessage = $_('copying_posts');
-      console.log('copying posts', sourcePostsDb);
+      debug('copying posts', sourcePostsDb);
       const posts = await sourcePostsDb.all();
       for (const post of posts) {
-        console.log('copying post', post);
+        debug('copying post', post);
         // Ensure we're only storing serializable data
         const cleanPost = JSON.parse(JSON.stringify(post.value));
         await newPostsDb.put(cleanPost);
       } 
       if(posts.length === 0) {
-        console.log($_('no_posts_to_copy'));
+        debug($_('no_posts_to_copy'));
       }
       
       // Step 6: Copy comments if they exist
       if (sourceCommentsDb) {
         modalMessage = $_('copying_comments');
-        console.log('copying comments', sourceCommentsDb);
+        debug('copying comments', sourceCommentsDb);
         const comments = await sourceCommentsDb.all();
         for (const comment of comments) {
           // Ensure we're only storing serializable data
@@ -502,13 +502,13 @@
           await newCommentsDb.put(cleanComment);
         }
       } else {
-        console.log($_('no_comments_to_copy'));
+        debug($_('no_comments_to_copy'));
       }
       
       // Step 7: Copy media if it exists
       if (sourceMediaDb) {
         modalMessage = $_('copying_media');
-        console.log('copying media', sourceMediaDb);
+        debug('copying media', sourceMediaDb);
         const media = await sourceMediaDb.all();
         for (const item of media) {
           // Ensure we're only storing serializable data
@@ -516,7 +516,7 @@
           await newMediaDb.put(cleanMedia);
         }
       } else {
-        console.log($_('no_media_to_copy'));
+        debug($_('no_media_to_copy'));
       }
       
       // After copying all content, update the settings with new database addresses
@@ -527,24 +527,24 @@
       
       // Step 8: Pin to Voyager if available
       if ($voyager) {
-        console.log('pinning to voyager', newSettingsDb.address, newPostsDb.address, newCommentsDb.address, newMediaDb.address);
+        debug('pinning to voyager', newSettingsDb.address, newPostsDb.address, newCommentsDb.address, newMediaDb.address);
         modalMessage = $_('pinning_to_voyager');
         await $voyager.add(newSettingsDb.address);
-        console.log('pinned to voyager', newSettingsDb.address);
+        debug('pinned to voyager', newSettingsDb.address);
         await $voyager.add(newPostsDb.address);
-        console.log('pinned to voyager', newPostsDb.address);
+        debug('pinned to voyager', newPostsDb.address);
         await $voyager.add(newCommentsDb.address);
-        console.log('pinned to voyager', newCommentsDb.address);
+        debug('pinned to voyager', newCommentsDb.address);
         await $voyager.add(newMediaDb.address);
-        console.log('pinned to voyager', newMediaDb.address);
+        debug('pinned to voyager', newMediaDb.address);
       }
       
       // Only after everything is successful, register the database
-      console.log('registering new database', newSettingsDb);
+      debug('registering new database', newSettingsDb);
       modalMessage = $_('registering_new_database');
       const success = await addRemoteDBToStore(newSettingsDb.address);
-      console.log('success', success);
-      console.log('registered new database', newSettingsDb.address, newPostsDb.address, newCommentsDb.address, newMediaDb.address);
+      debug('success', success);
+      debug('registered new database', newSettingsDb.address, newPostsDb.address, newCommentsDb.address, newMediaDb.address);
       modalMessage = $_('clone_completed_successfully');
       setTimeout(() => {
         isModalOpen = false;
