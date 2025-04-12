@@ -1,6 +1,6 @@
 {
   "name": "le-space-blog",
-  "version": "0.2.46",
+  "version": "0.2.47",
   "type": "module",
   "files": [
     "dist",
