@@ -36,8 +36,8 @@
     try {
       const allMedia = await $mediaDB.all();
       mediaList = allMedia.map(entry => entry.value);
-    } catch (error) {
-      error('Error loading media:', error);
+    } catch (_error) {
+      error('Error loading media:', _error);
       errorMessage = 'Failed to load media';
     }
   }
@@ -108,8 +108,8 @@
       }
       
       await loadMedia();
-    } catch (error) {
-      error('Error uploading files:', error);
+    } catch (_error) {
+      error('Error uploading files:', _error);
       errorMessage = error.message || 'Failed to upload files';
     } finally {
       uploading = false;
@@ -125,8 +125,8 @@
     try {
       await $mediaDB.del(mediaId);
       await loadMedia();
-    } catch (error) {
-      error('Error deleting media:', error);
+    } catch (_error) {
+      error('Error deleting media:', _error);
       errorMessage = 'Failed to delete media';
     }
   }

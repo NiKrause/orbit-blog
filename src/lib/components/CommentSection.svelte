@@ -40,8 +40,8 @@
         info('Comment added successfully');
         newComment = '';
         author = '';
-      } catch (error) {
-        error('Error adding comment:', error);
+      } catch (_error) {
+        'Error adding comment:', _error);
       }
     }
   }
@@ -62,8 +62,8 @@
       await $postsDB.put(post);
 
       info('Comment deleted successfully');
-    } catch (error) {
-      error('Error deleting comment:', error);
+    } catch (_error) {
+      error('Error deleting comment:', _error);
     }
   }
 </script>

@@ -349,7 +349,7 @@ async checkBrowserSupport() {
             .catch(e => console.error('Error adding ICE candidate to pc1:', e));
         }
       };
-    } catch (error) {
+    } catch (__error) {
       console.error('Error connecting peers:', error);
       throw error;
     }
@@ -403,8 +403,8 @@ async checkBrowserSupport() {
           region: data.regionName,
           org: data.org || data.isp
         };
-      } catch (error) {
-        console.error(`Failed to get location for IP ${ip}:`, error);
+      } catch (_error) {
+        console.error(`Failed to get location for IP ${ip}:`, _error);
         this.results.vpnDetection.ipLocations[ip] = {
           error: 'Location lookup failed'
         };
@@ -455,8 +455,8 @@ async checkBrowserSupport() {
       testResults.throughputTests = tester.results.throughputTests;
       
       testProgress = 100;
-    } catch (error) {
-      console.error('Error during WebRTC tests:', error);
+    } catch (_error) {
+      console.error('Error during WebRTC tests:', _error);
     } finally {
       isTestingInProgress = false;
       currentTest = 'Tests completed';

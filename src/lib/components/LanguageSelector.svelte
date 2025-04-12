@@ -1,6 +1,7 @@
 <script lang="ts">
   import { locale } from 'svelte-i18n';
   import { LANGUAGES, setLanguage } from '../i18n/index.js';
+  import { enabledLanguages, posts, selectedPostId } from '../store.js';
 
   type LanguageCode = keyof typeof LANGUAGES;
 
@@ -8,9 +9,33 @@
   let currentLocale = $state<LanguageCode>('en');
 
   // Funktion zum Ändern der Sprache
-  function changeLanguage(lang: LanguageCode) {
+  async function changeLanguage(lang: LanguageCode) {
+    console.log('changeLanguage', lang);
+    // Store the currently selected post before changing language
+    const currentPost = $posts.find(p => p._id === $selectedPostId);
+    
+    // Change the language
     setLanguage(lang);
     currentLocale = lang;
+
+    // If there was a selected post, try to find its translation or original
+    if (currentPost) {
+      console.log('currentPost', currentPost);
+      // Find the post in the new language that shares the same originalPostId
+      const originalId = currentPost.originalPostId || currentPost._id;
+      const postInNewLanguage = $posts.find(p => 
+        (p.originalPostId === originalId || p._id === originalId) && 
+        p.language === lang
+      );
+      console.log('postInNewLanguage', postInNewLanguage);
+      
+      // If we found a translation in the new language, select it
+      if (postInNewLanguage) {
+        console.log('setting selectedPostId', postInNewLanguage);
+        $selectedPostId = postInNewLanguage._id;
+        console.log('selectedPostId', $selectedPostId);
+      }
+    }
   }
 
   // Aktualisiere die aktuelle Sprache, wenn sich $locale ändert
@@ -19,6 +44,11 @@
       currentLocale = $locale as LanguageCode;
     }
   });
+
+  // Filter languages based on enabled languages
+  let enabledLanguageEntries = $derived(
+    Object.entries(LANGUAGES).filter(([code]) => $enabledLanguages.includes(code))
+  );
 </script>
 
 <div class="language-selector">
@@ -30,7 +60,7 @@
       </svg>
     </button>
     <div class="language-dropdown">
-      {#each Object.entries(LANGUAGES) as [code, name]}
+      {#each enabledLanguageEntries as [code, name]}
         <button 
           class="language-option {code === currentLocale ? 'active' : ''}" 
           onclick={() => changeLanguage(code as LanguageCode)}

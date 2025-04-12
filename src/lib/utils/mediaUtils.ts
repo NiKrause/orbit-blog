@@ -15,8 +15,8 @@ export async function getImageUrlFromHelia(cid: string, fs: UnixFS | null): Prom
     const url = URL.createObjectURL(blob);
     console.log('Created blob URL:', url);
     return url;
-  } catch (error) {
-    error('Error getting image URL from Helia:', error);
+  } catch (_error) {
+    error('Error getting image URL from Helia:', _error);
     return '';
   }
 }

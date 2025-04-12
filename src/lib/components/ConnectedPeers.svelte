@@ -73,9 +73,9 @@
           await $helia.libp2p.peerStore.delete(connection.remotePeer);
           console.log(`Removed peer from peer store: ${peerId}`);
           
-          updatePeersList();
-        } catch (err) {
-          console.error(`Failed to disconnect from peer: ${peerId}`, err);
+          updatePeersList(  );
+        } catch (_err) {
+          console.error(`Failed to disconnect from peer: ${peerId}`, _err);
         }
       }
     }

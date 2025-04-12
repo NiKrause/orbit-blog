@@ -2,7 +2,7 @@
   import { run } from 'svelte/legacy';
   import { _, locale } from 'svelte-i18n';
 
-  import { posts, selectedPostId, identity, postsDB, aiApiKey, aiApiUrl, enabledLanguages, isRTL } from '$lib/store.js';
+  import { posts, selectedPostId, identity, postsDB, enabledLanguages, isRTL } from '$lib/store.js';
   import { formatTimestamp } from '$lib/dateUtils.js';
 
   import { marked } from 'marked';
@@ -39,6 +39,7 @@
   let selectedMedia = $state<string[]>([]);
   let showDeleteConfirm = $state(false);
   let postToDelete = $state<Post | null>(null);
+  let deleteAllTranslations = $state(false); // Add this new state variable
 
   let displayedPosts = $state([]);
 
@@ -89,6 +90,9 @@
   $effect(() => {
     const _ = [$posts, $locale, selectedCategory, searchTerm];
     displayedPosts = filterPosts();
+    if (displayedPosts.length > 0 && !$selectedPostId) {
+      $selectedPostId = displayedPosts[0]._id;
+    }
   });
 
   let selectedPost = $derived($selectedPostId ? displayedPosts.find(post => post._id === $selectedPostId) : null);
@@ -100,11 +104,11 @@
     }
   });
 
-  run(() => {
-    if (displayedPosts.length > 0 && (!$selectedPostId || !displayedPosts.find(post => post._id === $selectedPostId))) {
-      $selectedPostId = displayedPosts[0]._id;
-    }
-  });
+  // run(() => {
+  //   if (displayedPosts.length > 0 && (!$selectedPostId || !displayedPosts.find(post => post._id === $selectedPostId))) {
+  //     $selectedPostId = displayedPosts[0]._id;
+  //   }
+  // });
 
   function renderMarkdown(content: string): string {
     // Process the markdown
@@ -113,10 +117,37 @@
     return DOMPurify.sanitize(rawHtml);
   }
 
-  function selectPost(postId: string) {
+  async function selectPost(postId: string) {
     $selectedPostId = postId;
     editMode = false; // Exit edit mode when selecting a different post
-    // Additional logic for when a post is selected
+    
+    // Find the selected post
+    const selectedPost = $posts.find(p => p._id === postId);
+    if (!selectedPost) return;
+    
+    // Log the original post
+    info(`Selected post: ${selectedPost.title} (${selectedPost.language || 'no language'})`);
+    info('posts', $posts) 
+    // Find all related translations
+    const allTranslations = $posts.filter(p => 
+      // If this is a translated post, find all posts with same originalPostId including the original
+      (selectedPost.originalPostId && (
+        p.originalPostId === selectedPost.originalPostId || 
+        p._id === selectedPost.originalPostId
+      )) ||
+      // If this is an original post, find all posts that were translated from it
+      p.originalPostId === selectedPost._id
+    );
+    
+    // Log all translations
+    if (allTranslations.length > 0) {
+      info('Related translations:');
+      allTranslations.forEach(translation => {
+        info(`- ${translation.title} (${translation.language})`);
+      });
+    } else {
+      info('No translations found for this post');
+    }
   }
 
   function editPost(post: Post, event: MouseEvent) {
@@ -136,7 +167,7 @@
     if (selectedPost && editedTitle && editedContent) {
       try {
         let updatedPost = {
-          _id: selectedPost._id,
+          _id: $selectedPostId,
           title: editedTitle,
           content: editedContent,
           language: $locale,
@@ -184,31 +215,39 @@
     if (!postToDelete) return;
     
     try {
-      // First get all translations of this post by matching title/content across languages
       const allPosts = $posts;
-      const relatedPosts = allPosts.filter(p => 
-        // If this is a translated post, find all posts with same translatedFrom
-        (postToDelete.translatedFrom && p.translatedFrom === postToDelete.translatedFrom) ||
-        // If this is an original post, find all posts that were translated from it
-        (p.translatedFrom === postToDelete._id)
-      );
+      let postsToDelete = [];
       
-      // Add the original post to the deletion list if not already included
-      if (!relatedPosts.includes(postToDelete)) {
-        relatedPosts.push(postToDelete);
+      if (deleteAllTranslations) {
+        // Delete all translations
+        postsToDelete = allPosts.filter(p => 
+          // If this is a translated post, find all posts with same originalPostId
+          (postToDelete.originalPostId && p.originalPostId === postToDelete.originalPostId) ||
+          // If this is an original post, find all posts that were translated from it
+          (p.originalPostId === postToDelete._id)
+        );
+        
+        // Add the original post to the deletion list if not already included
+        if (!postsToDelete.includes(postToDelete)) {
+          postsToDelete.push(postToDelete);
+        }
+      } else {
+        // Delete only current language version
+        postsToDelete = [postToDelete];
       }
 
-      // Delete all related posts
-      for (const post of relatedPosts) {
+      // Delete selected posts
+      for (const post of postsToDelete) {
         await $postsDB.del(post._id);
       }
 
-      info('Posts deleted successfully');
+      info(`Posts deleted successfully: ${deleteAllTranslations ? 'all translations' : 'current language only'}`);
       if ($selectedPostId === postToDelete._id && displayedPosts.length > 1) {
         $selectedPostId = displayedPosts[0]._id;
       }
       showDeleteConfirm = false;
       postToDelete = null;
+      deleteAllTranslations = false; // Reset the choice
     } catch (error) {
       error('Error deleting posts:', error);
     }
@@ -420,6 +459,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
 
     try {
       const post = {
+        _id:  $selectedPostId,
         title: editedTitle,
         content: editedContent,
         category: editedCategory,
@@ -867,15 +907,45 @@ ${convertMarkdownToLatex(selectedPost.content)}
   <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl max-w-md w-full">
       <h3 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">{$_('confirm_delete')}</h3>
-      <p class="text-gray-600 dark:text-gray-300 mb-6">
-        {$_('delete_post_confirm')} "{postToDelete?.title}"? {$_('this_will_delete_all_translations')}
+      <p class="text-gray-600 dark:text-gray-300 mb-4">
+        {$_('delete_post_confirm')} "{postToDelete?.title}"?
       </p>
+      
+      <div class="mb-6">
+        <div class="flex items-center space-x-2 mb-2">
+          <input
+            type="radio"
+            id="delete-current"
+            bind:group={deleteAllTranslations}
+            value={false}
+            class="text-indigo-600 focus:ring-indigo-500"
+          />
+          <label for="delete-current" class="text-gray-700 dark:text-gray-300">
+            {$_('delete_current_language_only')} ({postToDelete?.language || $locale})
+          </label>
+        </div>
+        
+        <div class="flex items-center space-x-2">
+          <input
+            type="radio"
+            id="delete-all"
+            bind:group={deleteAllTranslations}
+            value={true}
+            class="text-indigo-600 focus:ring-indigo-500"
+          />
+          <label for="delete-all" class="text-gray-700 dark:text-gray-300">
+            {$_('delete_all_translations')}
+          </label>
+        </div>
+      </div>
+
       <div class="flex justify-end space-x-4">
         <button
           class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
           onclick={() => {
             showDeleteConfirm = false;
             postToDelete = null;
+            deleteAllTranslations = false;
           }}
         >
           {$_('cancel')}

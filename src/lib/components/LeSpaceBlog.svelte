@@ -198,8 +198,8 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     try {
       await $settingsDB?.close();
       await $postsDB?.close();
-    } catch (error) {
-      error('Error closing OrbitDB connections:', error);
+    } catch (_error) {
+      error('Error closing OrbitDB connections:', _error);
     }
   })
 

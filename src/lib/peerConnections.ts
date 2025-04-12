@@ -35,8 +35,8 @@ export function  setupPeerEventListeners(libp2p: Libp2p) {
           info('Successfully dialed:', addr.toString());
           connected = true;
           // break; // Exit the loop once successfully connected
-        } catch (error) {
-          error(`Failed to dial ${addr.toString()}:`, error);
+        } catch (_error) {
+          error(`Failed to dial ${addr.toString()}:`, _error);
         }
       }
       

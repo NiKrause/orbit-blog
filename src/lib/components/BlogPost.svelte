@@ -1,5 +1,4 @@
 <script lang="ts">
-  // Framework imports
   import { onMount } from 'svelte';
   import { run, preventDefault } from 'svelte/legacy';
 
@@ -152,8 +151,8 @@
       const url = URL.createObjectURL(blob);
       mediaCache.set(cid, url);
       return url;
-    } catch (error) {
-      error('Error fetching from IPFS:', error);
+    } catch (_error) {
+      error('Error fetching from IPFS:', _error);
       return `https://dweb.link/ipfs/${cid}`;
     }
   }
@@ -244,8 +243,8 @@
           return null;
         }) || []
       ).then(results => results.filter(Boolean));
-    } catch (error) {
-      error('Error loading media:', error);
+    } catch (_error) {
+      error('Error loading media:',_error);
     }
   }
 
@@ -261,8 +260,8 @@
       comments = allComments
         .map(entry => entry.value)
         .filter(comment => comment.postId === post._id);
-    } catch (error) {
-      error('Error loading comments:', error);
+    } catch (_error) {
+      error('Error loading comments:', _error);
     }
   }
 
@@ -285,8 +284,8 @@
       newComment = '';
       commentAuthor = '';
       await loadComments();
-    } catch (error) {
-      error('Error adding comment:', error);
+    } catch (_error) {
+      error('Error adding comment:', _error);
     }
   }
 

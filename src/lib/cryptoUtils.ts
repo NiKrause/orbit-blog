@@ -83,8 +83,8 @@ export async function decryptSeedPhrase(encryptedData: string, password: string)
     );
     
     return new TextDecoder().decode(decrypted);
-  } catch (error) {
-    error('Decryption failed:', error);
+  } catch (_error) {
+    error('Decryption failed:', _error);
     throw new Error('Invalid password or corrupted data');
   }
 }
@@ -195,9 +195,9 @@ export async function decryptPost(encryptedData: { title: string; content: strin
       title: new TextDecoder().decode(decryptedTitle),
       content: new TextDecoder().decode(decryptedContent)
     };
-  } catch (error) {
-    error('Error decrypting post:', error);
-    throw new Error(`Decryption failed: ${error.message}`);
+  } catch (_error) {
+    error('Error decrypting post:', _error);
+    throw new Error(`Decryption failed: ${_error.message}`);
   }
 }
 

@@ -34,8 +34,8 @@
         width: 200,
         margin: 2,
       });
-    } catch (error) {
-      error('Error generating QR code:', error);
+    } catch (_error) {
+      error('Error generating QR code:', _error);
     }
   }
 
@@ -49,8 +49,8 @@
         videoElement.play();
         requestAnimationFrame(scanQRCode);
       }
-    } catch (error) {
-      error('Error accessing camera:', error);
+    } catch (_error) {
+      error('Error accessing camera:', _error);
       showScanner = false;
     }
   }
@@ -96,8 +96,8 @@
       }
 
       requestAnimationFrame(scanQRCode);
-    } catch (error) {
-      error('Error scanning QR code:', error);
+    } catch (_error) {
+      error('Error scanning QR code:', _error);
       requestAnimationFrame(scanQRCode);
     }
   }
@@ -192,8 +192,8 @@
           await $remoteDBsDatabases.put({ _id: db.id, ...db });
           
           debug(`Successfully processed queued database: ${db.name}`);
-        } catch (error) {
-          error(`Error processing queued database ${db.name}:`, error);
+        } catch (_error) {
+          error(`Error processing queued database ${db.name}:`, _error);
           db.lastAttempt = new Date().toISOString();
           await $remoteDBsDatabases.put({ _id: db.id, ...db });
         }
@@ -201,8 +201,8 @@
       
       $remoteDBs = [...$remoteDBs];
       
-    } catch (error) {
-      error('Error processing database queue:', error);
+    } catch (_error) {
+      error('Error processing database queue:', _error);
     } finally {
       isQueueRunning = false;
     }
@@ -238,8 +238,8 @@
           queueCheckInterval = window.setInterval(processQueue, 30 * 1000);
           processQueue(); // Process immediately
         }
-      } catch (err) {
-        console.error('Error opening remote database:', err);
+      } catch (_err) {
+        console.error('Error opening remote database:', _err);
         modalMessage = `${$_('error')}: ${err.message || $_('unknown_error')} - ${$_('adding_to_queue_for_later')}`;
         
         await addRemoteDBToStore(dbAddress, dbName);
@@ -357,8 +357,8 @@
       await Promise.all(dropPromises);
       debug(`Successfully removed database: ${db.name}`);
       
-    } catch (error) {
-      error(`Error dropping database ${db.name}:`, error);
+    } catch (_error) {
+      error(`Error dropping database ${db.name}:`, _error);
       throw error;
     }
   }
@@ -367,8 +367,8 @@
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text).then(() => {
       debug('Text copied to clipboard:', text);
-    }).catch(err => {
-      error('Error copying text to clipboard:', err);
+    }).catch(_err => {
+      error('Error copying text to clipboard:', _err);
     });
   }
   run(() => {
@@ -550,9 +550,9 @@
         isModalOpen = false;
       }, 2000);
       
-    } catch (error) {
-      error('Error cloning database:', error);
-      modalMessage = `${$_('error_cloning_database')}: ${error.message}`;
+    } catch (_error) {
+      error('Error cloning database:', _error);
+      modalMessage = `${$_('error_cloning_database')}: ${_error.message}`;
       setTimeout(() => {
         isModalOpen = false;
       }, 3000);

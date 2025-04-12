@@ -73,8 +73,8 @@
         encryptionPassword = '';
         
         $selectedPostId = _id;
-      } catch (error) {
-        console.error('Error creating post:', error);
+      } catch (_error) {
+        console.error('Error creating post:', _error);
       }
     }
   }
@@ -102,55 +102,55 @@
     content = content.replace(`\n\n![Media](ipfs://${mediaId})`, '');
   }
 
-  async function handleTranslate() {
-    if (!title || !content || !category) {
-      translationError = $_('fill_required_fields');
-      return;
-    }
+  // async function handleTranslate() {
+  //   if (!title || !content || !category) {
+  //     translationError = $_('fill_required_fields');
+  //     return;
+  //   }
 
-    isTranslating = true;
-    translationError = '';
-    translationStatuses = Object.fromEntries([...$enabledLanguages].map(lang => [lang, 'default']));
+  //   isTranslating = true;
+  //   translationError = '';
+  //   translationStatuses = Object.fromEntries([...$enabledLanguages].map(lang => [lang, 'default']));
 
-    try {
-      const result = await TranslationService.translateAndSavePost({
-        post: {
-          title,
-          content,
-          category,
-          language: $locale,
-          isEncrypted: isEncrypting
-        },
-        encryptionPassword: encryptionPassword,
-        postsDB: $postsDB,
-        identity: $identity,
-        mediaIds: selectedMedia,
-        onStatusUpdate: (lang, status) => {
-          translationStatuses = {
-            ...translationStatuses,
-            [lang]: status === 'processing' ? 'default' : status
-          };
-        }
-      });
+  //   try {
+  //     const result = await TranslationService.translateAndSavePost({
+  //       post: {
+  //         title,
+  //         content,
+  //         category,
+  //         language: $locale,
+  //         isEncrypted: isEncrypting
+  //       },
+  //       encryptionPassword: encryptionPassword,
+  //       postsDB: $postsDB,
+  //       identity: $identity,
+  //       mediaIds: selectedMedia,
+  //       onStatusUpdate: (lang, status) => {
+  //         translationStatuses = {
+  //           ...translationStatuses,
+  //           [lang]: status === 'processing' ? 'default' : status
+  //         };
+  //       }
+  //     });
 
-      if (result.success) {
-        translationStatuses = result.translationStatuses;
-        // Clear form after successful translation
-        title = '';
-        content = '';
-        category = '';
-        selectedMedia = [];
-        showPreview = false;
-      } else {
-        translationError = result.error;
-        translationStatuses = result.translationStatuses;
-      }
-    } catch (error) {
-      translationError = $_('translation_failed');
-    } finally {
-      isTranslating = false;
-    }
-  }
+  //     if (result.success) {
+  //       translationStatuses = result.translationStatuses;
+  //       // Clear form after successful translation
+  //       title = '';
+  //       content = '';
+  //       category = '';
+  //       selectedMedia = [];
+  //       showPreview = false;
+  //     } else {
+  //       translationError = result.error;
+  //       translationStatuses = result.translationStatuses;
+  //     }
+  //   } catch (error) {
+  //     translationError = $_('translation_failed');
+  //   } finally {
+  //     isTranslating = false;
+  //   }
+  // }
 
   async function handleEncrypt() {
     if (!title || !content) {
@@ -296,7 +296,7 @@
       <!-- {/if} -->
     </button>
 
-    <button
+    <!-- <button
       type="button"
       onclick={handleTranslate}
       disabled={isTranslating}
@@ -319,7 +319,7 @@
       {:else}
         {$_('translate_and_post')}
       {/if}
-    </button>
+    </button> -->
     
     <button
       type="submit"

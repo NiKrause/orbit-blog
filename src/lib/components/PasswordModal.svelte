@@ -55,8 +55,8 @@
           isProcessing = false;
         }
       }
-    } catch (error) {
-      console.error('Password processing error:', error);
+    } catch (_error) {
+      console.error('Password processing error:', _error);
       errorMessage = 'An error occurred. Please try again.';
       isProcessing = false;
     }
