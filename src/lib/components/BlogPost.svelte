@@ -4,7 +4,6 @@
 
   // Third-party imports
   import { marked } from 'marked';
-  import { DateTime } from 'luxon';
   import DOMPurify from 'dompurify';
   import { unixfs } from '@helia/unixfs';
   import { _ } from 'svelte-i18n';

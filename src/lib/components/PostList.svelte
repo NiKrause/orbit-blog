@@ -90,10 +90,14 @@
   $effect(() => {
     const _ = [$posts, $locale, selectedCategory, searchTerm];
     displayedPosts = filterPosts();
+   
     // if (displayedPosts.length > 0 && !$selectedPostId) {
     //   $selectedPostId = displayedPosts[0]._id;
     // }
   });
+  $effect(() => {
+    info('displayedPosts', displayedPosts);
+  }); 
 
   let selectedPost = $derived($selectedPostId ? displayedPosts.find(post => post._id === $selectedPostId) : null);
 
@@ -104,11 +108,11 @@
     }
   });
 
-  // run(() => {
-  //   if (displayedPosts.length > 0 && (!$selectedPostId || !displayedPosts.find(post => post._id === $selectedPostId))) {
-  //     $selectedPostId = displayedPosts[0]._id;
-  //   }
-  // });
+  run(() => {
+    if (displayedPosts.length > 0 && (!$selectedPostId || !displayedPosts.find(post => post._id === $selectedPostId))) {
+      $selectedPostId = displayedPosts[0]._id;
+    }
+  });
 
   function renderMarkdown(content: string): string {
     // Process the markdown

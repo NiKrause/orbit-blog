@@ -4,7 +4,8 @@
   import { onMount, onDestroy } from 'svelte';
   import type { Connection, Helia } from '$lib/types.js';
   import { isRTL } from '$lib/store.js';
-  
+  import WebRTCCelebration from './WebRTCCelebration.svelte';
+  import { info } from '$lib/utils/logger.js';
   interface PeerInfo {
     id: string;
     shortId: string;
@@ -15,6 +16,8 @@
   
   let peers: PeerInfo[] = $state([]);
   let updateInterval: number;
+  let showWebRTCCelebration = $state(false);
+  let previousPeers: Record<string, string> = {};
   
   function getTransportFromMultiaddr(conn: Connection): string {
     const remoteAddr = conn.remoteAddr.toString();
@@ -37,24 +40,44 @@
   function updatePeersList() {
     if ($helia?.libp2p) {
       const connections = $helia.libp2p.getConnections();
-      peers = connections.map((conn: Connection) => ({
+      const newPeers = connections.map((conn: Connection) => ({
         id: conn.remotePeer.toString(),
         shortId: getShortPeerId(conn.remotePeer.toString()),
         connected: conn.status === 'open',
         address: conn.remoteAddr.toString(),
         transport: getTransportFromMultiaddr(conn)
       }));
+
+      // Check for transport changes to WebRTC
+      newPeers.forEach(peer => {
+        info('peer', peer);
+        const previousTransport = previousPeers[peer.id];
+        if (previousTransport && 
+            previousTransport !== 'WebRTC' && 
+            peer.transport === 'WebRTC') {
+          info('showing celebration');
+          showWebRTCCelebration = true;
+          setTimeout(() => {
+            info('hiding celebration');
+            showWebRTCCelebration = false;
+          }, 2000);
+        }
+        previousPeers[peer.id] = peer.transport;
+      });
+
+      peers = newPeers;
     }
   }
-  
+  $effect(() => {
+      $helia?.libp2p?.addEventListener('peer:connect', updatePeersList);
+  });
   onMount(() => {
     updatePeersList();
     
-    if ($helia?.libp2p) {
-      // Listen for peer events
-      $helia.libp2p.addEventListener('peer:connect', updatePeersList);
-      $helia.libp2p.addEventListener('peer:disconnect', updatePeersList);
-    }
+      if ($helia?.libp2p) {
+        $helia.libp2p.addEventListener('peer:connect', updatePeersList);
+        $helia.libp2p.addEventListener('peer:disconnect', updatePeersList);
+      }
     
     // Periodically update to catch any changes
     updateInterval = window.setInterval(updatePeersList, 5000);
@@ -72,6 +95,8 @@
     }
   });
 </script>
+
+<WebRTCCelebration show={showWebRTCCelebration} />
 
 <div class="space-y-1 {$isRTL ? 'rtl' : 'ltr'}">
   {#if peers.length === 0}
