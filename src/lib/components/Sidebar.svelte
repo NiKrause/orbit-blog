@@ -33,6 +33,23 @@
       canWrite = access?.includes(_identity?.id)
     }
   });
+
+  // Function to handle section toggling
+  function toggleSection(section: 'blogs' | 'peers' | 'settings') {
+    if (section === 'blogs') {
+      showDBManager.update(value => !value);
+      showPeers.set(false);
+      showSettings.set(false);
+    } else if (section === 'peers') {
+      showPeers.update(value => !value);
+      showDBManager.set(false);
+      showSettings.set(false);
+    } else if (section === 'settings') {
+      showSettings.update(value => !value);
+      showDBManager.set(false);
+      showPeers.set(false);
+    }
+  }
 </script>
 
 <div class="w-48 md:w-64 bg-gray-200 dark:bg-gray-800 p-2 shadow-md overflow-y-auto {$isRTL ? 'rtl' : 'ltr'}">
@@ -40,7 +57,7 @@
   <div class="mb-3">
     <h5 
       class="text-xs md:text-sm font-bold uppercase tracking-wider text-white dark:text-white bg-blue-500 rounded py-1 px-2 mb-1 cursor-pointer hover:bg-blue-600"
-      onclick={() => showDBManager.update((value: boolean) => !value)}
+      onclick={() => toggleSection('blogs')}
       title={$showDBManager ? $_("hide_database_manager") : $_("show_database_manager")}
     >
       {$_('blogs')}
@@ -130,7 +147,7 @@
   <div class="mb-3">
     <h5 
       class="text-xs md:text-sm font-bold uppercase tracking-wider text-white dark:text-white bg-yellow-500 rounded py-1 px-2 mb-1 cursor-pointer hover:bg-yellow-600"
-      onclick={() => showPeers.update((value: boolean) => !value)}
+      onclick={() => toggleSection('peers')}
       title={$showPeers ? $_("hide_connected_peers") : $_("show_connected_peers")}
     >
       {$_('peers')} ({$connectedPeersCount})
@@ -150,7 +167,7 @@
   <div>
     <h5 
       class="text-xs md:text-sm font-bold uppercase tracking-wider text-white dark:text-white bg-green-500 rounded py-1 px-2 mb-1 cursor-pointer hover:bg-green-600"
-      onclick={() => showSettings.update((value: boolean) => !value)}
+      onclick={() => toggleSection('settings')}
       title={$showSettings ? $_("hide_settings") : $_("show_settings")}
     >
       {$_('settings')}

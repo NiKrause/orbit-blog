@@ -540,22 +540,25 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     ontouchmove={handleTouchMove}
     ontouchend={handleTouchEnd}>
     
-
-    <!-- Sidebar Component with animation -->
     {#if sidebarVisible}
-      <!-- Add overlay -->
       <div 
         class="fixed inset-0 bg-black bg-opacity-50 z-30"
-        onclick={toggleSidebar}
+        onclick={() => sidebarVisible = false}
+        ontouchend={(e) => {sidebarVisible = false; e.stopPropagation()}}
         transition:fade
       ></div>
       
-      <div in:fly={{ x: $isRTL ? 400 : -400, duration: 400, easing: cubicOut }} 
-           out:fly={{ x: $isRTL ? 400 : -400, duration: 400, easing: cubicOut }}
-           class="fixed top-0 {sidebarPosition}-0 h-full z-40 max-w-[80vw]">
+      <div 
+        onclick={() => sidebarVisible = false}
+        ontouchend={(e) => {sidebarVisible = false; e.stopPropagation()}}
+        in:fly={{ x: $isRTL ? 400 : -400, duration: 400, easing: cubicOut }} 
+        out:fly={{ x: $isRTL ? 400 : -400, duration: 400, easing: cubicOut }}
+        class="fixed top-0 {sidebarPosition}-0 h-full z-40 max-w-[80vw]"
+      >
         <button
           class="absolute top-2 {sidebarButtonPosition}-1 z-50 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-full p-1 shadow-sm transition-all duration-300 focus:outline-none"
-          onclick={toggleSidebar}
+          onclick={() => sidebarVisible = false}
+          ontouchend={(e) => {sidebarVisible = false; e.stopPropagation()}}
           aria-label={$_('close')}>
           <div class="w-4 h-4 text-gray-800 dark:text-gray-200">
             <FaTimes />
@@ -564,20 +567,22 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         <Sidebar />
       </div>
     {:else}
-      <!-- Fixed toggle button when sidebar is hidden -->
+      <!-- Sidebar toggle button -->
       <button
         class="fixed top-4 {sidebarButtonPosition}-4 z-50 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-full p-1 shadow-sm transition-all duration-300 focus:outline-none"
-        onclick={toggleSidebar}
+        onclick={() => sidebarVisible = true}
+        ontouchend={(e) => {sidebarVisible = true; e.stopPropagation()}}
         aria-label={$_('show_editor')}>
         <div class="w-4 h-4 text-gray-800 dark:text-gray-200">
           <FaBars />
         </div>
       </button>
       
-      <!-- Sidebar trigger area for edge detection -->
+      <!-- Sidebar trigger area -->
       <div 
         class="w-8 h-full fixed top-0 {sidebarTriggerPosition}-0 z-10 cursor-pointer" 
-        onclick={toggleSidebar}
+        onclick={() => sidebarVisible = true}
+        ontouchend={(e) => {sidebarVisible = true; e.stopPropagation()}}
         onmouseenter={handleMouseEnter}
         aria-label={$_('show_sidebar')}>
       </div>

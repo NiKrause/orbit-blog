@@ -17,7 +17,7 @@ echo "IPFS name orbitblog updated with CID $cid"
 # ssh -t root@ipfs.le-space.de "cd docker/ipfs/willschenk && docker-compose exec ipfs ipfs add $cid"
 # echo "IPFS CID $cid added to ipfs.le-space.de"
 # Pin the CID to ipfs.le-space.de
-ssh -t root@ipfs.le-space.de "ipfs pin add $cid"
+ssh -t root@ipfs.le-space.de "su ipfs -c 'ipfs pin add $cid'"
 echo "IPFS CID $cid pinned to ipfs.le-space.de"
 
 

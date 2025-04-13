@@ -90,9 +90,9 @@
   $effect(() => {
     const _ = [$posts, $locale, selectedCategory, searchTerm];
     displayedPosts = filterPosts();
-    if (displayedPosts.length > 0 && !$selectedPostId) {
-      $selectedPostId = displayedPosts[0]._id;
-    }
+    // if (displayedPosts.length > 0 && !$selectedPostId) {
+    //   $selectedPostId = displayedPosts[0]._id;
+    // }
   });
 
   let selectedPost = $derived($selectedPostId ? displayedPosts.find(post => post._id === $selectedPostId) : null);
