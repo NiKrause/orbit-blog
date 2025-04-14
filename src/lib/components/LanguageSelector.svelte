@@ -64,6 +64,7 @@
         <button 
           class="language-option {code === currentLocale ? 'active' : ''}" 
           onclick={() => changeLanguage(code as LanguageCode)}
+          ontouchend={(e) => {e.preventDefault(); changeLanguage(code as LanguageCode)}}
         >
           {name}
         </button>

@@ -508,7 +508,7 @@
   }
 </style>
 
-<article class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+<article data-testid="blog-post" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
   {#if isEncrypted && showPasswordPrompt}
     <PostPasswordPrompt 
       mode={isEncrypted ? 'decrypt' : 'encrypt'}
@@ -521,7 +521,7 @@
       on:passwordSubmitted={handlePasswordSubmitted}
     />
   {:else}
-    <h1 class="text-4xl font-bold mb-2 text-gray-900 dark:text-white">{title}</h1>
+    <h1 data-testid="post-title" class="text-4xl font-bold mb-2 text-gray-900 dark:text-white">{title}</h1>
     <div class="flex space-x-4 text-sm text-gray-500 dark:text-gray-400 mb-4">
       <span title={post.identity || 'Unknown'}>
         {$_('by')} {post.identity ? `...${post.identity.slice(-5)}` : $_('unknown')}
@@ -535,7 +535,7 @@
       </span>
     </div>
     
-    <div class="prose dark:prose-invert max-w-none mb-6">
+    <div data-testid="post-content" class="prose dark:prose-invert max-w-none mb-6">
       {@html renderedContent}
     </div>
 
@@ -561,6 +561,7 @@
           {#each postMedia as media}
             {#if media.type.startsWith('image/')}
               <a href={media.url || `https://ipfs.io/ipfs/${media.cid}`} target="_blank" rel="noopener noreferrer" 
+                 ontouchend={(e) => {e.preventDefault(); window.open(media.url || `https://ipfs.io/ipfs/${media.cid}`, '_blank')}}
                  class="block overflow-hidden rounded-lg">
                 <img src={media.url || `https://ipfs.io/ipfs/${media.cid}`} alt={media.name}
                      class="w-full h-auto object-cover" />
@@ -577,7 +578,9 @@
               </audio>
             {:else}
               <a href={media.url || `https://ipfs.io/ipfs/${media.cid}`} 
-                 target="_blank" rel="noopener noreferrer" 
+                 target="_blank" 
+                 rel="noopener noreferrer"
+                 ontouchend={(e) => {e.preventDefault(); window.open(media.url || `https://ipfs.io/ipfs/${media.cid}`, '_blank')}}
                  class="flex items-center p-3 bg-gray-100 dark:bg-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-500 transition">
                 <span class="truncate">{media.name} ({(media.size / 1024).toFixed(2)} KB)</span>
               </a>

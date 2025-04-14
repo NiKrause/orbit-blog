@@ -530,7 +530,6 @@ ${convertMarkdownToLatex(selectedPost.content)}
           updatedPost.createdAt = post.createdAt;
           updatedPost.updatedAt = post.updatedAt;
           updatedPost.date = post.date;
-          // Also update the decrypted status
           updatedPost.isDecrypted = true;
           return updatedPost;
         }
@@ -546,7 +545,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
   }
 </script>
 
-<div class="space-y-4 {$isRTL ? 'rtl' : 'ltr'}">
+<div data-testid="post-list" class="space-y-4 {$isRTL ? 'rtl' : 'ltr'}">
   <div class="flex space-x-4 mb-6">
     <input
       type="text"
@@ -570,15 +569,30 @@ ${convertMarkdownToLatex(selectedPost.content)}
   <div class="grid grid-cols-12 gap-6 responsive-grid">
     <!-- Post List -->
     <div class="col-span-4 bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 h-fit">
-      <h2 class="text-xl font-semibold mb-4 text-gray-900 dark:text-white">{$_('blog_posts')}</h2>
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">{$_('blog_posts')}</h2>
+        {#if hasWriteAccess()}
+          <a
+            href="#"
+            data-testid="new-post-link"
+            class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+            onclick={() => {
+              editMode = false;
+              $selectedPostId = null;
+            }}
+          >
+            {$_('create_new_post')}
+          </a>
+        {/if}
+      </div>
       <div class="space-y-2">
         {#each displayedPosts as post (post._id)}
-          <div class="post-item w-full text-left p-3 rounded-md transition-colors cursor-pointer bg-white dark:bg-gray-800"
+          <div data-testid="post-item-{post._id}" class="post-item w-full text-left p-3 rounded-md transition-colors cursor-pointer bg-white dark:bg-gray-800"
             onclick={() => selectPost(post._id)}
             onmouseover={() => hoveredPostId = post._id}
             onmouseout={() => hoveredPostId = null}
             ontouchstart={(e) => { e.stopPropagation(); selectPost(post._id) }}
-            ontouchend={(e) => { e.stopPropagation(); selectPost(post._id) }}
+            ontouchend={(e) => { e.preventDefault(); e.stopPropagation(); selectPost(post._id) }}
             role="button"
             tabindex="0"
             onkeydown={(e) => e.key === 'Enter' && selectPost(post._id)}
@@ -593,9 +607,8 @@ ${convertMarkdownToLatex(selectedPost.content)}
                     type="button"
                     class="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 touch-manipulation"
                     onclick={(e) => {e.stopPropagation(); editPost(post, e)}}
-                    ontouchend={(e) => {e.stopPropagation(); editPost(post, e)}}
+                    ontouchend={(e) => {e.preventDefault(); e.stopPropagation(); editPost(post, e)}}
                     title={$_('edit_post')}
-                    aria-label={$_('edit_post')}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
@@ -604,6 +617,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
                   <button
                     class="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                     onclick={(e) => deletePost(post, e)}
+                    ontouchend={(e) => {e.preventDefault(); e.stopPropagation(); deletePost(post, e)}}
                     title={$_('delete_post')}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -613,6 +627,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
                   <button
                     class="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
                     onclick={(e) => viewPostHistory(post, e)}
+                    ontouchend={(e) => {e.preventDefault(); e.stopPropagation(); viewPostHistory(post, e)}}
                     title={$_('view_history')}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -623,7 +638,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
               {/if}
               <div class="flex justify-between items-start">
                 <div class="flex-1">
-                  <h3 class="font-medium text-gray-900 dark:text-white overflow-hidden whitespace-nowrap" title={post.title}>
+                  <h3 data-testid="post-item-title" class="font-medium text-gray-900 dark:text-white overflow-hidden whitespace-nowrap" title={post.title}>
                     {post.isDecrypted ? truncateTitle(post.title, 40) : truncateTitle(post.isEncrypted ? $_('encrypted_post') : post.title, 40)}
                   </h3>
                   <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -982,7 +997,6 @@ ${convertMarkdownToLatex(selectedPost.content)}
   />
 {/if} 
 <style>
-
   h3 {
     max-width: 100%; 
   }

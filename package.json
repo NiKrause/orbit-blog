@@ -29,6 +29,8 @@
     "build:lib": "vite build --mode lib",
     "preview": "vite preview",
     "test": "mocha test/**/*.test.js",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "test:watch": "mocha test/**/*.test.js --watch",
     "ipfs-publish": "npm version patch && npm run build && ./ipfs-publish.sh",
     "check": "svelte-check --tsconfig ./tsconfig.json"
@@ -88,6 +90,7 @@
     "@orbitdb/identity-provider-did": "^1.0.2",
     "@orbitdb/identity-provider-ethereum": "^1.0.3",
     "@orbitdb/set-db": "^1.1.2",
+    "@playwright/test": "^1.51.1",
     "@types/dompurify": "^3.2.0",
     "@types/qrcode": "^1.5.5",
     "bip32": "5.0.0-rc.0",

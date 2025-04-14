@@ -15,7 +15,17 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 ### Todos, Features, Issues
 - Todos:
+    - [ ] Create a two browser e2e tests with two browsers 
+        - [ ] create a blog and two posts
+        - [ ] open a second browser with that /#/orbitdb/address in the url wait for replication
+        - [ ] add a post A - wait for replication in browser B
+        - [ ] drop db in browser A 
+        - [ ] create same blog name again in browser A - wait for replication from browser B 
+
     - [ ] first time loading seems still slow - what can be optimized?
+    - [ ] when starting browser let user decide for memory sessions o persistent storage
+        - [ ] if persistent storage and peerId is temporary same indexDB should be used anyways (do not create new indexDB for every session)
+        - [ ] display used/available storage of index db 
     - [ ] Feature: Make voyager host configurable via settings (everybody should be able to use its own private voyager(s))
     - [ ] Feature: Implement IPNS-OrbitDB-blockchain-link: Store an OrbitDB-Address in a blockchain transaction (e.g. Namecoin) name: ipns/example.com / ipns/ipnspubkey value: /orbitdb/address - when a website / app is loaded via ipns e.g. example-com/ipns.localhost:8081 pwa can extract the ipns name from the hostname and lookup an OrbitDB from a blockchain to load as default! Also set x-ipfs-path in nginx header.
     - [ ] BUG: during a demo with a blogger, I couldn't add his orbitdb address

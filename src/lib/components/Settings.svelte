@@ -204,14 +204,15 @@
   });
 </script>
 
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 {$isRTL ? 'rtl' : 'ltr'}">
-  <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">{$_('settings')}</h2>
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 {$isRTL ? 'rtl' : 'ltr'}" data-testid="settings-container">
+  <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white" data-testid="settings-title">{$_('settings')}</h2>
   
   <!-- Blog Settings Accordion -->
   <div class="mb-2 border rounded-lg overflow-hidden">
     <button 
       class="w-full p-4 text-left bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 flex justify-between items-center"
       onclick={() => toggleSection('blogSettings')}
+      data-testid="blog-settings-accordion"
     >
       <div class="flex items-center space-x-2">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -277,8 +278,11 @@
           <div class="flex-1 space-y-4">
             <div>
               <label class="block text-gray-700 dark:text-gray-300">{$_('blog_name')}</label>
-              <input type="text" class="w-full p-2 border rounded" 
+              <input 
+                type="text" 
+                class="w-full p-2 border rounded" 
                 value={$blogName} 
+                data-testid="blog-name-input"
                 onchange={(event: Event) => {
                   const target = event.target as HTMLInputElement;
                   $settingsDB?.put({ _id: 'blogName', value: target.value })
@@ -287,8 +291,11 @@
             </div>
             <div>
               <label class="block text-gray-700 dark:text-gray-300">{$_('blog_description')}</label>
-              <input type="text" class="w-full p-2 border rounded" 
+              <input 
+                type="text" 
+                class="w-full p-2 border rounded" 
                 value={$blogDescription} 
+                data-testid="blog-description-input"
                 onchange={(event: Event) => {
                   const target = event.target as HTMLInputElement;
                   $settingsDB?.put({ _id: 'blogDescription', value: target.value })
@@ -306,6 +313,7 @@
     <button 
       class="w-full p-4 text-left bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 flex justify-between items-center"
       onclick={() => toggleSection('languages')}
+      ontouchend={(e) => {e.preventDefault(); toggleSection('languages')}}
     >
       <div class="flex items-center space-x-2">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -339,6 +347,7 @@
     <button 
       class="w-full p-4 text-left bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 flex justify-between items-center"
       onclick={() => toggleSection('categories')}
+      data-testid="categories"
     >
       <div class="flex items-center space-x-2">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -357,21 +366,24 @@
             placeholder={$_('new_category')}
             bind:value={newCategory} 
             onkeydown={(event) => event.key === 'Enter' && addCategory()}
+            data-testid="new-category-input"
           />
           <button 
             class="bg-blue-500 text-white p-2 rounded-r"
             onclick={addCategory}
+            data-testid="add-category-button"
           >
             {$_('add')}
           </button>
         </div>
         <div class="flex flex-wrap gap-2 mt-2">
           {#each $categories as category}
-            <div class="bg-gray-200 dark:bg-gray-700 rounded-full px-3 py-1 flex items-center">
+            <div class="bg-gray-200 dark:bg-gray-700 rounded-full px-3 py-1 flex items-center" data-testid="category-item">
               <span class="mr-2">{category}</span>
               <button 
                 class="text-red-500 hover:text-red-700"
                 onclick={() => removeCategory(category)}
+                data-testid="remove-category-button-{category}"
               >
                 ×
               </button>

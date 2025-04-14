@@ -496,7 +496,7 @@ async checkBrowserSupport() {
         <h2 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{$_('webrtc_network_test')}</h2>
         <button
           class="p-2 -mr-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-          on:click={closeModal}
+          onclick={closeModal}
           title={$_('webrtc_close')}
           aria-label={$_('webrtc_close')}
         >
@@ -509,7 +509,8 @@ async checkBrowserSupport() {
       {#if !isTestingInProgress && testProgress === 0}
         <button 
           class="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700 mb-4"
-          on:click={startTests}
+          onclick={startTests}
+          ontouchend={(e) => {e.preventDefault(); startTests()}}
         >
           {$_('start_network_tests')}
         </button>

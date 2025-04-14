@@ -187,17 +187,17 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   }
 
   onDestroy(async () => {
-    // Clean up router subscription
     if (routerUnsubscribe) routerUnsubscribe();
     
-    // Clean up event listeners
     if (settingsDBUpdateHandler) {
       $settingsDB?.events.removeListener('update', settingsDBUpdateHandler);
     }
     
     try {
       await $settingsDB?.close();
+      await $commentsDB?.close();
       await $postsDB?.close();
+      await $mediaDB?.close();
     } catch (_error) {
       error('Error closing OrbitDB connections:', _error);
     }
@@ -572,7 +572,8 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         class="fixed top-4 {sidebarButtonPosition}-4 z-50 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-full p-1 shadow-sm transition-all duration-300 focus:outline-none"
         onclick={() => sidebarVisible = true}
         ontouchend={(e) => {sidebarVisible = true; e.stopPropagation()}}
-        aria-label={$_('show_editor')}>
+        aria-label={$_('show_editor')}
+        data-testid="menu-button">
         <div class="w-4 h-4 text-gray-800 dark:text-gray-200">
           <FaBars />
         </div>
@@ -632,10 +633,12 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
               {/if}
             </div>
             <div class="text-center">
-              <h1 class="text-4xl font-bold text-gray-900 dark:text-white">
+              <h1 class="text-4xl font-bold text-gray-900 dark:text-white" data-testid="blog-name">
                 {$blogName}
               </h1>
-              <h6 class="text-sm text-gray-900 dark:text-white">{$blogDescription}</h6>
+              <h6 class="text-sm text-gray-900 dark:text-white" data-testid="blog-description">
+                {$blogDescription}
+              </h6>
               <h6 class="text-xs text-gray-900 dark:text-white">{__APP_VERSION__}</h6>
             </div>
           </div>

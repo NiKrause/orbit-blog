@@ -71,3 +71,46 @@ button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
+
+/* Touch device optimizations */
+@media (hover: none) {
+  /* Improve touch targets */
+  button, 
+  a[role="button"],
+  .clickable {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 8px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Remove hover effects on touch devices */
+  button:hover,
+  a:hover,
+  .hover\:* {
+    background-color: inherit;
+    color: inherit;
+    opacity: 1;
+  }
+  
+  /* Ensure touch feedback */
+  button:active,
+  a[role="button"]:active,
+  .clickable:active {
+    opacity: 0.7;
+    transition: opacity 0.2s;
+  }
+}
+
+/* General touch improvements */
+.touch-manipulation {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent text selection during touch */
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+}

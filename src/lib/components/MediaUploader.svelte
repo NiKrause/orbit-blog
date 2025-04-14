@@ -183,6 +183,7 @@
       <div 
         class="media-item relative border rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
         onclick={() => selectMedia(media)}
+        ontouchend={(e) => {e.preventDefault(); selectMedia(media)}}
       >
         {#if media.type.startsWith('image/')}
           <img src={getMediaPreviewUrl(media)} alt={media.name} class="w-full h-24 object-cover" />
@@ -206,6 +207,7 @@
         <button 
           class="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center"
           onclick={(e) => deleteMedia(media._id, e)}
+          ontouchend={(e) => {e.preventDefault(); e.stopPropagation(); deleteMedia(media._id, e)}}
         >
           ×
         </button>

@@ -7,8 +7,6 @@
   import DOMPurify from 'dompurify';
   import { postsDB, categories, selectedPostId, identity, enabledLanguages, isRTL } from '$lib/store.js';
   import MediaUploader from './MediaUploader.svelte';
-  import { TranslationService } from '$lib/services/translationService.js';
-  import LanguageStatusLED from './LanguageStatusLED.svelte';
   import { encryptPost } from '$lib/cryptoUtils.js';
   import PostPasswordPrompt from './PostPasswordPrompt.svelte';
 
@@ -179,7 +177,7 @@
   }
 </script>
 
-<form onsubmit={preventDefault(handleSubmit)} class="space-y-4 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md {$isRTL ? 'rtl' : 'ltr'}">
+<form onsubmit={preventDefault(handleSubmit)} data-testid="post-form" class="space-y-4 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md {$isRTL ? 'rtl' : 'ltr'}">
   <h2 class="text-2xl font-bold mb-4 text-gray-900 dark:text-white">{$_('create_new_post')}</h2>
   
   <div>
@@ -187,6 +185,7 @@
     <input
       id="title"
       type="text"
+      data-testid="post-title-input"
       bind:value={title}
       class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
       required
@@ -197,6 +196,7 @@
     <label for="category" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{$_('category')}</label>
     <select
       id="category"
+      data-testid="category-select"
       bind:value={category}
       class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
     >
@@ -238,6 +238,7 @@
     {:else}
       <textarea
         id="content"
+        data-testid="post-content-input"
         bind:value={content}
         rows="6"
         class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -323,6 +324,7 @@
     
     <button
       type="submit"
+      data-testid="publish-post-button"
       class="bg-indigo-600 dark:bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
     >
       {$_('create_post')}
