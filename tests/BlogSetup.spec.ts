@@ -30,7 +30,12 @@ test.describe('Blog Setup and Bach Posts', () => {
         expect(sidebarBlogName).toBe('New Blog');
 
         // Check connection status
-        await expect(page.getByTestId('write-access-icon')).toBeVisible();
+        // await expect(page.getByTestId('write-access-icon')).toBeVisible();
+        await expect(async () => {    
+            const peersHeader = await page.getByTestId('peers-header').textContent();
+            const peerCount = parseInt(peersHeader.match(/\((\d+)\)/)[1]);
+            expect(peerCount).toBeGreaterThanOrEqual(1);
+        }).toPass({ timeout: 30000 }); // Give it up to 30 seconds to connect to peers
         
 
         // await expect(page.getByTestId('menu-button')).toBeVisible();
@@ -130,12 +135,11 @@ test.describe('Blog Setup and Bach Posts', () => {
             // Submit post
             await page.getByTestId('publish-post-button').click();
             
-            // Wait for the post to appear in the post list and verify its title
-            // await expect(page.getByTestId('post-item-title')).toContainText(post.title, {timeout: 10000});
-            
-            // Click on the post to view it
-            const postElement = await page.getByTestId('post-item-title').first();
-            await postElement.click();
+            // Wait for and verify the specific post title
+            await expect(async () => {
+                const titles = await page.getByTestId('post-item-title').allTextContents();
+                expect(titles).toContain(post.title);
+            }).toPass({ timeout: 10000 });
         }
 
         for (const post of bachPosts) {
