@@ -31,6 +31,8 @@ test.describe('Blog Setup and Bach Posts', () => {
 
         // Check connection status
         await expect(page.getByTestId('write-access-icon')).toBeVisible();
+        
+
         // await expect(page.getByTestId('menu-button')).toBeVisible();
     });
 
@@ -67,6 +69,16 @@ test.describe('Blog Setup and Bach Posts', () => {
             const categoryName = text.replace(' ×', '');  // Remove the × symbol
             expect(categories).toContain(categoryName);
         }
+        
+        //open sidebar
+        await page.getByTestId('menu-button').click();
+        //check if sidebar is open
+        await expect(page.getByTestId('sidebar-container')).toBeVisible();
+        //close settings
+        await page.getByTestId('settings-header').click();
+        //check if settings is closed
+        await expect(page.getByTestId('settings-section')).toBeHidden();
+        await expect(page.getByTestId('sidebar-container')).toBeHidden();
 
         // First try to create a post without a category (negative test)
         await page.getByTestId('new-post-link').click();

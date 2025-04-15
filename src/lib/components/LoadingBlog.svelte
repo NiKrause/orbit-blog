@@ -30,15 +30,15 @@
   };
 </script>
 
-<div class="loading-overlay">
+<div class="loading-overlay" data-testid="loading-overlay">
   <div class="loading-container">
     <h2 class="loading-title">{$_('loading_peer_to_peer_blog')}</h2>
-    <p class="loading-message">{stepMessages[loadingState.step] || message}</p>
+    <p class="loading-message" data-testid="loading-message">{stepMessages[loadingState.step] || message}</p>
     {#if loadingState.detail}
       <p class="loading-detail">{loadingState.detail}</p>
     {/if}
     <div class="progress-container">
-      <div class="progress-bar" style="width: {loadingState.progress}%"></div>
+      <div class="progress-bar" style="width: {loadingState.progress}%" data-testid="progress-bar"></div>
     </div>
     <p class="version-text">{__APP_VERSION__}</p>
   </div>

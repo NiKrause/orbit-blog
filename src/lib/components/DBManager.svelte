@@ -561,9 +561,9 @@
 </script>
 
 <div class="space-y-4 {$isRTL ? 'rtl' : 'ltr'}">
-  <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6">
+  <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6" data-testid="db-manager-container">
     <div class="mb-4">
-      <h3 class="text-lg font-semibold mb-2 text-gray-900 dark:text-white">{$_('our_blog_db')}</h3>
+      <h3 class="text-lg font-semibold mb-2 text-gray-900 dark:text-white" data-testid="our-blog-db-title">{$_('our_blog_db')}</h3>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="space-y-2">
           <div class="flex items-center space-x-2">
@@ -573,12 +573,15 @@
               size={70}
               value={$settingsDB?.address}
               class="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm"
+              data-testid="db-address-input"
             />
             <button 
               title={$_('copy_to_clipboard')}
               ontouchstart={() => copyToClipboard($settingsDB?.address || '')} 
               onclick={() => copyToClipboard($settingsDB?.address || '')} 
-              class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+              class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              data-testid="copy-db-address-button"
+            >
               📋
             </button>
           </div>
@@ -627,6 +630,7 @@
               bind:value={dbName}
               placeholder={$_('my_new_blog')}
               class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              data-testid="new-db-name-input"
             />
           </div>
         {:else}
@@ -639,12 +643,14 @@
                 bind:value={dbAddress}
                 placeholder={$_('paste_database_address_here')}
                 class="flex-1 mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                data-testid="remote-db-address-input"
               />
               <button
                 title={$_('scan_qr_code')}
                 ontouchstart={startScanner}
                 onclick={startScanner}
                 class="mt-1 px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
+                data-testid="scan-qr-button"
               >
                 {$_('scan_qr')}
               </button>
@@ -657,6 +663,7 @@
           ontouchstart={addRemoteDB}
           onclick={addRemoteDB}
           class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors"
+          data-testid="add-db-button"
         >
           {isLocalDB ? $_('add_local_database') : $_('add_remote_database')}
         </button>
