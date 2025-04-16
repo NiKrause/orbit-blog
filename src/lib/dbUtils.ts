@@ -35,74 +35,15 @@ export async function addRemoteDBToStore(address: string, peerId: string, name?:
 
     // If no address is provided, create a new local database
     if (!address && name) {
-      settingsDb = await  voyagerInstance.orbitdb.open(`${name}-settings`, {
-        type: 'documents',
-        create: true,
-        overwrite: false,
-        directory: './orbitdb/settings',
-        identity: identityInstance,
-        identities: identitiesInstance,
-        AccessController: IPFSAccessController({write: [identityInstance.id]})
-      });
-      const addedSettings = await voyagerInstance.add(settingsDb.address)
-      debug('addedSettingsToVoyager', addedSettings)
-      const postsDb = await voyagerInstance.orbitdb.open(`${name}-posts`, {
-        type: 'documents',
-        create: true,
-        overwrite: false,
-        directory: './orbitdb/posts',
-        identity: identityInstance,
-        identities: identitiesInstance,
-        AccessController: IPFSAccessController({write: [identityInstance.id]})
-      });
-      voyagerInstance?.add(postsDb.address)
-        .then(added => console.log('addedPostsToVoyager', added))
-        .catch(err => error('Failed to add posts to voyager:', err));
-
-      // Create comments database (new)
-      const commentsDb = await voyagerInstance.orbitdb.open(`${name}-comments`, {
-        type: 'documents',
-        create: true,
-        overwrite: false,
-        directory: './orbitdb/comments',
-        identity: identityInstance,
-        identities: identitiesInstance,
-        // Comments can be written by anyone
-        AccessController: IPFSAccessController({write: ["*"]})
-      });
-      voyagerInstance?.add(commentsDb.address)
-        .then(added => console.log('addedCommentsToVoyager', added))
-        .catch(err => error('Failed to add comments to voyager:', err));
-
-      // Create media database (new)
-      const mediaDb = await voyagerInstance.orbitdb.open(`${name}-media`, {
-        type: 'documents',
-        create: true,
-        overwrite: false,
-        directory: './orbitdb/media',
-        identity: identityInstance,
-        identities: identitiesInstance,
-        AccessController: IPFSAccessController({write: [identityInstance.id]})
-      });
-      voyagerInstance?.add(mediaDb.address)
-        .then(added => console.log('addedMediaToVoyager', added))
-        .catch(err => error('Failed to add media to voyager:', err));
-
-      // Initialize the settings
-      await settingsDb.put({ _id: 'blogName', value: name });
-      await settingsDb.put({ _id: 'blogDescription', value: 'please change' });
-      await settingsDb.put({ _id: 'postsDBAddress', value: postsDb.address.toString() });
-      // Add new settings entries
-      await settingsDb.put({ _id: 'commentsDBAddress', value: commentsDb.address.toString() });
-      await settingsDb.put({ _id: 'mediaDBAddress', value: mediaDb.address.toString() });
-
+      const databases = await createDatabaseSet(voyagerInstance, identityInstance, identitiesInstance, name);
+      
       newDB = {
         id: crypto.randomUUID(),
         name: name,
-        address: settingsDb.address.toString(),
-        postsAddress: postsDb.address.toString(),
-        commentsAddress: commentsDb.address.toString(),
-        mediaAddress: mediaDb.address.toString(),
+        address: databases.addresses.settings,
+        postsAddress: databases.addresses.posts,
+        commentsAddress: databases.addresses.comments,
+        mediaAddress: databases.addresses.media,
         fetchLater: false,
         date: new Date().toISOString().split('T')[0]
       };
@@ -270,6 +211,27 @@ function updateRemoteDBEntry(
   });
 }
 
+async function waitForPeers(heliaInstance: any, minPeers: number = 2, timeout: number = 30000): Promise<boolean> {
+  const startTime = Date.now();
+  
+  while (Date.now() - startTime < timeout) {
+    const peers = await heliaInstance?.libp2p?.getPeers();
+    const peerCount = peers?.length || 0;
+    
+    updateLoadingState('connecting_peers', `Connected to ${peerCount} peers. Waiting for at least ${minPeers}...`, 20);
+    console.log('peerCount', peerCount)
+    if (peerCount >= minPeers) {
+      console.log('peerCount >= minPeers', peerCount, minPeers)
+      return true;
+    }
+    
+    // Wait for 1 second before checking again
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+  
+  return false;
+}
+
 /**
  * Switches the application to use a remote OrbitDB database
  * 
@@ -307,17 +269,18 @@ export async function switchToRemoteDB(address: string, showModal = false) {
   let categoriesValue; 
   
   const voyagerInstance = get(voyager);
+  const orbitdbInstance = get(orbitdb);
   
   try {
     updateLoadingState('initializing', 'Starting database switch...', 5);
 
     while (retry && !cancelOperation) {
-      const orbitdbInstance = get(orbitdb);
       if (!orbitdbInstance) throw new Error("OrbitDB not initialized");
       
       // Connect to peers
       updateLoadingState('connecting_peers', 'Connecting to P2P network...', 10);
       const heliaInstance = get(helia);
+      await waitForPeers(heliaInstance);
       const peers = await heliaInstance?.libp2p?.getPeers();
       updateLoadingState('connecting_peers', `Connected to ${peers?.length || 0} peers`, 20);
       
@@ -325,16 +288,31 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       posts.set([]);
       
       updateLoadingState('identifying_db', `Opening database: ${address}`, 30);
-      const db = await voyagerInstance.orbitdb.open(address);
-     
-      updateLoadingState('loading_settings', 'Pinning database to Voyager...', 35);
-      const added = await voyagerInstance.add(db.address)
-      db.pinnedToVoyager = added;
-      info(`settingsDB ${address} added to voyager`, added)
+      
+      // Try opening with Voyager first, fall back to direct OrbitDB if it fails
+      let db;
+      try {
+        if (voyagerInstance) {
+          db = await voyagerInstance.orbitdb.open(address);
+          // If successful, pin to Voyager
+          const added = await voyagerInstance.add(db.address);
+          db.pinnedToVoyager = added;
+          info(`settingsDB ${address} added to voyager`, added);
+        }
+      } catch (voyagerError) {
+        warn('Failed to open database with Voyager, falling back to direct OrbitDB:', voyagerError);
+        // Fall back to direct OrbitDB
+        db = await orbitdbInstance.open(address);
+        db.pinnedToVoyager = false;
+      }
+      
+      if (!db) {
+        throw new Error("Failed to open database with both Voyager and OrbitDB");
+      }
       
       // Set the settings DB store
       settingsDB.set(db);
-     
+      
       // Get all settings data
       updateLoadingState('loading_settings', 'Loading blog configuration...', 40);
       const dbContents = await db.all();
@@ -496,4 +474,84 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       }
     }
   }
+}
+
+/**
+ * Creates a new set of databases (settings, posts, comments, media) and initializes them
+ * @param voyagerInstance - The Voyager instance
+ * @param identity - The user's identity
+ * @param identities - The identities instance
+ * @param name - The name for the blog/database set
+ * @returns Object containing all created database instances and their addresses
+ */
+export async function createDatabaseSet(voyagerInstance: any, identity: any, identities: any, name: string = 'blog') {
+  if (!voyagerInstance) throw new Error("Voyager not initialized");
+  
+  // Create settings database
+  const settingsDb = await voyagerInstance.orbitdb.open(`${name}-settings`, {
+    type: 'documents',
+    create: true,
+    overwrite: false,
+    directory: './orbitdb/settings',
+    identity: identity,
+    identities: identities,
+    AccessController: IPFSAccessController({write: [identity.id]})
+  });
+  await voyagerInstance.add(settingsDb.address);
+
+  // Create posts database
+  const postsDb = await voyagerInstance.orbitdb.open(`${name}-posts`, {
+    type: 'documents',
+    create: true,
+    overwrite: false,
+    directory: './orbitdb/posts',
+    identity: identity,
+    identities: identities,
+    AccessController: IPFSAccessController({write: [identity.id]})
+  });
+  await voyagerInstance.add(postsDb.address);
+
+  // Create comments database
+  const commentsDb = await voyagerInstance.orbitdb.open(`${name}-comments`, {
+    type: 'documents',
+    create: true,
+    overwrite: false,
+    directory: './orbitdb/comments',
+    identity: identity,
+    identities: identities,
+    AccessController: IPFSAccessController({write: ["*"]})
+  });
+  await voyagerInstance.add(commentsDb.address);
+
+  // Create media database
+  const mediaDb = await voyagerInstance.orbitdb.open(`${name}-media`, {
+    type: 'documents',
+    create: true,
+    overwrite: false,
+    directory: './orbitdb/media',
+    identity: identity,
+    identities: identities,
+    AccessController: IPFSAccessController({write: [identity.id]})
+  });
+  await voyagerInstance.add(mediaDb.address);
+
+  // Store addresses in settings DB
+  await settingsDb.put({ _id: 'blogName', value: name });
+  await settingsDb.put({ _id: 'blogDescription', value: 'please change' });
+  await settingsDb.put({ _id: 'postsDBAddress', value: postsDb.address.toString() });
+  await settingsDb.put({ _id: 'commentsDBAddress', value: commentsDb.address.toString() });
+  await settingsDb.put({ _id: 'mediaDBAddress', value: mediaDb.address.toString() });
+
+  return {
+    settingsDb,
+    postsDb,
+    commentsDb,
+    mediaDb,
+    addresses: {
+      settings: settingsDb.address.toString(),
+      posts: postsDb.address.toString(),
+      comments: commentsDb.address.toString(),
+      media: mediaDb.address.toString()
+    }
+  };
 } 

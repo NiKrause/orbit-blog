@@ -12,7 +12,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+voyager/
 test-*
+test-results
 
 # Dependencies
 node_modules

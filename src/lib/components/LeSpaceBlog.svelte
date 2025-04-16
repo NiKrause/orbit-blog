@@ -139,29 +139,23 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     
     info('initializeApp')
     
+    // Set up the basic infrastructure (this is still needed)
     const masterSeed = generateMasterSeed($seedPhrase, "password");
     const { hex } = await generateAndSerializeKey(masterSeed.subarray(0, 32))
     const privKeyBuffer = uint8ArrayFromString(hex, 'hex');
     const _keyPair = await privateKeyFromProtobuf(privKeyBuffer);
     $libp2p = await createLibp2p({ privateKey: _keyPair, ...libp2pOptions })
-    debug('libp2p', $libp2p)
     $helia = await createHelia({ libp2p: $libp2p, datastore, blockstore })
-    debug('helia', $helia)
-    // const ret = await getIdentity($helia, $seedPhrase) //DID identity
-      // = ret.identity
-    // $identities = ret.identities
     $identities = await Identities({ ipfs: $helia })
     $identity = await $identities.createIdentity({ id: 'me' })
-  
+    
     $orbitdb = await createOrbitDB({
       ipfs: $helia,
-      //identity: ret.identity,
       identity: $identity,
       storage: blockstore,
       directory: './orbitdb',
     })
     const addr = multiaddr(multiaddrs[0])
-    info('voyager', voyager)
     $voyager = await Voyager({ orbitdb: $orbitdb, address: addr})
     routerUnsubscribe = await initHashRouter();
 
@@ -171,6 +165,99 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       fs = unixfs($helia);
       info('UnixFS initialized');
     }
+
+    if ($initialAddress) {
+      info('Loading remote database from initialAddress:', $initialAddress);
+      await switchToRemoteDB($initialAddress);
+      sidebarVisible = false;
+      return; // Don't create default databases
+    }
+
+    // Only create default databases if we don't have an initial address
+    await createDefaultDatabases();
+  }
+
+  // Move the default database creation to a separate function
+  async function createDefaultDatabases() {
+    // All the existing database creation code goes here
+    $voyager?.orbitdb.open('settings', {
+      type: 'documents',
+      create: true,
+      overwrite: false,
+      directory: './orbitdb/settings',
+      identity: $identity,
+      identities: $identities,
+      AccessController: IPFSAccessController({write: [$identity.id]}),
+    }).then(_db => {
+      $settingsDB = _db;
+      window.settingsDB = _db;
+      $voyager?.add(_db.address).then((ret) => {
+        $settingsDB.pinnedToVoyager = ret;
+        info('voyager added settingsDB', ret)
+      }).catch( err => warn('voyager error', err))
+    }).catch( err => warn('error', err))
+    
+    $voyager?.orbitdb.open('posts', {
+      type: 'documents',
+      create: true,
+      overwrite: false,
+      directory: './orbitdb/posts',
+      identity: $identity,
+      identities: $identities,
+      AccessController: IPFSAccessController({write: [$identity.id]}),
+    }).then(_db => {
+      $postsDB = _db;
+      window.postsDB = _db;
+      $voyager?.add(_db.address).then((ret) => info('voyager added postsDB '+_db.address, ret))
+      info('postsDB', _db.address.toString())
+      $postsDBAddress = _db.address.toString()
+
+    }).catch( err => warn('error', err))
+
+    $voyager?.orbitdb.open('remote-dbs', {
+      type: 'documents',
+      create: true,
+      overwrite: false,
+      identities: $identities,
+      identity: $identity,
+      AccessController: IPFSAccessController({write: [$identity.id]}),
+    }).then(_db => {
+      $remoteDBsDatabases = _db;
+      window.remoteDBsDatabases = _db;
+      $voyager?.add(_db.address).then((ret) => info('voyager added remoteDBsDatabases '+_db.address, ret))
+    }).catch(err => warn('Error opening remote DBs database:', err));
+
+    // // Add this to the initializeApp function after other database initializations
+    $voyager?.orbitdb.open('comments', {
+      type: 'documents',
+      create: true,
+      overwrite: false,
+      directory: './orbitdb/comments',
+      identity: $identity,
+      identities: $identities,
+      AccessController: IPFSAccessController({write: ["*"]}),
+    }).then(_db => {
+      $commentsDB = _db;
+      info('commentsDB', _db)
+      window.commentsDB = _db;
+      $voyager?.add(_db.address).then((ret) => info('voyager added commentsDB '+_db.address, ret))
+    }).catch(err => warn('error', err))
+
+    // // Add this to initialize the media database
+    $voyager?.orbitdb.open('media', {
+      type: 'documents',
+      create: true,
+      overwrite: false,
+      directory: './orbitdb/media',
+      identity: $identity,
+      identities: $identities,
+      AccessController: IPFSAccessController({write: [$identity.id]}), 
+    }).then(_db => {
+      $mediaDB = _db;
+      info('mediaDB', _db)
+      window.mediaDB = _db;
+      $voyager?.add(_db.address).then((ret) => info('voyager added mediaDB '+_db.address, ret))
+    }).catch(err => warn('error initializing media database', err))
   }
 
   $:if($initialAddress) {

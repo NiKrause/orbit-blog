@@ -86,7 +86,7 @@ test.describe('Blog Setup and Bach Posts', () => {
         await expect(page.getByTestId('sidebar-container')).toBeHidden();
 
         // First try to create a post without a category (negative test)
-        await page.getByTestId('new-post-link').click();
+        // await page.getByTestId('new-post-link').click();
         await page.getByTestId('post-title-input').fill('Test Post Without Category');
         await page.getByTestId('post-content-input').fill('This post should not be published without a category');
         await page.getByTestId('publish-post-button').click();
@@ -125,7 +125,7 @@ test.describe('Blog Setup and Bach Posts', () => {
 
         for (const post of bachPosts) {
             // Navigate to new post page
-            await page.getByTestId('new-post-link').click();
+            // await page.getByTestId('new-post-link').click();
             
             // Fill in post details including category
             await page.getByTestId('post-title-input').fill(post.title);

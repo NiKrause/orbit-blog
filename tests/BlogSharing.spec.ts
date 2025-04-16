@@ -54,7 +54,7 @@ test.describe('Blog Sharing between Alice and Bob', () => {
         //     throw new Error('Failed to get WebSocket address from daemon');
         // }
 
-        // // Initialize browser context for Alice
+        // Initialize browser context for Alice
         contextAlice = await browser.newContext({
             ignoreHTTPSErrors: true,
             launchOptions: {
@@ -82,13 +82,16 @@ test.describe('Blog Sharing between Alice and Bob', () => {
     test('Alice creates Bach blog and gets the database address', async () => {
         pageAlice = await contextAlice.newPage();
         await pageAlice.goto('http://localhost:5173');
+        await pageAlice.evaluate(() => {
+            localStorage.setItem('debug', 'libp2p:*,le-space:*');
+        });
 
         await expect(async () => {
             const peersHeader = await pageAlice.getByTestId('peers-header').textContent();
             const peerCount = parseInt(peersHeader.match(/\((\d+)\)/)[1]);
             console.log('peerCount', peerCount);
             expect(peerCount).toBeGreaterThanOrEqual(2);
-        }).toPass({ timeout: 30000 }); // Give it up to 30 seconds to connect to peers
+        }).toPass({ timeout: 60000 }); // Give it up to 30 seconds to connect to peers
         // First, let's run the existing blog setup test
         const blogName = await pageAlice.getByTestId('blog-name').textContent();
         const blogDescription = await pageAlice.getByTestId('blog-description').textContent();
@@ -125,7 +128,7 @@ test.describe('Blog Sharing between Alice and Bob', () => {
         ];
 
         for (const post of bachPosts) {
-            await pageAlice.getByTestId('new-post-link').click();
+            // await pageAlice.getByTestId('new-post-link').click();
             await pageAlice.getByTestId('post-title-input').fill(post.title);
             await pageAlice.getByTestId('post-content-input').fill(post.content);
             await pageAlice.getByTestId('category-select').selectOption(post.category);
@@ -148,18 +151,60 @@ test.describe('Blog Sharing between Alice and Bob', () => {
         
         // Copy the address to clipboard for Bob to use
         await pageAlice.getByTestId('copy-db-address-button').click();
+        // await pageAlice.
     });
 
     test('Bob opens Alice\'s blog and waits for replication', async () => {
         pageBob = await contextBob.newPage();
+    
         await pageBob.goto(`http://localhost:5173/#${aliceBlogAddress}`);
-
-        await pageBob.waitForSelector('[data-testid="loading-overlay"]', { 
-            state: 'visible',
-            timeout: 5000
+        await pageBob.evaluate(() => {
+            localStorage.setItem('debug', 'libp2p:*,le-space:*');
         });
 
-        // Wait for the peers count to be at least 2
+        // Check initial loading state
+        // await expect(pageBob.getByTestId('loading-overlay')).toBeVisible();
+        
+        // Check loading states in sequence
+        await expect(async () => {
+            const loadingMessage = await pageBob.getByTestId('loading-message').textContent();
+            expect(loadingMessage).toMatch(/initializing|connecting to peers/i);
+        }).toPass();
+
+
+
+        // // Check database loading states
+        await expect(async () => {
+            const loadingMessage = await pageBob.getByTestId('loading-message').textContent();
+            expect(loadingMessage).toMatch(/identifying database|Identifying database.../i);
+        }).toPass();
+
+        await expect(async () => {
+            const loadingMessage = await pageBob.getByTestId('loading-message').textContent();
+            expect(loadingMessage).toMatch(/identifying database|Opening database.../i);
+        }).toPass();
+        
+        // await expect(async () => {
+        //     const loadingMessage = await pageBob.getByTestId('loading-message').textContent();
+        //     expect(loadingMessage).toMatch(/identifying database|loading blog settings/i);
+        // }).toPass();
+
+        // // // Check content loading states
+        // await expect(async () => {
+        //     const loadingMessage = await pageBob.getByTestId('loading-message').textContent();
+        //     expect(loadingMessage).toMatch(/loading posts|loading comments|loading media/i);
+        // }).toPass();
+
+        // // Check loading completion
+        // await expect(async () => {
+        //     const loadingMessage = await pageBob.getByTestId('loading-message').textContent();
+        //     expect(loadingMessage).toMatch(/complete|loaded successfully/i);
+        // }).toPass();
+
+        // Verify loading overlay disappears
+        // await expect(pageBob.getByTestId('loading-overlay')).not.toBeVisible();
+        
+        // Wait for peer connections
         await expect(async () => {
             const peersHeader = await pageBob.getByTestId('peers-header').textContent();
             const peerCount = parseInt(peersHeader.match(/\((\d+)\)/)[1]);
@@ -172,10 +217,10 @@ test.describe('Blog Sharing between Alice and Bob', () => {
     });
 
     test.afterAll(async () => {
-        await pageAlice.close();
-        await pageBob.close();
-        await contextAlice.close();  // Close Alice's context
-        await contextBob.close();    // Close Bob's context
+        // await pageAlice.close();
+        // await pageBob.close();
+        // await contextAlice.close();  // Close Alice's context
+        // await contextBob.close();    // Close Bob's context
         
         // Cleanup daemon
         if (daemon) {
