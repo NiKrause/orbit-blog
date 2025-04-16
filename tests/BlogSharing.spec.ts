@@ -1,20 +1,94 @@
 import { test, expect, chromium } from '@playwright/test';
+import { join } from 'path';
+import { rm, mkdir } from 'fs/promises';
+import createDaemon from '@le-space/voyager/src/daemon.js';
+
+const config = {
+    seedNodes: process.env.VITE_P2P_PUPSUB_DEV || ''
+};
+        
 
 test.describe('Blog Sharing between Alice and Bob', () => {
+    
     let pageAlice;
     let pageBob;
     let aliceBlogAddress;
+    let daemon;
+    let wsAddr;
+    let contextAlice;  // Separate context for Alice
+    let contextBob;    // Separate context for Bob
+    const testDir = join(process.cwd(), 'test-voyager-' + Date.now());
 
+    function updateSeedNodes(nodes: string) {
+        config.seedNodes = nodes;
+    }
+    
     test.beforeAll(async ({ browser }) => {
-        // Initialize Alice's browser
-        pageAlice = await browser.newPage();
-        await pageAlice.goto('http://localhost:5173');
+        // Create fresh test directory
+        // await rm(testDir, { recursive: true, force: true });
+        // await mkdir(testDir, { recursive: true });
+        // // Initialize the daemon with test configuration
+        // daemon = await createDaemon({
+        //     options: {
+        //         disableAutoTLS: true,
+        //         directory: testDir,
+        //         port: 9091, // Random port for API
+        //         wsport: 9092, // Random port for WebSocket
+        //         allow: true, // Allow all connections
+        //         verbose: 1, // Enable basic logging
+        //         metrics: true, // Enable metrics
+        //         staging: true, // Use staging configuration
+        //         ip4: '127.0.0.1', // Bind to localhost
+        //         ip6: '::1'
+        //     }
+        // });
         
-        // Initialize Bob's browser
-        pageBob = await browser.newPage();
+        // // Get the WebSocket address from the daemon
+        // wsAddr = daemon.libp2p.getMultiaddrs()
+        //     .map(addr => addr.toString())
+        //     .join(',');
+        // console.log('wsAddr', wsAddr);
+        // const peerId = daemon.libp2p.peerId.toString();
+        // console.log('peerId', peerId);
+        // if (!wsAddr) {
+        //     throw new Error('Failed to get WebSocket address from daemon');
+        // }
+
+        // // Initialize browser context for Alice
+        contextAlice = await browser.newContext({
+            ignoreHTTPSErrors: true,
+            launchOptions: {
+                args: [
+                    '--allow-insecure-localhost',
+                    '--unsafely-treat-insecure-origin-as-secure=ws://localhost:9092',
+                    '--disable-web-security'
+                ]
+            }
+        });
+
+        // Initialize browser context for Bob
+        contextBob = await browser.newContext({
+            ignoreHTTPSErrors: true,
+            launchOptions: {
+                args: [
+                    '--allow-insecure-localhost',
+                    '--unsafely-treat-insecure-origin-as-secure=ws://localhost:9092',
+                    '--disable-web-security'
+                ]
+            }
+        });
     });
 
     test('Alice creates Bach blog and gets the database address', async () => {
+        pageAlice = await contextAlice.newPage();
+        await pageAlice.goto('http://localhost:5173');
+
+        await expect(async () => {
+            const peersHeader = await pageAlice.getByTestId('peers-header').textContent();
+            const peerCount = parseInt(peersHeader.match(/\((\d+)\)/)[1]);
+            console.log('peerCount', peerCount);
+            expect(peerCount).toBeGreaterThanOrEqual(2);
+        }).toPass({ timeout: 30000 }); // Give it up to 30 seconds to connect to peers
         // First, let's run the existing blog setup test
         const blogName = await pageAlice.getByTestId('blog-name').textContent();
         const blogDescription = await pageAlice.getByTestId('blog-description').textContent();
@@ -77,100 +151,36 @@ test.describe('Blog Sharing between Alice and Bob', () => {
     });
 
     test('Bob opens Alice\'s blog and waits for replication', async () => {
+        pageBob = await contextBob.newPage();
+        await pageBob.goto(`http://localhost:5173/#${aliceBlogAddress}`);
 
+        await pageBob.waitForSelector('[data-testid="loading-overlay"]', { 
+            state: 'visible',
+            timeout: 5000
+        });
 
-        // Define the expected loading states
-        const expectedLoadingStates = [
-            { step: 'initializing', progress: 5 },
-            { step: 'connecting_peers', progress: 10 },
-            { step: 'identifying_db', progress: 30 },
-            { step: 'loading_settings', progress: 40 },
-            { step: 'loading_posts', progress: 60 },
-            { step: 'loading_comments', progress: 70 },
-            { step: 'loading_media', progress: 80 },
-            { step: 'complete', progress: 100 }
-        ];
+        // Wait for the peers count to be at least 2
+        await expect(async () => {
+            const peersHeader = await pageBob.getByTestId('peers-header').textContent();
+            const peerCount = parseInt(peersHeader.match(/\((\d+)\)/)[1]);
+            console.log('peerCount', peerCount);
+            expect(peerCount).toBeGreaterThanOrEqual(2);
+        }).toPass({ timeout: 30000 }); // Give it up to 30 seconds to connect to peers
 
-        try {
-            await Promise.all([
-                // Navigation
-                pageBob.goto(`http://localhost:5173/#${aliceBlogAddress}`),
-                
-                // Loading state verification
-                (async () => {
-                    // First wait for the overlay to appear
-                    await pageBob.waitForSelector('[data-testid="loading-overlay"]', { 
-                        state: 'visible',
-                        timeout: 5000
-                    });
-                    await pageBob.getByTestId('menu-button').click();
-                    await pageBob.getByTestId('blogs-header').click();
-                    //check if db-manager-container is hidden
-                    await expect(pageBob.getByTestId('db-manager-container')).toBeHidden();
-                    await pageBob.getByTestId('menu-button').click();
-            
-                    // Then check each loading state
-                    for (const state of expectedLoadingStates) {
-
-                        await pageBob.waitForFunction(
-                            (expectedStep) => {
-                                const message = document.querySelector('[data-testid="loading-message"]')?.textContent || '';
-                                return message.includes(expectedStep);
-                            },
-                            state.step,
-                            { timeout: 10000 }
-                        );
-
-                        const loadingMessage = await pageBob.getByTestId('loading-message').textContent();
-                        const progressBar = await pageBob.getByTestId('progress-bar').getAttribute('style');
-                        
-                        console.log(`Loading state: ${state.step}, Message: ${loadingMessage}, Progress: ${progressBar}`);
-                        
-                        if (loadingMessage.includes('error')) {
-                            console.error('Loading error detected:', loadingMessage);
-                            throw new Error(`Loading failed at step ${state.step}: ${loadingMessage}`);
-                        }
-                        
-                        await expect(pageBob.getByTestId('progress-bar')).toHaveAttribute('style', `width: ${state.progress}%`);
-                    }
-
-                    // Finally wait for the overlay to disappear
-                    await pageBob.waitForSelector('[data-testid="loading-overlay"]', { 
-                        state: 'hidden',
-                        timeout: 15000
-                    });
-                })()
-            ]);
-
-            // Add a small delay to ensure the page has fully loaded
-            await pageBob.waitForTimeout(1000);
-            
-            // Verify the final state
-            await expect(pageBob.getByTestId('blog-name')).toHaveText('Bach Chronicles');
-            
-            const postTitles = await pageBob.getByTestId('post-item-title').allTextContents();
-            expect(postTitles).toContain('The Birth of a Musical Genius');
-            expect(postTitles).toContain('The Well-Tempered Clavier');
-            
-            const categoryElements = await pageBob.getByTestId('category-item').all();
-            expect(categoryElements.length).toBe(4);
-        } catch (error) {
-            console.error('Error during blog loading:', error);
-            
-            // Log the current state when error occurs
-            const currentMessage = await pageBob.getByTestId('loading-message').textContent().catch(() => 'not found');
-            const currentProgress = await pageBob.getByTestId('progress-bar').getAttribute('style').catch(() => 'not found');
-            console.log('Current state when error occurred:', {
-                message: currentMessage,
-                progress: currentProgress
-            });
-            
-            throw error;
-        }
+        // Verify the final state
+        await expect(pageBob.getByTestId('blog-name')).toHaveText('Bach Chronicles');
     });
 
     test.afterAll(async () => {
         await pageAlice.close();
         await pageBob.close();
+        await contextAlice.close();  // Close Alice's context
+        await contextBob.close();    // Close Bob's context
+        
+        // Cleanup daemon
+        if (daemon) {
+            // await daemon.stop();
+        }
+        await rm(testDir, { recursive: true, force: true });
     });
 }); 

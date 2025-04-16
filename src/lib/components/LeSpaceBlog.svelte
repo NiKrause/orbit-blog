@@ -355,22 +355,26 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   }
 
   $:if($postsDB){
-
     $postsDB.all().then(_posts => {
       info('posts', _posts);
       $posts = _posts.map(entry => ({
         ...entry.value,
         identity: entry.identity // This contains the creator's identity
       }));
-
     }).catch(err => warn('Error opening posts database:', err));
-
 
     $postsDB.events.on('update', async (entry) => {
       info('Posts database update:', entry);
-      setTimeout(async () => {
-        await switchToRemoteDB($settingsDB.address);
-      }, 3500);
+      if (entry?.payload?.op === 'PUT') {
+        // Add or update the post in the store
+        $posts = [...$posts.filter(p => p._id !== entry.payload.value._id), {
+          ...entry.payload.value,
+          identity: entry.identity
+        }];
+      } else if (entry?.payload?.op === 'DEL') {
+        // Remove the post from the store
+        $posts = $posts.filter(p => p._id !== entry.payload.key);
+      }
     });
   }
 

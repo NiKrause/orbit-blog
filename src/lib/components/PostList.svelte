@@ -571,19 +571,6 @@ ${convertMarkdownToLatex(selectedPost.content)}
     <div class="col-span-4 bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 h-fit">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-xl font-semibold text-gray-900 dark:text-white">{$_('blog_posts')}</h2>
-        {#if hasWriteAccess()}
-          <a
-            href="#"
-            data-testid="new-post-link"
-            class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-            onclick={() => {
-              editMode = false;
-              $selectedPostId = null;
-            }}
-          >
-            {$_('create_new_post')}
-          </a>
-        {/if}
       </div>
       <div class="space-y-2">
         {#each displayedPosts as post (post._id)}
