@@ -10,6 +10,8 @@
 
 > ⚠️ **Alpha Version Notice**: This software is currently in alpha status and may change, break backwards compatibility, or contain major issues. It has not been security audited. Use accordingly.
 
+[![Tests](https://github.com/NiKrause/orbit-blog/actions/workflows/test.yml/badge.svg)](https://github.com/YOUR_USERNAME/bolt-orbitdb-blog/actions/workflows/test.yml)
+
 ## Description
 
 Le Space-Blog is a decentralized blogging application that leverages OrbitDB for peer-to-peer data replication and IPFS for content storage. It enables users to create, manage, and share blog content in a decentralized manner, so blog posts are stored with the blog author and their readers maintain a replica via peer-to-peer connections.
