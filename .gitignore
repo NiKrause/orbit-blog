@@ -15,6 +15,7 @@ lerna-debug.log*
 voyager/
 test-*
 test-results
+playwright-report/
 pinning-service/
 orbitdb/
 public/underconstruction
