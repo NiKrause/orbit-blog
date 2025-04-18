@@ -132,8 +132,17 @@ test.describe('Blog Setup and Bach Posts', () => {
             await page.getByTestId('post-content-input').fill(post.content);
             await page.getByTestId('category-select').selectOption(post.category);
             
+            // Wait for all form elements to be ready
+            await expect(page.getByTestId('post-title-input')).toBeVisible();
+            await expect(page.getByTestId('post-content-input')).toBeVisible();
+            await expect(page.getByTestId('category-select')).toBeVisible();
+            await expect(page.getByTestId('publish-post-button')).toBeEnabled();
+
             // Submit post
             await page.getByTestId('publish-post-button').click();
+            
+            // Wait for database sync and UI updates
+            await page.waitForTimeout(2000);
             
             // Wait for and verify the specific post title
             await expect(async () => {

@@ -347,8 +347,8 @@
       //     }
       //   }
         
-      //   // Unpin main database
-      //   dropPromises.push($voyager.remove(db.address));
+        // // Unpin main database
+        // dropPromises.push($voyager.remove(db.address));
         
         // TODO: Add IPFS file unpinning once Helia integration is available
         // This would involve getting all IPFS CIDs from posts/media and unpinning them
@@ -700,6 +700,7 @@
           {#each $remoteDBs as db}
             <div class="flex items-center space-x-2">
               <button
+                data-testid="remote-db-item"
                 class="flex-1 text-left p-3 rounded-md transition-all duration-300 ease-in-out transform hover:scale-105 {$selectedDBAddress === db.address ? 'bg-gradient-to-r from-indigo-500 to-indigo-300 dark:from-indigo-800 dark:to-indigo-600 border-2 border-indigo-500' : db.access?.write?.includes($identity?.id) ? 'bg-gradient-to-r from-green-200 to-green-100 dark:from-green-800 dark:to-green-700 border border-green-300 dark:border-green-600' : 'bg-gradient-to-r from-gray-200 to-gray-100 dark:from-gray-700 dark:to-gray-600 hover:bg-gradient-to-r from-gray-300 to-gray-200 dark:from-gray-600 dark:to-gray-500 border border-gray-200 dark:border-gray-600'}"
                 onclick={() => handleSwitchToRemoteDB(db.address)}
               >
@@ -797,6 +798,7 @@ Fetch Later: ${db.fetchLater ? 'Yes' : 'No'}
                 class="p-2 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400"
                 onclick={() => removeRemoteDB(db.id)}
                 title={$_('remove_database')}
+                data-testid="delete-db-button"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
@@ -816,6 +818,7 @@ Fetch Later: ${db.fetchLater ? 'Yes' : 'No'}
       <button
         onclick={closeModal}
         class="px-4 py-2 bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 text-white rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+        data-testid="confirm-delete-button"
       >
         {$_('cancel')}
       </button>
