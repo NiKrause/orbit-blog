@@ -52,19 +52,21 @@ export const libp2pOptions: Libp2pOptions = {
     },
     transports: [
         webTransport(),
-        webSockets({filter: filters.all}),
-        webRTC({
-             rtcConfiguration: {
-                 iceServers:[{
-                     urls: [
-                         'stun:stun.l.google.com:19302',
-                         'stun:global.stun.twilio.com:3478'
-                     ]
-                 }]
-             }
-         }),
+        webSockets(),
+        webRTC(),
+        
+        // webRTC({
+        //      rtcConfiguration: {
+        //          iceServers:[{
+        //              urls: [
+        //                  'stun:stun.l.google.com:19302',
+        //                  'stun:global.stun.twilio.com:3478'
+        //              ]
+        //          }]
+        //      }
+        //  }),
         webRTCDirect(),
-        circuitRelayTransport({ discoverRelays: 1 }) 
+        circuitRelayTransport()
         // kadDHT({}),
     ],
     connectionEncrypters: [noise()],

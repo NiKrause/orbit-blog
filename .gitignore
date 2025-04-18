@@ -15,7 +15,9 @@ lerna-debug.log*
 voyager/
 test-*
 test-results
-
+pinning-service/
+orbitdb/
+public/underconstruction
 # Dependencies
 node_modules
 dist

@@ -1,5 +1,5 @@
 import { get } from 'svelte/store';
-import { helia, orbitdb, blogName, categories, blogDescription, postsDBAddress, profilePictureCid, postsDB, posts, settingsDB, remoteDBs, commentsDB, mediaDB, remoteDBsDatabases, commentsDBAddress, mediaDBAddress, identity, identities, voyager, loadingState } from './store.js';
+import { helia, orbitdb, blogName, categories, blogDescription, postsDBAddress, profilePictureCid, postsDB, posts, settingsDB, remoteDBs, commentsDB, mediaDB, remoteDBsDatabases, commentsDBAddress, mediaDBAddress, identity, identities, loadingState } from './store.js';
 import type { RemoteDB } from './types.js';
 import { IPFSAccessController } from '@orbitdb/core';
 import { error, info, debug, warn } from './utils/logger.js'
@@ -24,9 +24,7 @@ export async function addRemoteDBToStore(address: string, peerId: string, name?:
   const orbitdbInstance = get(orbitdb);
   const identityInstance = get(identity);
   const identitiesInstance = get(identities);
-  const voyagerInstance = get(voyager);
   if (!orbitdbInstance) throw new Error("OrbitDB not initialized");
-  if (!voyagerInstance) throw new Error("Voyager not initialized");
 
   
   try {
@@ -35,7 +33,7 @@ export async function addRemoteDBToStore(address: string, peerId: string, name?:
 
     // If no address is provided, create a new local database
     if (!address && name) {
-      const databases = await createDatabaseSet(voyagerInstance, identityInstance, identitiesInstance, name);
+      const databases = await createDatabaseSet(orbitdbInstance, identityInstance, identitiesInstance, name);
       
       newDB = {
         id: crypto.randomUUID(),
@@ -128,7 +126,7 @@ interface DBConfig {
 }
 
 async function openOrCreateDB(
-  voyagerInstance: any,
+  orbitdbInstance: any,
   dbContents: any[],
   dbKey: string,
   config: DBConfig,
@@ -140,11 +138,9 @@ async function openOrCreateDB(
 
   if (dbAddressValue) {
     try {
-      const dbInstance = await voyagerInstance.orbitdb.open(dbAddressValue);
-      await voyagerInstance.add(dbInstance.address);
+      const dbInstance = await orbitdbInstance.open(dbAddressValue);
       console.log(`${config.name} ${dbAddressValue} loaded`);
       config.store.set(dbInstance);
-      // config.addressStore.set(dbAddressValue);
       return dbInstance;
     } catch (_error) {
       error(`Failed to open ${config.name} database:`, _error);
@@ -155,7 +151,7 @@ async function openOrCreateDB(
   } else if (canWriteToSettings) {
     info('creating new database', config.name)
     try {
-      const dbInstance = await voyagerInstance.orbitdb.open(config.name, {
+      const dbInstance = await orbitdbInstance.open(config.name, {
         type: 'documents',
         create: true,
         overwrite: false,
@@ -164,10 +160,8 @@ async function openOrCreateDB(
         identities: get(identities),
         AccessController: IPFSAccessController({ write: config.writeAccess })
       });
-      await voyagerInstance.add(dbInstance.address);
       config.store.set(dbInstance);
       const dbAddress = dbInstance.address.toString();
-      // config.addressStore.set(dbAddress);
       // Store in settings
       info('storing dbAddress in settings', dbAddress)
       await settingsDB.put({ _id: dbKey, value: dbAddress });
@@ -211,7 +205,7 @@ function updateRemoteDBEntry(
   });
 }
 
-async function waitForPeers(heliaInstance: any, minPeers: number = 2, timeout: number = 30000): Promise<boolean> {
+async function waitForPeers(heliaInstance: any, minPeers: number = 1, timeout: number = 30000): Promise<boolean> {
   const startTime = Date.now();
   
   while (Date.now() - startTime < timeout) {
@@ -268,9 +262,8 @@ export async function switchToRemoteDB(address: string, showModal = false) {
   let blogNameValue;
   let categoriesValue; 
   
-  const voyagerInstance = get(voyager);
   const orbitdbInstance = get(orbitdb);
-  
+  const heliaInstance = get(helia);
   try {
     updateLoadingState('initializing', 'Starting database switch...', 5);
 
@@ -279,7 +272,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       
       // Connect to peers
       updateLoadingState('connecting_peers', 'Connecting to P2P network...', 10);
-      const heliaInstance = get(helia);
+
       await waitForPeers(heliaInstance);
       const peers = await heliaInstance?.libp2p?.getPeers();
       updateLoadingState('connecting_peers', `Connected to ${peers?.length || 0} peers`, 20);
@@ -290,21 +283,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       updateLoadingState('identifying_db', `Opening database: ${address}`, 30);
       
       // Try opening with Voyager first, fall back to direct OrbitDB if it fails
-      let db;
-      try {
-        if (voyagerInstance) {
-          db = await voyagerInstance.orbitdb.open(address);
-          // If successful, pin to Voyager
-          const added = await voyagerInstance.add(db.address);
-          db.pinnedToVoyager = added;
-          info(`settingsDB ${address} added to voyager`, added);
-        }
-      } catch (voyagerError) {
-        warn('Failed to open database with Voyager, falling back to direct OrbitDB:', voyagerError);
-        // Fall back to direct OrbitDB
-        db = await orbitdbInstance.open(address);
-        db.pinnedToVoyager = false;
-      }
+      let db = await orbitdbInstance.open(address);
       
       if (!db) {
         throw new Error("Failed to open database with both Voyager and OrbitDB");
@@ -370,7 +349,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
 
         updateLoadingState('loading_posts', 'Opening posts database...', 60);
         // Create promises for all DB operations
-        const postsPromise = openOrCreateDB(voyagerInstance, dbContents, 'postsDBAddress', {
+        const postsPromise = openOrCreateDB(orbitdbInstance, dbContents, 'postsDBAddress', {
           name: 'posts',
           directory: './orbitdb/posts',
           writeAccess: [get(identity).id],
@@ -381,8 +360,12 @@ export async function switchToRemoteDB(address: string, showModal = false) {
           if (postsInstance) {
             info('postsInstance', postsInstance)
             postsDBAddress = postsInstance.address.toString()
-            await get(settingsDB).put({ _id: 'postsDBAddress', value: postsDBAddress });
+            // Only attempt to write if we have permissions
+            if (canWriteToSettings) {
+              await get(settingsDB).put({ _id: 'postsDBAddress', value: postsDBAddress });
+            }
             const allPosts = (await postsInstance.all()).map(post => {
+              console.log('post', post)
               const { _id, ...rest } = post.value;
               return { 
                 ...rest,
@@ -400,7 +383,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         });
 
         updateLoadingState('loading_comments', 'Opening comments database...', 70);
-        const commentsPromise = openOrCreateDB(voyagerInstance, dbContents, 'commentsDBAddress', {
+        const commentsPromise = openOrCreateDB(orbitdbInstance, dbContents, 'commentsDBAddress', {
           name: 'comments',
           directory: './orbitdb/comments',
           writeAccess: ["*"],
@@ -411,7 +394,10 @@ export async function switchToRemoteDB(address: string, showModal = false) {
           if (commentsInstance) {
             info('commentsInstance', commentsInstance)
             commentsDBAddress = commentsInstance.address.toString()
-            await get(settingsDB).put({ _id: 'commentsDBAddress', value: commentsDBAddress });
+            // Only attempt to write if we have permissions
+            if (canWriteToSettings) {
+              await get(settingsDB).put({ _id: 'commentsDBAddress', value: commentsDBAddress });
+            }
             
             const allComments = await commentsInstance.all();
             commentsCount = allComments.length;
@@ -419,7 +405,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         });
 
         updateLoadingState('loading_media', 'Opening media database...', 80);
-        const mediaPromise = openOrCreateDB(voyagerInstance, dbContents, 'mediaDBAddress', {
+        const mediaPromise = openOrCreateDB(orbitdbInstance, dbContents, 'mediaDBAddress', {
           name: 'media',
           directory: './orbitdb/media',
           writeAccess: [get(identity).id],
@@ -430,7 +416,10 @@ export async function switchToRemoteDB(address: string, showModal = false) {
           if (mediaInstance) {
             info('mediaInstance', mediaInstance)
             mediaDBAddress = mediaInstance.address.toString()
-            await get(settingsDB).put({ _id: 'mediaDBAddress', value: mediaDBAddress });
+            // Only attempt to write if we have permissions
+            if (canWriteToSettings) {
+              await get(settingsDB).put({ _id: 'mediaDBAddress', value: mediaDBAddress });
+            }
             const allMedia = await mediaInstance.all();
             mediaCount = allMedia.length;
           }
@@ -478,17 +467,17 @@ export async function switchToRemoteDB(address: string, showModal = false) {
 
 /**
  * Creates a new set of databases (settings, posts, comments, media) and initializes them
- * @param voyagerInstance - The Voyager instance
+ * @param orbitdbInstance - The OrbitDB instance
  * @param identity - The user's identity
  * @param identities - The identities instance
  * @param name - The name for the blog/database set
  * @returns Object containing all created database instances and their addresses
  */
-export async function createDatabaseSet(voyagerInstance: any, identity: any, identities: any, name: string = 'blog') {
-  if (!voyagerInstance) throw new Error("Voyager not initialized");
+export async function createDatabaseSet(orbitdbInstance: any, identity: any, identities: any, name: string = 'blog') {
+  if (!orbitdbInstance) throw new Error("OrbitDB not initialized");
   
   // Create settings database
-  const settingsDb = await voyagerInstance.orbitdb.open(`${name}-settings`, {
+  const settingsDb = await orbitdbInstance.open(`${name}-settings`, {
     type: 'documents',
     create: true,
     overwrite: false,
@@ -497,10 +486,9 @@ export async function createDatabaseSet(voyagerInstance: any, identity: any, ide
     identities: identities,
     AccessController: IPFSAccessController({write: [identity.id]})
   });
-  await voyagerInstance.add(settingsDb.address);
 
   // Create posts database
-  const postsDb = await voyagerInstance.orbitdb.open(`${name}-posts`, {
+  const postsDb = await orbitdbInstance.orbitdb.open(`${name}-posts`, {
     type: 'documents',
     create: true,
     overwrite: false,
@@ -509,10 +497,9 @@ export async function createDatabaseSet(voyagerInstance: any, identity: any, ide
     identities: identities,
     AccessController: IPFSAccessController({write: [identity.id]})
   });
-  await voyagerInstance.add(postsDb.address);
 
   // Create comments database
-  const commentsDb = await voyagerInstance.orbitdb.open(`${name}-comments`, {
+  const commentsDb = await orbitdbInstance.orbitdb.open(`${name}-comments`, {
     type: 'documents',
     create: true,
     overwrite: false,
@@ -521,10 +508,9 @@ export async function createDatabaseSet(voyagerInstance: any, identity: any, ide
     identities: identities,
     AccessController: IPFSAccessController({write: ["*"]})
   });
-  await voyagerInstance.add(commentsDb.address);
 
   // Create media database
-  const mediaDb = await voyagerInstance.orbitdb.open(`${name}-media`, {
+  const mediaDb = await orbitdbInstance.orbitdb.open(`${name}-media`, {
     type: 'documents',
     create: true,
     overwrite: false,
@@ -533,7 +519,6 @@ export async function createDatabaseSet(voyagerInstance: any, identity: any, ide
     identities: identities,
     AccessController: IPFSAccessController({write: [identity.id]})
   });
-  await voyagerInstance.add(mediaDb.address);
 
   // Store addresses in settings DB
   await settingsDb.put({ _id: 'blogName', value: name });

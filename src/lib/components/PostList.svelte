@@ -95,9 +95,9 @@
     //   $selectedPostId = displayedPosts[0]._id;
     // }
   });
-  $effect(() => {
-    info('displayedPosts', displayedPosts);
-  }); 
+  // $effect(() => {
+  //   info('displayedPosts', displayedPosts);
+  // }); 
 
   let selectedPost = $derived($selectedPostId ? displayedPosts.find(post => post._id === $selectedPostId) : null);
 
@@ -108,7 +108,7 @@
     }
   });
 
-  run(() => {
+  $effect(() => {
     if (displayedPosts.length > 0 && (!$selectedPostId || !displayedPosts.find(post => post._id === $selectedPostId))) {
       $selectedPostId = displayedPosts[0]._id;
     }

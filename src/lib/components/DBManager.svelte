@@ -3,7 +3,7 @@
   import { _ } from 'svelte-i18n';
 
   import { onDestroy } from 'svelte';
-  import { settingsDB, postsDB, posts, allComments, allMedia, remoteDBs, selectedDBAddress, orbitdb, voyager, remoteDBsDatabases, identity, identities, isRTL } from '$lib/store.js';
+  import { settingsDB, posts, allComments, allMedia, remoteDBs, selectedDBAddress, orbitdb, remoteDBsDatabases, identity, identities, isRTL } from '$lib/store.js';
   import QRCode from 'qrcode';
   import Modal from './Modal.svelte';
   import { switchToRemoteDB, addRemoteDBToStore } from '$lib/dbUtils.js';
@@ -333,26 +333,26 @@
         dropPromises.push(remotedb.drop());
       }
       
-      if (options.unpinVoyager && $voyager) {
+      // if (options.unpinVoyager && $voyager) {
     
-        // Unpin from Voyager
-        for (const entry of [postsAddressEntry, commentsAddressEntry, mediaAddressEntry]) {
-          if (entry?.value?.value) {
-            debug('unpinning from voyager', entry.value.value);
-            dropPromises.push(
-              $voyager.remove(entry.value.value).catch(err => 
-                console.warn(`Failed to unpin from Voyager: ${entry.value.value}`, err)
-              )
-            );
-          }
-        }
+      //   // Unpin from Voyager
+      //   for (const entry of [postsAddressEntry, commentsAddressEntry, mediaAddressEntry]) {
+      //     if (entry?.value?.value) {
+      //       debug('unpinning from voyager', entry.value.value);
+      //       dropPromises.push(
+      //         // $voyager.remove(entry.value.value).catch(err => 
+      //         //   console.warn(`Failed to unpin from Voyager: ${entry.value.value}`, err)
+      //         // )
+      //       );
+      //     }
+      //   }
         
-        // Unpin main database
-        dropPromises.push($voyager.remove(db.address));
+      //   // Unpin main database
+      //   dropPromises.push($voyager.remove(db.address));
         
         // TODO: Add IPFS file unpinning once Helia integration is available
         // This would involve getting all IPFS CIDs from posts/media and unpinning them
-      }
+     // }
       
       await Promise.all(dropPromises);
       debug(`Successfully removed database: ${db.name}`);
@@ -371,7 +371,8 @@
       error('Error copying text to clipboard:', _err);
     });
   }
-  run(() => {
+
+  $effect(() => {
     if ($remoteDBs) {
       const hasQueuedDBs = $remoteDBs.some(db => db.fetchLater);
       
@@ -386,7 +387,7 @@
       }
     }
   });
-  run(() => {
+  $effect(() => {
     if ($settingsDB) {  
       $selectedDBAddress = $settingsDB.address;
       generateQRCode($selectedDBAddress);
@@ -526,18 +527,18 @@
       await newSettingsDb.put({ _id: 'mediaDBAddress', value: newMediaDb.address });
       
       // Step 8: Pin to Voyager if available
-      if ($voyager) {
-        debug('pinning to voyager', newSettingsDb.address, newPostsDb.address, newCommentsDb.address, newMediaDb.address);
-        modalMessage = $_('pinning_to_voyager');
-        await $voyager.add(newSettingsDb.address);
-        debug('pinned to voyager', newSettingsDb.address);
-        await $voyager.add(newPostsDb.address);
-        debug('pinned to voyager', newPostsDb.address);
-        await $voyager.add(newCommentsDb.address);
-        debug('pinned to voyager', newCommentsDb.address);
-        await $voyager.add(newMediaDb.address);
-        debug('pinned to voyager', newMediaDb.address);
-      }
+      // if ($voyager) {
+        // debug('pinning to voyager', newSettingsDb.address, newPostsDb.address, newCommentsDb.address, newMediaDb.address);
+        // modalMessage = $_('pinning_to_voyager');
+        // await $voyager.add(newSettingsDb.address);
+        // debug('pinned to voyager', newSettingsDb.address);
+        // await $voyager.add(newPostsDb.address);
+        // debug('pinned to voyager', newPostsDb.address);
+        // await $voyager.add(newCommentsDb.address);
+        // debug('pinned to voyager', newCommentsDb.address);
+        // await $voyager.add(newMediaDb.address);
+        // debug('pinned to voyager', newMediaDb.address);
+      // }
       
       // Only after everything is successful, register the database
       debug('registering new database', newSettingsDb);

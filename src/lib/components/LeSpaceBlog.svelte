@@ -11,7 +11,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   import { createHelia } from 'helia';
   import { createLibp2p } from 'libp2p';
   import { createOrbitDB, IPFSAccessController, Identities } from '@orbitdb/core';
-  import { Voyager } from '@le-space/voyager';
   import { multiaddr } from '@multiformats/multiaddr';
   
   // Storage & Crypto
@@ -69,7 +68,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     blogDescription, 
     categories, 
     seedPhrase, 
-    voyager,
     commentsDB,
     commentsDBAddress,
     mediaDB,
@@ -155,8 +153,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       storage: blockstore,
       directory: './orbitdb',
     })
-    const addr = multiaddr(multiaddrs[0])
-    $voyager = await Voyager({ orbitdb: $orbitdb, address: addr})
     routerUnsubscribe = await initHashRouter();
 
     setupPeerEventListeners($libp2p);
@@ -180,7 +176,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   // Move the default database creation to a separate function
   async function createDefaultDatabases() {
     // All the existing database creation code goes here
-    $voyager?.orbitdb.open('settings', {
+    orbitdb.open('settings', {
       type: 'documents',
       create: true,
       overwrite: false,
@@ -191,13 +187,9 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     }).then(_db => {
       $settingsDB = _db;
       window.settingsDB = _db;
-      $voyager?.add(_db.address).then((ret) => {
-        $settingsDB.pinnedToVoyager = ret;
-        info('voyager added settingsDB', ret)
-      }).catch( err => warn('voyager error', err))
     }).catch( err => warn('error', err))
     
-    $voyager?.orbitdb.open('posts', {
+    $orbitdb.open('posts', {
       type: 'documents',
       create: true,
       overwrite: false,
@@ -208,13 +200,12 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     }).then(_db => {
       $postsDB = _db;
       window.postsDB = _db;
-      $voyager?.add(_db.address).then((ret) => info('voyager added postsDB '+_db.address, ret))
       info('postsDB', _db.address.toString())
       $postsDBAddress = _db.address.toString()
 
     }).catch( err => warn('error', err))
 
-    $voyager?.orbitdb.open('remote-dbs', {
+    $orbitdb.open('remote-dbs', {
       type: 'documents',
       create: true,
       overwrite: false,
@@ -224,11 +215,10 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     }).then(_db => {
       $remoteDBsDatabases = _db;
       window.remoteDBsDatabases = _db;
-      $voyager?.add(_db.address).then((ret) => info('voyager added remoteDBsDatabases '+_db.address, ret))
     }).catch(err => warn('Error opening remote DBs database:', err));
 
     // // Add this to the initializeApp function after other database initializations
-    $voyager?.orbitdb.open('comments', {
+    $orbitdb.open('comments', {
       type: 'documents',
       create: true,
       overwrite: false,
@@ -240,11 +230,10 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       $commentsDB = _db;
       info('commentsDB', _db)
       window.commentsDB = _db;
-      $voyager?.add(_db.address).then((ret) => info('voyager added commentsDB '+_db.address, ret))
     }).catch(err => warn('error', err))
 
     // // Add this to initialize the media database
-    $voyager?.orbitdb.open('media', {
+    $orbitdb.open('media', {
       type: 'documents',
       create: true,
       overwrite: false,
@@ -256,7 +245,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       $mediaDB = _db;
       info('mediaDB', _db)
       window.mediaDB = _db;
-      $voyager?.add(_db.address).then((ret) => info('voyager added mediaDB '+_db.address, ret))
     }).catch(err => warn('error initializing media database', err))
   }
 
@@ -290,9 +278,9 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     }
   })
 
-  $:if($orbitdb && $voyager){
+  $:if($orbitdb){
     info('connecting to voyager')
-    $voyager?.orbitdb.open('settings', {
+    $orbitdb.open('settings', {
           type: 'documents',
           create: true,
           overwrite: false,
@@ -303,13 +291,9 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         }).then(_db => {
           $settingsDB = _db;
           window.settingsDB = _db;
-          $voyager?.add(_db.address).then((ret) => {
-            $settingsDB.pinnedToVoyager = ret;
-            info('voyager added settingsDB', ret)
-          }).catch( err => warn('voyager error', err))
         }).catch( err => warn('error', err))
         
-        $voyager?.orbitdb.open('posts', {
+        $orbitdb.open('posts', {
           type: 'documents',
           create: true,
           overwrite: false,
@@ -320,13 +304,12 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         }).then(_db => {
           $postsDB = _db;
           window.postsDB = _db;
-          $voyager?.add(_db.address).then((ret) => info('voyager added postsDB '+_db.address, ret))
           info('postsDB', _db.address.toString())
           $postsDBAddress = _db.address.toString()
 
         }).catch( err => warn('error', err))
 
-        $voyager?.orbitdb.open('remote-dbs', {
+        $orbitdb.open('remote-dbs', {
           type: 'documents',
           create: true,
           overwrite: false,
@@ -336,11 +319,10 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         }).then(_db => {
           $remoteDBsDatabases = _db;
           window.remoteDBsDatabases = _db;
-          $voyager?.add(_db.address).then((ret) => info('voyager added remoteDBsDatabases '+_db.address, ret))
         }).catch(err => warn('Error opening remote DBs database:', err));
 
         // // Add this to the initializeApp function after other database initializations
-        $voyager?.orbitdb.open('comments', {
+        $orbitdb.open('comments', {
           type: 'documents',
           create: true,
           overwrite: false,
@@ -352,11 +334,10 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
           $commentsDB = _db;
           info('commentsDB', _db)
           window.commentsDB = _db;
-          $voyager?.add(_db.address).then((ret) => info('voyager added commentsDB '+_db.address, ret))
         }).catch(err => warn('error', err))
 
         // // Add this to initialize the media database
-        $voyager?.orbitdb.open('media', {
+        $orbitdb.open('media', {
           type: 'documents',
           create: true,
           overwrite: false,
@@ -368,11 +349,11 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
           $mediaDB = _db;
           info('mediaDB', _db)
           window.mediaDB = _db;
-          $voyager?.add(_db.address).then((ret) => info('voyager added mediaDB '+_db.address, ret))
         }).catch(err => warn('error initializing media database', err))
   }
 
-  $:if($settingsDB && (!$blogName || !$blogDescription || !$categories || !$postsDBAddress)) {
+  $:if($settingsDB) {
+    // Initial load of settings
     $settingsDB.get('blogName').then(result => 
       result?.value?.value !== undefined ? ($blogName = result.value.value) : null
     );
@@ -419,18 +400,33 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       }
     });
 
-    $settingsDB?.events.on('update', 
-      async (entry) => {
-        if (entry?.payload?.op === 'PUT') {
-          const { _id, ...rest } = entry.payload.value;
-          if(entry.payload.key==='blogName') $blogName = rest.value;
-          if(entry.payload.key==='blogDescription') $blogDescription = rest.value;
-          if(entry.payload.key==='categories') $categories = rest.value;
-          if(entry.payload.key==='profilePicture') {
-            info('Profile picture updated:', rest.value);
+    // Add update event listener
+    $settingsDB?.events.on('update', async (entry) => {
+      info('Settings database update:', entry);
+      if (entry?.payload?.op === 'PUT') {
+        const { _id, ...rest } = entry.payload.value;
+        info('settingsDB update:', rest);
+        
+        // Update the appropriate store based on the _id
+        switch(_id) {
+          case 'blogName':
+            $blogName = rest.value;
+            break;
+          case 'blogDescription':
+            $blogDescription = rest.value;
+            break;
+          case 'categories':
+            $categories = rest.value;
+            break;
+          case 'profilePicture':
             $profilePictureCid = rest.value;
-          }
-        } else if (entry?.payload?.op === 'DEL') { }
+            break;
+          // ... handle other settings ...
+        }
+      } else if (entry?.payload?.op === 'DEL') {
+        info('settingsDB delete:', entry.payload.key);
+        // Handle deletions if needed
+      }
     });
   }
 
@@ -443,7 +439,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 
   $:if($postsDB){
     $postsDB.all().then(_posts => {
-      info('posts', _posts);
+      // info('posts--', _posts);
       $posts = _posts.map(entry => ({
         ...entry.value,
         identity: entry.identity // This contains the creator's identity

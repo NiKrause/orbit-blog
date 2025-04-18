@@ -34,7 +34,7 @@
   
   function getTransportFromMultiaddr(conn: Connection): string {
     const remoteAddr = conn.remoteAddr.toString();
-    
+    console.log('remoteAddr', remoteAddr);
     // Check for different transport protocols
     if (remoteAddr.includes('/webrtc-direct')) return 'WebRTC Direct';
     if (remoteAddr.includes('/webrtc')) return 'WebRTC';

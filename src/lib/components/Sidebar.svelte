@@ -27,7 +27,7 @@
   postsDBAddress.subscribe((val: any) => _postsDBAddress = val);
   
   let canWrite = $state(false)
-  run(() => {
+  $effect(() => {
     if(_settingsDB && _identity && _postsDB && _postsDBAddress){
       const access = _settingsDB?.access?.write;
       canWrite = access?.includes(_identity?.id)

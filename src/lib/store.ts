@@ -27,7 +27,6 @@ export const seedPhrase = writable<string | null>(null);
 export const helia = writable<Helia | null>(null);
 export const libp2p = writable<Helia['libp2p'] | null>(null);
 export const orbitdb = writable<OrbitDB | null>(null);
-export const voyager = writable<Voyager | null>(null);
 
 // Local storage-backed UI state stores
 export const showDBManager = localStorageStore('showDBManager', false);
