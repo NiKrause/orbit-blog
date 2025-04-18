@@ -13,23 +13,17 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install pnpm
-      uses: pnpm/action-setup@v2
-      with:
-        version: 8
-        run_install: true  # We'll run install separately after Node.js setup
-
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'pnpm'
+        cache: 'npm'
 
     - name: Install dependencies
-      run: pnpm install
+      run: npm ci
 
     - name: Install Playwright Browsers
-      run: pnpm exec playwright install --with-deps
+      run: npx playwright install --with-deps
 
     - name: Start relay server
       run: node relay.js &
@@ -40,10 +34,10 @@ jobs:
       run: sleep 10
 
     - name: Run unit tests
-      run: pnpm test
+      run: npm test
 
     - name: Run E2E tests
-      run: pnpm test:e2e
+      run: npm run test:e2e
 
     - name: Upload test results
       if: always()
