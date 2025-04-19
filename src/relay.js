@@ -23,7 +23,7 @@ import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { autoTLS } from '@ipshipyard/libp2p-auto-tls'
 import { keychain } from '@libp2p/keychain'
-import { WebSocketsSecure } from '@libp2p/websockets'
+import { WebSocketsSecure } from '@multiformats/multiaddr-matcher'
 /** @typedef {import('@libp2p/interface-transport').Transport} Transport */
 /** @typedef {import('@libp2p/interface').Libp2p} Libp2p */
 
