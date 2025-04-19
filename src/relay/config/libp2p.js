@@ -59,9 +59,13 @@ export const createLibp2pConfig = (privateKey) => ({
       allowPublishToZeroTopicPeers: true,
       canRelayMessage: true
     }),
-    autoTLS: autoTLS({
-      autoConfirmAddress: true,
-      acmeDirectory: 'https://acme-staging-v02.api.letsencrypt.org/directory'
+    ...(!process.env.disableAutoTLS && {
+      autoTLS: autoTLS({
+        autoConfirmAddress: true,
+        ...(process.env.STAGING === 'true' && {
+          acmeDirectory: 'https://acme-staging-v02.api.letsencrypt.org/directory'
+        })
+      })
     }),
     keychain: keychain()
   }

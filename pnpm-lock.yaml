@@ -26,6 +26,9 @@ importers:
       '@ipshipyard/libp2p-auto-tls':
         specifier: ^1.0.0
         version: 1.0.0
+      '@ipshipyard/node-datachannel':
+        specifier: ^0.26.5
+        version: 0.26.5
       '@libp2p/autonat':
         specifier: ^2.0.30
         version: 2.0.30

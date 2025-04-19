@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
+import 'dotenv/config'
 import { createLibp2p } from 'libp2p'
 import { createHelia } from 'helia'
 import { createLibp2pConfig } from './config/libp2p.js'
