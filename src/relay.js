@@ -23,7 +23,6 @@ import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { autoTLS } from '@ipshipyard/libp2p-auto-tls'
 import { keychain } from '@libp2p/keychain'
-import { Transport } from '@libp2p/interface-transport'
 
 /** @typedef {import('@libp2p/interface-transport').Transport} Transport */
 /** @typedef {import('@libp2p/interface').Libp2p} Libp2p */
@@ -72,11 +71,7 @@ const libp2p = await createLibp2p({
     quic(),
     webRTC(),
     webRTCDirect(),
-    webSockets(),
-    /** @type {Transport} */ (autoTLS({
-      autoConfirmAddress: true,
-      acmeDirectory: 'https://acme-staging-v02.api.letsencrypt.org/directory'
-    }))
+    webSockets()
   ],
   peerDiscovery: [
 		pubsubPeerDiscovery({
@@ -88,6 +83,7 @@ const libp2p = await createLibp2p({
   connectionEncrypters: [noise()],
   streamMuxers: [yamux()],
   services: {
+
     ping: ping(),
     autonat: autoNAT(),
     dcutr: dcutr(),
@@ -97,10 +93,9 @@ const libp2p = await createLibp2p({
       allowPublishToZeroTopicPeers: true,
       canRelayMessage: true
     }),
-    relay: circuitRelayServer({
-      reservations: {
-        maxReservations: Infinity,
-      }
+    autoTLS: autoTLS({
+        autoConfirmAddress: true,
+        acmeDirectory: 'https://acme-staging-v02.api.letsencrypt.org/directory'
     }),
     keychain: keychain()
   }

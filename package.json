@@ -28,7 +28,7 @@
     "build": "vite build",
     "build:lib": "vite build --mode lib",
     "preview": "vite preview",
-    "relay": "node relay.js",
+    "relay": "node src/relay.js",
     "test": "mocha test/**/*.test.js",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
