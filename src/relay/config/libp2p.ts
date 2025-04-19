@@ -14,22 +14,33 @@ import { quic } from '@chainsafe/libp2p-quic'
 import { autoTLS } from '@ipshipyard/libp2p-auto-tls'
 import { keychain } from '@libp2p/keychain'
 import { prometheusMetrics } from '@libp2p/prometheus-metrics'
+import type { Libp2pOptions } from 'libp2p'
+import type { PrivateKey } from 'libp2p-crypto'
+import { logger } from '@libp2p/logger'
 
-export const createLibp2pConfig = (privateKey) => ({
+const componentLogger = {
+  forComponent: (name: string) => logger(name)
+}
+
+const metrics = prometheusMetrics()({
+  logger: componentLogger
+})
+
+export const createLibp2pConfig = (privateKey: PrivateKey): Libp2pOptions => ({
   privateKey,
-  metrics: prometheusMetrics(),
+  metrics,
   addresses: {
     listen: [
       '/ip4/0.0.0.0/tcp/9091',
       '/ip4/0.0.0.0/udp/9091/quic-v1',
       '/ip4/0.0.0.0/tcp/9092/ws',
       '/ip4/0.0.0.0/udp/9092/webrtc-direct',
-      '/ip4/0.0.0.0/udp/9093/webrtc',
+      // '/ip4/0.0.0.0/udp/9093/webrtc',
       '/ip6/::/tcp/9091',
-      '/ip6/::/udp/9091/quic-v1',
+      // '/ip6/::/udp/9091/quic-v1',
       '/ip6/::/tcp/9092/ws',
       '/ip6/::/udp/9092/webrtc-direct',
-      '/ip6/::/udp/9093/webrtc'
+      // '/ip6/::/udp/9093/webrtc'
     ]
   },
   transports: [

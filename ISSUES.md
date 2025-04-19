@@ -15,12 +15,12 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 ### Todos, Features, Issues
 - Todos:
-    - [ ] Create a two browser e2e tests with two browsers 
-        - [ ] create a blog and two posts
-        - [ ] open a second browser with that /#/orbitdb/address in the url wait for replication
+    - [x] Create a two browser e2e tests with two browsers 
+        - [x] create a blog and two posts
+        - [x] open a second browser with that /#/orbitdb/address in the url wait for replication
         - [ ] add a post A - wait for replication in browser B
-        - [ ] drop db in browser A 
-        - [ ] create same blog name again in browser A - wait for replication from browser B 
+        - [ ] drop db in browser A - create same blog name again in browser A - wait for replication from browser B (webrtc)
+        - [x] drop db in browser A - create same blog name again in browser A - wait for replication from pinning service
 
     - [ ] first time loading seems still slow - what can be optimized?
     - [ ] when starting browser let user decide for memory sessions o persistent storage

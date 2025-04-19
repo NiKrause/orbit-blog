@@ -3,6 +3,15 @@ import client from 'prom-client'
 
 export class MetricsServer {
   constructor() {
+   
+  }
+
+  async getMetrics() {
+    return await client.register.metrics()
+  }
+
+  start(port = process.env.METRICS_PORT || 9090) {
+
     this.orbitdbCounter = new client.Counter({
       name: 'orbitdb_databases_total',
       help: 'Total number of OrbitDB databases opened',
@@ -25,13 +34,7 @@ export class MetricsServer {
       buckets: [100, 500, 1000, 5000, 10000],
       labelNames: ['database_address']
     })
-  }
-
-  async getMetrics() {
-    return await client.register.metrics()
-  }
-
-  start(port = process.env.METRICS_PORT || 9090) {
+    
     const server = http.createServer(async (req, res) => {
       if (req.url === '/metrics') {
         res.setHeader('Content-Type', client.register.contentType)
