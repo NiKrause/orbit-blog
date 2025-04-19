@@ -23,7 +23,7 @@ import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { autoTLS } from '@ipshipyard/libp2p-auto-tls'
 import { keychain } from '@libp2p/keychain'
-
+import { WebSocketsSecure } from '@libp2p/websockets'
 /** @typedef {import('@libp2p/interface-transport').Transport} Transport */
 /** @typedef {import('@libp2p/interface').Libp2p} Libp2p */
 
@@ -105,6 +105,22 @@ const blockstore = new LevelBlockstore(join(hostDirectory, '/', 'ipfs', '/', 'bl
 const datastore = new LevelDatastore(join(hostDirectory, '/', 'ipfs', '/', 'data'))
 
 const ipfs = await createHelia({ libp2p, datastore, blockstore })
+libp2p.addEventListener('certificate:provision', () => {
+  console.log('A TLS certificate was provisioned')
+
+  const interval = setInterval(() => {
+    const mas = libp2p
+      .getMultiaddrs()
+      .filter(ma => WebSocketsSecure.exactMatch(ma) && ma.toString().includes('/sni/'))
+      .map(ma => ma.toString())
+
+    if (mas.length > 0) {
+      console.log('addresses:')
+      console.log(mas.join('\n'))
+      clearInterval(interval)
+    }
+  }, 1_000)
+})
 ipfs.libp2p.addEventListener('error', (err) => {
   console.error('Libp2p error:', err)
 })
