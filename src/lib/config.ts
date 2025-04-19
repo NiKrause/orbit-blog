@@ -11,8 +11,6 @@ import { dcutr } from '@libp2p/dcutr'
 import { gossipsub } from "@chainsafe/libp2p-gossipsub"
 import { ping } from '@libp2p/ping'
 import { pubsubPeerDiscovery } from '@libp2p/pubsub-peer-discovery'
-import { BROWSER, DEV } from 'esm-env'
-/*import { FaultTolerance } from '@libp2p/interface-transport'*/
 
 let VITE_SEED_NODES = import.meta.env.VITE_SEED_NODES.replace('\n','').split(',')
 let VITE_SEED_NODES_DEV = import.meta.env.VITE_SEED_NODES_DEV.replace('\n','').split(',')
@@ -36,8 +34,6 @@ if(_VITE_SEED_NODES || _VITE_SEED_NODES_DEV || _MODE) {
 
 export let multiaddrs = MODE === 'development'?VITE_SEED_NODES_DEV:VITE_SEED_NODES
 let pubSubPeerDiscoveryTopics = MODE === 'development'?VITE_P2P_PUPSUB_DEV:VITE_P2P_PUPSUB
-let disableAutoTLS = MODE === 'development'
-let staging = MODE === 'development'
 
 export const bootstrapConfig = {list: multiaddrs};
 import type { Libp2pOptions } from '@libp2p/interface'
@@ -87,6 +83,8 @@ export const libp2pOptions: Libp2pOptions = {
         ping: ping(),
         autoNAT: autoNAT(),
         dcutr: dcutr(),
-        pubsub: gossipsub({ allowPublishToZeroTopicPeers: true, canRelayMessage: true, emitSelf: true, }),
+        pubsub: gossipsub({ 
+            allowPublishToZeroTopicPeers: true
+        }),
     }
 }

@@ -48,8 +48,8 @@ import type { PeerId } from '@libp2p/interface'
 import type { PrivateKey } from 'libp2p-crypto'
 
 export async function createPeerIdFromSeedPhrase(seedPhrase: string): Promise<{peerId: PeerId, privateKey: PrivateKey}> { 
-  const masterSeed = generateMasterSeed(seedPhrase, "password");
-  const {keyPair, hex} = await generateAndSerializeKey(masterSeed.subarray(0, 32))
+  const masterSeed = generateMasterSeed(seedPhrase, "password", false) as Buffer;
+  const { keyPair, hex } = await generateAndSerializeKey(masterSeed.subarray(0, 32))
   const encoded = uint8ArrayFromString(hex, 'hex')
   const privateKey = await keys.unmarshalPrivateKey(encoded)
   const peerId = await createFromPrivKey(privateKey)
@@ -61,10 +61,12 @@ export const createHdKeyFromMasterKey = (masterseed, network) => {
     return HDKey.fromMasterSeed(Buffer.from(masterseed, "hex"), network)
 }
 
-export async function generateAndSerializeKey(seed: Uint8Array): Promise<string> {
+export async function generateAndSerializeKey(seed: Uint8Array): Promise<{
+  keyPair: keys.supportedKeys.ed25519.Ed25519PrivateKey,
+  hex: string
+}> {
   // Generate an Ed25519 key pair from the seed
-  // const keyPair = await keys.generateKeyPairFromSeed('Ed25519', seed);
-  const keyPair = await keys.generateKeyPairFromSeed('Ed25519', seed)
+  const keyPair = await keys.generateKeyPairFromSeed('Ed25519', seed, 256)
   const marshalledPrivateKey = await keys.marshalPrivateKey(keyPair);
   return {keyPair, hex: Buffer.from(marshalledPrivateKey).toString('hex')}
 }

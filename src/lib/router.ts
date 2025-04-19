@@ -1,6 +1,6 @@
 import { readable, derived, writable, get } from 'svelte/store';
-import { switchToRemoteDB } from './dbUtils';
-import { initialAddress } from './store';
+import { switchToRemoteDB } from './dbUtils.js';
+import { initialAddress } from './store.js';
 import { info, debug, error } from './utils/logger.js';
 const domain = window.location.hostname;
 const isBrowser = typeof window !== 'undefined';

@@ -4,6 +4,43 @@ import type { RemoteDB } from './types.js';
 import { IPFSAccessController } from '@orbitdb/core';
 import { error, info, debug, warn } from './utils/logger.js'
 
+// For the Libp2p related functions, we need to use the correct API
+// Here's how to fix the dial and getPeers errors:
+const connectToPeer = async (heliaInstance: any, peerId: string) => {
+    try {
+        // Use the correct method for connecting to peers
+        await heliaInstance.libp2p.connect(peerId);
+    } catch (error) {
+        console.error('Failed to connect to peer:', error);
+    }
+};
+
+// Fix the database creation/handling
+const createNewDB = (name: string): RemoteDB => {
+    return {
+        id: crypto.randomUUID(),
+        postsAddress: '',
+        commentsAddress: '',
+        mediaAddress: ''
+    };
+};
+
+// Fix the database checks
+const isDuplicateDB = (existingDBs: RemoteDB[], newDB: RemoteDB): boolean => {
+    return existingDBs.some(db => db.id === newDB.id);
+};
+
+// Fix the peer handling
+const getPeerList = async (heliaInstance: any) => {
+    try {
+        // Use the correct method for getting peers
+        const peers = await heliaInstance?.libp2p?.getPeers();
+        return peers || [];
+    } catch (error) {
+        console.error('Failed to get peers:', error);
+        return [];
+    }
+};
 
 // Add this helper function
 function updateLoadingState(step: string, detail: string = '', progress: number = 0) {
@@ -59,6 +96,9 @@ export async function addRemoteDBToStore(address: string, peerId: string, name?:
         id: crypto.randomUUID(),
         name: name || 'Unknown Blog',
         address: address,
+        postsAddress: '',
+        commentsAddress: '',
+        mediaAddress: '',
         fetchLater: true,
         date: new Date().toISOString().split('T')[0]
       };

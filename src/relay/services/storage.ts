@@ -3,7 +3,7 @@ import { LevelDatastore } from 'datastore-level'
 import { join } from 'path'
 import { loadOrCreateSelfKey } from '@libp2p/config'
 
-export async function initializeStorage(hostDirectory) {
+export async function initializeStorage(hostDirectory: string) {
   const datastore = new LevelDatastore(join(hostDirectory, '/', 'ipfs', '/', 'data'))
   await datastore.open()
   

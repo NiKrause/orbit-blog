@@ -18,17 +18,10 @@ interface TranslationResponse {
 }
 
 interface TranslateAndSaveOptions {
-  post: {
-    _id?: string;
-    title: string;
-    content: string;
-    category: string;
-    language: string;
-    isEncrypted?: boolean;
-  };
+  post: BlogPost;
   encryptionPassword?: string;
-  postsDB: any; // Use proper type from your DB
-  identity: any; // Use proper type from your identity
+  postsDB: any;
+  identity: any;
   mediaIds?: string[];
   timestamps?: {
     createdAt: number;
@@ -87,7 +80,7 @@ Only respond with the translated text, without any additional commentary.`;
     }
   }
 
-  private static async getExistingTranslations(originalPostId: string): Promise<Set<string>> {
+  private static async getExistingTranslations(originalPostId: string, postsDB: any): Promise<Set<string>> {
     try {
       info(`Fetching existing translations for post ${originalPostId}`);
       const allPosts = await postsDB.all();
@@ -184,7 +177,7 @@ Only respond with the translated text, without any additional commentary.`;
     info(`Source language: ${sourceLanguage}, Target languages: ${Array.from(enabledLangs).join(', ')}`);
     
     try {
-      const existingTranslations = await this.getExistingTranslations(post._id);
+      const existingTranslations = await this.getExistingTranslations(post._id, postsDB);
       
       for (const lang of enabledLangs) {
         if (lang === sourceLanguage || existingTranslations.has(lang)) {

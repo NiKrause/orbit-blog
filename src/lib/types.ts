@@ -24,21 +24,14 @@ export interface Comment {
 }
 
 export interface RemoteDB {
-  _id: string;
-  name: string;
-  address: string;
-  postsAddress?: string;
-  commentsAddress?: string;
-  mediaAddress?: string;
-  fetchLater: boolean;
-  date: string;
-  postsCount?: number;
-  commentsCount?: number;
-  mediaCount?: number;
-  access?: {
-    write?: string[];
-  };
-  pinnedToVoyager?: boolean;
+  id: string;
+  name?: string;
+  address?: string;
+  postsAddress: string;
+  commentsAddress: string;
+  mediaAddress: string;
+  fetchLater?: boolean;
+  date?: string;
 }
 
 export type Category = string;
@@ -48,14 +41,9 @@ export interface BlogPost {
   title: string;
   content: string;
   category: string;
-  createdAt?: number;
-  updatedAt?: number;
-  date?: number;
-  identity?: string;
-  mediaIds?: string[];
-  language?: string;
+  language: string;
   translatedFrom?: string;
-  originalPostId?: string;
+  isEncrypted?: boolean;
 }
 
 export interface Media {
@@ -94,6 +82,8 @@ export interface Libp2p {
   peerStore: {
     delete: (peer: any) => Promise<void>;
   };
+  dial: (peerId: string) => Promise<any>;
+  getPeers: () => Promise<string[]>;
 }
 
 export interface Connection {
@@ -132,4 +122,29 @@ export interface Voyager {
   add: (address: string) => Promise<any>;
   remove: (address: string) => Promise<void>;
   orbitdb: OrbitDB;
+}
+
+export interface Libp2pComponents {
+  keychain: any;
+  autoTLS: any;
+  pubsub: any;
+}
+
+export interface GossipsubOptions {
+  allowPublishToZeroTopicPeers: boolean;
+  canRelayMessage: boolean;
+  emitSelf: boolean;
+}
+
+export interface Identity {
+  id: string;
+  identities: any;
+}
+
+export interface HeliaInstance {
+  libp2p: {
+    dial: (peerId: string) => Promise<any>;
+    getPeers: () => Promise<string[]>;
+    addEventListener: (event: string, callback: (evt: any) => void) => void;
+  };
 }
