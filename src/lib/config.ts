@@ -1,4 +1,3 @@
-import { autoTLS } from '@ipshipyard/libp2p-auto-tls'
 import { webSockets } from "@libp2p/websockets";
 import { webRTC, webRTCDirect } from "@libp2p/webrtc";
 import { webTransport } from "@libp2p/webtransport";
@@ -79,7 +78,6 @@ export const libp2pOptions: Libp2pOptions = {
         pubsubPeerDiscovery({
             interval: 10000,
             topics: pubSubPeerDiscoveryTopics,
-            // topics: ['doichain._peer-discovery._p2p._pubsub'], //pubSubPeerDiscoveryTopics, // defaults to ['_peer-discovery._p2p._pubsub']
             listenOnly: false,
         })
     ],
@@ -91,13 +89,4 @@ export const libp2pOptions: Libp2pOptions = {
         dcutr: dcutr(),
         pubsub: gossipsub({ allowPublishToZeroTopicPeers: true, canRelayMessage: true, emitSelf: true, }),
     }
-}
-
-if (!disableAutoTLS) {
-    libp2pOptions.transports.push(autoTLS({
-        autoConfirmAddress: true,
-        ...(staging ? {
-            acmeDirectory: 'https://acme-staging-v02.api.letsencrypt.org/directory'
-        } : {})
-    }));
 }

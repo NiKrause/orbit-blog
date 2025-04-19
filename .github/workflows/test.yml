@@ -13,20 +13,25 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - uses: pnpm/action-setup@v4
+      with:
+        version: 10
+        run_install: false
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'npm'
+        cache: 'pnpm'
 
     - name: Install dependencies
-      run: npm install --no-package-lock
+      run: pnpm install
 
     - name: Install Playwright Browsers
-      run: npx playwright install --with-deps
+      run: pnpm playwright install --with-deps
 
     - name: Start relay server
-      run: node relay.js &
+      run: pnpm relay &
       env:
         NODE_ENV: test
 
@@ -34,10 +39,10 @@ jobs:
       run: sleep 10
 
     - name: Run unit tests
-      run: npm test
+      run: pnpm test
 
     - name: Run E2E tests
-      run: npm run test:e2e
+      run: pnpm test:e2e
 
     - name: Upload test results
       if: always()
@@ -46,4 +51,5 @@ jobs:
         name: test-results
         path: |
           test-results/
-          playwright-report/ 
+          playwright-report/
+        retention-days: 30 

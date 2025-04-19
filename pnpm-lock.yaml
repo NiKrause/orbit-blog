@@ -59,6 +59,9 @@ importers:
       '@libp2p/kad-dht':
         specifier: ^14.2.15
         version: 14.2.15
+      '@libp2p/keychain':
+        specifier: ^5.2.1
+        version: 5.2.1
       '@libp2p/logger':
         specifier: ^5.1.15
         version: 5.1.15

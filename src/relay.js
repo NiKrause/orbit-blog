@@ -21,6 +21,12 @@ import { LevelBlockstore } from 'blockstore-level'
 import { LevelDatastore } from 'datastore-level'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { autoTLS } from '@ipshipyard/libp2p-auto-tls'
+import { keychain } from '@libp2p/keychain'
+import { Transport } from '@libp2p/interface-transport'
+
+/** @typedef {import('@libp2p/interface-transport').Transport} Transport */
+/** @typedef {import('@libp2p/interface').Libp2p} Libp2p */
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -39,6 +45,7 @@ const relayPrivKey = '08011240821cb6bc3d4547fcccb513e82e4d718089f8a166b23ffcd4a4
 
 const privateKey = privateKeyFromProtobuf(uint8ArrayFromString(relayPrivKey, 'hex'))
 
+/** @type {Libp2p} */
 const libp2p = await createLibp2p({
   privateKey,
   addresses: {
@@ -65,7 +72,11 @@ const libp2p = await createLibp2p({
     quic(),
     webRTC(),
     webRTCDirect(),
-    webSockets()
+    webSockets(),
+    /** @type {Transport} */ (autoTLS({
+      autoConfirmAddress: true,
+      acmeDirectory: 'https://acme-staging-v02.api.letsencrypt.org/directory'
+    }))
   ],
   peerDiscovery: [
 		pubsubPeerDiscovery({
@@ -90,7 +101,8 @@ const libp2p = await createLibp2p({
       reservations: {
         maxReservations: Infinity,
       }
-    })
+    }),
+    keychain: keychain()
   }
 })
 
