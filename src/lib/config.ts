@@ -1,5 +1,5 @@
+import { autoTLS } from '@ipshipyard/libp2p-auto-tls'
 import { webSockets } from "@libp2p/websockets";
-import * as filters from "@libp2p/websockets/filters";
 import { webRTC, webRTCDirect } from "@libp2p/webrtc";
 import { webTransport } from "@libp2p/webtransport";
 import { noise } from "@chainsafe/libp2p-noise";
@@ -37,7 +37,9 @@ if(_VITE_SEED_NODES || _VITE_SEED_NODES_DEV || _MODE) {
 
 export let multiaddrs = MODE === 'development'?VITE_SEED_NODES_DEV:VITE_SEED_NODES
 let pubSubPeerDiscoveryTopics = MODE === 'development'?VITE_P2P_PUPSUB_DEV:VITE_P2P_PUPSUB
-       
+let disableAutoTLS = MODE === 'development'
+let staging = MODE === 'development'
+
 export const bootstrapConfig = {list: multiaddrs};
 import type { Libp2pOptions } from '@libp2p/interface'
 
@@ -54,20 +56,8 @@ export const libp2pOptions: Libp2pOptions = {
         webTransport(),
         webSockets(),
         webRTC(),
-        
-        // webRTC({
-        //      rtcConfiguration: {
-        //          iceServers:[{
-        //              urls: [
-        //                  'stun:stun.l.google.com:19302',
-        //                  'stun:global.stun.twilio.com:3478'
-        //              ]
-        //          }]
-        //      }
-        //  }),
         webRTCDirect(),
         circuitRelayTransport()
-        // kadDHT({}),
     ],
     connectionEncrypters: [noise()],
     streamMuxers: [
@@ -84,7 +74,6 @@ export const libp2pOptions: Libp2pOptions = {
             return false
         }
     },
-    
     peerDiscovery: [
         bootstrap(bootstrapConfig),
         pubsubPeerDiscovery({
@@ -102,4 +91,13 @@ export const libp2pOptions: Libp2pOptions = {
         dcutr: dcutr(),
         pubsub: gossipsub({ allowPublishToZeroTopicPeers: true, canRelayMessage: true, emitSelf: true, }),
     }
+}
+
+if (!disableAutoTLS) {
+    libp2pOptions.transports.push(autoTLS({
+        autoConfirmAddress: true,
+        ...(staging ? {
+            acmeDirectory: 'https://acme-staging-v02.api.letsencrypt.org/directory'
+        } : {})
+    }));
 }

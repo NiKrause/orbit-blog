@@ -23,6 +23,9 @@ importers:
       '@helia/unixfs':
         specifier: ^4.0.3
         version: 4.0.3
+      '@ipshipyard/libp2p-auto-tls':
+        specifier: ^1.0.0
+        version: 1.0.0
       '@libp2p/autonat':
         specifier: ^2.0.30
         version: 2.0.30
