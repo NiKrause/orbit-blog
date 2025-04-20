@@ -14,28 +14,34 @@ import { pubsubPeerDiscovery } from '@libp2p/pubsub-peer-discovery'
 
 let VITE_SEED_NODES = import.meta.env.VITE_SEED_NODES.replace('\n','').split(',')
 let VITE_SEED_NODES_DEV = import.meta.env.VITE_SEED_NODES_DEV.replace('\n','').split(',')
-let MODE = import.meta.env.MODE
+let MODE = import.meta.env.VITE_MODE //|| 'development';
 let VITE_P2P_PUPSUB_DEV = import.meta.env.VITE_P2P_PUPSUB_DEV.replace('\n','').split(',') || '';
 let VITE_P2P_PUPSUB = import.meta.env.VITE_P2P_PUPSUB.replace('\n','').split(',') || '';
 
 let _VITE_SEED_NODES_DEV = process.env.VITE_SEED_NODES_DEV || '';
 let _VITE_SEED_NODES = process.env.VITE_SEED_NODES || '';
-let _MODE = process.env.MODE
+let _MODE = process.env.VITE_MODE || '';
+
 let _VITE_P2P_PUPSUB_DEV = process.env.VITE_P2P_PUPSUB_DEV || '';
 let _VITE_P2P_PUPSUB = process.env.VITE_P2P_PUPSUB || '';
 
-if(_VITE_SEED_NODES || _VITE_SEED_NODES_DEV || _MODE) {
+if(_VITE_SEED_NODES || _VITE_SEED_NODES_DEV) {
     VITE_SEED_NODES = _VITE_SEED_NODES
     VITE_SEED_NODES_DEV = _VITE_SEED_NODES_DEV
-    MODE = _MODE
     VITE_P2P_PUPSUB = _VITE_P2P_PUPSUB
     VITE_P2P_PUPSUB_DEV = _VITE_P2P_PUPSUB_DEV
 }
+MODE = _MODE?_MODE:MODE
 
+console.log('MODE', MODE)
 export let multiaddrs = MODE === 'development'?VITE_SEED_NODES_DEV:VITE_SEED_NODES
+console.log('MODE === development', MODE === 'development')
+console.log('VITE_SEED_NODES_DEV', VITE_SEED_NODES_DEV)
+console.log('VITE_SEED_NODES', VITE_SEED_NODES)
 let pubSubPeerDiscoveryTopics = MODE === 'development'?VITE_P2P_PUPSUB_DEV:VITE_P2P_PUPSUB
-
-export const bootstrapConfig = {list: multiaddrs};
+console.log('pubSubPeerDiscoveryTopics', pubSubPeerDiscoveryTopics)
+console.log('seed nodes multiaddrs', multiaddrs)
+export const bootstrapConfig = { list: multiaddrs };
 import type { Libp2pOptions } from '@libp2p/interface'
 
 export const libp2pOptions: Libp2pOptions = {

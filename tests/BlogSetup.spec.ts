@@ -33,6 +33,8 @@ test.describe('Blog Setup and Bach Posts', () => {
         // await expect(page.getByTestId('write-access-icon')).toBeVisible();
         await expect(async () => {    
             const peersHeader = await page.getByTestId('peers-header').textContent();
+            console.log('Peers Header Content:', peersHeader);  // Regular console log
+            test.info().annotations.push({ type: 'Peers Header', description: peersHeader });  // Test output log
             const peerCount = parseInt(peersHeader.match(/\((\d+)\)/)[1]);
             expect(peerCount).toBeGreaterThanOrEqual(1);
         }).toPass({ timeout: 30000 }); // Give it up to 30 seconds to connect to peers

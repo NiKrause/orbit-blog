@@ -10,7 +10,7 @@
 
 > ⚠️ **Alpha Version Notice**: This software is currently in alpha status and may change, break backwards compatibility, or contain major issues. It has not been security audited. Use accordingly.
 
-[![Tests](https://github.com/NiKrause/orbit-blog/actions/workflows/test.yml/badge.svg)](https://github.com/YOUR_USERNAME/bolt-orbitdb-blog/actions/workflows/test.yml)
+[![Tests](https://github.com/NiKrause/orbit-blog/actions/workflows/test.yml/badge.svg)](https://github.com/NiKrause/orbit-blog/actions/workflows/test.yml)
 
 ## Description
 

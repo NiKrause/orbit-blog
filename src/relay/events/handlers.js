@@ -1,10 +1,11 @@
 import { identify } from '@libp2p/identify'
-import { log } from '../utils/logger.js'
-
+import { logger, enable } from '@libp2p/logger'
+const log = logger('le-space:relay:events')
 export function setupEventHandlers(libp2p, databaseService) {
   libp2p.addEventListener('peer:connect', async event => {
     const peer = event.detail
     try {
+      log('peer:connect', peer)
       await identify(peer)
     } catch (err) {
       if (err.code !== 'ERR_UNSUPPORTED_PROTOCOL') {
@@ -12,6 +13,24 @@ export function setupEventHandlers(libp2p, databaseService) {
       }
     }
   })
+
+  libp2p.addEventListener('certificate:provision', () => {
+    log('A TLS certificate was provisioned')
+  
+    const interval = setInterval(() => {
+      const mas = libp2p
+        .getMultiaddrs()
+        .filter(ma => WebSocketsSecure.exactMatch(ma) && ma.toString().includes('/sni/'))
+        .map(ma => ma.toString())
+  
+      if (mas.length > 0) {
+        log('addresses:')
+        log(mas.join('\n'))
+        clearInterval(interval)
+      }
+    }, 1_000)
+  })
+
 
   libp2p.addEventListener('peer:disconnect', async event => {
     log('peer:disconnect', event.detail)

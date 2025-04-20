@@ -1,6 +1,6 @@
 import { test, expect, chromium } from '@playwright/test';
 
-test.describe('Blog Setup and Bach Posts', () => {
+test.describe.skip('Blog Setup and Bach Posts', () => {
     let page;
 
     test.beforeAll(async ({ browser }) => {

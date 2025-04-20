@@ -26,7 +26,7 @@ jobs:
       run: npx playwright install --with-deps
 
     - name: Start relay server
-      run: npm run relay &
+      run: npm run build:relay && DEBUG="le-space:*,libp2p:*" node dist/relay/index.js --test &
       env:
         NODE_ENV: test
 
@@ -38,6 +38,10 @@ jobs:
 
     - name: Run E2E tests
       run: npm run test:e2e
+      env:
+        VITE_MODE: development
+        VITE_SEED_NODES_DEV: "/ip4/127.0.0.1/tcp/9092/ws/p2p/12D3KooWAJjbRkp8FPF5MKgMU53aUTxWkqvDrs4zc1VMbwRwfsbE"
+        VITE_P2P_PUPSUB_DEV: "le-space._peer-discovery._p2p._pubsub"
 
     - name: Upload test results
       if: always()

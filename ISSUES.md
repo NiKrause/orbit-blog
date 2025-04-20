@@ -15,6 +15,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 ### Todos, Features, Issues
 - Todos:
+    - [ ] when starting browser let user decide for memory sessions o persistent storage (and support the blog author)
     - [x] Create a two browser e2e tests with two browsers 
         - [x] create a blog and two posts
         - [x] open a second browser with that /#/orbitdb/address in the url wait for replication
@@ -22,17 +23,16 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
         - [ ] drop db in browser A - create same blog name again in browser A - wait for replication from browser B (webrtc)
         - [x] drop db in browser A - create same blog name again in browser A - wait for replication from pinning service
 
-    - [ ] first time loading seems still slow - what can be optimized?
-    - [ ] when starting browser let user decide for memory sessions o persistent storage
-        - [ ] if persistent storage and peerId is temporary same indexDB should be used anyways (do not create new indexDB for every session)
+    - [x] first time loading seems still slow - what can be optimized?
+        - [ ] if persistent storage and peerId is temporary same indexDB should be used anyways (do not crea~e new indexDB for every session)
         - [ ] display used/available storage of index db 
-    - [ ] Feature: Make voyager host configurable via settings (everybody should be able to use its own private voyager(s))
+    -  ~~[ ] Feature: Make voyager host configurable via settings (everybody should be able to use its own private voyager(s)~~
     - [ ] Feature: Implement IPNS-OrbitDB-blockchain-link: Store an OrbitDB-Address in a blockchain transaction (e.g. Namecoin) name: ipns/example.com / ipns/ipnspubkey value: /orbitdb/address - when a website / app is loaded via ipns e.g. example-com/ipns.localhost:8081 pwa can extract the ipns name from the hostname and lookup an OrbitDB from a blockchain to load as default! Also set x-ipfs-path in nginx header.
-    - [ ] BUG: during a demo with a blogger, I couldn't add his orbitdb address
-    - [ ] BUG: add remote db didn't work (mermaid)
+    - [x] BUG: during a demo with a blogger, I couldn't add his orbitdb address
+    - [x] BUG: add remote db didn't work (mermaid)
     - [x] add a publish state (unpublished / published) to PostList and PostForm and only show published posts 
     - [ ] bug: when unpublish a translated post other related posts in other languages should be unpublished too (optional)
-    - [ ] bug: when deleting a translated post other related posts in other languages should be deleted too (optional)
+    - [x] bug: when deleting a translated post other related posts in other languages should be deleted too (optional)
     - [ ] UI-Bug: Navigation tattered.
     - [ ] UI-Bug: iOS-Mobile looks terrible.
     - [ ] UI-Bug: If a post isn't translated into the current language, try other fallback (browser) languages otherwise en, zh, hi, es

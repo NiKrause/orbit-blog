@@ -8,16 +8,35 @@ import { initializeStorage } from './services/storage.js'
 import { DatabaseService } from './services/database.js'
 import { MetricsServer } from './services/metrics.js'
 import { setupEventHandlers } from './events/handlers.js'
-import { log, info } from './utils/logger.js'
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
+import { privateKeyFromProtobuf } from '@libp2p/crypto/keys'
+import { logger, enable } from '@libp2p/logger'
 
+const log = logger('le-space:relay')
+ 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
+// Add the test private key
+const TEST_PRIVATE_KEY = '08011240821cb6bc3d4547fcccb513e82e4d718089f8a166b23ffcd4a436754b6b0774cf07447d1693cd10ce11ef950d7517bad6e9472b41a927cd17fc3fb23f8c70cd99'
+
 async function main() {
+  enable("le-space:relay")
   log('Starting relay server')
+  const isTestMode = process.argv.includes('--test')
+  let privateKey
 
   const hostDirectory = join(__dirname, '..', 'pinning-service')
-  const { datastore, blockstore, privateKey } = await initializeStorage(hostDirectory)
+  const storage = await initializeStorage(hostDirectory)
+  const blockstore = storage.blockstore
+  const datastore = storage.datastore
+
+  if (isTestMode) {
+    log('Running in test mode with fixed private key')
+    privateKey = privateKeyFromProtobuf(uint8ArrayFromString(TEST_PRIVATE_KEY, 'hex'))
+  } else {
+    privateKey = storage.privateKey
+  }
   
   const libp2p = await createLibp2p(createLibp2pConfig(privateKey))
   const ipfs = await createHelia({ libp2p, datastore, blockstore })
@@ -30,8 +49,8 @@ async function main() {
   const metricsServer = new MetricsServer()
   metricsServer.start()
   
-  info(libp2p.peerId.toString())
-  info('p2p addr: ', libp2p.getMultiaddrs().map((ma) => ma.toString()))
+  log(libp2p.peerId.toString())
+  log('p2p addr: ', libp2p.getMultiaddrs().map((ma) => ma.toString()))
   
   // Handle graceful shutdown
   process.on('SIGINT', handleShutdown)
@@ -41,7 +60,7 @@ async function main() {
   })
 
   async function handleShutdown() {
-    console.log('Received shutdown signal. Cleaning up...')
+    log('Received shutdown signal. Cleaning up...')
     await databaseService.cleanup()
     process.exit(0)
   }
