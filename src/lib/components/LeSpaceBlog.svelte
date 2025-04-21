@@ -11,7 +11,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   import { createHelia } from 'helia';
   import { createLibp2p } from 'libp2p';
   import { createOrbitDB, IPFSAccessController, Identities } from '@orbitdb/core';
-  import { multiaddr } from '@multiformats/multiaddr';
   
   // Storage & Crypto
   import { LevelDatastore } from 'datastore-level';
@@ -44,6 +43,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   import { switchToRemoteDB } from '$lib/dbUtils.js';
   import { getImageUrlFromHelia } from '$lib/utils/mediaUtils.js';
   import { unixfs } from '@helia/unixfs';
+  import { validateMultiaddrs } from '$lib/config.js';
   // Store imports
   import { 
     initialAddress,
@@ -144,6 +144,11 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     const _keyPair = await privateKeyFromProtobuf(privKeyBuffer);
     $libp2p = await createLibp2p({ privateKey: _keyPair, ...libp2pOptions })
     $helia = await createHelia({ libp2p: $libp2p, datastore, blockstore })
+    //     const { valid, invalid, dialable, undialable } = await validateMultiaddrs(multiaddrs, $libp2p)
+    // info('valid', valid)
+    // info('invalid', invalid)
+    // info('dialable', dialable)
+    // info('undialable', undialable)
     $identities = await Identities({ ipfs: $helia })
     $identity = await $identities.createIdentity({ id: 'me' })
     
@@ -176,7 +181,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   // Move the default database creation to a separate function
   async function createDefaultDatabases() {
     // All the existing database creation code goes here
-    orbitdb.open('settings', {
+    $orbitdb.open('settings', {
       type: 'documents',
       create: true,
       overwrite: false,

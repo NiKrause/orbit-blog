@@ -158,15 +158,17 @@
     >
       {$_('peers')} ({$connectedPeersCount})
     </h5>
-    <div class="space-y-1" data-testid="peers-list">
-      {#if $libp2p}
-        {#key $libp2p}
-          <PeersList />
-        {/key}
-      {:else}
-        <p class="text-[10px] md:text-xs text-gray-500 dark:text-gray-400" data-testid="no-peers">{$_('not_connected')}</p>
-      {/if}
-    </div>
+    {#if $showPeers}
+      <div class="space-y-1" data-testid="peers-list">
+        {#if $libp2p}
+          {#key $libp2p}
+            <PeersList />
+          {/key}
+        {:else}
+          <p class="text-[10px] md:text-xs text-gray-500 dark:text-gray-400" data-testid="no-peers">{$_('not_connected')}</p>
+        {/if}
+      </div>
+    {/if}
   </div>
   
   <!-- Settings Section -->
