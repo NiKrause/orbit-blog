@@ -32,10 +32,10 @@ export const createLibp2pConfig = (privateKey: PrivateKey): Libp2pOptions => ({
       '/ip4/0.0.0.0/tcp/9091',
       '/ip4/0.0.0.0/udp/9091/quic-v1',
       '/ip4/0.0.0.0/tcp/9092/ws',
-      '/ip4/0.0.0.0/udp/9092/webrtc-direct',
+      '/ip4/0.0.0.0/udp/9093/webrtc-direct',
       '/ip6/::/tcp/9091',
       '/ip6/::/tcp/9092/ws',
-      '/ip6/::/udp/9092/webrtc-direct',
+      '/ip6/::/udp/9093/webrtc-direct',
     ]
   },
   transports: [

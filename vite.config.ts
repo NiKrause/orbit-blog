@@ -47,7 +47,7 @@ export default defineConfig(({ command, mode }) => {
         manifest: {
           name: 'Le Space Blog',
           short_name: 'Le Space Blog',
-          description: 'A decentralized blogging application that leverages OrbitDB for peer-to-peer data replication and IPFS for content storage.',
+          description: 'A local-first and peer-to-peer blogging application that leverages OrbitDB for peer-to-peer data replication and IPFS for content storage.',
           theme_color: '#ffffff',
           icons: [
             {
