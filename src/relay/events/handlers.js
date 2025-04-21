@@ -54,12 +54,14 @@ export function setupEventHandlers(libp2p, databaseService) {
     const connection = event.detail
     log('connection:open', connection.remoteAddr.toString())
     try {
-      const identifyResult = await libp2p.services.identify.identify(connection)
-      const orbitDBProtocols = identifyResult.protocols
-        .filter(protocol => protocol.startsWith('/orbitdb/heads'))
-        .map(protocol => protocol.replace('/orbitdb/heads', ''))
-      log('orbitDBProtocols', orbitDBProtocols)
-      await databaseService.syncAllOrbitDBRecords(orbitDBProtocols)
+      
+        const identifyResult = await libp2p.services.identify.identify(connection)
+        const orbitDBProtocols = identifyResult.protocols
+          .filter(protocol => protocol.startsWith('/orbitdb/heads'))
+          .map(protocol => protocol.replace('/orbitdb/heads', ''))
+        log('orbitDBProtocols', orbitDBProtocols)
+        //sync all orbitdb records async do not wait
+        databaseService.syncAllOrbitDBRecords(orbitDBProtocols)
       
       // log('Connection identify result:', {
       //   peerId: identifyResult.peerId.toString(),
