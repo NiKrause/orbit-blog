@@ -23,7 +23,7 @@ export function setupEventHandlers(libp2p, databaseService) {
 
   // Certificate provision handler
   const certificateHandler = () => {
-    log('A TLS certificate was provisioned')
+    console.log('A TLS certificate was provisioned')
   
     const interval = setInterval(() => {
       const mas = libp2p
@@ -32,8 +32,8 @@ export function setupEventHandlers(libp2p, databaseService) {
         .map(ma => ma.toString())
   
       if (mas.length > 0) {
-        log('addresses:')
-        log(mas.join('\n'))
+        console.log('addresses:')
+        console.log(mas.join('\n'))
         clearInterval(interval)
       }
     }, 1_000)

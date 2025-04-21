@@ -1,6 +1,7 @@
 import http from 'http'
 import client from 'prom-client'
-
+import { logger, enable } from '@libp2p/logger'
+const log = logger('le-space:relay')
 // Singleton instance
 let metricsInstance = null;
 
