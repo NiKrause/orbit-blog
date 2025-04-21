@@ -1,8 +1,13 @@
 import { identify } from '@libp2p/identify'
 import { logger, enable } from '@libp2p/logger'
-const log = logger('le-space:relay:events')
+
+import { WebSocketsSecure } from '@multiformats/multiaddr-matcher'
+const log = logger('le-space:relay')
+
 export function setupEventHandlers(libp2p, databaseService) {
-  libp2p.addEventListener('peer:connect', async event => {
+  const cleanupFunctions = []
+
+  const peerConnectHandler = async event => {
     const peer = event.detail
     try {
       log('peer:connect', peer)
@@ -12,9 +17,12 @@ export function setupEventHandlers(libp2p, databaseService) {
         console.error('Failed to identify peer:', err)
       }
     }
-  })
+  }
+  libp2p.addEventListener('peer:connect', peerConnectHandler)
+  cleanupFunctions.push(() => libp2p.removeEventListener('peer:connect', peerConnectHandler))
 
-  libp2p.addEventListener('certificate:provision', () => {
+  // Certificate provision handler
+  const certificateHandler = () => {
     log('A TLS certificate was provisioned')
   
     const interval = setInterval(() => {
@@ -29,23 +37,29 @@ export function setupEventHandlers(libp2p, databaseService) {
         clearInterval(interval)
       }
     }, 1_000)
-  })
+  }
+  libp2p.addEventListener('certificate:provision', certificateHandler)
+  cleanupFunctions.push(() => libp2p.removeEventListener('certificate:provision', certificateHandler))
 
-
-  libp2p.addEventListener('peer:disconnect', async event => {
+  // Peer disconnect handler
+  const peerDisconnectHandler = async event => {
     log('peer:disconnect', event.detail)
     libp2p.peerStore.delete(event.detail)
-  })
+  }
+  libp2p.addEventListener('peer:disconnect', peerDisconnectHandler)
+  cleanupFunctions.push(() => libp2p.removeEventListener('peer:disconnect', peerDisconnectHandler))
 
-  libp2p.addEventListener('connection:open', async (event) => {
+  // Connection open handler
+  const connectionOpenHandler = async (event) => {
     const connection = event.detail
+    log('connection:open', connection.remoteAddr.toString())
     try {
       const identifyResult = await libp2p.services.identify.identify(connection)
       const orbitDBProtocols = identifyResult.protocols
         .filter(protocol => protocol.startsWith('/orbitdb/heads'))
         .map(protocol => protocol.replace('/orbitdb/heads', ''))
-      
-      await databaseService.getAllOrbitDBRecords(orbitDBProtocols)
+      log('orbitDBProtocols', orbitDBProtocols)
+      await databaseService.syncAllOrbitDBRecords(orbitDBProtocols)
       
       log('Connection identify result:', {
         peerId: identifyResult.peerId.toString(),
@@ -58,5 +72,12 @@ export function setupEventHandlers(libp2p, databaseService) {
         console.error('Error during identify triggered by connection:open', err)
       }
     }
-  })
+  }
+  libp2p.addEventListener('connection:open', connectionOpenHandler)
+  cleanupFunctions.push(() => libp2p.removeEventListener('connection:open', connectionOpenHandler))
+
+  // Return cleanup function
+  return () => {
+    cleanupFunctions.forEach(cleanup => cleanup())
+  }
 }

@@ -21,7 +21,7 @@ const __dirname = dirname(__filename)
 const TEST_PRIVATE_KEY = '08011240821cb6bc3d4547fcccb513e82e4d718089f8a166b23ffcd4a436754b6b0774cf07447d1693cd10ce11ef950d7517bad6e9472b41a927cd17fc3fb23f8c70cd99'
 
 async function main() {
-  enable("le-space:relay")
+  enable("libp2p:*,le-space:relay")
   log('Starting relay server')
   const isTestMode = process.argv.includes('--test')
   let privateKey
@@ -44,7 +44,7 @@ async function main() {
   const databaseService = new DatabaseService()
   await databaseService.initialize(ipfs)
   
-  setupEventHandlers(libp2p, databaseService)
+  const cleanupEventHandlers = setupEventHandlers(libp2p, databaseService)
   
   const metricsServer = new MetricsServer()
   metricsServer.start()
@@ -61,6 +61,7 @@ async function main() {
 
   async function handleShutdown() {
     log('Received shutdown signal. Cleaning up...')
+    cleanupEventHandlers()
     await databaseService.cleanup()
     process.exit(0)
   }

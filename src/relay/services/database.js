@@ -1,5 +1,7 @@
 import { createOrbitDB } from '@orbitdb/core'
 import { MetricsServer } from './metrics.js'
+import { logger } from '@libp2p/logger'
+const log = logger('le-space:relay')
 
 export class DatabaseService {
   constructor() {
@@ -54,18 +56,20 @@ export class DatabaseService {
     if (postsDBRecord?.value.value) {
       try {
         const postsDB = await this.orbitdb.open(postsDBRecord.value.value)
-      } catch (error) {
-        console.error('Error opening posts database:', error)
+        log(`posts record count synced: ${postsDBRecord.name}`, (await postsDB.all()).length)
+      } catch (_error) {
+        log('Error opening posts database:', _error)
       }
     }
   }
   async cleanup() {
     for (const db of this.openDatabases) {
+      log('closing database:', db.name)
       try {
         await db.close()
         this.openDatabases.delete(db)
       } catch (error) {
-        console.error('Error closing database:', error)
+        log('Error closing database:', error)
       }
     }
     await this.orbitdb.stop()

@@ -11,6 +11,7 @@ import { dcutr } from '@libp2p/dcutr'
 import { gossipsub } from "@chainsafe/libp2p-gossipsub"
 import { ping } from '@libp2p/ping'
 import { pubsubPeerDiscovery } from '@libp2p/pubsub-peer-discovery'
+import { multiaddr } from '@multiformats/multiaddr'
 
 let VITE_SEED_NODES = import.meta.env.VITE_SEED_NODES.replace('\n','').split(',')
 let VITE_SEED_NODES_DEV = import.meta.env.VITE_SEED_NODES_DEV.replace('\n','').split(',')
@@ -35,6 +36,7 @@ MODE = _MODE?_MODE:MODE
 
 console.log('MODE', MODE)
 export let multiaddrs = MODE === 'development'?VITE_SEED_NODES_DEV:VITE_SEED_NODES
+console.log('MODE multiaddrs', multiaddrs)
 console.log('MODE === development', MODE === 'development')
 console.log('VITE_SEED_NODES_DEV', VITE_SEED_NODES_DEV)
 console.log('VITE_SEED_NODES', VITE_SEED_NODES)
@@ -43,7 +45,7 @@ console.log('pubSubPeerDiscoveryTopics', pubSubPeerDiscoveryTopics)
 console.log('seed nodes multiaddrs', multiaddrs)
 export const bootstrapConfig = { list: multiaddrs };
 import type { Libp2pOptions } from '@libp2p/interface'
-
+console.log("bootstrapConfig",bootstrapConfig)
 export const libp2pOptions: Libp2pOptions = {
     addresses: {
         listen: [
@@ -92,5 +94,55 @@ export const libp2pOptions: Libp2pOptions = {
         pubsub: gossipsub({ 
             allowPublishToZeroTopicPeers: true
         }),
+        // bootstrap: bootstrap(bootstrapConfig)
     }
 }
+
+export async function validateMultiaddrs(
+    addrs: string[], 
+    libp2p?: any
+): Promise<{ 
+    valid: string[], 
+    invalid: string[], 
+    dialable?: string[], 
+    undialable?: string[] 
+}> {
+    const valid: string[] = [];
+    const invalid: string[] = [];
+    const dialable: string[] = [];
+    const undialable: string[] = [];
+    
+    for (const addr of addrs) {
+        try {
+            // Try to create a multiaddr object - this will throw if invalid
+            const ma = multiaddr(addr);
+            valid.push(addr);
+            
+            // Only attempt dialing if libp2p instance is provided
+            if (libp2p) {
+                try {
+                    await libp2p.dial(ma);
+                    dialable.push(addr);
+                } catch (error) {
+                    undialable.push(addr);
+                    console.error(`Failed to dial ${addr}:`, error);
+                }
+            }
+        } catch (error) {
+            invalid.push(addr);
+            console.error(`Invalid multiaddr ${addr}:`, error);
+        }
+    }
+    
+    // Only include dialability results if libp2p was provided
+    return libp2p 
+        ? { valid, invalid, dialable, undialable }
+        : { valid, invalid };
+}
+
+// Test your multiaddrs
+// (async () => {
+//     const result = await validateMultiaddrs(multiaddrs);
+//     console.log('Valid multiaddrs:', result.valid);
+//     console.log('Invalid multiaddrs:', result.invalid);
+// })();
