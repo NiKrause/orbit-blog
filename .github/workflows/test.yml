@@ -31,17 +31,26 @@ jobs:
         NODE_ENV: test
 
     - name: Wait for relay server
-      run: sleep 10
+      run: |
+        echo "Waiting for relay server to be ready..."
+        sleep 10
+        echo "Relay server should be ready"
 
-    - name: Run unit tests
-      run: npm test
-
-    - name: Run E2E tests
-      run: npm run test:e2e
+    - name: Start dev server and run E2E tests
+      run: |
+        echo "Starting dev server..."
+        DEBUG=vite:* npm run dev &
+        echo "Waiting for dev server to be ready..."
+        timeout 30 bash -c 'until curl -s http://localhost:5173 >/dev/null; do echo "Waiting for dev server..."; sleep 1; done'
+        echo "Dev server should be ready"
+        echo "Running E2E tests..."
+        DEBUG=playwright:* npm run test:e2e
       env:
         VITE_MODE: development
         VITE_SEED_NODES_DEV: "/ip4/127.0.0.1/tcp/9092/ws/p2p/12D3KooWAJjbRkp8FPF5MKgMU53aUTxWkqvDrs4zc1VMbwRwfsbE"
         VITE_P2P_PUPSUB_DEV: "le-space._peer-discovery._p2p._pubsub"
+        DEBUG: "libp2p:*,playwright:*"
+        CI: true
 
     - name: Upload test results
       if: always()
@@ -51,4 +60,13 @@ jobs:
         path: |
           test-results/
           playwright-report/
-        retention-days: 30 
+        retention-days: 30
+
+    # Add a step to capture logs if the tests fail
+    - name: Capture process list and logs on failure
+      if: failure()
+      run: |
+        echo "Process list:"
+        ps aux | grep -E 'node|vite|playwright'
+        echo "Vite logs:"
+        cat ~/.npm/_logs/*-debug.log || true 
