@@ -30,7 +30,7 @@
     "preview": "vite preview",
     "build:relay": "tsc --project tsconfig.json",
     "relay": "npm run build:relay && node dist/relay/index.js",
-    "relay:test": "npm run build:relay && DEBUG=libp2p:identify,le-space:relay:* node dist/relay/index.js --test",
+    "relay:test": "npm run build:relay && node dist/relay/index.js --test",
     "test": "mocha test/**/*.test.js",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",

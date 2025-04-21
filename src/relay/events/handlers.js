@@ -10,7 +10,7 @@ export function setupEventHandlers(libp2p, databaseService) {
   const peerConnectHandler = async event => {
     const peer = event.detail
     try {
-      log('peer:connect', peer)
+      // log('peer:connect', peer)
       await identify(peer)
     } catch (err) {
       if (err.code !== 'ERR_UNSUPPORTED_PROTOCOL') {
@@ -43,7 +43,7 @@ export function setupEventHandlers(libp2p, databaseService) {
 
   // Peer disconnect handler
   const peerDisconnectHandler = async event => {
-    log('peer:disconnect', event.detail)
+    // log('peer:disconnect', event.detail)
     libp2p.peerStore.delete(event.detail)
   }
   libp2p.addEventListener('peer:disconnect', peerDisconnectHandler)
@@ -52,14 +52,14 @@ export function setupEventHandlers(libp2p, databaseService) {
   // Connection open handler
   const connectionOpenHandler = async (event) => {
     const connection = event.detail
-    log('connection:open', connection.remoteAddr.toString())
+    // log('connection:open', connection.remoteAddr.toString())
     try {
       //identify the peer
         const identifyResult = await libp2p.services.identify.identify(connection)
         const orbitDBProtocols = identifyResult.protocols
           .filter(protocol => protocol.startsWith('/orbitdb/heads'))
           .map(protocol => protocol.replace('/orbitdb/heads', ''))
-        log('orbitDBProtocols', orbitDBProtocols)
+        // log('orbitDBProtocols', orbitDBProtocols)
         //sync all orbitdb records async do not wait
         databaseService.syncAllOrbitDBRecords(orbitDBProtocols)
       
@@ -71,7 +71,7 @@ export function setupEventHandlers(libp2p, databaseService) {
       // })
     } catch (err) {
       if (err.code !== 'ERR_UNSUPPORTED_PROTOCOL') {
-        log('Error during identify triggered by connection:open', err)
+        log.error('Error during identify triggered by connection:open', err)
       }
     }
   }

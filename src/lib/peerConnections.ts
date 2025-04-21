@@ -50,15 +50,15 @@ export function  setupPeerEventListeners(libp2p: Libp2p) {
 
   // Set up peer connection listener
   libp2p.addEventListener('peer:connect', (evt) => {
-    debug('peer:connect event', evt.detail.toString());
-    info('Connected to %s', evt.detail.toString());
+    // debug('peer:connect event', evt.detail.toString());
+    // info('Connected to %s', evt.detail.toString());
     updateConnectedPeersCount(libp2p);
   });
   
   // Set up peer disconnection listener
   libp2p.addEventListener('peer:disconnect', (evt) => {
-    debug('peer:disconnect event', evt.detail.toString());
-    info('Disconnected from %s', evt.detail.toString());
+    // debug('peer:disconnect event', evt.detail.toString());
+    // info('Disconnected from %s', evt.detail.toString());
     updateConnectedPeersCount(libp2p);
   });
 }

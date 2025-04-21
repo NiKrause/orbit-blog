@@ -17,7 +17,6 @@ export class DatabaseService {
   async syncAllOrbitDBRecords(protocols) {
     const counts = {}
     const endTimer = this.metrics.startSyncTimer('all_databases')
-    log('syncing all orbitdb records', protocols)
     for (const protocol of protocols) {
       try {
         const db = await this.orbitdb.open(protocol)
@@ -26,7 +25,7 @@ export class DatabaseService {
         this.openDatabases.add(db)
         this.metrics.trackSync('database_open', 'success')
       } catch (error) {
-        log(`Error opening database ${protocol}:`, error)
+        (`Error opening database ${protocol}:`, error)
         this.metrics.trackSync('database_open', 'error')
       }
     }

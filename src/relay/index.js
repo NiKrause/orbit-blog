@@ -50,7 +50,7 @@ async function main() {
   metricsServer.start()
   
   log(libp2p.peerId.toString())
-  log('p2p addr: ', libp2p.getMultiaddrs().map((ma) => ma.toString()))
+  console.log('p2p addr: ', libp2p.getMultiaddrs().map((ma) => ma.toString()))
   
   // Handle graceful shutdown
   process.on('SIGINT', handleShutdown)
