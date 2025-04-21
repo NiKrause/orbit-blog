@@ -17,10 +17,11 @@ export class DatabaseService {
   async syncAllOrbitDBRecords(protocols) {
     const counts = {}
     const endTimer = this.metrics.startSyncTimer('all_databases')
-    
+    log('syncing all orbitdb records', protocols)
     for (const protocol of protocols) {
       try {
         const db = await this.orbitdb.open(protocol)
+        log('syncing database', db.name)
         this.setupDatabaseListeners(db)
         this.openDatabases.add(db)
         this.metrics.trackSync('database_open', 'success')
@@ -38,7 +39,7 @@ export class DatabaseService {
     db.events.on('join', async () => {
       const endTimer = this.metrics.startSyncTimer('database_join')
       try {
-        const records = await db.all()
+        // const records = await db.all()
         if (db.name.startsWith('settings')) {
           await this.handleSettingsDatabase(db, records)
         }

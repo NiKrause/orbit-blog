@@ -61,12 +61,12 @@ export function setupEventHandlers(libp2p, databaseService) {
       log('orbitDBProtocols', orbitDBProtocols)
       await databaseService.syncAllOrbitDBRecords(orbitDBProtocols)
       
-      log('Connection identify result:', {
-        peerId: identifyResult.peerId.toString(),
-        protocols: orbitDBProtocols,
-        protocolVersion: identifyResult.protocolVersion,
-        agentVersion: identifyResult.agentVersion
-      })
+      // log('Connection identify result:', {
+      //   peerId: identifyResult.peerId.toString(),
+      //   protocols: orbitDBProtocols,
+      //   protocolVersion: identifyResult.protocolVersion,
+      //   agentVersion: identifyResult.agentVersion
+      // })
     } catch (err) {
       if (err.code !== 'ERR_UNSUPPORTED_PROTOCOL') {
         console.error('Error during identify triggered by connection:open', err)
