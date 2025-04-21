@@ -54,7 +54,7 @@ export function setupEventHandlers(libp2p, databaseService) {
     const connection = event.detail
     log('connection:open', connection.remoteAddr.toString())
     try {
-      
+      //identify the peer
         const identifyResult = await libp2p.services.identify.identify(connection)
         const orbitDBProtocols = identifyResult.protocols
           .filter(protocol => protocol.startsWith('/orbitdb/heads'))
@@ -71,7 +71,7 @@ export function setupEventHandlers(libp2p, databaseService) {
       // })
     } catch (err) {
       if (err.code !== 'ERR_UNSUPPORTED_PROTOCOL') {
-        console.error('Error during identify triggered by connection:open', err)
+        log('Error during identify triggered by connection:open', err)
       }
     }
   }

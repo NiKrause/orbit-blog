@@ -46,7 +46,7 @@ export class MetricsServer {
     })
 
     server.listen(port, () => {
-      console.log(`Metrics server listening on port ${port}`)
+      log(`Metrics server listening on port ${port}`)
     })
   }
 

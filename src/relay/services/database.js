@@ -26,7 +26,7 @@ export class DatabaseService {
         this.openDatabases.add(db)
         this.metrics.trackSync('database_open', 'success')
       } catch (error) {
-        console.error(`Error opening database ${protocol}:`, error)
+        log(`Error opening database ${protocol}:`, error)
         this.metrics.trackSync('database_open', 'error')
       }
     }
