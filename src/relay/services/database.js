@@ -12,38 +12,39 @@ export class DatabaseService {
     this.orbitdb = await createOrbitDB({ ipfs })
   }
 
-  async getAllOrbitDBRecords(protocols) {
+  async syncAllOrbitDBRecords(protocols) {
     const counts = {}
+    const endTimer = this.metrics.startSyncTimer('all_databases')
+    
     for (const protocol of protocols) {
       try {
         const db = await this.orbitdb.open(protocol)
         this.setupDatabaseListeners(db)
         this.openDatabases.add(db)
-        
-        const identityId = db.identity.id
-        if (!this.identityDatabases.has(identityId)) {
-          this.identityDatabases.set(identityId, new Set())
-        }
-        this.identityDatabases.get(identityId).add(db.address.toString())
-        
-        this.metrics.orbitdbCounter.inc({ type: 'opendbs', identity: identityId })
-        
-        this.metrics.identityGauge.set(
-          { identity: identityId }, 
-          this.identityDatabases.get(identityId).size
-        )
+        this.metrics.trackSync('database_open', 'success')
       } catch (error) {
         console.error(`Error opening database ${protocol}:`, error)
+        this.metrics.trackSync('database_open', 'error')
       }
     }
+    
+    endTimer() // Stop timing the sync operation
     return counts
   }
 
   setupDatabaseListeners(db) {
     db.events.on('join', async () => {
-      const records = await db.all()
-      if (db.name.startsWith('settings')) {
-        await this.handleSettingsDatabase(db, records)
+      const endTimer = this.metrics.startSyncTimer('database_join')
+      try {
+        const records = await db.all()
+        if (db.name.startsWith('settings')) {
+          await this.handleSettingsDatabase(db, records)
+        }
+        this.metrics.trackSync('database_join', 'success')
+      } catch (error) {
+        this.metrics.trackSync('database_join', 'error')
+      } finally {
+        endTimer()
       }
     })
   }
@@ -53,26 +54,11 @@ export class DatabaseService {
     if (postsDBRecord?.value.value) {
       try {
         const postsDB = await this.orbitdb.open(postsDBRecord.value.value)
-        this.metrics.orbitdbCounter.inc({ type: 'posts' })
-        this.metrics.postsGauge.set({ database_address: postsDB.address.toString() }, await postsDB.all().length)
       } catch (error) {
         console.error('Error opening posts database:', error)
       }
     }
   }
-
-  getIdentityMetrics() {
-    const metrics = []
-    for (const [identityId, databases] of this.identityDatabases.entries()) {
-      metrics.push({
-        identityId,
-        databaseCount: databases.size,
-        databases: Array.from(databases)
-      })
-    }
-    return metrics.sort((a, b) => b.databaseCount - a.databaseCount)
-  }
-
   async cleanup() {
     for (const db of this.openDatabases) {
       try {
