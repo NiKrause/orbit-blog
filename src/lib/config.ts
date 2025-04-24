@@ -2,7 +2,6 @@ import { webSockets } from "@libp2p/websockets";
 import { webRTC, webRTCDirect } from "@libp2p/webrtc";
 import { webTransport } from "@libp2p/webtransport";
 import { noise } from "@chainsafe/libp2p-noise";
-import { bootstrap } from '@libp2p/bootstrap'
 import { circuitRelayTransport } from '@libp2p/circuit-relay-v2'
 import { yamux } from "@chainsafe/libp2p-yamux";
 import { identify, identifyPush } from "@libp2p/identify"
@@ -12,7 +11,7 @@ import { gossipsub } from "@chainsafe/libp2p-gossipsub"
 import { ping } from '@libp2p/ping'
 import { pubsubPeerDiscovery } from '@libp2p/pubsub-peer-discovery'
 import { multiaddr } from '@multiformats/multiaddr'
-
+import { bootstrap } from '@libp2p/bootstrap'
 let VITE_SEED_NODES = import.meta.env.VITE_SEED_NODES.replace('\n','').split(',')
 let VITE_SEED_NODES_DEV = import.meta.env.VITE_SEED_NODES_DEV.replace('\n','').split(',')
 let MODE = import.meta.env.VITE_MODE //|| 'development';
@@ -43,7 +42,17 @@ console.log('VITE_SEED_NODES', VITE_SEED_NODES)
 let pubSubPeerDiscoveryTopics = MODE === 'development'?VITE_P2P_PUPSUB_DEV:VITE_P2P_PUPSUB
 console.log('pubSubPeerDiscoveryTopics', pubSubPeerDiscoveryTopics)
 console.log('seed nodes multiaddrs', multiaddrs)
-export const bootstrapConfig = { list: multiaddrs };
+export const bootstrapConfig = { 
+    list: multiaddrs.filter(addr => {
+        try {
+            multiaddr(addr);
+            return true;
+        } catch (e) {
+            console.warn(`Invalid multiaddr filtered out: ${addr}`);
+            return false;
+        }
+    })
+};
 import type { Libp2pOptions } from '@libp2p/interface'
 console.log("bootstrapConfig",bootstrapConfig)
 export const libp2pOptions: Libp2pOptions = {
@@ -78,7 +87,16 @@ export const libp2pOptions: Libp2pOptions = {
         }
     },
     peerDiscovery: [
-        bootstrap(bootstrapConfig),
+        // bootstrap({
+        //     list: [
+        //         '/ip4/157.180.21.20/tcp/9092/tls/sni/157-180-21-20.k51qzi5uqu5dk1lwtlmq5a5qzq7gpzbb5985azlkjop6atkbc03v3bwpqc7v5v.libp2p.direct/ws/p2p/12D3KooWLFBBsPa2eZEVV5T7cJH9kAQCFqArgA8yVCSkHoc5reJn',
+        //       // a list of bootstrap peer multiaddrs to connect to on node startup
+        //     //   '/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ',
+        //     //   '/dnsaddr/bootstrap.libp2p.io/ipfs/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN',
+        //     //   '/dnsaddr/bootstrap.libp2p.io/ipfs/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa'
+        //     ]
+        //   }),
+        // bootstrap(bootstrapConfig),
         pubsubPeerDiscovery({
             interval: 10000,
             topics: pubSubPeerDiscoveryTopics,
@@ -94,7 +112,7 @@ export const libp2pOptions: Libp2pOptions = {
         pubsub: gossipsub({ 
             allowPublishToZeroTopicPeers: true
         }),
-        // bootstrap: bootstrap(bootstrapConfig)
+        bootstrap: bootstrap(bootstrapConfig)
     }
 }
 
@@ -141,8 +159,8 @@ export async function validateMultiaddrs(
 }
 
 // Test your multiaddrs
-// (async () => {
-//     const result = await validateMultiaddrs(multiaddrs);
-//     console.log('Valid multiaddrs:', result.valid);
-//     console.log('Invalid multiaddrs:', result.invalid);
-// })();
+(async () => {
+    const result = await validateMultiaddrs(multiaddrs);
+    console.log('Valid multiaddrs:', result.valid);
+    console.log('Invalid multiaddrs:', result.invalid);
+})();
