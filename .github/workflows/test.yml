@@ -39,10 +39,10 @@ jobs:
     - name: Start dev server and run E2E tests
       run: |
         echo "Starting dev server..."
-        DEBUG=npm run dev &
-        echo "Waiting for dev server to be ready..."
-        timeout 30 bash -c 'until curl -s http://localhost:5173 >/dev/null; do echo "Waiting for dev server..."; sleep 1; done'
-        echo "Dev server should be ready"
+        # DEBUG=npm run dev &
+        # echo "Waiting for dev server to be ready..."
+        # timeout 30 bash -c 'until curl -s http://localhost:5173 >/dev/null; do echo "Waiting for dev server..."; sleep 1; done'
+        # echo "Dev server should be ready"
         echo "Running E2E tests..."
         DEBUG=playwright:* npm run test:e2e
       env:
