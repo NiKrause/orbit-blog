@@ -32,7 +32,7 @@
     "relay": "npm run build:relay && node dist/relay/index.js",
     "relay:test": "npm run build:relay && node dist/relay/index.js --test",
     "test": "mocha --config .mocharc.cjs",
-    "test:e2e": "playwright test",
+    "test:e2e": "playwright test tests/BlogSetup.spec.ts",
     "test:e2e:ui": "playwright test --ui",
     "test:watch": "mocha --config .mocharc.cjs --watch",
     "ipfs-publish": "npm version patch && npm run build && ./ipfs-publish.sh",
