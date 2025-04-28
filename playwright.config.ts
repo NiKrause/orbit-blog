@@ -7,14 +7,14 @@ const config: PlaywrightTestConfig = {
         timeout: 10000 // Increase expect timeout to 10 seconds
     },
     use: {
-        baseURL: 'http://localhost:5174',
+        baseURL: 'http://localhost:5173',
         screenshot: 'only-on-failure',
         video: 'retain-on-failure',
         trace: 'retain-on-failure',
     },
     webServer: {
-        command: 'npm run preview',
-        port: 5174,
+        command: 'npm run dev',
+        port: 5173,
         reuseExistingServer: !process.env.CI,
         timeout: 60000, // Increase webserver startup timeout
     },
