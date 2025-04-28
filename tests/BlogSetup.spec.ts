@@ -5,10 +5,13 @@ test.describe('Blog Setup and Bach Posts', () => {
 
     test.beforeAll(async ({ browser }) => {
         page = await browser.newPage();
+        page.on('console', msg => {
+            console.log('BROWSER LOG:', msg.text());
+        });
         await page.goto('http://localhost:5173'); 
     });
 
-    test.skip('Check initial blog state', async () => {
+    test('Check initial blog state', async () => {
         const blogName = await page.getByTestId('blog-name').textContent();
         const blogDescription = await page.getByTestId('blog-description').textContent();
         

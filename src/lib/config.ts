@@ -96,7 +96,7 @@ export const libp2pOptions: Libp2pOptions = {
         //     //   '/dnsaddr/bootstrap.libp2p.io/ipfs/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa'
         //     ]
         //   }),
-        // bootstrap(bootstrapConfig),
+        bootstrap(bootstrapConfig),
         pubsubPeerDiscovery({
             interval: 10000,
             topics: pubSubPeerDiscoveryTopics,
