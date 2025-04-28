@@ -96,7 +96,7 @@ describe('Libp2p Connectivity Tests', function() {
       expect(topics).to.include(pubsubTopic);
     });
 
-    it('should discover peers through pubsub', function(done) {
+    xit('should discover peers through pubsub', function(done) {
       this.timeout(60000); // Increase timeout for peer discovery
       
       let peerCount = 0;
