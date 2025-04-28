@@ -1,8 +1,13 @@
 import { expect } from 'chai';
-import { createLibp2pConfig } from '../dist/relay/config/libp2p.js';
 import { createLibp2p } from 'libp2p';
 import { multiaddr } from '@multiformats/multiaddr';
-import { keys } from '@libp2p/crypto';
+import { tcp } from '@libp2p/tcp';
+import { webSockets } from '@libp2p/websockets';
+import { yamux } from '@chainsafe/libp2p-yamux';
+import { noise } from '@chainsafe/libp2p-noise';
+import { gossipsub } from '@chainsafe/libp2p-gossipsub';
+import { identify, identifyPush } from '@libp2p/identify';
+
 import 'dotenv/config'
 
 describe('Libp2p Connectivity Tests', function() {
@@ -16,9 +21,19 @@ describe('Libp2p Connectivity Tests', function() {
   console.log(seedNodesDev, seedNodes, pubsubTopic, pubsubTopicDev);
 
   before(async () => {
-    const keyPair = await keys.generateKeyPair('Ed25519');
-    const config = createLibp2pConfig(keyPair.privateKey);
-    node = await createLibp2p(config);
+    node = await createLibp2p({
+      addresses: {
+        listen: ['/ip4/0.0.0.0/tcp/0']
+      },
+      transports: [tcp(),webSockets()],
+      streamMuxers: [yamux()],
+      connectionEncrypters: [noise()],
+      services: {
+        pubsub: gossipsub(),
+        identify: identify(),
+        identifyPush: identifyPush()
+      }
+    });
     console.log('node: ', node.peerId.toString());
     console.log('multiaddrs: ', node.getMultiaddrs().map((ma) => ma.toString()));
     await node.start();

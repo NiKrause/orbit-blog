@@ -1,4 +1,10 @@
 import { test, expect, chromium } from '@playwright/test';
+import path from 'path';
+import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const config = {
     seedNodes: process.env.VITE_P2P_PUPSUB_DEV || ''
@@ -20,6 +26,18 @@ test.describe('Blog Sharing between Alice and Bob', () => {
     }
     
     test.beforeAll(async ({ browser }) => {
+        // let relayProcess: ChildProcessWithoutNullStreams;
+        const relayPath = path.resolve(__dirname, '../dist/relay/index.js');
+        let relayProcess = spawn('node', [relayPath, '--test'], {
+            env: {
+                ...process.env,
+                NODE_ENV: 'test',
+                // DEBUG: 'le-space:*'
+            },
+            stdio: 'inherit'
+        });
+
+        
         // Create fresh test directory
         contextAlice = await browser.newContext({
             ignoreHTTPSErrors: true,
