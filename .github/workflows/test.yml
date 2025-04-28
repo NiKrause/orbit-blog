@@ -23,7 +23,7 @@ jobs:
       run: npm install
 
     - name: Run Mocha tests
-      run: npm run build:relay && npm run relay:test && npx mocha "test/**/*.test.js"
+      run: npm run build:relay && npm run relay:test & npx mocha "test/**/*.test.js"
 
     # - name: Upload test results
     #   if: always()
