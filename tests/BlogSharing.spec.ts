@@ -5,7 +5,7 @@ const config = {
 };
         
 
-test.describe.skip('Blog Sharing between Alice and Bob', () => {
+test.describe('Blog Sharing between Alice and Bob', () => {
     
     let pageAlice;
     let pageBob;
