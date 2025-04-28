@@ -74,9 +74,7 @@ export const createLibp2pConfig = (privateKey: PrivateKey): Libp2pOptions => ({
     dcutr: dcutr(),
     identify: identify(),
     identifyPush: identifyPush(),
-    pubsub: gossipsub({
-      allowPublishToZeroTopicPeers: true,
-    }),
+    pubsub: gossipsub(),
     ...(!process.env.disableAutoTLS && {
       autoTLS: autoTLS({
         autoConfirmAddress: true,

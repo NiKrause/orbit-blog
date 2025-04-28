@@ -5,10 +5,7 @@ import { multiaddr } from '@multiformats/multiaddr';
 import { keys } from '@libp2p/crypto';
 import 'dotenv/config'
 
-// env.config();
-
 describe('Libp2p Connectivity Tests', function() {
-  // Increase timeout for connection attempts
   this.timeout(30000);
   
   let node;
@@ -17,20 +14,17 @@ describe('Libp2p Connectivity Tests', function() {
   const pubsubTopic = process.env.VITE_P2P_PUPSUB || 'le-space._peer-discovery._p2p._pubsub';
   const pubsubTopicDev = process.env.VITE_P2P_PUPSUB_DEV || 'le-space._peer-discovery._p2p._pubsub';
   console.log(seedNodesDev, seedNodes, pubsubTopic, pubsubTopicDev);
+
   before(async () => {
-    // Create a new Ed25519 key pair
     const keyPair = await keys.generateKeyPair('Ed25519');
-    
-    // Create libp2p node with our config
     const config = createLibp2pConfig(keyPair.privateKey);
     node = await createLibp2p(config);
-    
-    // Start the node
+    console.log('node: ', node.peerId.toString());
+    console.log('multiaddrs: ', node.getMultiaddrs().map((ma) => ma.toString()));
     await node.start();
-  });
+  })
 
   after(async () => {
-    // Clean up
     if (node) {
       await node.stop();
     }
@@ -38,7 +32,7 @@ describe('Libp2p Connectivity Tests', function() {
 
   describe('Development Seed Nodes', () => {
     seedNodesDev.forEach((addr) => {
-      if (!addr) return; // Skip empty addresses
+      if (!addr) return; 
       
       it(`should connect to ${addr}`, async () => {
         try {
@@ -54,7 +48,7 @@ describe('Libp2p Connectivity Tests', function() {
     });
   });
 
-  describe.skip('Production Seed Nodes', () => {
+  describe('Production Seed Nodes', () => {
     seedNodes.forEach((addr) => {
       if (!addr) return; // Skip empty addresses
       
@@ -74,14 +68,16 @@ describe('Libp2p Connectivity Tests', function() {
 
   describe('Pubsub Peer Discovery', () => {
     it('should subscribe to development pubsub topic', async () => {
-      await node.pubsub.subscribe(pubsubTopicDev);
-      const topics = node.pubsub.getTopics();
+      console.log('Subscribing to development pubsub topic');
+      console.log(node);
+      await node.services.pubsub.subscribe(pubsubTopicDev);
+      const topics = node.services.pubsub.getTopics();
       expect(topics).to.include(pubsubTopicDev);
     });
 
     it('should subscribe to production pubsub topic', async () => {
-      await node.pubsub.subscribe(pubsubTopic);
-      const topics = node.pubsub.getTopics();
+      await node.services.pubsub.subscribe(pubsubTopic);
+      const topics = node.services.pubsub.getTopics();
       expect(topics).to.include(pubsubTopic);
     });
 
