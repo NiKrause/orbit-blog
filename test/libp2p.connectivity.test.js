@@ -7,9 +7,10 @@ import { yamux } from '@chainsafe/libp2p-yamux';
 import { noise } from '@chainsafe/libp2p-noise';
 import { gossipsub } from '@chainsafe/libp2p-gossipsub';
 import { identify, identifyPush } from '@libp2p/identify';
-
+import { webRTC, webRTCDirect } from '@libp2p/webrtc';
 import 'dotenv/config'
-
+import { circuitRelayTransport } from '@libp2p/circuit-relay-v2';
+import { pubsubPeerDiscovery } from '@libp2p/pubsub-peer-discovery';
 describe('Libp2p Connectivity Tests', function() {
   this.timeout(30000);
   
@@ -23,13 +24,14 @@ describe('Libp2p Connectivity Tests', function() {
   before(async () => {
     node = await createLibp2p({
       addresses: {
-        listen: ['/ip4/0.0.0.0/tcp/0']
+        listen: ['/ip4/0.0.0.0/tcp/0','/webrtc','/wss']
       },
-      transports: [tcp(),webSockets()],
+      transports: [tcp(),webSockets(),webRTC(),webRTCDirect(),circuitRelayTransport()],
       streamMuxers: [yamux()],
       connectionEncrypters: [noise()],
       services: {
         pubsub: gossipsub(),
+        pubsubPeerDiscovery: pubsubPeerDiscovery(),
         identify: identify(),
         identifyPush: identifyPush()
       }
@@ -96,7 +98,7 @@ describe('Libp2p Connectivity Tests', function() {
       expect(topics).to.include(pubsubTopic);
     });
 
-    xit('should discover peers through pubsub', function(done) {
+    it('should discover peers through pubsub', function(done) {
       this.timeout(60000); // Increase timeout for peer discovery
       
       let peerCount = 0;
@@ -105,6 +107,9 @@ describe('Libp2p Connectivity Tests', function() {
         if (peers.length > peerCount) {
           peerCount = peers.length;
           console.log(`Discovered ${peerCount} peers`);
+          peers.forEach(peer => {
+            console.log(`  - Peer ID: ${peer.toString()}`);
+          });
           if (peerCount > 0) {
             done();
           }
