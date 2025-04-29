@@ -77,11 +77,11 @@ export function setupEventHandlers(libp2p, databaseService) {
   }
 
   // Check env variable before adding the handler
-  if (process.env.DISABLE_CONNECTION_OPEN_HANDLER !== 'true' || process.env.DISABLE_CONNECTION_OPEN_HANDLER === undefined)  {
-    console.log('Adding connection:open handler')
+  // if (process.env.DISABLE_CONNECTION_OPEN_HANDLER !== 'true' || process.env.DISABLE_CONNECTION_OPEN_HANDLER === undefined)  {
+    // console.log('Adding connection:open handler')
     libp2p.addEventListener('connection:open', connectionOpenHandler)
     cleanupFunctions.push(() => libp2p.removeEventListener('connection:open', connectionOpenHandler))
-  }
+  // }
 
   // Return cleanup function
   return () => {

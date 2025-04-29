@@ -36,6 +36,7 @@ export class DatabaseService {
 
   setupDatabaseListeners(db) {
     db.events.on('join', async () => {
+      log('database joined', db.name)
       const endTimer = this.metrics.startSyncTimer('database_join')
       try {
         // const records = await db.all()
@@ -52,6 +53,7 @@ export class DatabaseService {
   }
 
   async handleSettingsDatabase(db, records) {
+    log('handleSettingsDatabase', db, records)
     const postsDBRecord = records.find(record => record.key === 'postsDBAddress')
     if (postsDBRecord?.value.value) {
       try {
