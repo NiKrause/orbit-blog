@@ -54,6 +54,15 @@ export const createLibp2pConfig = (privateKey: PrivateKey): Libp2pOptions => ({
     })
   ],
   connectionEncrypters: [noise()],
+  connectionManager: {
+    inboundStreamProtocolNegotiationTimeout: 10000,
+    inboundUpgradeTimeout: 10000,
+    outboundStreamProtocolNegotiationTimeout: 10000,
+    outboundUpgradeTimeout: 1000,
+},
+connectionGater: {
+    denyDialMultiaddr: () => false
+},
   streamMuxers: [yamux()],
   services: {
     ping: ping(),

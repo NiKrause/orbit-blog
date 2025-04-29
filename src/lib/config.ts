@@ -67,24 +67,30 @@ export const libp2pOptions: Libp2pOptions = {
     transports: [
         webTransport(),
         webSockets(),
-        webRTC(),
+        webRTC({
+            rtcConfiguration: {
+                iceServers: [
+                    { urls: ['stun:stun.l.google.com:19302'] },
+                    { urls: ['stun:stun1.l.google.com:19302'] }
+                ]
+            }
+        }),
         webRTCDirect(),
         circuitRelayTransport()
     ],
     connectionEncrypters: [noise()],
+    
     streamMuxers: [
         yamux(),
     ],
     connectionManager: {
-        inboundStreamProtocolNegotiationTimeout: 1e4,
-        inboundUpgradeTimeout: 1e4,
-        outboundStreamProtocolNegotiationTimeout: 1e4,
-        outboundUpgradeTimeout: 1e4,
+        inboundStreamProtocolNegotiationTimeout: 10000,
+        inboundUpgradeTimeout: 10000,
+        outboundStreamProtocolNegotiationTimeout: 10000,
+        outboundUpgradeTimeout: 1000,
     },
     connectionGater: {
-        denyDialMultiaddr: () => {
-            return false
-        }
+        denyDialMultiaddr: () => false
     },
     peerDiscovery: [
         // bootstrap({
