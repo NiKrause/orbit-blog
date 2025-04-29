@@ -1,29 +1,10 @@
 import { test, expect, chromium } from '@playwright/test';
-import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 test.describe('Blog Setup and Bach Posts', () => {
     let page;
-    let relayProcess: ChildProcessWithoutNullStreams;
 
     test.beforeAll(async ({ browser }) => {
-        // Start relay server
-        const relayPath = path.resolve(__dirname, '../dist/relay/index.js');
-        relayProcess = spawn('node', [relayPath, '--test'], {
-            env: {
-                ...process.env,
-                NODE_ENV: 'test',
-                // DEBUG: 'le-space:*'
-            },
-            stdio: 'inherit'
-        });
-
-        // Wait for relay to be ready (replace with a better check if possible)
-        await new Promise((resolve) => setTimeout(resolve, 10000));
 
         page = await browser.newPage();
         page.on('console', msg => {
@@ -193,9 +174,6 @@ test.describe('Blog Setup and Bach Posts', () => {
 
     test.afterAll(async () => {
         await page.close();
-        if (relayProcess) {
-            relayProcess.kill();
-        }
     });
 });
 

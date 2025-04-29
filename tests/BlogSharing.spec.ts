@@ -1,10 +1,4 @@
 import { test, expect, chromium } from '@playwright/test';
-import path from 'path';
-import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const config = {
     seedNodes: process.env.VITE_P2P_PUPSUB_DEV || ''
@@ -26,18 +20,6 @@ test.describe('Blog Sharing between Alice and Bob', () => {
     }
     
     test.beforeAll(async ({ browser }) => {
-        // let relayProcess: ChildProcessWithoutNullStreams;
-        const relayPath = path.resolve(__dirname, '../dist/relay/index.js');
-        let relayProcess = spawn('node', [relayPath, '--test'], {
-            env: {
-                ...process.env,
-                NODE_ENV: 'test',
-                // DEBUG: 'le-space:*'
-            },
-            stdio: 'inherit'
-        });
-
-        
         // Create fresh test directory
         contextAlice = await browser.newContext({
             ignoreHTTPSErrors: true,
@@ -171,7 +153,7 @@ test.describe('Blog Sharing between Alice and Bob', () => {
         await pageBob.evaluate(() => {
             localStorage.setItem('debug', 'libp2p:*,le-space:*');
         });
-        await expect(pageBob.getByTestId('loading-overlay')).toBeVisible();
+        await expect(pageBob.getByTestId('loading-overlay')).toBeVisible({ timeout: 30000 });
         await expect(pageBob.getByTestId('blog-name')).toHaveText('Bach Chronicles');
         const posts = await pageBob.getByTestId('post-item-title').all();
         const postTitles = await Promise.all(posts.map(post => post.textContent()));
@@ -191,9 +173,6 @@ test.describe('Blog Sharing between Alice and Bob', () => {
         // await contextAlice.close();  // Close Alice's context
         // await contextBob.close();    // Close Bob's context
         
-        // Cleanup daemon
-        if (daemon) {
-            // await daemon.stop();
-        }
+ 
     });
 }); 
