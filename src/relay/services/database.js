@@ -20,7 +20,7 @@ export class DatabaseService {
     for (const protocol of protocols) {
       try {
         const db = await this.orbitdb.open(protocol)
-        log('syncing database', db.name)
+        log('synced database', db.name)
         this.setupDatabaseListeners(db)
         this.openDatabases.add(db)
         this.metrics.trackSync('database_open', 'success')

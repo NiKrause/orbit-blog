@@ -1,6 +1,6 @@
 import { noise } from '@chainsafe/libp2p-noise'
 import { yamux } from '@chainsafe/libp2p-yamux'
-import { circuitRelayTransport } from '@libp2p/circuit-relay-v2'
+import { circuitRelayTransport, circuitRelayServer } from '@libp2p/circuit-relay-v2'
 import { identify, identifyPush } from '@libp2p/identify'
 import { webRTC, webRTCDirect } from '@libp2p/webrtc'
 import { webSockets } from '@libp2p/websockets'
@@ -12,17 +12,11 @@ import { tcp } from '@libp2p/tcp'
 import { ping } from '@libp2p/ping'
 import { dcutr } from '@libp2p/dcutr'
 import { autoNAT } from '@libp2p/autonat'
-import { quic } from '@chainsafe/libp2p-quic'
 import { autoTLS } from '@ipshipyard/libp2p-auto-tls'
 import { keychain } from '@libp2p/keychain'
 import { prometheusMetrics } from '@libp2p/prometheus-metrics'
 import type { Libp2pOptions } from 'libp2p'
 import type { PrivateKey } from '@libp2p/interface'
-import { logger } from '@libp2p/logger'
-
-const componentLogger = {
-  forComponent: (name: string) => logger(name)
-}
 
 export const createLibp2pConfig = (privateKey: PrivateKey): Libp2pOptions => ({
   privateKey,
@@ -59,10 +53,10 @@ export const createLibp2pConfig = (privateKey: PrivateKey): Libp2pOptions => ({
     inboundUpgradeTimeout: 10000,
     outboundStreamProtocolNegotiationTimeout: 10000,
     outboundUpgradeTimeout: 1000,
-},
-connectionGater: {
+  },
+  connectionGater: {
     denyDialMultiaddr: () => false
-},
+  },
   streamMuxers: [yamux()],
   services: {
     ping: ping(),
@@ -71,16 +65,17 @@ connectionGater: {
       protocol: '/ipfs/kad/1.0.0',
       peerInfoMapper: removePrivateAddressesMapper
     }),
-    bootstrap: bootstrap({
-      list: [
-        '/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN',
-        '/dnsaddr/bootstrap.libp2p.io/p2p/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb',
-        '/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt',
-        '/dnsaddr/va1.bootstrap.libp2p.io/p2p/12D3KooWKnDdG3iXw9eTFijk3EWSunZcFi54Zka4wmtqtt6rPxc8',
-        '/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ'
-      ]
-    }),
-    dcutr: dcutr(),
+    // bootstrap: bootstrap({
+    //   list: [
+    //     '/dnsaddr/bootstrap.libp2p.io/p2p/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN',
+    //     '/dnsaddr/bootstrap.libp2p.io/p2p/QmbLHAnMoJPWSCR5Zhtx6BHJX9KiKNN6tpvbUcqanj75Nb',
+    //     '/dnsaddr/bootstrap.libp2p.io/p2p/QmcZf59bWwK5XFi76CZX8cbJ4BhTzzA3gU1ZjYZcYW3dwt',
+    //     '/dnsaddr/va1.bootstrap.libp2p.io/p2p/12D3KooWKnDdG3iXw9eTFijk3EWSunZcFi54Zka4wmtqtt6rPxc8',
+    //     '/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ'
+    //   ]
+    // }),
+    relay: circuitRelayServer(),
+    // dcutr: dcutr(),
     identify: identify(),
     identifyPush: identifyPush(),
     pubsub: gossipsub(),
