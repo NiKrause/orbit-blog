@@ -134,15 +134,15 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     const _libp2p = await createLibp2p({ privateKey: _keyPair, ...libp2pOptions })
     $libp2p = _libp2p
     window.libp2p=_libp2p
-    for (const multiaddr of multiaddrs) { 
-      try {
-        info('dialing', multiaddr)
-        const connection = await $libp2p.dial(multiaddr)
-        info('connection', connection)
-      } catch (err) {
-        warn('error dialing', err)
-      }
-    }
+    // for (const multiaddr of multiaddrs) { 
+    //   try {
+    //     info('dialing', multiaddr)
+    //     const connection = await $libp2p.dial(multiaddr)
+    //     info('connection', connection)
+    //   } catch (err) {
+    //     warn('error dialing', err)
+    //   }
+    // }
     $helia = await createHelia({ libp2p: $libp2p, datastore, blockstore })
     //     const { valid, invalid, dialable, undialable } = await validateMultiaddrs(multiaddrs, $libp2p)
     // info('valid', valid)

@@ -5,7 +5,7 @@
   import WebRTCTester from './WebRTCTester.svelte';
   import { isRTL } from '$lib/store.js';
   import { info, error } from '$lib/utils/logger.js'
-  
+
   interface PeerInfo {
     id: string;
     connected: boolean;
@@ -31,6 +31,7 @@
   let peers: PeerInfo[] = $state([]);
   let peerId = $helia?.libp2p?.peerId.toString() || '';
   let showWebRTCTester = $state(false);
+  let multiaddrs: string[] = $state([]);
   let dialAddr = '';
   let dialStatus: string | null = null;
   
@@ -113,7 +114,7 @@
   }
   
   async function dialMultiaddr() {
-    info("dialing...")
+    info("dialing...", dialAddr.trim());
     dialStatus = null;
     if (!dialAddr.trim()) {
       dialStatus = 'Please enter a multiaddr.';
@@ -132,22 +133,29 @@
       dialStatus = 'Dial failed: ' + (err?.message || err);
     }
   }
- 
+  function updateMultiaddrs() {
+  if ($helia?.libp2p) {
+    multiaddrs = $helia.libp2p.getMultiaddrs().map(addr => addr.toString());
+  }
+} 
   onMount(() => {
-    info('ConnectedPeers mounted');
-    if ($helia?.libp2p) {
+  info('ConnectedPeers mounted');
+  if ($helia?.libp2p) {
+    updatePeersList();
+    updateMultiaddrs();
+    
+    $helia.libp2p.addEventListener('peer:connect', (event: CustomEvent) => {
       updatePeersList();
-      
-      $helia.libp2p.addEventListener('peer:connect', (event: CustomEvent) => {
-        updatePeersList();
-      });
-      
-      $helia.libp2p.addEventListener('peer:disconnect', (event: CustomEvent) => {
-        info('Peer disconnected:', event.detail);
-        updatePeersList();
-      });
-    }
-  });
+      updateMultiaddrs();
+    });
+    
+    $helia.libp2p.addEventListener('peer:disconnect', (event: CustomEvent) => {
+      info('Peer disconnected:', event.detail);
+      updatePeersList();
+      updateMultiaddrs();
+    });
+  }
+}); 
 </script>
 
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 {$isRTL ? 'rtl' : 'ltr'}">
@@ -165,6 +173,25 @@
         📋
       </button>
     </div>
+      <!-- Add multiaddrs display -->
+  <div class="mt-2">
+    <span class="text-gray-600 dark:text-gray-400">{$_('multiaddrs')}:</span>
+    <div class="space-y-1 mt-1">
+      {#each multiaddrs as addr}
+        <div class="flex items-center space-x-2">
+          <input
+            type="text"
+            readonly
+            value={addr}
+            class="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 text-sm text-gray-900 dark:text-white font-mono"
+          />
+          <button onclick={() => copyToClipboard(addr)} class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+            📋
+          </button>
+        </div>
+      {/each}
+    </div>
+  </div>
   </div>
   <div class="flex justify-between items-center mb-4">
     <h2 class="text-xl font-bold text-gray-900 dark:text-white">{$_('connected_peers')}</h2>

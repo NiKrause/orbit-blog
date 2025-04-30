@@ -29,14 +29,20 @@ export function  setupPeerEventListeners(libp2p: Libp2p) {
       // Try each multiaddr until one succeeds
       let connected = false;
       for (const addr of peer.multiaddrs) {
-        try {
-          debug('dialing', addr.toString());
-          await libp2p.dial(addr);
-          info('Successfully dialed:', addr.toString());
-          connected = true;
-          // break; // Exit the loop once successfully connected
-        } catch (_error) {
-          error(`Failed to dial ${addr.toString()}:`, _error);
+        const addrStr = addr.toString();
+        // Only attempt connection if address contains the required relay pattern
+        if (addrStr.includes('/p2p-circuit/webrtc/p2p/')) {
+          try {
+            debug('dialing', addrStr);
+            await libp2p.dial(addr);
+            info('Successfully dialed:', addrStr);
+            connected = true;
+            break; // Exit the loop once successfully connected
+          } catch (_error) {
+            error(`Failed to dial ${addrStr}:`, _error);
+          }
+        } else {
+          debug('Skipping non-WebRTC relay address:', addrStr);
         }
       }
       
