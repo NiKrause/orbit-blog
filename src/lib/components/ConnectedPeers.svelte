@@ -180,7 +180,7 @@
       <span class="text-gray-600 dark:text-gray-400">{$_('multiaddrs')}:</span>
       <button 
         class="text-sm text-blue-500 hover:text-blue-700 dark:hover:text-blue-300"
-        on:click={() => showMultiaddrs = !showMultiaddrs}
+        onclick={() => showMultiaddrs = !showMultiaddrs}
       >
         {showMultiaddrs ? $_('hide') : $_('show')}
       </button>
@@ -211,7 +211,7 @@
         class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded"
         onclick={() => {
           showWebRTCTester = true;
-          log.info('Button clicked, showWebRTCTester:', showWebRTCTester);
+          info('Button clicked, showWebRTCTester:', showWebRTCTester);
         }}
       >
         {$_('test_webrtc')}
