@@ -12,6 +12,7 @@ import { ping } from '@libp2p/ping'
 import { pubsubPeerDiscovery } from '@libp2p/pubsub-peer-discovery'
 import { multiaddr } from '@multiformats/multiaddr'
 import { bootstrap } from '@libp2p/bootstrap'
+
 let VITE_SEED_NODES = import.meta.env.VITE_SEED_NODES.replace('\n','').split(',')
 let VITE_SEED_NODES_DEV = import.meta.env.VITE_SEED_NODES_DEV.replace('\n','').split(',')
 let MODE = import.meta.env.VITE_MODE //|| 'development';
@@ -33,9 +34,7 @@ if(_VITE_SEED_NODES || _VITE_SEED_NODES_DEV) {
 }
 MODE = _MODE?_MODE:MODE
 
-console.log('MODE', MODE)
 export let multiaddrs = MODE === 'development'?VITE_SEED_NODES_DEV:VITE_SEED_NODES
-console.log('MODE multiaddrs', multiaddrs)
 console.log('MODE === development', MODE === 'development')
 console.log('VITE_SEED_NODES_DEV', VITE_SEED_NODES_DEV)
 console.log('VITE_SEED_NODES', VITE_SEED_NODES)
@@ -54,7 +53,6 @@ export const bootstrapConfig = {
     })
 };
 import type { Libp2pOptions } from '@libp2p/interface'
-console.log("bootstrapConfig",bootstrapConfig)
 export const libp2pOptions: Libp2pOptions = {
     addresses: {
         listen: [
@@ -76,7 +74,9 @@ export const libp2pOptions: Libp2pOptions = {
             }
         }),
         webRTCDirect(),
-        circuitRelayTransport()
+        circuitRelayTransport({
+            reservationCompletionTimeout: 20000 // 20 seconds
+          })
     ],
     connectionEncrypters: [noise()],
     
@@ -113,7 +113,7 @@ export const libp2pOptions: Libp2pOptions = {
         identify: identify(),
         identifyPush: identifyPush(),
         ping: ping(),
-        autoNAT: autoNAT(),
+        // autoNAT: autoNAT(), not necessary in browsers because no tcp etc.
         dcutr: dcutr(),
         pubsub: gossipsub({ 
             allowPublishToZeroTopicPeers: true
