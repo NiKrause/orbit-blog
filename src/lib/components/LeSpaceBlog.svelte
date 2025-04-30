@@ -1,25 +1,21 @@
 <!-- @migration-task Error while migrating Svelte code: Cannot subscribe to stores that are not declared at the top level of the component
 https://svelte.dev/e/store_invalid_scoped_subscription -->
 <script lang="ts">
-  // Svelte core
   import { onDestroy } from 'svelte';
   import { fly, fade } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import { _ } from 'svelte-i18n';
 
-  // IPFS & OrbitDB
   import { createHelia } from 'helia';
   import { createLibp2p } from 'libp2p';
   import { createOrbitDB, IPFSAccessController, Identities } from '@orbitdb/core';
   
-  // Storage & Crypto
   import { LevelDatastore } from 'datastore-level';
   import { LevelBlockstore } from 'blockstore-level';
   import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string';
   import { privateKeyFromProtobuf } from '@libp2p/crypto/keys';
   import { generateMnemonic } from 'bip39';
 
-  // Components
   import Sidebar from './Sidebar.svelte';
   import PostForm from './PostForm.svelte';
   import PostList from './PostList.svelte';
@@ -31,10 +27,8 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   import LoadingBlog from './LoadingBlog.svelte';
   import LanguageSelector from './LanguageSelector.svelte';
 
-  // Icons
   import { FaBars, FaTimes } from 'svelte-icons/fa';
 
-  // Local utilities and config
   import { libp2pOptions, multiaddrs } from '$lib/config.js';
   import { encryptSeedPhrase } from '$lib/cryptoUtils.js';
   import { generateMasterSeed, generateAndSerializeKey } from '$lib/utils.js';
@@ -43,8 +37,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   import { switchToRemoteDB } from '$lib/dbUtils.js';
   import { getImageUrlFromHelia } from '$lib/utils/mediaUtils.js';
   import { unixfs } from '@helia/unixfs';
-  import { validateMultiaddrs } from '$lib/config.js';
-  // Store imports
   import { 
     initialAddress,
     loadingState,
@@ -99,7 +91,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 
   let showWebRTCTester = false;
 
-  // Update sidebar position based on RTL
   $: sidebarPosition = $isRTL ? 'right' : 'left';
   $: sidebarButtonPosition = $isRTL ? 'right' : 'left';
   $: sidebarTriggerPosition = $isRTL ? 'right' : 'left';
@@ -112,7 +103,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       initializeApp();
   }
 
-  // Function to toggle sidebar visibility
   function toggleSidebar() {
     sidebarVisible = !sidebarVisible;
   }
@@ -122,13 +112,13 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     const encryptedPhrase = await encryptSeedPhrase(newSeedPhrase, event.detail.password);
     localStorage.setItem('encryptedSeedPhrase', encryptedPhrase);
     $seedPhrase = newSeedPhrase;
-    showPasswordModal = false; // This will trigger the reactive statement above
+    showPasswordModal = false; 
     initializeApp();
   }
 
   async function handleSeedPhraseDecrypted(event: CustomEvent) {
     $seedPhrase = event.detail.seedPhrase;
-    showPasswordModal = false; // This will trigger the reactive statement above
+    showPasswordModal = false; 
     initializeApp();
   }
 
@@ -137,15 +127,14 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     
     info('initializeApp')
     
-    // Set up the basic infrastructure (this is still needed)
     const masterSeed = generateMasterSeed($seedPhrase, "password");
     const { hex } = await generateAndSerializeKey(masterSeed.subarray(0, 32))
     const privKeyBuffer = uint8ArrayFromString(hex, 'hex');
     const _keyPair = await privateKeyFromProtobuf(privKeyBuffer);
-    $libp2p = await createLibp2p({ privateKey: _keyPair, ...libp2pOptions })
-    //dial all multiaddrs
+    const _libp2p = await createLibp2p({ privateKey: _keyPair, ...libp2pOptions })
+    $libp2p = _libp2p
+    window.libp2p=_libp2p
     for (const multiaddr of multiaddrs) { 
-      //try catch
       try {
         info('dialing', multiaddr)
         const connection = await $libp2p.dial(multiaddr)

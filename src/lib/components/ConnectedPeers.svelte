@@ -1,10 +1,10 @@
 <script lang="ts">
   import { _ } from 'svelte-i18n';
-  import { helia } from '$lib/store.js';
+  import { helia, libp2p } from '$lib/store.js';
   import { onMount } from 'svelte';
-  import type { Helia } from '$lib/types.js';
   import WebRTCTester from './WebRTCTester.svelte';
   import { isRTL } from '$lib/store.js';
+  import { info, error } from '$lib/utils/logger.js'
   
   interface PeerInfo {
     id: string;
@@ -31,10 +31,12 @@
   let peers: PeerInfo[] = $state([]);
   let peerId = $helia?.libp2p?.peerId.toString() || '';
   let showWebRTCTester = $state(false);
+  let dialAddr = '';
+  let dialStatus: string | null = null;
   
   function getTransportFromMultiaddr(conn: Connection): string {
     const remoteAddr = conn.remoteAddr.toString();
-    console.log('remoteAddr', remoteAddr);
+    info('remoteAddr', remoteAddr);
     // Check for different transport protocols
     if (remoteAddr.includes('/webrtc-direct')) return 'WebRTC Direct';
     if (remoteAddr.includes('/webrtc')) return 'WebRTC';
@@ -67,15 +69,15 @@
       if (connection) {
         try {
           await connection.close();
-          console.log(`Disconnected from peer: ${peerId}`);
+          info(`Disconnected from peer: ${peerId}`);
           
           // Remove the peer from the peer store
           await $helia.libp2p.peerStore.delete(connection.remotePeer);
-          console.log(`Removed peer from peer store: ${peerId}`);
+          info(`Removed peer from peer store: ${peerId}`);
           
           updatePeersList(  );
         } catch (_err) {
-          console.error(`Failed to disconnect from peer: ${peerId}`, _err);
+          error(`Failed to disconnect from peer: ${peerId}`, _err);
         }
       }
     }
@@ -92,13 +94,13 @@
       for (const connection of nonWebRTCConnections) {
         try {
           await connection.close();
-          console.log(`Disconnected from non-WebRTC peer: ${connection.remotePeer.toString()}`);
+            info(`Disconnected from non-WebRTC peer: ${connection.remotePeer.toString()}`);
           
           // Remove the peer from the peer store
           await $helia.libp2p.peerStore.delete(connection.remotePeer);
-          console.log(`Removed non-WebRTC peer from peer store: ${connection.remotePeer.toString()}`);
+            info(`Removed non-WebRTC peer from peer store: ${connection.remotePeer.toString()}`);
         } catch (err) {
-          console.error(`Failed to disconnect from non-WebRTC peer: ${connection.remotePeer.toString()}`, err);
+            error(`Failed to disconnect from non-WebRTC peer: ${connection.remotePeer.toString()}`, err);
         }
       }
       
@@ -109,9 +111,30 @@
   function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text);
   }
+  
+  async function dialMultiaddr() {
+    info("dialing...")
+    dialStatus = null;
+    if (!dialAddr.trim()) {
+      dialStatus = 'Please enter a multiaddr.';
+      return;
+    }
+    try {
+      if ($libp2p) {
+        await $libp2p.dial(dialAddr.trim());
+        info('dialed', dialAddr.trim());
+        dialStatus = 'Dial successful!';
+        updatePeersList();
+      } else {
+        dialStatus = 'Libp2p not initialized.';
+      }
+    } catch (err) {
+      dialStatus = 'Dial failed: ' + (err?.message || err);
+    }
+  }
  
   onMount(() => {
-    console.log('ConnectedPeers mounted');
+    info('ConnectedPeers mounted');
     if ($helia?.libp2p) {
       updatePeersList();
       
@@ -120,7 +143,7 @@
       });
       
       $helia.libp2p.addEventListener('peer:disconnect', (event: CustomEvent) => {
-        console.log('Peer disconnected:', event.detail);
+        info('Peer disconnected:', event.detail);
         updatePeersList();
       });
     }
@@ -150,7 +173,7 @@
         class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded"
         onclick={() => {
           showWebRTCTester = true;
-          console.log('Button clicked, showWebRTCTester:', showWebRTCTester);
+          log.info('Button clicked, showWebRTCTester:', showWebRTCTester);
         }}
       >
         {$_('test_webrtc')}
@@ -165,6 +188,27 @@
       {/if}
     </div>
   </div>
+  
+  <div class="mb-4 flex items-center gap-2">
+    <input
+      type="text"
+      class="border rounded px-2 py-1 text-xs flex-1"
+      placeholder="Enter multiaddr to dial"
+      bind:value={dialAddr}
+      onkeydown={(e) => { if (e.key === 'Enter') dialMultiaddr(); }}
+    />
+    <button
+      class="bg-blue-500 hover:bg-blue-600 text-white text-xs px-3 py-1 rounded"
+      onclick={dialMultiaddr}
+    >
+      {$_('dial')}
+    </button>
+  </div>
+  {#if dialStatus}
+    <div class="text-xs mt-1" class:text-green-600={dialStatus === 'Dial successful!'} class:text-red-600={dialStatus && dialStatus !== 'Dial successful!'}>
+      {dialStatus}
+    </div>
+  {/if}
   
   {#if peers.length === 0}
     <p class="text-gray-600 dark:text-gray-400 text-center">{$_('no_peers_connected')}</p>
@@ -228,7 +272,7 @@
 <!-- Add debug text -->
 {#if showWebRTCTester}
   <WebRTCTester on:close={() => {
-    console.log('Close event received');
+    info('Close event received');
     showWebRTCTester = false;
   }} />
 {/if}
