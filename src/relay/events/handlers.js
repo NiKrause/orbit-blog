@@ -20,6 +20,9 @@ export function setupEventHandlers(libp2p, databaseService) {
   }
   libp2p.addEventListener('peer:connect', peerConnectHandler)
   cleanupFunctions.push(() => libp2p.removeEventListener('peer:connect', peerConnectHandler))
+  libp2p.addEventListener('gossipsub:message', (event) => {
+    log('gossipsub', event)
+  })
 
   // Certificate provision handler
   const certificateHandler = () => {
@@ -49,41 +52,44 @@ export function setupEventHandlers(libp2p, databaseService) {
   libp2p.addEventListener('peer:disconnect', peerDisconnectHandler)
   cleanupFunctions.push(() => libp2p.removeEventListener('peer:disconnect', peerDisconnectHandler))
 
-  // Connection open handler
+  // Setup pubsub message handler
+  const syncOrbitDBHandler = (msg) => {
+    if (msg?.topic?.startsWith('/orbitdb/')) {
+      const protocol = msg.topic.replace('/orbitdb/', '')
+      databaseService.syncAllOrbitDBRecords(protocol)
+    }
+  }
+  
+  // Subscribe to OrbitDB topics
+  // const orbitDBTopic = '/orbitdb/#' // wildcard topic for all OrbitDB messages
+  // libp2p.services.pubsub.subscribe(orbitDBTopic)
+  // libp2p.services.pubsub.addEventListener('message', syncOrbitDBHandler)
+  
+  // Add cleanup for pubsub subscription
+  cleanupFunctions.push(() => {
+    // libp2p.services.pubsub.unsubscribe(orbitDBTopic)
+    // libp2p.services.pubsub.removeEventListener('message', syncOrbitDBHandler)
+  })
+
+  // Connection open handler - simplified to just log connections if needed
   const connectionOpenHandler = async (event) => {
     const connection = event.detail
     // log('connection:open', connection.remoteAddr.toString())
-    try {
-      //identify the peer
-        const identifyResult = await libp2p.services.identify.identify(connection)
-        const orbitDBProtocols = identifyResult.protocols
-          .filter(protocol => protocol.startsWith('/orbitdb/heads'))
-          .map(protocol => protocol.replace('/orbitdb/heads', ''))
-        // log('orbitDBProtocols', orbitDBProtocols)
-        //sync all orbitdb records async do not wait
-        databaseService.syncAllOrbitDBRecords(orbitDBProtocols)
-      
-      // log('Connection identify result:', {
-      //   peerId: identifyResult.peerId.toString(),
-      //   protocols: orbitDBProtocols,
-      //   protocolVersion: identifyResult.protocolVersion,
-      //   agentVersion: identifyResult.agentVersion
-      // })
-    } catch (err) {
-      if (err.code !== 'ERR_UNSUPPORTED_PROTOCOL') {
-        log.error('Error during identify triggered by connection:open', err)
-      }
-    }
   }
 
-  // Check env variable before adding the handler
-  // if (process.env.DISABLE_CONNECTION_OPEN_HANDLER !== 'true' || process.env.DISABLE_CONNECTION_OPEN_HANDLER === undefined)  {
-    // console.log('Adding connection:open handler')
-    libp2p.addEventListener('connection:open', connectionOpenHandler)
-    cleanupFunctions.push(() => libp2p.removeEventListener('connection:open', connectionOpenHandler))
-  // }
+  libp2p.addEventListener('connection:open', connectionOpenHandler)
+  cleanupFunctions.push(() => libp2p.removeEventListener('connection:open', connectionOpenHandler))
 
-  // Return cleanup function
+  // Monitor all pubsub events
+  const pubsub = libp2p.services.pubsub
+
+  // For subscription changes
+  pubsub.addEventListener('subscription-change', (event) => {
+    event.detail?.subscriptions?.forEach(subscription => {
+      syncOrbitDBHandler(subscription)
+    })
+  })
+
   return () => {
     cleanupFunctions.forEach(cleanup => cleanup())
   }

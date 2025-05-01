@@ -5,7 +5,6 @@ const log = logger('le-space:relay')
 
 export class DatabaseService {
   constructor() {
-    this.openDatabases = new Set()
     this.metrics = new MetricsServer()
     this.identityDatabases = new Map()
   }
@@ -14,38 +13,48 @@ export class DatabaseService {
     this.orbitdb = await createOrbitDB({ ipfs })
   }
 
-  async syncAllOrbitDBRecords(protocols) {
-    const counts = {}
+  async syncAllOrbitDBRecords(protocol) {
+    console.log("syncing", protocol)
+    let counts 
     const endTimer = this.metrics.startSyncTimer('all_databases')
-    for (const protocol of protocols) {
       try {
         const db = await this.orbitdb.open(protocol)
-        log('synced database', db.name)
         this.setupDatabaseListeners(db)
-        this.openDatabases.add(db)
+        log('Database identity:', db.identity.id)
+        
+
+       
         this.metrics.trackSync('database_open', 'success')
       } catch (error) {
         (`Error opening database ${protocol}:`, error)
         this.metrics.trackSync('database_open', 'error')
       }
-    }
-    
     endTimer() // Stop timing the sync operation
     return counts
   }
 
   setupDatabaseListeners(db) {
+    db.events.on('error', (error) => {
+      log('database error', error)
+      db.close()
+    })
     db.events.on('join', async () => {
-      log('database joined', db.name)
-      const endTimer = this.metrics.startSyncTimer('database_join')
+      log('joined', db.name)
+      // const endTimer = this.metrics.startSyncTimer('database_join')
       try {
+        // log('syncing database', db.name)
+        const count = await db.all()
+        counts = count.length
+        log('count', counts)
         // const records = await db.all()
         if (db.name.startsWith('settings')) {
           await this.handleSettingsDatabase(db, records)
         }
-        this.metrics.trackSync('database_join', 'success')
+        db.close()
+        // await ipfs1.blockstore.child.child.child.close()
+        // this.metrics.trackSync('database_join', 'success')
       } catch (error) {
-        this.metrics.trackSync('database_join', 'error')
+        // this.metrics.trackSync('database_join', 'error')
       } finally {
         endTimer()
       }
@@ -63,17 +72,5 @@ export class DatabaseService {
         log('Error opening posts database:', _error)
       }
     }
-  }
-  async cleanup() {
-    for (const db of this.openDatabases) {
-      log('closing database:', db.name)
-      try {
-        await db.close()
-        this.openDatabases.delete(db)
-      } catch (error) {
-        log('Error closing database:', error)
-      }
-    }
-    await this.orbitdb.stop()
   }
 }
