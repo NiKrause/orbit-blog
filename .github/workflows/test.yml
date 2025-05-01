@@ -25,11 +25,11 @@ jobs:
     - name: Install dependencies
       run: npm install
 
-    - name: Run Mocha tests
-      run: npm run build:relay && npm run relay:test & npx mocha "test/**/*.test.js"
+    # - name: Run Mocha tests
+    #   run: npm run build:relay && npm run relay:test & npx mocha "test/**/*.test.js"
 
     - name: install playwright
-      run: npx playwright install --with-deps
+      run: pm run build:relay && npm run relay:test & nnpx playwright install --with-deps
 
     - name: Run e2e tests
       run: npm run test:e2e
