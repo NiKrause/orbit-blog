@@ -47,6 +47,9 @@ test.describe('Blog Sharing between Alice and Bob', () => {
 
     test('Alice creates Bach blog and gets the database address', async () => {
         pageAlice = await contextAlice.newPage();
+        pageAlice.on('console', msg => {
+            console.log('BROWSER LOG:', msg.text());
+        });
         await pageAlice.goto('http://localhost:5173');
         await pageAlice.evaluate(() => {
             localStorage.setItem('debug', 'libp2p:*,le-space:*');
@@ -147,14 +150,17 @@ test.describe('Blog Sharing between Alice and Bob', () => {
     });
 
     test('Bob opens Alice\'s blog and waits for replication', async () => {
+
         pageBob = await contextBob.newPage();
-    
+        pageBob.on('console', msg => {
+            console.log('BROWSER LOG:', msg.text());
+        }); 
         await pageBob.goto(`http://localhost:5173/#${aliceBlogAddress}`);
         await pageBob.evaluate(() => {
             localStorage.setItem('debug', 'libp2p:*,le-space:*');
         });
         await expect(pageBob.getByTestId('loading-overlay')).toBeVisible({ timeout: 30000 });
-        await expect(pageBob.getByTestId('blog-name')).toHaveText('Bach Chronicles');
+        await expect(pageBob.getByTestId('blog-name')).toHaveText('Bach Chronicles', { timeout: 30000 });
         const posts = await pageBob.getByTestId('post-item-title').all();
         const postTitles = await Promise.all(posts.map(post => post.textContent()));
         expect(postTitles).toContain("The Birth of a Musical Genius");

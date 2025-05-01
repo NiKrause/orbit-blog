@@ -13,20 +13,17 @@ export class DatabaseService {
     this.orbitdb = await createOrbitDB({ ipfs })
   }
 
-  async syncAllOrbitDBRecords(protocol) {
-    console.log("syncing", protocol)
+  async syncAllOrbitDBRecords(dbAddress) {
+    log("syncing", dbAddress)
     let counts 
     const endTimer = this.metrics.startSyncTimer('all_databases')
       try {
-        const db = await this.orbitdb.open(protocol)
+        const db = await this.orbitdb.open(dbAddress)
         this.setupDatabaseListeners(db)
-        log('Database identity:', db.identity.id)
-        
-
-       
+        log('Database identity:', db.identity.id)       
         this.metrics.trackSync('database_open', 'success')
       } catch (error) {
-        (`Error opening database ${protocol}:`, error)
+        (`Error opening database ${dbAddress}:`, error)
         this.metrics.trackSync('database_open', 'error')
       }
     endTimer() // Stop timing the sync operation
@@ -40,11 +37,13 @@ export class DatabaseService {
     })
     db.events.on('join', async () => {
       log('joined', db.name)
+      console.log("joined",db.name)
       // const endTimer = this.metrics.startSyncTimer('database_join')
       try {
         // log('syncing database', db.name)
         const count = await db.all()
         counts = count.length
+        console.log("count",count)
         log('count', counts)
         // const records = await db.all()
         if (db.name.startsWith('settings')) {
