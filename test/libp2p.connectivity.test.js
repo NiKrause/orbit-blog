@@ -24,7 +24,7 @@ describe('Libp2p Connectivity Tests', function() {
   before(async () => {
     node = await createLibp2p({
       addresses: {
-        listen: ['/ip4/0.0.0.0/tcp/0','/webrtc','/wss']
+        listen: ['/ip4/0.0.0.0/tcp/0', '/ip4/0.0.0.0/tcp/0/ws']
       },
       transports: [tcp(),webSockets(),webRTC(),webRTCDirect(),circuitRelayTransport()],
       streamMuxers: [yamux()],
