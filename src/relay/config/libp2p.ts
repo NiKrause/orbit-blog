@@ -10,16 +10,19 @@ import { kadDHT, removePrivateAddressesMapper } from '@libp2p/kad-dht'
 import { bootstrap } from '@libp2p/bootstrap'
 import { tcp } from '@libp2p/tcp'
 import { ping } from '@libp2p/ping'
-import { dcutr } from '@libp2p/dcutr'
 import { autoNAT } from '@libp2p/autonat'
 import { autoTLS } from '@ipshipyard/libp2p-auto-tls'
 import { keychain } from '@libp2p/keychain'
 import { prometheusMetrics } from '@libp2p/prometheus-metrics'
 import type { Libp2pOptions } from 'libp2p'
 import type { PrivateKey } from '@libp2p/interface'
+import { LevelDatastore } from 'datastore-level';
+
+const datastore = new LevelDatastore('./keystore');
 
 export const createLibp2pConfig = (privateKey: PrivateKey): Libp2pOptions => ({
   privateKey,
+  datastore,
   metrics: prometheusMetrics(),
   addresses: {
     listen: [
