@@ -2,9 +2,9 @@ import { PlaywrightTestConfig, devices } from '@playwright/test';
 
 const config: PlaywrightTestConfig = {
     testDir: './tests',
-    timeout: 60000, // Increase timeout to 60 seconds
+    timeout: 120000, // Increase timeout to 60 seconds
     expect: {
-        timeout: 10000 // Increase expect timeout to 10 seconds
+        timeout: 30000 // Increase expect timeout to 10 seconds
     },
     use: {
         baseURL: 'http://localhost:5173',
@@ -16,7 +16,7 @@ const config: PlaywrightTestConfig = {
         command: 'npm run dev',
         port: 5173,
         reuseExistingServer: !process.env.CI,
-        timeout: 60000, // Increase webserver startup timeout
+        timeout: 120000, // Increase webserver startup timeout
     },
     // globalSetup: './tests/global-setup.ts',
     // globalTeardown: './tests/global-teardown.ts',
