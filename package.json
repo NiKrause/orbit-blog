@@ -32,7 +32,7 @@
     "relay": "npm run build:relay && node dist/relay/index.js",
     "relay:test": "npm run build:relay && DEBUG=libp2p:gossipsub,libp2p:relay:*,le-space:*,-le-space:relay:error node dist/relay/index.js --test",
     "test": "mocha --config .mocharc.cjs",
-    "test:e2e": "playwright test tests/BlogSetup.spec.ts tests/BlogSharing.spec.ts",
+    "test:e2e": "playwright test tests/BlogSetup.spec.ts tests/BlogSharing.spec.ts tests/BlogSharing-Close-A.spec.ts",
     "test:e2e:ui": "playwright test --ui",
     "test:watch": "mocha --config .mocharc.cjs --watch",
     "ipfs-publish": "npm version patch && npm run build && ./ipfs-publish.sh",

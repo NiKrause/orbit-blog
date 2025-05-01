@@ -173,6 +173,90 @@ test.describe('Blog Sharing between Alice and Bob', () => {
 
     });
 
+    test('Alice deletes and restores her blog from OrbitDB address', async ({ browser }) => {
+        // Close Bob's browser first
+        await pageBob.close();
+        await contextBob.close();
+
+        // Reopen Alice's browser
+        contextAlice = await browser.newContext({
+            ignoreHTTPSErrors: true,
+            launchOptions: {
+                args: [
+                    '--allow-insecure-localhost',
+                    '--unsafely-treat-insecure-origin-as-secure=ws://localhost:9092',
+                    '--disable-web-security'
+                ]
+            }
+        });
+        pageAlice = await contextAlice.newPage();
+        await pageAlice.goto('http://localhost:5173');
+
+        // Open Sidebar and DBManager
+        // await pageAlice.getByTestId('menu-button').click();  
+        await pageAlice.getByTestId('blogs-header').click();
+        await pageAlice.getByTestId('db-manager-container').waitFor({ state: 'visible' });
+
+        //DBManager add aliceBlogAddress as remote database
+        // await pageAlice.getByTestId('add-remote-db-button').click();
+        await pageAlice.getByTestId('remote-db-address-input').fill(aliceBlogAddress);
+        await pageAlice.getByTestId('add-db-button').click();
+ 
+        //check if aliceBlogAddress is in the remote databases list
+        await expect(async () => {
+            await expect(pageAlice.getByTestId('remote-db-item')).toBeVisible();
+            
+            // Get all remote database items
+            const remoteDatabases = await pageAlice.getByTestId('remote-db-item').all();
+            
+            // Check their text content
+            const remoteDBTexts = await Promise.all(remoteDatabases.map(db => db.textContent()));
+            
+            // Find at least one item that contains both the address and "Unknown Blog"
+            const hasMatchingDB = remoteDBTexts.some(text => 
+                text.includes("Unknown Blog") && text.includes(aliceBlogAddress)
+            );
+            
+            expect(hasMatchingDB).toBe(true);
+        }).toPass({ timeout: 30000 });
+        //click on unknown blog
+        await pageAlice.getByTestId('remote-db-item').first().click();
+        await pageAlice.waitForTimeout(2000);
+
+        //wait until we see the post titles in the posts list
+        await expect(async () => {
+            const posts = await pageAlice.getByTestId('post-item-title').all();
+            expect(posts).toHaveLength(2);
+            // Verify both posts are visible
+            for (const post of posts) {
+                await expect(post).toBeVisible();
+            }
+            // Verify the specific titles are present
+            const postTitles = await Promise.all(posts.map(post => post.textContent()));
+            expect(postTitles).toContain("The Birth of a Musical Genius");
+            expect(postTitles).toContain("The Well-Tempered Clavier");
+        }).toPass({ timeout: 30000 });
+
+        //delete the database
+        await pageAlice.getByTestId('delete-db-button').click();
+        // Click the confirm button in the modal
+        await pageAlice.getByText('Confirm').click();
+        
+        //wait until the database is deleted
+        await expect(pageAlice.getByTestId('remote-db-item')).not.toBeVisible();
+        // // Get the database address before deletion
+        // const dbAddressInput = pageAlice.getByTestId('db-address-input');
+        // await expect(dbAddressInput).toBeVisible();
+        // const savedAddress = await dbAddressInput.inputValue();
+
+        // // Delete the database - need to add test IDs for these elements
+        // await pageAlice.getByTestId('delete-db-button').click();
+        // await pageAlice.getByTestId('confirm-delete-button').click();
+
+        // ... rest of the test ...
+    });
+
+
     test.afterAll(async () => {
         // await pageAlice.close();
         // await pageBob.close();
