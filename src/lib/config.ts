@@ -35,8 +35,6 @@ if(_VITE_SEED_NODES || _VITE_SEED_NODES_DEV) {
 if (import.meta.env.DEV) {
     MODE = 'development'
 }
-
-
 export let multiaddrs = MODE === 'development'?VITE_SEED_NODES_DEV:VITE_SEED_NODES
 console.log('MODE === development', MODE === 'development')
 console.log('VITE_SEED_NODES_DEV', VITE_SEED_NODES_DEV)

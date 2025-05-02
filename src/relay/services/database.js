@@ -19,7 +19,13 @@ export class DatabaseService {
     const endTimer = this.metrics.startSyncTimer('all_databases')
       try {
         const db = await this.orbitdb.open(dbAddress)
-        this.setupDatabaseListeners(db)
+        const records = await db.all()
+        log(`records opened ${records.length} ${db.name}`)
+        db.events.on('join', async () => { console.log("joined",db.name)})
+        db.events.on('update', async () => { console.log("update",db.name)})
+        db.events.on('error', async () => { console.log("error",db.name)})
+        //this.setupDatabaseListeners(db)
+
         log('Database identity:', db.identity.id)       
         this.metrics.trackSync('database_open', 'success')
       } catch (error) {
