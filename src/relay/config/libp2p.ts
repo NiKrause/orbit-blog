@@ -45,7 +45,7 @@ export const createLibp2pConfig = (privateKey: PrivateKey): Libp2pOptions => ({
       '/ip6/::/tcp/9092/ws',
       '/ip6/::/udp/9093/webrtc-direct',
     ],
-    ...(appendAnnounceArray.length > 0 && { announceAppend: appendAnnounceArray }),
+    ...(appendAnnounceArray.length > 0 && { appendAnnounce: appendAnnounceArray }),
   },
   transports: [
     circuitRelayTransport(),
