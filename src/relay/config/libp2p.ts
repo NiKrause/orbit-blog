@@ -20,6 +20,17 @@ import { LevelDatastore } from 'datastore-level';
 
 const datastore = new LevelDatastore('./orbitdb/keystore');
 
+const announceAppend = (
+  process.env.NODE_ENV === 'development'
+    ? process.env.VITE_ANNOUNCE_APPEND_DEV
+    : process.env.VITE_ANNOUNCE_APPEND
+) || '';
+
+const announceAppendArray = announceAppend
+  .split(',')
+  .map(addr => addr.trim())
+  .filter(Boolean);
+
 export const createLibp2pConfig = (privateKey: PrivateKey): Libp2pOptions => ({
   privateKey,
   datastore,
@@ -33,7 +44,8 @@ export const createLibp2pConfig = (privateKey: PrivateKey): Libp2pOptions => ({
       '/ip6/::/tcp/9091',
       '/ip6/::/tcp/9092/ws',
       '/ip6/::/udp/9093/webrtc-direct',
-    ]
+    ],
+    ...(announceAppendArray.length > 0 && { announceAppend: announceAppendArray }),
   },
   transports: [
     circuitRelayTransport(),
