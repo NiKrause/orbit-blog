@@ -18,7 +18,7 @@ import type { Libp2pOptions } from 'libp2p'
 import type { PrivateKey } from '@libp2p/interface'
 import { LevelDatastore } from 'datastore-level';
 
-const datastore = new LevelDatastore('./keystore');
+const datastore = new LevelDatastore('./orbitdb/keystore');
 
 export const createLibp2pConfig = (privateKey: PrivateKey): Libp2pOptions => ({
   privateKey,
