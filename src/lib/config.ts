@@ -32,7 +32,10 @@ if(_VITE_SEED_NODES || _VITE_SEED_NODES_DEV) {
     VITE_P2P_PUPSUB = _VITE_P2P_PUPSUB
     VITE_P2P_PUPSUB_DEV = _VITE_P2P_PUPSUB_DEV
 }
-MODE = _MODE?_MODE:MODE
+if (import.meta.env.DEV) {
+    MODE = 'development'
+}
+
 
 export let multiaddrs = MODE === 'development'?VITE_SEED_NODES_DEV:VITE_SEED_NODES
 console.log('MODE === development', MODE === 'development')

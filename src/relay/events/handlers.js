@@ -55,8 +55,7 @@ export function setupEventHandlers(libp2p, databaseService) {
   // Setup pubsub message handler
   const syncOrbitDBHandler = (msg) => {
     if (msg?.topic?.startsWith('/orbitdb/')) {
-      const protocol = msg.topic.replace('/orbitdb/', '')
-      databaseService.syncAllOrbitDBRecords(protocol)
+      databaseService.syncAllOrbitDBRecords(msg.topic)
     }
   }
   
