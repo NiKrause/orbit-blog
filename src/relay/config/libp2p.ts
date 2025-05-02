@@ -89,11 +89,10 @@ export const createLibp2pConfig = (privateKey: PrivateKey): Libp2pOptions => ({
     //     '/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ'
     //   ]
     // }),
-    relay: circuitRelayServer(),
-    // dcutr: dcutr(),
+    relay: circuitRelayServer({}),
     identify: identify(),
     identifyPush: identifyPush(),
-    pubsub: gossipsub(),
+    pubsub: gossipsub({allowPublishToZeroTopicPeers:true}),
     ...(!process.env.disableAutoTLS && {
       autoTLS: autoTLS({
         autoConfirmAddress: true,

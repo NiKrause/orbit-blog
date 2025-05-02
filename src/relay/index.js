@@ -53,8 +53,10 @@ async function main() {
   })
 
   async function handleShutdown() {
-    log('Received shutdown signal. Cleaning up...')
     await ipfs.blockstore.child.child.child.close()
+    await datastore.close()
+    await blockstore.close()
+    log('Received shutdown signal. Cleaning up...')
     // cleanupEventHandlers()
     // await databaseService.cleanup()
     process.exit(0)
