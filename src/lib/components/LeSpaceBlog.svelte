@@ -375,8 +375,12 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
           $postsDBAddress = result.value.value
         } else if($postsDBAddress && $postsDB.address){
           const postsDBAddress = $postsDB?.address.toString()
-          $settingsDB?.put({ _id: 'postsDBAddress', value: postsDBAddress});
-          $settingsDB?.all().then(result => debug('settingsDB.all()', result))
+          try {
+            $settingsDB?.put({ _id: 'postsDBAddress', value: postsDBAddress});
+            $settingsDB?.all().then(result => debug('settingsDB.all()', result))
+          } catch (err) {
+            console.error('Failed to write to DB:', $postsDB?.address?.toString?.(), err);
+          }
         }
       }
     )
@@ -385,16 +389,24 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         $commentsDBAddress = result.value.value
       } else if($commentsDB && $commentsDB.address){
         const commentsDBAddress = $commentsDB?.address.toString()
-        $settingsDB?.put({ _id: 'commentsDBAddress', value: commentsDBAddress});
-        $settingsDB?.all().then(result => debug('settingsDB.all()', result))
+        try {
+          $settingsDB?.put({ _id: 'commentsDBAddress', value: commentsDBAddress});
+          $settingsDB?.all().then(result => debug('settingsDB.all()', result))
+        } catch (err) {
+          console.error('Failed to write to DB:', $commentsDB?.address?.toString?.(), err);
+        }
       }
     })
     $settingsDB.get('mediaDBAddress').then(result => {
       if(result?.value?.value !== undefined){
       } else if($mediaDB && $mediaDB.address){
         const mediaDBAddress = $mediaDB?.address.toString()
-        $settingsDB?.put({ _id: 'mediaDBAddress', value: mediaDBAddress});
-        $settingsDB?.all().then(result => debug('settingsDB.all()', result))
+        try {
+          $settingsDB?.put({ _id: 'mediaDBAddress', value: mediaDBAddress});
+          $settingsDB?.all().then(result => debug('settingsDB.all()', result))
+        } catch (err) {
+          console.error('Failed to write to DB:', $mediaDB?.address?.toString?.(), err);
+        }
       }
     })
 
