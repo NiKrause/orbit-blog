@@ -104,3 +104,28 @@ export const createLibp2pConfig = (privateKey: PrivateKey): Libp2pOptions => ({
     keychain: keychain()
   }
 })
+
+async function listAllData() {
+  const query = datastore.query({});
+  for await (const entry of query) {
+    try {
+      const keyStr = entry.key.toString();
+      const valueStr = entry.value.toString();
+      console.log("----", keyStr);
+      console.log('Key:', keyStr, 'Value:', valueStr);
+    } catch (err) {
+      console.error('Error processing entry:', err);
+      // Try to delete the key if you can access it
+      if (entry && entry.key) {
+        try {
+          await datastore.delete(entry.key);
+          console.log('Deleted invalid key:', entry.key.toString());
+        } catch (deleteErr) {
+          console.error('Failed to delete invalid key:', deleteErr);
+        }
+      }
+    }
+  }
+}
+
+listAllData().catch(console.error);
