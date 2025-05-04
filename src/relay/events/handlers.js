@@ -1,5 +1,6 @@
 import { identify } from '@libp2p/identify'
 import { logger, enable } from '@libp2p/logger'
+import PQueue from 'p-queue'
 
 import { WebSocketsSecure } from '@multiformats/multiaddr-matcher'
 const log = logger('le-space:relay')
@@ -53,9 +54,11 @@ export function setupEventHandlers(libp2p, databaseService) {
   cleanupFunctions.push(() => libp2p.removeEventListener('peer:disconnect', peerDisconnectHandler))
 
   // Setup pubsub message handler
+  const syncQueue = new PQueue({ concurrency: 2 })
+
   const syncOrbitDBHandler = (msg) => {
     if (msg?.topic?.startsWith('/orbitdb/')) {
-      databaseService.syncAllOrbitDBRecords(msg.topic)
+      syncQueue.add(() => databaseService.syncAllOrbitDBRecords(msg.topic))
     }
   }
   
