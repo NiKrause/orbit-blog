@@ -58,6 +58,7 @@ export function setupEventHandlers(libp2p, databaseService) {
 
   const syncOrbitDBHandler = (msg) => {
     if (msg?.topic?.startsWith('/orbitdb/')) {
+      log('subscription-change', msg)
       syncQueue.add(() => databaseService.syncAllOrbitDBRecords(msg.topic))
     }
   }
@@ -87,6 +88,7 @@ export function setupEventHandlers(libp2p, databaseService) {
 
   // For subscription changes
   pubsub.addEventListener('subscription-change', (event) => {
+    
     event.detail?.subscriptions?.forEach(subscription => {
       syncOrbitDBHandler(subscription)
     })

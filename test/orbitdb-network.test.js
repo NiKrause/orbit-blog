@@ -1,157 +1,119 @@
-import { expect } from 'chai';
-import { createLibp2p } from 'libp2p';
+//add missing libs
 import { createHelia } from 'helia';
-import { LevelDatastore } from 'datastore-level';
+import { createLibp2p } from 'libp2p';
 import { LevelBlockstore } from 'blockstore-level';
-import { createOrbitDB, IPFSAccessController } from '@orbitdb/core';
-// import { Voyager } from '@le-space/voyager';
-import { generateMnemonic } from 'bip39';
-import { tmpdir } from 'os';
+import { LevelDatastore } from 'datastore-level';
+import { createOrbitDB } from '@orbitdb/core';
 import { join } from 'path';
-import { setTimeout } from 'timers/promises';
+import { tmpdir } from 'os';
 
-xdescribe('OrbitDB Network Disruption Tests', function() {
-    this.timeout(30000);
-    
-    let node1, node2;
-    let helia1, helia2;
-    let orbitdb1, orbitdb2;
-    let db1, db2;
-    
-    // Helper function to create a complete node stack
-    async function createNodeStack(id) {
-        const tempPath = join(tmpdir(), `orbitdb-test-${id}-${Date.now()}`);
-        
-        // Create stores
-        const blockstore = new LevelBlockstore(join(tempPath, 'blocks'));
-        const datastore = new LevelDatastore(join(tempPath, 'data'));
-        
-        // Create libp2p node
-        const node = await createLibp2p({
-            // ...Libp2pOptions,
-            // Ensure unique peer ID
-            peerId: await createPeerId()
-        });
-        
-        // Create Helia
-        const helia = await createHelia({
-            libp2p: node,
-            datastore,
-            blockstore
-        });
-        
-        // Create OrbitDB
-        const orbitdb = await createOrbitDB({
-            ipfs: helia,
-            directory: join(tempPath, 'orbitdb')
-        });
-        
-        return { node, helia, orbitdb, tempPath };
-    }
-    
-    // Helper to simulate network disruption
-    async function simulateNetworkDisruption(node1, node2) {
-        // Get peer IDs
-        const peer2Id = node2.peerId.toString();
-        
-        // Disconnect peers
-        await node1.hangUp(peer2Id);
-        
-        // Verify disconnection
-        const peers = await node1.getPeers();
-        return !peers.some(peer => peer.toString() === peer2Id);
-    }
-    
-    // Helper to restore connection
-    async function restoreConnection(node1, node2) {
-        // Get multiaddrs of node2
-        const node2Addrs = node2.getMultiaddrs();
-        
-        // Reconnect
-        await node1.dial(node2Addrs[0]);
-        
-        // Wait for connection to establish
-        await setTimeout(1000);
-        
-        // Verify connection
-        const peers = await node1.getPeers();
-        return peers.some(peer => peer.toString() === node2.peerId.toString());
-    }
-    
+
+describe('OrbitDB Blog Data Access', function() {
+    this.timeout(20000);
+  
+    let helia, orbitdb, settingsDb, postsDb, commentsDb, mediaDb;
+  
     before(async () => {
-        // Create two complete node stacks
-        const stack1 = await createNodeStack(1);
-        const stack2 = await createNodeStack(2);
-        
-        ({ node: node1, helia: helia1, orbitdb: orbitdb1 } = stack1);
-        ({ node: node2, helia: helia2, orbitdb: orbitdb2 } = stack2);
-        
-        // Create test databases
-        db1 = await orbitdb1.open('test-db', {
-            type: 'documents',
-            create: true
-        });
-        
-        db2 = await orbitdb2.open(db1.address);
-        
-        // Ensure nodes are connected
-        await node1.dial(node2.getMultiaddrs()[0]);
-        await setTimeout(1000); // Wait for connection
+      // Setup a fresh stack for this test
+      const tempPath = join(tmpdir(), `orbitdb-blogtest-${Date.now()}`);
+      const blockstore = new LevelBlockstore(join(tempPath, 'blocks'));
+      const datastore = new LevelDatastore(join(tempPath, 'data'));
+      const node = await createLibp2p({});
+      helia = await createHelia({ libp2p: node, datastore, blockstore });
+      orbitdb = await createOrbitDB({ ipfs: helia, directory: join(tempPath, 'orbitdb') });
+  
+      // Create settings DB
+      settingsDb = await orbitdb.open('settings', {
+        type: 'documents',
+        create: true,
+        overwrite: true,
+        directory: join(tempPath, 'orbitdb/settings')
+      });
+      await settingsDb.put({ _id: 'blogName', value: 'Test Blog' });
+      await settingsDb.put({ _id: 'blogDescription', value: 'A test blog for OrbitDB' });
+  
+      // Create posts DB
+      postsDb = await orbitdb.open('posts', {
+        type: 'documents',
+        create: true,
+        overwrite: true,
+        directory: join(tempPath, 'orbitdb/posts')
+      });
+      // Add a few posts
+      await postsDb.put({ _id: '1', title: 'First Post', date: '2023-01-01' });
+      await postsDb.put({ _id: '2', title: 'Second Post', date: '2023-02-01' });
+      await postsDb.put({ _id: '3', title: 'Latest Post', date: '2023-03-01' });
+  
+      // Store postsDB address in settings
+      await settingsDb.put({ _id: 'postsDBAddress', value: postsDb.address.toString() });
+  
+      // Create comments DB
+      commentsDb = await orbitdb.open('comments', {
+        type: 'documents',
+        create: true,
+        overwrite: true,
+        directory: join(tempPath, 'orbitdb/comments')
+      });
+      await settingsDb.put({ _id: 'commentsDBAddress', value: commentsDb.address.toString() });
+  
+      // Create media DB
+      mediaDb = await orbitdb.open('media', {
+        type: 'documents',
+        create: true,
+        overwrite: true,
+        directory: join(tempPath, 'orbitdb/media')
+      });
+      await settingsDb.put({ _id: 'mediaDBAddress', value: mediaDb.address.toString() });
     });
-    
+  
     after(async () => {
-        // Cleanup
-        await db1?.close();
-        await db2?.close();
-        await orbitdb1?.stop();
-        await orbitdb2?.stop();
-        await node1?.stop();
-        await node2?.stop();
+      await settingsDb?.close();
+      await postsDb?.close();
+      await commentsDb?.close();
+      await mediaDb?.close();
+      await orbitdb?.stop();
+      await helia?.libp2p?.stop();
     });
-    
-    it('should handle network disruption during replication', async () => {
-        // 1. Start with connected nodes
-        expect(await node1.getPeers()).to.have.lengthOf.at.least(1);
-        
-        // 2. Write initial data
-        await db1.put({ _id: 'test1', value: 'initial' });
-        
-        // 3. Wait for replication
-        await setTimeout(1000);
-        
-        // 4. Verify initial replication
-        const initialDoc = await db2.get('test1');
-        expect(initialDoc[0].value).to.equal('initial');
-        
-        // 5. Simulate network disruption
-        const isDisrupted = await simulateNetworkDisruption(node1, node2);
-        expect(isDisrupted).to.be.true;
-        
-        // 6. Try to write data during disruption
-        await db1.put({ _id: 'test2', value: 'during-disruption' });
-        
-        // 7. Verify db2 doesn't have the new data
-        const disruptedDoc = await db2.get('test2');
-        expect(disruptedDoc).to.be.empty;
-        
-        // 8. Restore connection
-        const isRestored = await restoreConnection(node1, node2);
-        expect(isRestored).to.be.true;
-        
-        // 9. Wait for replication to catch up
-        await setTimeout(2000);
-        
-        // 10. Verify data is eventually consistent
-        const finalDoc = await db2.get('test2');
-        expect(finalDoc[0].value).to.equal('during-disruption');
+  
+    it('should open settings DB and display blogName and blogDescription, and open posts/comments/media DBs', async () => {
+      // Open settings DB and read blogName and blogDescription
+      const blogNameEntry = await settingsDb.get('blogName');
+      const blogDescriptionEntry = await settingsDb.get('blogDescription');
+      console.log('Blog Name:', blogNameEntry?.value?.value);
+      console.log('Blog Description:', blogDescriptionEntry?.value?.value);
+  
+      // Open posts DB from settings
+      const postsAddressEntry = await settingsDb.get('postsDBAddress');
+      expect(postsAddressEntry?.value?.value).to.be.a('string');
+      const postsDb2 = await orbitdb.open(postsAddressEntry.value.value);
+      const allPosts = await postsDb2.all();
+      expect(allPosts.length).to.be.greaterThan(0);
+  
+      // Print date and title of the last post (by date)
+      const sortedPosts = allPosts
+        .map(entry => entry.value)
+        .filter(post => post.date && post.title)
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+      const lastPost = sortedPosts[sortedPosts.length - 1];
+      if (lastPost) {
+        console.log('Last Post Title:', lastPost.title);
+        console.log('Last Post Date:', lastPost.date);
+      } else {
+        console.log('No posts with date and title found.');
+      }
+  
+      // Open comments DB from settings
+      const commentsAddressEntry = await settingsDb.get('commentsDBAddress');
+      expect(commentsAddressEntry?.value?.value).to.be.a('string');
+      const commentsDb2 = await orbitdb.open(commentsAddressEntry.value.value);
+      const allComments = await commentsDb2.all();
+      console.log('Comments DB opened, count:', allComments.length);
+  
+      // Open media DB from settings
+      const mediaAddressEntry = await settingsDb.get('mediaDBAddress');
+      expect(mediaAddressEntry?.value?.value).to.be.a('string');
+      const mediaDb2 = await orbitdb.open(mediaAddressEntry.value.value);
+      const allMedia = await mediaDb2.all();
+      console.log('Media DB opened, count:', allMedia.length);
     });
-    
-    it('should maintain database accessibility during network disruption', async () => {
-        // Simulate network disruption
-        await simulateNetworkDisruption(node1, node2);
-        
-        // Verify both databases are still accessible
-        expect(async () => await db1.put({ _id: 'local1', value: 'test' })).to.not.throw();
-        expect(async () => await db2.put({ _id: 'local2', value: 'test' })).to.not.throw();
-    });
-});
+  });

@@ -21,8 +21,8 @@ async function main() {
   const isTestMode = process.argv.includes('--test')
   let privateKey
 
-  const hostDirectory = join(__dirname, '..', 'pinning-service')
-  const storage = await initializeStorage(hostDirectory)
+  // const hostDirectory = join(__dirname, '..', 'pinning-service')
+  const storage = await initializeStorage('./orbitdb/pinning-service')
   const blockstore = storage.blockstore
   const datastore = storage.datastore
 
@@ -50,6 +50,11 @@ async function main() {
   process.on('SIGTERM', handleShutdown)
   process.on('unhandledRejection', (error) => {
     console.error('Unhandled rejection:', error)
+    handleShutdown()
+  })
+
+  libp2p.connectionManager.addEventListener('peer:disconnect', (evt) => {
+    console.log('hangup', evt.detail)
   })
 
   async function handleShutdown() {

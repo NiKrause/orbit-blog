@@ -21,9 +21,17 @@ export class DatabaseService {
         const db = await this.orbitdb.open(dbAddress)
         const records = await db.all()
         log(`records opened ${records.length} ${db.name}`)
-        db.events.on('join', async () => { console.log("joined",db.name)})
-        db.events.on('update', async () => { console.log("update",db.name)})
-        db.events.on('error', async () => { console.log("error",db.name)})
+        db.events.on('join', async () => { 
+          console.log("joined", db.name);
+          await db.close();
+        })
+        db.events.on('update', async () => { 
+          console.log("update", db.name);
+        })
+        db.events.on('error', async () => { 
+          console.log("error", db.name);
+          await db.close();
+        })
         //this.setupDatabaseListeners(db)
 
         log('Database identity:', db.identity.id)       

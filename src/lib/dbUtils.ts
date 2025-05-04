@@ -154,6 +154,9 @@ export async function addRemoteDBToStore(address: string, peerId: string, name?:
 
 // Add helper function at the top
 function hasWriteAccess(db: any, identityId: string): boolean {
+  console.log("db",db.name)
+  console.log("db.access.write.includes(identityId)",db.access.write.includes(identityId))
+  console.log("db.access.write.includes", db.access.write.includes("*"))
   return db.access.write.includes(identityId) || db.access.write.includes("*");
 }
 
@@ -363,15 +366,19 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       if (categoriesValue) categories.set(categoriesValue);
       if (profilePictureValue) profilePictureCid.set(profilePictureValue);
       
-      updateRemoteDBEntry(address, {
-        postsDBAddress: postsDBAddressValue,
-        commentsDBAddress: commentsDBAddressValue,
-        mediaDBAddress: mediaDBAddressValue
-      });
+
       // Check if we have write access to the settings database
       const identityId = get(identity).id;
       const canWriteToSettings = hasWriteAccess(db, identityId);
       info('Write access to settings:', canWriteToSettings);
+      if(canWriteToSettings){
+        updateRemoteDBEntry(address, {
+          postsDBAddress: postsDBAddressValue,
+          commentsDBAddress: commentsDBAddressValue,
+          mediaDBAddress: mediaDBAddressValue
+        });
+      }
+
 
       // Check if all required data is available
       if (blogNameValue && blogDescriptionValue && postsDBAddressValue)  {
@@ -401,7 +408,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
             info('postsInstance', postsInstance)
             postsDBAddress = postsInstance.address.toString()
             // Only attempt to write if we have permissions
-            if (canWriteToSettings) {
+            if (canWriteToSettings && hasWriteAccess(postsInstance, get(identity).id)) {
               await get(settingsDB).put({ _id: 'postsDBAddress', value: postsDBAddress });
             }
             const allPosts = (await postsInstance.all()).map(post => {
@@ -434,8 +441,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
           if (commentsInstance) {
             info('commentsInstance', commentsInstance)
             commentsDBAddress = commentsInstance.address.toString()
-            // Only attempt to write if we have permissions
-            if (canWriteToSettings) {
+            if (canWriteToSettings && hasWriteAccess(commentsInstance, get(identity).id)) {
               await get(settingsDB).put({ _id: 'commentsDBAddress', value: commentsDBAddress });
             }
             
@@ -456,15 +462,14 @@ export async function switchToRemoteDB(address: string, showModal = false) {
           if (mediaInstance) {
             info('mediaInstance', mediaInstance)
             mediaDBAddress = mediaInstance.address.toString()
-            // Only attempt to write if we have permissions
-            if (canWriteToSettings) {
+            if (canWriteToSettings && hasWriteAccess(mediaInstance, get(identity).id)) {
               await get(settingsDB).put({ _id: 'mediaDBAddress', value: mediaDBAddress });
             }
             const allMedia = await mediaInstance.all();
             mediaCount = allMedia.length;
           }
         });
-
+        console.log("bla")
         // Wait for all operations to complete
         updateLoadingState('loading_media', 'Finalizing database loading...', 90);
         const [postsResult] = await Promise.all([postsPromise, commentsPromise, mediaPromise]);
