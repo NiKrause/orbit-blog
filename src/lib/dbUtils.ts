@@ -106,16 +106,20 @@ export async function addRemoteDBToStore(address: string, peerId: string, name?:
       // Try to open the remote settings database
       settingsDb = await orbitdbInstance.open(address);
       debug('settingsDb', settingsDb)
+      
+      // Get all settings data like in switchToRemoteDB function
+      const dbContents = await settingsDb.all();
+      
       // Try to get blog name
-      const blogNameEntry = await settingsDb.get('blogName');
-      if (blogNameEntry?.value?.value) {
-        newDB.name = blogNameEntry.value.value;
+      const blogNameValue = dbContents.find(content => content.key === 'blogName')?.value?.value;
+      if (blogNameValue) {
+        newDB.name = blogNameValue;
       }
       
       // Try to get posts address
-      const postsAddressEntry = await settingsDb.get('postsDBAddress');
-      if (postsAddressEntry?.value?.value) {
-        newDB.postsAddress = postsAddressEntry.value.value;
+      const postsAddressValue = dbContents.find(content => content.key === 'postsDBAddress')?.value?.value;
+      if (postsAddressValue) {
+        newDB.postsAddress = postsAddressValue;
         
         try {
           const postsDb = await orbitdbInstance.open(newDB.postsAddress);
@@ -414,13 +418,22 @@ export async function switchToRemoteDB(address: string, showModal = false) {
             const allPosts = (await postsInstance.all()).map(post => {
               console.log('post', post)
               const { _id, ...rest } = post.value;
-              return { 
+              const mappedPost = { 
                 ...rest,
                 _id: _id,
                 content: rest.content || rest.value?.content,
                 title: rest.title || rest.value?.title,
                 date: rest.date || rest.value?.date,
+                published: rest.published !== undefined ? rest.published : rest.value?.published,
               };
+              console.log('📝 Post loaded from DB:', {
+                _id: mappedPost._id,
+                title: mappedPost.title,
+                published: mappedPost.published,
+                originalPublished: rest.published,
+                valuePublished: rest.value?.published
+              });
+              return mappedPost;
             });
             postsCount = allPosts.length;
             posts.set(allPosts);
@@ -469,7 +482,6 @@ export async function switchToRemoteDB(address: string, showModal = false) {
             mediaCount = allMedia.length;
           }
         });
-        console.log("bla")
         // Wait for all operations to complete
         updateLoadingState('loading_media', 'Finalizing database loading...', 90);
         const [postsResult] = await Promise.all([postsPromise, commentsPromise, mediaPromise]);
@@ -533,7 +545,7 @@ export async function createDatabaseSet(orbitdbInstance: any, identity: any, ide
   });
 
   // Create posts database
-  const postsDb = await orbitdbInstance.orbitdb.open(`${name}-posts`, {
+  const postsDb = await orbitdbInstance.open(`${name}-posts`, {
     type: 'documents',
     create: true,
     overwrite: false,
@@ -544,7 +556,7 @@ export async function createDatabaseSet(orbitdbInstance: any, identity: any, ide
   });
 
   // Create comments database
-  const commentsDb = await orbitdbInstance.orbitdb.open(`${name}-comments`, {
+  const commentsDb = await orbitdbInstance.open(`${name}-comments`, {
     type: 'documents',
     create: true,
     overwrite: false,
@@ -555,7 +567,7 @@ export async function createDatabaseSet(orbitdbInstance: any, identity: any, ide
   });
 
   // Create media database
-  const mediaDb = await orbitdbInstance.orbitdb.open(`${name}-media`, {
+  const mediaDb = await orbitdbInstance.open(`${name}-media`, {
     type: 'documents',
     create: true,
     overwrite: false,

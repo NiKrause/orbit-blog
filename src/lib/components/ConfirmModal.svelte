@@ -8,6 +8,7 @@
     onCancel?: () => void;
     title?: string;
     showOptions?: boolean;
+    children?: import('svelte').Snippet;
   }
 
   let { 
@@ -15,11 +16,12 @@
     onConfirm = () => {}, 
     onCancel = () => {}, 
     title = "",
-    showOptions = false 
+    showOptions = false,
+    children
   }: Props = $props();
 
-  let dropLocal = true;
-  let unpinVoyager = true;
+  let dropLocal = $state(true);
+  let unpinVoyager = $state(true);
 
   function handleConfirm() {
     onConfirm({ dropLocal, unpinVoyager });
@@ -39,7 +41,9 @@
     <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">{title}</h2>
     
     <div class="space-y-4">
-      <slot />
+      {#if children}
+        {@render children()}
+      {/if}
 
       {#if showOptions}
         <div class="space-y-2">
@@ -72,13 +76,13 @@
       <div class="flex {$isRTL ? 'space-x-reverse' : 'space-x-4'} mt-4">
         <button 
           class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-          on:click={handleConfirm}
+          onclick={handleConfirm}
         >
           {$_('confirm')}
         </button>
         <button 
           class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
-          on:click={onCancel}
+          onclick={onCancel}
         >
           {$_('cancel')}
         </button>

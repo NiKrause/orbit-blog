@@ -53,9 +53,13 @@ async function main() {
     handleShutdown()
   })
 
-  libp2p.connectionManager.addEventListener('peer:disconnect', (evt) => {
-    console.log('hangup', evt.detail)
-  })
+  if (libp2p.connectionManager) {
+    libp2p.connectionManager.addEventListener('peer:disconnect', (evt) => {
+      console.log('hangup', evt.detail)
+    })
+  } else {
+    console.error('ConnectionManager is not initialized. Cannot add event listener.');
+  }
 
   async function handleShutdown() {
     await ipfs.blockstore.child.child.child.close()

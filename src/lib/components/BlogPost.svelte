@@ -569,6 +569,7 @@
             {:else if media.type.startsWith('video/')}
               <video controls class="w-full rounded-lg">
                 <source src={media.url || `https://ipfs.io/ipfs/${media.cid}`} type={media.type}>
+                <track kind="captions" src="" label="No captions available" default>
                 {$_('browser_no_video_support')}
               </video>
             {:else if media.type.startsWith('audio/')}

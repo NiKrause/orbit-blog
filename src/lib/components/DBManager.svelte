@@ -136,19 +136,21 @@
           debug('settingsDb', settingsDb);
           if (!db.name || db.name === 'Unknown Blog') {
             debug('db.name', db.name);
-            const blogNameEntry = await settingsDb.get('blogName');
-            debug('blogNameEntry', blogNameEntry);
-            if (blogNameEntry?.value?.value) {
-              db.name = blogNameEntry.value.value;
+            const blogNameValue = settingsData.find(content => content.key === 'blogName')?.value?.value;
+            debug('blogNameValue', blogNameValue);
+            if (blogNameValue) {
+              db.name = blogNameValue;
               db.fetchLater = false;
-            }else db.fetchLater = true;
+            } else {
+              db.fetchLater = true;
+            }
           }
           
           // Check and open posts database
           debug('Checking posts database...');
-          const postsAddressEntry = await settingsDb.get('postsDBAddress');
-          if (postsAddressEntry?.value?.value) {
-            db.postsAddress = postsAddressEntry.value.value;
+          const postsAddressValue = settingsData.find(content => content.key === 'postsDBAddress')?.value?.value;
+          if (postsAddressValue) {
+            db.postsAddress = postsAddressValue;
             const postsDb = await $orbitdb.open(db.postsAddress);
             const allPosts = await postsDb.all();
             db.postsCount = allPosts.length;
@@ -162,9 +164,9 @@
 
           // Check and open comments database
           debug('Checking comments database...');
-          const commentsAddressEntry = await settingsDb.get('commentsDBAddress');
-          if (commentsAddressEntry?.value?.value) {
-            db.commentsAddress = commentsAddressEntry.value.value;
+          const commentsAddressValue = settingsData.find(content => content.key === 'commentsDBAddress')?.value?.value;
+          if (commentsAddressValue) {
+            db.commentsAddress = commentsAddressValue;
             const commentsDb = await $orbitdb.open(db.commentsAddress);
             const _allComments = await commentsDb.all();
             db.commentsCount = _allComments.length;
@@ -176,9 +178,9 @@
 
           // Check and open media database
           debug('Checking media database...');
-          const mediaAddressEntry = await settingsDb.get('mediaDBAddress');
-          if (mediaAddressEntry?.value?.value) {
-            db.mediaAddress = mediaAddressEntry.value.value;
+          const mediaAddressValue = settingsData.find(content => content.key === 'mediaDBAddress')?.value?.value;
+          if (mediaAddressValue) {
+            db.mediaAddress = mediaAddressValue;
             const mediaDb = await $orbitdb.open(db.mediaAddress);
             const _allMedia = await mediaDb.all();
             db.mediaCount = _allMedia.length;
@@ -687,7 +689,9 @@
             bind:this={videoElement}
             class="w-full aspect-square object-cover rounded-lg"
             playsinline
-          ></video>
+          >
+            <track kind="captions" src="" label="No captions available" default>
+          </video>
         </div>
       </div>
     {/if}
@@ -785,7 +789,7 @@ Fetch Later: ${db.fetchLater ? 'Yes' : 'No'}
               <button
                 class="p-2 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400"
                 onclick={() => cloneDatabase(db)}
-                title={$_('clone_database')}
+                aria-label={$_('clone_database')}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M7 9a2 2 0 012-2h6a2 2 0 012 2v6a2 2 0 01-2 2H9a2 2 0 01-2-2V9z" />
@@ -797,7 +801,7 @@ Fetch Later: ${db.fetchLater ? 'Yes' : 'No'}
               <button
                 class="p-2 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400"
                 onclick={() => removeRemoteDB(db.id)}
-                title={$_('remove_database')}
+                aria-label={$_('remove_database')}
                 data-testid="delete-db-button"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -832,9 +836,11 @@ Fetch Later: ${db.fetchLater ? 'Yes' : 'No'}
       title={$_('remove_database')}
       showOptions={true}
     >
-      <p class="text-gray-700 dark:text-gray-300">
-        {$_('remove_database_confirm')}
-      </p>
+      {#snippet children()}
+        <p class="text-gray-700 dark:text-gray-300">
+          {$_('remove_database_confirm')}
+        </p>
+      {/snippet}
     </ConfirmModal>
   </div>
 </div>
@@ -859,13 +865,4 @@ Fetch Later: ${db.fetchLater ? 'Yes' : 'No'}
     text-align: right;
   }
 
-  :global([dir="rtl"]) .ml-1 {
-    margin-right: 0.25rem;
-    margin-left: 0;
-  }
-
-  :global([dir="rtl"]) .mr-1 {
-    margin-left: 0.25rem;
-    margin-right: 0;
-  }
 </style>

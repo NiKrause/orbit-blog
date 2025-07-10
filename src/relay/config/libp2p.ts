@@ -57,17 +57,21 @@ export const createLibp2pConfig = (privateKey: PrivateKey): Libp2pOptions => ({
   ],
   peerDiscovery: [
     pubsubPeerDiscovery({
-      interval: 10000,
+      interval: 5000, // Check every 5 seconds
       topics: ['le-space._peer-discovery._p2p._pubsub'],
       listenOnly: false
     })
   ],
   connectionEncrypters: [noise()],
   connectionManager: {
-    inboundStreamProtocolNegotiationTimeout: 10000,
-    inboundUpgradeTimeout: 10000,
-    outboundStreamProtocolNegotiationTimeout: 10000,
-    outboundUpgradeTimeout: 1000,
+    inboundStreamProtocolNegotiationTimeout: 30000,
+    inboundUpgradeTimeout: 30000,
+    outboundStreamProtocolNegotiationTimeout: 30000,
+    outboundUpgradeTimeout: 30000,
+    maxConnections: 1000,
+    maxIncomingPendingConnections: 100,
+    maxPeerAddrsToDial: 100,
+    dialTimeout: 30000
   },
   connectionGater: {
     denyDialMultiaddr: () => false
@@ -89,7 +93,16 @@ export const createLibp2pConfig = (privateKey: PrivateKey): Libp2pOptions => ({
     //     '/ip4/104.131.131.82/tcp/4001/p2p/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ'
     //   ]
     // }),
-    relay: circuitRelayServer({}),
+    relay: circuitRelayServer({
+      // Development-friendly configuration
+      hopTimeout: 30000, // 30 seconds
+      reservations: {
+        maxReservations: 1000, // Allow many reservations
+        reservationTtl: 2 * 60 * 60 * 1000, // 2 hours
+        defaultDataLimit: BigInt(1024 * 1024 * 1024), // 1GB
+        defaultDurationLimit: 2 * 60 * 1000 // 2 minutes
+      },
+    }),
     identify: identify(),
     identifyPush: identifyPush(),
     pubsub: gossipsub({allowPublishToZeroTopicPeers:true}),
@@ -106,26 +119,36 @@ export const createLibp2pConfig = (privateKey: PrivateKey): Libp2pOptions => ({
 })
 
 async function listAllData() {
-  const query = datastore.query({});
-  for await (const entry of query) {
-    try {
-      const keyStr = entry.key.toString();
-      const valueStr = entry.value.toString();
-      console.log("----", keyStr);
-      console.log('Key:', keyStr, 'Value:', valueStr);
-    } catch (err) {
-      console.error('Error processing entry:', err);
-      // Try to delete the key if you can access it
-      if (entry && entry.key) {
-        try {
-          await datastore.delete(entry.key);
-          console.log('Deleted invalid key:', entry.key.toString());
-        } catch (deleteErr) {
-          console.error('Failed to delete invalid key:', deleteErr);
+  try {
+    const query = datastore.query({});
+    for await (const entry of query) {
+      try {
+        const keyStr = entry.key.toString();
+        const valueStr = entry.value.toString();
+        console.log("----", keyStr);
+        console.log('Key:', keyStr, 'Value:', valueStr);
+      } catch (err) {
+        console.error('Error processing entry:', err);
+        // Try to delete the key if you can access it
+        if (entry && entry.key) {
+          try {
+            await datastore.delete(entry.key);
+            console.log('Deleted invalid key:', entry.key.toString());
+          } catch (deleteErr) {
+            console.error('Failed to delete invalid key:', deleteErr);
+          }
         }
       }
     }
+  } catch (err) {
+    console.error('Error accessing datastore:', err);
+    // Don't close the datastore here as libp2p needs it
+    console.log('Datastore has corrupted keys. Continuing with libp2p initialization...');
+    console.log('Note: You may want to manually delete ./orbitdb/keystore directory if issues persist');
   }
 }
 
-listAllData().catch(console.error);
+// Only run this in test mode to avoid issues in production
+if (process.argv.includes('--test')) {
+  listAllData().catch(console.error);
+}

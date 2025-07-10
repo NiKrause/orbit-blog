@@ -31,7 +31,7 @@
 
   
   let uploading = $state(false);
-  let fs: UnixFS; // UnixFS instance
+  let fs: UnixFS = $state(); // UnixFS instance
 
   onMount(async () => {
     info('Component mounted, checking for existing profile picture');
@@ -277,8 +277,9 @@
           <!-- Blog Info Section -->
           <div class="flex-1 space-y-4">
             <div>
-              <label class="block text-gray-700 dark:text-gray-300">{$_('blog_name')}</label>
+              <label for="blog-name-input" class="block text-gray-700 dark:text-gray-300">{$_('blog_name')}</label>
               <input 
+                id="blog-name-input"
                 type="text" 
                 class="w-full p-2 border rounded" 
                 value={$blogName} 
@@ -290,8 +291,9 @@
               />
             </div>
             <div>
-              <label class="block text-gray-700 dark:text-gray-300">{$_('blog_description')}</label>
+              <label for="blog-description-input" class="block text-gray-700 dark:text-gray-300">{$_('blog_description')}</label>
               <input 
+                id="blog-description-input"
                 type="text" 
                 class="w-full p-2 border rounded" 
                 value={$blogDescription} 
@@ -443,12 +445,13 @@
     </button>
     {#if openSections.security}
       <div class="p-4 border-t">
-        <label class="block text-gray-700 dark:text-gray-300">{$_('seed_phrase')}</label>
+        <label for="seed-phrase-input" class="block text-gray-700 dark:text-gray-300">{$_('seed_phrase')}</label>
         <div class="flex items-center">
-          <input type="{showSeedPhrase ? 'text' : 'password'}" class="w-full p-2 border rounded" value={$seedPhrase || ''} />
+          <input id="seed-phrase-input" type="{showSeedPhrase ? 'text' : 'password'}" class="w-full p-2 border rounded" value={$seedPhrase || ''} />
           <button 
             class="ml-2 p-2 rounded"
             onclick={toggleSeedVisibility}
+            aria-label={showSeedPhrase ? $_('hide_seed_phrase') : $_('show_seed_phrase')}
             style="background-color: {!showSeedPhrase ? '#4CAF50' : '#f44336'}; color: white;"
           >
             <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
@@ -484,8 +487,9 @@
       <div class="p-4 border-t">
         <div class="space-y-4">
           <div>
-            <label class="block text-gray-700 dark:text-gray-300">{$_('ai_api_key')}</label>
+            <label for="ai-api-key-input" class="block text-gray-700 dark:text-gray-300">{$_('ai_api_key')}</label>
             <input 
+              id="ai-api-key-input"
               type="password" 
               class="w-full p-2 border rounded dark:bg-gray-700" 
               value={$aiApiKey} 
@@ -497,8 +501,9 @@
             />
           </div>
           <div>
-            <label class="block text-gray-700 dark:text-gray-300">{$_('ai_api_url')}</label>
+            <label for="ai-api-url-input" class="block text-gray-700 dark:text-gray-300">{$_('ai_api_url')}</label>
             <input 
+              id="ai-api-url-input"
               type="text" 
               class="w-full p-2 border rounded dark:bg-gray-700" 
               value={$aiApiUrl} 
@@ -522,8 +527,9 @@
       
       <form onsubmit={preventDefault(changePassword)} class="space-y-4">
         <div>
-          <label class="block text-gray-700 dark:text-gray-300 mb-1">{$_('new_password')}</label>
+          <label for="new-password-input" class="block text-gray-700 dark:text-gray-300 mb-1">{$_('new_password')}</label>
           <input
+            id="new-password-input"
             type="password"
             bind:value={newPassword}
             class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
@@ -532,8 +538,9 @@
         </div>
         
         <div>
-          <label class="block text-gray-700 dark:text-gray-300 mb-1">{$_('confirm_new_password')}</label>
+          <label for="confirm-password-input" class="block text-gray-700 dark:text-gray-300 mb-1">{$_('confirm_new_password')}</label>
           <input
+            id="confirm-password-input"
             type="password"
             bind:value={confirmNewPassword}
             class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
@@ -593,13 +600,4 @@
     text-align: right;
   }
 
-  :global([dir="rtl"]) .ml-1 {
-    margin-right: 0.25rem;
-    margin-left: 0;
-  }
-
-  :global([dir="rtl"]) .mr-1 {
-    margin-left: 0.25rem;
-    margin-right: 0;
-  }
 </style> 

@@ -647,17 +647,35 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     {#if sidebarVisible}
       <div 
         class="fixed inset-0 bg-black bg-opacity-50 z-30"
+        role="button"
+        tabindex="0"
         onclick={() => sidebarVisible = false}
         ontouchend={(e) => {sidebarVisible = false; e.stopPropagation()}}
+        onkeydown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            sidebarVisible = false;
+          }
+        }}
         transition:fade
+        aria-label={$_('close_sidebar')}
       ></div>
       
       <div 
+        role="button"
+        tabindex="0"
         onclick={() => sidebarVisible = false}
         ontouchend={(e) => {sidebarVisible = false; e.stopPropagation()}}
+        onkeydown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            sidebarVisible = false;
+          }
+        }}
         in:fly={{ x: $isRTL ? 400 : -400, duration: 400, easing: cubicOut }} 
         out:fly={{ x: $isRTL ? 400 : -400, duration: 400, easing: cubicOut }}
         class="fixed top-0 {sidebarPosition}-0 h-full z-40 max-w-[80vw]"
+        aria-label={$_('close_sidebar')}
       >
         <button
           class="absolute top-2 {sidebarButtonPosition}-1 z-50 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-full p-1 shadow-sm transition-all duration-300 focus:outline-none"
@@ -686,9 +704,18 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       <!-- Sidebar trigger area -->
       <div 
         class="w-8 h-full fixed top-0 {sidebarTriggerPosition}-0 z-10 cursor-pointer" 
+        role="button"
+        tabindex="0"
         onclick={() => sidebarVisible = true}
         ontouchend={(e) => {sidebarVisible = true; e.stopPropagation()}}
+        onkeydown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            sidebarVisible = true;
+          }
+        }}
         onmouseenter={handleMouseEnter}
+        onfocus={handleMouseEnter}
         aria-label={$_('show_sidebar')}>
       </div>
     {/if}
@@ -875,10 +902,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     z-index: 50;
   }
 
-  [dir="rtl"] :global(.fixed-controls) {
-    right: auto;
-    left: 4rem;
-  }
 
   :global(.control-button) {
     display: flex;

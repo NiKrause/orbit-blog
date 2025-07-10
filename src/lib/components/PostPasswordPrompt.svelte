@@ -57,14 +57,14 @@
     
     <form onsubmit={preventDefault(handleSubmit)} class="space-y-4">
       <div>
-        <label class="block text-gray-700 dark:text-gray-300 mb-1">{$_('password')}</label>
+        <label for="password-input" class="block text-gray-700 dark:text-gray-300 mb-1">{$_('password')}</label>
         <input 
+          id="password-input"
           type="password" 
           bind:value={password}
           class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
           placeholder={$_('enter_your_password')}
           autocomplete={mode === 'decrypt' ? 'current-password' : 'new-password'}
-          autofocus
         />
       </div>
       

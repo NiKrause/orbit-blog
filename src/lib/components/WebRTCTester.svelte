@@ -21,9 +21,9 @@
     }
   });
 
-  let isTestingInProgress = false;
-  let testProgress = 0;
-  let currentTest = '';
+  let isTestingInProgress = $state(false);
+  let testProgress = $state(0);
+  let currentTest = $state('');
 
   class WebRTCNetworkTester {
   constructor() {

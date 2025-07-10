@@ -147,6 +147,9 @@
     ondragover={handleDragOver}
     ondragleave={handleDragLeave}
     ondrop={handleDrop}
+    role="button"
+    tabindex="0"
+    aria-label="Drag and drop files here or click to upload"
   >
     <p class="mb-2 text-gray-700 dark:text-gray-300">
       {#if uploading}
@@ -183,7 +186,11 @@
       <div 
         class="media-item relative border rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
         onclick={() => selectMedia(media)}
+        onkeydown={(e) => { if (e.key === 'Enter') selectMedia(media); }}
         ontouchend={(e) => {e.preventDefault(); selectMedia(media)}}
+        role="button"
+        tabindex="0"
+        aria-label={`Select ${media.name}`}
       >
         {#if media.type.startsWith('image/')}
           <img src={getMediaPreviewUrl(media)} alt={media.name} class="w-full h-24 object-cover" />

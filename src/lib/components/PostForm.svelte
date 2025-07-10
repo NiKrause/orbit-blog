@@ -370,17 +370,4 @@
     margin-left: 0;
   }
 
-  :global([dir="rtl"]) .text-left {
-    text-align: right;
-  }
-
-  :global([dir="rtl"]) .ml-1 {
-    margin-right: 0.25rem;
-    margin-left: 0;
-  }
-
-  :global([dir="rtl"]) .mr-1 {
-    margin-left: 0.25rem;
-    margin-right: 0;
-  }
 </style>

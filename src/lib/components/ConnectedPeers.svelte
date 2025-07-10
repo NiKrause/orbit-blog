@@ -32,8 +32,8 @@
   let peerId = $helia?.libp2p?.peerId.toString() || '';
   let showWebRTCTester = $state(false);
   let multiaddrs: string[] = $state([]);
-  let dialAddr = '';
-  let dialStatus: string | null = null;
+  let dialPeerId = $state('');
+  let dialStatus: string | null = $state(null);
   let showMultiaddrs = $state(false);
   
   function getTransportFromMultiaddr(conn: Connection): string {
@@ -114,17 +114,17 @@
     navigator.clipboard.writeText(text);
   }
   
-  async function dialMultiaddr() {
-    info("dialing...", dialAddr.trim());
+  async function dialPeer() {
+    info("dialing peer...", dialPeerId.trim());
     dialStatus = null;
-    if (!dialAddr.trim()) {
-      dialStatus = 'Please enter a multiaddr.';
+    if (!dialPeerId.trim()) {
+      dialStatus = 'Please enter a peer ID.';
       return;
     }
     try {
       if ($libp2p) {
-        await $libp2p.dial(dialAddr.trim());
-        info('dialed', dialAddr.trim());
+        await $libp2p.dial(dialPeerId.trim());
+        info('dialed peer', dialPeerId.trim());
         dialStatus = 'Dial successful!';
         updatePeersList();
       } else {
@@ -231,13 +231,13 @@
     <input
       type="text"
       class="border rounded px-2 py-1 text-xs flex-1"
-      placeholder="Enter multiaddr to dial"
-      bind:value={dialAddr}
-      onkeydown={(e) => { if (e.key === 'Enter') dialMultiaddr(); }}
+      placeholder="Enter peer ID to dial (e.g. 12D3KooW...)"
+      bind:value={dialPeerId}
+      onkeydown={(e) => { if (e.key === 'Enter') dialPeer(); }}
     />
     <button
       class="bg-blue-500 hover:bg-blue-600 text-white text-xs px-3 py-1 rounded"
-      onclick={dialMultiaddr}
+      onclick={dialPeer}
     >
       {$_('dial')}
     </button>
@@ -292,7 +292,7 @@
                 <button 
                   class="text-red-500 hover:text-red-700"
                   onclick={() => disconnectPeer(peer.id)}
-                  title={$_('disconnect')}
+                  aria-label={$_('disconnect')}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -326,9 +326,6 @@
     transition: transform 0.3s ease-in-out;
   }
   
-  input:checked ~ .dot {
-    transform: translateX(100%);
-  }
 
   /* RTL specific styles */
   :global([dir="rtl"]) .flex {
