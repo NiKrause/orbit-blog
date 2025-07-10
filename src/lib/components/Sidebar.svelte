@@ -55,17 +55,20 @@
 <div class="w-48 md:w-64 bg-gray-200 dark:bg-gray-800 p-2 shadow-md overflow-y-auto {$isRTL ? 'rtl' : 'ltr'}" data-testid="sidebar-container">
   <!-- DBs Section -->
   <div class="mb-3" data-testid="blogs-section">
-    <h5 
-      class="text-xs md:text-sm font-bold uppercase tracking-wider text-white dark:text-white bg-blue-500 rounded py-1 px-2 mb-1 cursor-pointer hover:bg-blue-600"
+    <button 
+      class="text-xs md:text-sm font-bold uppercase tracking-wider text-white dark:text-white bg-blue-500 rounded py-1 px-2 mb-1 cursor-pointer hover:bg-blue-600 w-full text-left focus:outline-none focus:ring-2 focus:ring-blue-600"
       onclick={() => toggleSection('blogs')}
       title={$showDBManager ? $_("hide_database_manager") : $_("show_database_manager")}
       data-testid="blogs-header"
+      aria-label={$showDBManager ? $_("hide_database_manager") : $_("show_database_manager")}
     >
       {$_('blogs')}
-    </h5>
+    </button>
     <div class="space-y-1" data-testid="blogs-list">
       <div 
         class="text-[10px] md:text-xs text-gray-800 dark:text-gray-300 bg-gray-300 dark:bg-gray-600 p-1 rounded cursor-pointer hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+        role="button"
+        tabindex="0"
         onclick={async () => {
           if ($settingsDB.address) {
             try {   
@@ -74,9 +77,22 @@
               console.error('Error retrieving postsDBAddress from settingsDB:', error);
             }
           }
-        }}  
+        }}
+        onkeydown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if ($settingsDB.address) {
+              try {   
+                  switchToRemoteDB($settingsDB.address);
+              } catch (error) {
+                console.error('Error retrieving postsDBAddress from settingsDB:', error);
+              }
+            }
+          }
+        }}
         title={`${$_('click_to_load_your_blog')} ${$settingsDB?.address}`}
         data-testid="current-blog"
+        aria-label={`${$_('click_to_load_your_blog')} ${$settingsDB?.address}`}
       >
         <p class="truncate" data-testid="blog-info">
           {#if $settingsDB && $settingsDB.pinnedToVoyager !== undefined}
@@ -150,14 +166,15 @@
   
   <!-- Peers Section -->
   <div class="mb-3" data-testid="peers-section">
-    <h5 
-      class="text-xs md:text-sm font-bold uppercase tracking-wider text-white dark:text-white bg-yellow-500 rounded py-1 px-2 mb-1 cursor-pointer hover:bg-yellow-600"
+    <button 
+      class="text-xs md:text-sm font-bold uppercase tracking-wider text-white dark:text-white bg-yellow-500 rounded py-1 px-2 mb-1 cursor-pointer hover:bg-yellow-600 w-full text-left focus:outline-none focus:ring-2 focus:ring-yellow-600"
       onclick={() => toggleSection('peers')}
       title={$showPeers ? $_("hide_connected_peers") : $_("show_connected_peers")}
       data-testid="peers-header"
+      aria-label={$showPeers ? $_("hide_connected_peers") : $_("show_connected_peers")}
     >
       {$_('peers')} ({$connectedPeersCount})
-    </h5>
+    </button>
     {#if $showPeers}
       <div class="space-y-1" data-testid="peers-list">
         {#if $libp2p}
@@ -173,41 +190,23 @@
   
   <!-- Settings Section -->
   <div data-testid="settings-section">
-    <h5 
-      class="text-xs md:text-sm font-bold uppercase tracking-wider text-white dark:text-white bg-green-500 rounded py-1 px-2 mb-1 cursor-pointer hover:bg-green-600"
+    <button 
+      class="text-xs md:text-sm font-bold uppercase tracking-wider text-white dark:text-white bg-green-500 rounded py-1 px-2 mb-1 cursor-pointer hover:bg-green-600 w-full text-left focus:outline-none focus:ring-2 focus:ring-green-600"
       onclick={() => toggleSection('settings')}
       title={$showSettings ? $_("hide_settings") : $_("show_settings")}
       data-testid="settings-header"
+      aria-label={$showSettings ? $_("hide_settings") : $_("show_settings")}
     >
       {$_('settings')}
-    </h5>
+    </button>
   </div>
 </div>
 
 <style>
-.sidebar-container {
-  contain: layout;
-  transform: translateZ(0); /* Forces GPU acceleration */
-}
-
 svg {
   width: 1em !important; /* Force consistent SVG sizing */
   height: 1em !important;
   display: inline-block;
   vertical-align: middle;
-}
-
-/* RTL specific styles */
-:global([dir="rtl"]) .sidebar {
-  right: 0;
-  left: auto;
-}
-
-:global([dir="rtl"]) .sidebar button {
-  text-align: right;
-}
-
-:global([dir="rtl"]) .sidebar .flex {
-  flex-direction: row-reverse;
 }
 </style> 

@@ -588,14 +588,16 @@ ${convertMarkdownToLatex(selectedPost.content)}
           >
             <div class="post-content">
               <!-- Only show buttons if user has write access -->
+
               {#if hasWriteAccess()}
                 <div class="flex justify-end space-x-2 action-buttons {hoveredPostId === post._id ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300 ease-in-out">
                   <button
                     type="button"
                     class="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 touch-manipulation"
-                    onclick={(e) => {e.stopPropagation(); editPost(post, e)}}
-                    ontouchend={(e) => {e.preventDefault(); e.stopPropagation(); editPost(post, e)}}
-                    title={$_('edit_post')}
+                    onclick={(e) = e.stopPropagation(); editPost(post, e)}
+                    onkeydown={(e) = e.key === 'Enter'  e.stopPropagation()  editPost(post, e)}
+                    ontouchend={(e) = e.preventDefault(); e.stopPropagation(); editPost(post, e)}
+                    aria-label={$_('edit_post')}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
