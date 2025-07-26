@@ -84,11 +84,8 @@ export async function addRemoteDBToStore(address: string, peerId: string, name?:
       };
     } else {
       // Handle remote database
-      debug('handle remote database', address, peerId, name)
       if (peerId && heliaInstance && !heliaInstance.libp2p) {
-        console.log('dialing peer', peerId)
-        const peer = await heliaInstance.libp2p.dial(peerId);
-        console.log('peer successfully dialed', peer)
+        await heliaInstance.libp2p.dial(peerId);
       }
 
       // Create the database entry for remote DB
@@ -416,23 +413,15 @@ export async function switchToRemoteDB(address: string, showModal = false) {
               await get(settingsDB).put({ _id: 'postsDBAddress', value: postsDBAddress });
             }
             const allPosts = (await postsInstance.all()).map(post => {
-              console.log('post', post)
-              const { _id, ...rest } = post.value;
-              const mappedPost = { 
-                ...rest,
-                _id: _id,
-                content: rest.content || rest.value?.content,
-                title: rest.title || rest.value?.title,
-                date: rest.date || rest.value?.date,
-                published: rest.published !== undefined ? rest.published : rest.value?.published,
-              };
-              console.log('📝 Post loaded from DB:', {
-                _id: mappedPost._id,
-                title: mappedPost.title,
-                published: mappedPost.published,
-                originalPublished: rest.published,
-                valuePublished: rest.value?.published
-              });
+          const { _id, ...rest } = post.value;
+          const mappedPost = { 
+            ...rest,
+            _id: _id,
+            content: rest.content || rest.value?.content,
+            title: rest.title || rest.value?.title,
+            date: rest.date || rest.value?.date,
+            published: rest.published !== undefined ? rest.published : rest.value?.published,
+          };
               return mappedPost;
             });
             postsCount = allPosts.length;

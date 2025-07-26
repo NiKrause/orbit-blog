@@ -1,9 +1,8 @@
 import { identify } from '@libp2p/identify'
-import { logger, enable } from '@libp2p/logger'
 import PQueue from 'p-queue'
-
 import { WebSocketsSecure } from '@multiformats/multiaddr-matcher'
-const log = logger('le-space:relay')
+import { log, syncLog } from '../utils/logger.js'
+import { loggingConfig } from '../config/logging.js'
 
 export function setupEventHandlers(libp2p, databaseService) {
   const cleanupFunctions = []
@@ -11,18 +10,24 @@ export function setupEventHandlers(libp2p, databaseService) {
   const peerConnectHandler = async event => {
     const peer = event.detail
     try {
-      // log('peer:connect', peer)
+      if (loggingConfig.logLevels.peer) {
+        log('peer:connect', peer)
+      }
       await identify(peer)
     } catch (err) {
       if (err.code !== 'ERR_UNSUPPORTED_PROTOCOL') {
-        console.error('Failed to identify peer:', err)
+        if (loggingConfig.logLevels.peer) {
+          console.error('Failed to identify peer:', err)
+        }
       }
     }
   }
   libp2p.addEventListener('peer:connect', peerConnectHandler)
   cleanupFunctions.push(() => libp2p.removeEventListener('peer:connect', peerConnectHandler))
   libp2p.addEventListener('gossipsub:message', (event) => {
-    log('gossipsub', event)
+    if (loggingConfig.logLevels.peer) {
+      log('gossipsub', event)
+    }
   })
 
   // Certificate provision handler
@@ -58,26 +63,37 @@ export function setupEventHandlers(libp2p, databaseService) {
 
   const syncOrbitDBHandler = (msg) => {
     if (msg?.topic?.startsWith('/orbitdb/')) {
-      log('subscription-change', msg)
+      syncLog('subscription-change', msg.topic)
       syncQueue.add(() => databaseService.syncAllOrbitDBRecords(msg.topic))
     }
   }
   
   // Subscribe to OrbitDB topics
-  // const orbitDBTopic = '/orbitdb/#' // wildcard topic for all OrbitDB messages
-  // libp2p.services.pubsub.subscribe(orbitDBTopic)
-  // libp2p.services.pubsub.addEventListener('message', syncOrbitDBHandler)
+  const orbitDBTopic = '/orbitdb/' // OrbitDB topic prefix
+  
+  // Subscribe to pubsub messages for OrbitDB
+  const pubsubMessageHandler = (event) => {
+    const msg = event.detail
+    syncLog('Received pubsub message:', msg.topic)
+    if (msg.topic && msg.topic.startsWith('/orbitdb/')) {
+      syncLog('OrbitDB topic message received:', msg.topic)
+      syncQueue.add(() => databaseService.syncAllOrbitDBRecords(msg.topic))
+    }
+  }
+  
+  libp2p.services.pubsub.addEventListener('message', pubsubMessageHandler)
   
   // Add cleanup for pubsub subscription
   cleanupFunctions.push(() => {
-    // libp2p.services.pubsub.unsubscribe(orbitDBTopic)
-    // libp2p.services.pubsub.removeEventListener('message', syncOrbitDBHandler)
+    libp2p.services.pubsub.removeEventListener('message', pubsubMessageHandler)
   })
 
   // Connection open handler - simplified to just log connections if needed
   const connectionOpenHandler = async (event) => {
     const connection = event.detail
-    // log('connection:open', connection.remoteAddr.toString())
+    if (loggingConfig.logLevels.connection) {
+      log('connection:open', connection.remoteAddr.toString())
+    }
   }
 
   libp2p.addEventListener('connection:open', connectionOpenHandler)
@@ -88,10 +104,27 @@ export function setupEventHandlers(libp2p, databaseService) {
 
   // For subscription changes
   pubsub.addEventListener('subscription-change', (event) => {
+    syncLog('Subscription change event:', event.detail)
     
-    event.detail?.subscriptions?.forEach(subscription => {
-      syncOrbitDBHandler(subscription)
-    })
+    // Handle new subscriptions
+    if (event.detail?.subscriptions) {
+      event.detail.subscriptions.forEach(subscription => {
+        syncLog('New subscription:', subscription)
+        if (subscription.topic && subscription.topic.startsWith('/orbitdb/')) {
+          syncLog('OrbitDB subscription detected:', subscription.topic)
+          syncQueue.add(() => databaseService.syncAllOrbitDBRecords(subscription.topic))
+        }
+      })
+    }
+  })
+  
+  // Also listen for topic joins
+  pubsub.addEventListener('gossipsub:subscription-change', (event) => {
+    syncLog('Gossipsub subscription change:', event.detail)
+    if (event.detail?.topic?.startsWith('/orbitdb/')) {
+      syncLog('OrbitDB gossipsub topic:', event.detail.topic)
+      syncQueue.add(() => databaseService.syncAllOrbitDBRecords(event.detail.topic))
+    }
   })
 
   return () => {
