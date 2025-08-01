@@ -105,7 +105,7 @@
       return `
         <div class="accordion-wrapper">
           <details class="accordion" id="${accordionId}">
-            <summary class="accordion-header">
+            <summary class="accordion-header" tabindex="0">
               ${this.parser.parseInline(token.tokens).replace(/#/g, '')}
             </summary>
             <div class="accordion-content">
@@ -190,12 +190,21 @@
    * Updates the rendered content with markdown processing
    */
   function updateRenderedContent(): void {
-    if (post?.content) {
-      renderedContent = renderContent(post.content);
-      // Wait for next tick to ensure content is in DOM
-      setTimeout(async () => {
-        await renderMermaidDiagrams();
-      }, 0);
+    // Use local content variable if available, otherwise fall back to post.content
+    const contentToRender = content || post?.content;
+    if (contentToRender) {
+      const newContent = renderContent(contentToRender);
+      // Only update if content actually changed to prevent unnecessary re-renders
+      if (newContent !== renderedContent) {
+        info('Updating rendered content');
+        renderedContent = newContent;
+        // Wait for next tick to ensure content is in DOM
+        setTimeout(async () => {
+          await renderMermaidDiagrams();
+          // Add accordion event listeners after content is rendered
+          addAccordionEventListeners();
+        }, 0);
+      }
     }
   }
 
@@ -210,7 +219,8 @@
       ADD_ATTR: [
         'id', 'class', 'aria-controls', 'aria-expanded', 'aria-labelledby', 'role',
         'src', 'width', 'height', 'frameborder', 'allow', 'allowfullscreen',
-        'viewBox', 'd', 'fill', 'stroke', 'points', 'transform'
+        'viewBox', 'd', 'fill', 'stroke', 'points', 'transform', 'tabindex',
+        'data-listener-added'
       ],
       ALLOW_DATA_ATTR: true
     });
@@ -298,13 +308,8 @@
     updateRenderedContent();
   });
 
-  $effect(() => {
-    if ($mediaDB && post) {
-      updateRenderedContent();
-    } else {
-      updateRenderedContent();
-    }
-  });
+  // Remove this effect as it causes unnecessary re-renders
+  // updateRenderedContent is already called in onMount and the selectedPostId effect
 
   $effect(async () => {
     if ($selectedPostId) {
@@ -321,6 +326,9 @@
         info('isEncrypted', isEncrypted);
         if (isEncrypted) {
           showPasswordPrompt = true;
+        } else {
+          // Update rendered content when not encrypted
+          updateRenderedContent();
         }
         if ($commentsDB) {
         loadComments();
@@ -397,6 +405,58 @@
     });
   }
 
+  // Add accordion event listeners to prevent scrolling issues
+  function addAccordionEventListeners(): void {
+    // Wait a bit to ensure DOM is fully rendered
+    setTimeout(() => {
+      const accordions = document.querySelectorAll('.accordion');
+      console.log('📁 Found accordions:', accordions.length);
+      
+      accordions.forEach((accordion, index) => {
+        const summary = accordion.querySelector('summary');
+        console.log(`📁 Accordion ${index}:`, accordion.id, summary ? 'has summary' : 'no summary');
+        
+        if (summary && !summary.dataset.listenerAdded) {
+          console.log(`📁 Adding listener to accordion ${index}:`, accordion.id);
+          
+          // Remove any existing listeners first
+          summary.removeEventListener('click', handleAccordionClick);
+          
+          // Add our custom click handler  
+          summary.addEventListener('click', handleAccordionClick);
+          summary.dataset.listenerAdded = 'true';
+        }
+      });
+    }, 100);
+  }
+  
+  // Separate function to handle accordion clicks
+  function handleAccordionClick(e) {
+    console.log('📁 Accordion clicked!', e.target);
+    
+    // Prevent default behavior that might cause issues
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Find the details element
+    const summary = e.currentTarget;
+    const details = summary.closest('details');
+    
+    if (details) {
+      console.log('📁 Current state:', details.open);
+      details.open = !details.open;
+      console.log('📁 New state:', details.open);
+    } else {
+      console.log('📁 No details element found!');
+    }
+  }
+
+
+  function passwordSubmitted(event: CustomEvent) {
+    info('passwordSubmitted', event.detail.password);
+    // Handle password submission for BlogPost component if needed
+    // This function exists for compatibility with PostPasswordPrompt
+  }
 
   async function handlePostDecrypted(event: CustomEvent) {
     info('handlePostDecrypted');
@@ -518,7 +578,7 @@
         info('cancel');
         showPasswordPrompt = false;
       }}
-      on:passwordSubmitted={handlePasswordSubmitted}
+      on:passwordSubmitted={passwordSubmitted}
     />
   {:else}
     <h1 data-testid="post-title" class="text-4xl font-bold mb-2 text-gray-900 dark:text-white">{title}</h1>

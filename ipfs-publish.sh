@@ -72,7 +72,7 @@ echo "Changes committed and pushed to GitHub. Tagged as v$version"
 
 read -p "Do you want to update the production Nginx config with the new CID? (yes/no): " answer
 if [[ "$answer" == "yes" ]]; then
-    ssh root@le-space.de "sed -i 's|proxy_pass https://$IPFS_SERVER/ipfs/[^/]*/;|proxy_pass https://$IPFS_SERVER/ipfs/$cid/;|' /etc/nginx/sites-enabled/$IPNS_NAME && systemctl reload nginx"
+    ssh root@le-space.de "sed -i 's|proxy_pass https://$IPFS_SERVER/ipfs/[^/]*/;|proxy_pass https://$IPFS_SERVER/ipfs/$cid/;|' /etc/nginx/sites-available/$IPNS_NAME && systemctl reload nginx"
     echo "Nginx config updated with new CID $cid and reloaded for $IPNS_NAME."
 else
     echo "Production Nginx config was NOT updated."
