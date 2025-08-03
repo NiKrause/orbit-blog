@@ -1,6 +1,6 @@
 import { get } from 'svelte/store';
 import { _ } from 'svelte-i18n';
-import { renderContent } from '../services/MarkdownRenderer';
+import { renderContent } from '../services/MarkdownRenderer.js';
 
 /**
  * Renders markdown content safely using the centralized MarkdownRenderer

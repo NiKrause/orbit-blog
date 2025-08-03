@@ -18,7 +18,7 @@ async function getKeyFromPassword(password: string, salt: Uint8Array): Promise<C
   return window.crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt,
+      salt: salt as BufferSource,
       iterations: 100000,
       hash: 'SHA-256'
     },
@@ -195,9 +195,9 @@ export async function decryptPost(encryptedData: { title: string; content: strin
       title: new TextDecoder().decode(decryptedTitle),
       content: new TextDecoder().decode(decryptedContent)
     };
-  } catch (_error) {
+  } catch (_error: any) {
     error('Error decrypting post:', _error);
-    throw new Error(`Decryption failed: ${_error.message}`);
+    throw new Error(`Decryption failed: ${_error?.message || 'Unknown error'}`);
   }
 }
 

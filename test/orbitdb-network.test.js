@@ -6,6 +6,16 @@ import { LevelDatastore } from 'datastore-level';
 import { createOrbitDB } from '@orbitdb/core';
 import { join } from 'path';
 import { tmpdir } from 'os';
+import { tcp } from '@libp2p/tcp';
+import { webSockets } from '@libp2p/websockets';
+import { yamux } from '@chainsafe/libp2p-yamux';
+import { noise } from '@chainsafe/libp2p-noise';
+import { gossipsub } from '@chainsafe/libp2p-gossipsub';
+import { identify, identifyPush } from '@libp2p/identify';
+import { webRTC, webRTCDirect } from '@libp2p/webrtc';
+import { circuitRelayTransport } from '@libp2p/circuit-relay-v2';
+import { pubsubPeerDiscovery } from '@libp2p/pubsub-peer-discovery';
+import { expect } from 'chai';
 
 
 describe('OrbitDB Blog Data Access', function() {
@@ -18,7 +28,20 @@ describe('OrbitDB Blog Data Access', function() {
       const tempPath = join(tmpdir(), `orbitdb-blogtest-${Date.now()}`);
       const blockstore = new LevelBlockstore(join(tempPath, 'blocks'));
       const datastore = new LevelDatastore(join(tempPath, 'data'));
-      const node = await createLibp2p({});
+      const node = await createLibp2p({
+        addresses: {
+          listen: ['/ip4/0.0.0.0/tcp/0', '/ip4/0.0.0.0/tcp/0/ws']
+        },
+        transports: [tcp(), webSockets(), webRTC(), webRTCDirect(), circuitRelayTransport()],
+        streamMuxers: [yamux()],
+        connectionEncrypters: [noise()],
+        services: {
+          pubsub: gossipsub(),
+          pubsubPeerDiscovery: pubsubPeerDiscovery(),
+          identify: identify(),
+          identifyPush: identifyPush()
+        }
+      });
       helia = await createHelia({ libp2p: node, datastore, blockstore });
       orbitdb = await createOrbitDB({ ipfs: helia, directory: join(tempPath, 'orbitdb') });
   
@@ -27,6 +50,7 @@ describe('OrbitDB Blog Data Access', function() {
         type: 'documents',
         create: true,
         overwrite: true,
+        sync: false, // Disable sync for standalone test
         directory: join(tempPath, 'orbitdb/settings')
       });
       await settingsDb.put({ _id: 'blogName', value: 'Test Blog' });
@@ -37,6 +61,7 @@ describe('OrbitDB Blog Data Access', function() {
         type: 'documents',
         create: true,
         overwrite: true,
+        sync: false, // Disable sync for standalone test
         directory: join(tempPath, 'orbitdb/posts')
       });
       // Add a few posts
@@ -52,6 +77,7 @@ describe('OrbitDB Blog Data Access', function() {
         type: 'documents',
         create: true,
         overwrite: true,
+        sync: false, // Disable sync for standalone test
         directory: join(tempPath, 'orbitdb/comments')
       });
       await settingsDb.put({ _id: 'commentsDBAddress', value: commentsDb.address.toString() });
@@ -61,6 +87,7 @@ describe('OrbitDB Blog Data Access', function() {
         type: 'documents',
         create: true,
         overwrite: true,
+        sync: false, // Disable sync for standalone test
         directory: join(tempPath, 'orbitdb/media')
       });
       await settingsDb.put({ _id: 'mediaDBAddress', value: mediaDb.address.toString() });
@@ -85,7 +112,7 @@ describe('OrbitDB Blog Data Access', function() {
       // Open posts DB from settings
       const postsAddressEntry = await settingsDb.get('postsDBAddress');
       expect(postsAddressEntry?.value?.value).to.be.a('string');
-      const postsDb2 = await orbitdb.open(postsAddressEntry.value.value);
+      const postsDb2 = await orbitdb.open(postsAddressEntry.value.value, { sync: false });
       const allPosts = await postsDb2.all();
       expect(allPosts.length).to.be.greaterThan(0);
   
@@ -105,14 +132,14 @@ describe('OrbitDB Blog Data Access', function() {
       // Open comments DB from settings
       const commentsAddressEntry = await settingsDb.get('commentsDBAddress');
       expect(commentsAddressEntry?.value?.value).to.be.a('string');
-      const commentsDb2 = await orbitdb.open(commentsAddressEntry.value.value);
+      const commentsDb2 = await orbitdb.open(commentsAddressEntry.value.value, { sync: false });
       const allComments = await commentsDb2.all();
       console.log('Comments DB opened, count:', allComments.length);
   
       // Open media DB from settings
       const mediaAddressEntry = await settingsDb.get('mediaDBAddress');
       expect(mediaAddressEntry?.value?.value).to.be.a('string');
-      const mediaDb2 = await orbitdb.open(mediaAddressEntry.value.value);
+      const mediaDb2 = await orbitdb.open(mediaAddressEntry.value.value, { sync: false });
       const allMedia = await mediaDb2.all();
       console.log('Media DB opened, count:', allMedia.length);
     });

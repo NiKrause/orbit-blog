@@ -2,8 +2,8 @@ import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { unixfs } from '@helia/unixfs';
 import mermaid from 'mermaid';
-import { error } from '../utils/logger';
-import { helia } from '../store';
+import { error } from '../utils/logger.js';
+import { helia } from '../store.js';
 import { get } from 'svelte/store';
 
 /**
@@ -126,8 +126,8 @@ function isAllowedDomain(src: string, node?: Element): boolean {
 function initUnixFs() {
   if (!fs) {
     const heliaInstance = get(helia);
-    if (heliaInstance) {
-      fs = unixfs(heliaInstance);
+    if (heliaInstance && typeof heliaInstance === 'object' && 'blockstore' in heliaInstance) {
+      fs = unixfs(heliaInstance as any);
     }
   }
 }
@@ -140,11 +140,11 @@ function initUnixFs() {
  */
 async function getBlobUrl(cid: string): Promise<string | null> {
   if (!fs) initUnixFs();
-  if (mediaCache.has(cid)) return mediaCache.get(cid);
+  if (mediaCache.has(cid)) return mediaCache.get(cid) || null;
 
   try {
     const chunks = [];
-    for await (const chunk of fs.cat(cid)) {
+    for await (const chunk of fs.cat(cid as any)) {
       chunks.push(chunk);
     }
 
@@ -162,7 +162,7 @@ async function getBlobUrl(cid: string): Promise<string | null> {
 /**
  * Configure and retrieve the marked renderer
  */
-function setupRenderer(): marked.Renderer {
+function setupRenderer(): typeof marked.Renderer.prototype {
   const renderer = new marked.Renderer();
   const defaultImageRenderer = renderer.image.bind(renderer);
 
@@ -272,15 +272,16 @@ function setupDOMPurifyHooks(): void {
   // Custom DOMPurify hook for iframe security
   DOMPurify.addHook('uponSanitizeElement', (node, data) => {
     if (data.tagName === 'iframe') {
-      const src = node.getAttribute('src');
-      if (!src || !isAllowedDomain(src, node)) {
+      const element = node as Element;
+      const src = element.getAttribute('src');
+      if (!src || !isAllowedDomain(src, element)) {
         return node.parentNode?.removeChild(node);
       }
       
       // Set secure attributes for iframes
-      node.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-presentation');
-      node.setAttribute('loading', 'lazy');
-      node.setAttribute('referrerpolicy', 'no-referrer');
+      element.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-presentation');
+      element.setAttribute('loading', 'lazy');
+      element.setAttribute('referrerpolicy', 'no-referrer');
     }
   });
   
@@ -293,7 +294,7 @@ function setupDOMPurifyHooks(): void {
     if (attrName.startsWith('on')) {
       data.allowedAttributes = data.allowedAttributes || {};
       delete data.allowedAttributes[attrName];
-      node.removeAttribute(attrName);
+      (node as Element).removeAttribute(attrName);
       return;
     }
     
@@ -312,7 +313,7 @@ function setupDOMPurifyHooks(): void {
     if (isDangerousAttr) {
       data.allowedAttributes = data.allowedAttributes || {};
       delete data.allowedAttributes[attrName];
-      node.removeAttribute(attrName);
+      (node as Element).removeAttribute(attrName);
     }
   });
 }
@@ -331,7 +332,8 @@ export function renderContent(content: string): string {
   // Configure marked with extensions
   configureMarked();
   
-  return DOMPurify.sanitize(marked(content, { renderer: setupRenderer() }), {
+  const renderedContent = marked.parse(content, { renderer: setupRenderer() }) as string;
+  return DOMPurify.sanitize(renderedContent, {
     ADD_TAGS: ['details', 'summary', 'div'],
     ADD_ATTR: ['id', 'class', 'aria-controls', 'aria-expanded', 'aria-labelledby', 'role', 'data-ipfs-cid', 'src', 'alt', 'title'],
     ALLOW_DATA_ATTR: true
