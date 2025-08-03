@@ -210,7 +210,25 @@ function setupRenderer(): marked.Renderer {
     if (language === 'mermaid') {
       return `<div class="mermaid">${code}</div>`;
     }
-    return `<pre><code>${DOMPurify.sanitize(code)}</code></pre>`;
+    // Escape HTML entities and curly braces to prevent interpretation
+    const escapedCode = code
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;')
+      .replace(/\{/g, '&#123;')
+      .replace(/\}/g, '&#125;');
+    return `<pre><code>${escapedCode}</code></pre>`;
+  };
+
+  // Also handle inline code spans
+  renderer.codespan = (code) => {
+    // Escape curly braces to prevent Svelte template interpretation
+    const sanitizedCode = DOMPurify.sanitize(code)
+      .replace(/\{/g, '&#123;')
+      .replace(/\}/g, '&#125;');
+    return `<code>${sanitizedCode}</code>`;
   };
 
   return renderer;
