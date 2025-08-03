@@ -22,9 +22,9 @@ Since this would require the blog author to leave his browser open 24/7 for the 
 ### As Progressive Web App (PWA)
 
 Visit our IPNS link (requires [IPFS Companion](https://docs.ipfs.tech/install/ipfs-companion/)):
-- IPNS: [ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g](https://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g.ipns.dweb.link/)
+- IPNS: [ipns://k51qzi5uqu5dixys1k2prgbng4z9uxgvc4kj8l1xww1v5irt5cn3j5q402a0yb](https://k51qzi5uqu5dixys1k2prgbng4z9uxgvc4kj8l1xww1v5irt5cn3j5q402a0yb.ipns.dweb.link/)
 
-[![QR Code to PWA](/public/ipns.dweb.link.png)](https://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g.ipns.dweb.link/)
+[![QR Code to PWA](/public/ipns.dweb.link.png)](https://k51qzi5uqu5dixys1k2prgbng4z9uxgvc4kj8l1xww1v5irt5cn3j5q402a0yb.ipns.dweb.link/)
 
 ## Features
 
