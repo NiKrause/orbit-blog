@@ -3,12 +3,13 @@
   import { _, locale } from 'svelte-i18n';
 
   import type { Category } from '$lib/types.js';
-  import { marked } from 'marked';
-  import DOMPurify from 'dompurify';
   import { postsDB, categories, selectedPostId, identity, enabledLanguages, isRTL } from '$lib/store.js';
-  import MediaUploader from './MediaUploader.svelte';
   import { encryptPost } from '$lib/cryptoUtils.js';
   import PostPasswordPrompt from './PostPasswordPrompt.svelte';
+  import MediaManager from './MediaManager.svelte';
+  import ContentEditor from './ContentEditor.svelte';
+  import MediaUploader from './MediaUploader.svelte';
+  import { handleMediaSelection, removeMediaFromContent, validateEncryptionFields, renderMarkdown } from '$lib/utils/postUtils.js';
 
   let title = $state('');
   let content = $state('');
@@ -77,27 +78,18 @@
     }
   }
 
-  function renderMarkdown(content: string): string {
-    const rawHtml = marked(content);
-    return DOMPurify.sanitize(rawHtml);
-  }
-
   function handleMediaSelected(mediaCid: string) {
     console.log('handleMediaSelected', mediaCid);
-    if (!selectedMedia.includes(mediaCid)) {
-      selectedMedia = [...selectedMedia, mediaCid];
-      
-      // Add markdown for the media to the content
-      content += `\n\n![Media](ipfs://${selectedMedia})`;
-    }
-    
-    // Hide the media uploader after selection
+    const result = handleMediaSelection(mediaCid, selectedMedia, content);
+    selectedMedia = result.updatedMedia;
+    content = result.updatedContent;
     showMediaUploader = false;
   }
 
   async function removeSelectedMedia(mediaId: string) {
-    selectedMedia = selectedMedia.filter(id => id !== mediaId);
-    content = content.replace(`\n\n![Media](ipfs://${mediaId})`, '');
+    const result = removeMediaFromContent(mediaId, selectedMedia, content);
+    selectedMedia = result.updatedMedia;
+    content = result.updatedContent;
   }
 
   // async function handleTranslate() {
@@ -151,8 +143,9 @@
   // }
 
   async function handleEncrypt() {
-    if (!title || !content) {
-      encryptionError = $_('fill_required_fields');
+    const validationError = validateEncryptionFields(title, content);
+    if (validationError) {
+      encryptionError = validationError;
       return;
     }
     showPasswordPrompt = true;

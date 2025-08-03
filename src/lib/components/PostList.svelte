@@ -5,14 +5,15 @@
   import { posts, selectedPostId, identity, postsDB, enabledLanguages, isRTL } from '$lib/store.js';
   import { formatTimestamp } from '$lib/dateUtils.js';
 
-  import { marked } from 'marked';
-  import DOMPurify from 'dompurify';
   import type { Post, Category } from '$lib/types.js';
   import { onMount } from 'svelte';
   import { categories } from '$lib/store.js';
   import BlogPost from './BlogPost.svelte';
+  import MediaManager from './MediaManager.svelte';
+  import ContentEditor from './ContentEditor.svelte';
   import MediaUploader from './MediaUploader.svelte';
   import { TranslationService } from '$lib/services/translationService.js';
+  import { renderMarkdown, handleMediaSelection, removeMediaFromContent, validateEncryptionFields, truncateTitle } from '$lib/utils/postUtils.js';
   
   // Import html2pdf for PDF generation
   import html2pdf from 'html2pdf.js';
@@ -114,12 +115,7 @@
     }
   });
 
-  function renderMarkdown(content: string): string {
-    // Process the markdown
-    const contentWithBreaks = content.replace(/\n(?!\n)/g, '  \n');
-    const rawHtml = marked(contentWithBreaks);
-    return DOMPurify.sanitize(rawHtml);
-  }
+  // Using shared renderMarkdown function from utils
 
   async function selectPost(postId: string) {
     $selectedPostId = postId;
@@ -257,9 +253,7 @@
     }
   }
 
-  function truncateTitle(title: string, maxLength: number): string {
-    return title.length > maxLength ? title.slice(0, maxLength) + '...' : title;
-  }
+  // Using shared truncateTitle function from utils
 
   async function viewPostHistory(post: Post, event: MouseEvent) {
     event.stopPropagation();
@@ -287,16 +281,16 @@
   }
 
   function handleMediaSelected(mediaCid: string) {
-    if (!selectedMedia.includes(mediaCid)) {
-      selectedMedia = [...selectedMedia, mediaCid];
-      editedContent += `\n\n![Media](ipfs://${mediaCid})`;
-    }
+    const result = handleMediaSelection(mediaCid, selectedMedia, editedContent);
+    selectedMedia = result.updatedMedia;
+    editedContent = result.updatedContent;
     showMediaUploader = false;
   }
 
   function removeSelectedMedia(mediaId: string) {
-    selectedMedia = selectedMedia.filter(id => id !== mediaId);
-    editedContent = editedContent.replace(`\n\n![Media](ipfs://${mediaId})`, '');
+    const result = removeMediaFromContent(mediaId, selectedMedia, editedContent);
+    selectedMedia = result.updatedMedia;
+    editedContent = result.updatedContent;
   }
 
   // Function to export the selected post as PDF
@@ -500,8 +494,9 @@ ${convertMarkdownToLatex(selectedPost.content)}
 
   // Add this function to handle encryption request
   async function handleEncrypt() {
-    if (!editedTitle || !editedContent) {
-      encryptionError = $_('fill_required_fields');
+    const validationError = validateEncryptionFields(editedTitle, editedContent);
+    if (validationError) {
+      encryptionError = validationError;
       return;
     }
     showPasswordPrompt = true;

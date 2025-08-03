@@ -365,7 +365,8 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       if (commentsDBAddressValue) commentsDBAddress.set(commentsDBAddressValue);
       if (mediaDBAddressValue) mediaDBAddress.set(mediaDBAddressValue);
       if (categoriesValue) categories.set(categoriesValue);
-      if (profilePictureValue) profilePictureCid.set(profilePictureValue);
+      // Always update profile picture CID - set to null if new database doesn't have one
+      profilePictureCid.set(profilePictureValue || null);
       
 
       // Check if we have write access to the settings database
