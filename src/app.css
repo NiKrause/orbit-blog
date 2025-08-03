@@ -109,6 +109,23 @@ button:focus-visible {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Styles for IPFS image placeholders */
+.ipfs-loading {
+  border: 1px solid #ddd;
+  background-color: #f3f4f6;
+  width: 100px;
+  height: 100px;
+  display: inline-block;
+}
+
+.ipfs-loaded {
+  border: none;
+}
+
+.ipfs-error {
+  border: 1px solid red;
+}
+
 /* Prevent text selection during touch */
 .no-select {
   -webkit-user-select: none;

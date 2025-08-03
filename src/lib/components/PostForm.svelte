@@ -9,7 +9,8 @@
   import MediaManager from './MediaManager.svelte';
   import ContentEditor from './ContentEditor.svelte';
   import MediaUploader from './MediaUploader.svelte';
-  import { handleMediaSelection, removeMediaFromContent, validateEncryptionFields, renderMarkdown } from '$lib/utils/postUtils.js';
+import { handleMediaSelection, removeMediaFromContent, validateEncryptionFields } from '$lib/utils/postUtils.js';
+import { renderContent } from '$lib/services/MarkdownRenderer.js';
 
   let title = $state('');
   let content = $state('');
@@ -226,7 +227,7 @@
 
     {#if showPreview}
       <div class="prose dark:prose-invert max-w-none min-h-[200px] p-4 border rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
-        {@html renderMarkdown(content || `*${$_('preview_will_appear_here')}...*`)}
+{@html renderContent(content || `*${$_('preview_will_appear_here')}...*`)}
       </div>
     {:else}
       <textarea
@@ -241,25 +242,11 @@
     {/if}
   </div>
 
-  {#if selectedMedia.length > 0}
-    <div class="selected-media">
-      <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{$_('selected_media')}</h4>
-      <div class="flex flex-wrap gap-2">
-        {#each selectedMedia as mediaId}
-          <div class="bg-gray-100 dark:bg-gray-700 rounded px-2 py-1 text-sm flex items-center">
-            <span class="truncate max-w-[150px]">{mediaId}</span>
-            <button 
-              type="button"
-              class="ml-2 text-red-500 hover:text-red-700"
-              onclick={() => removeSelectedMedia(mediaId)}
-            >
-              ×
-            </button>
-          </div>
-        {/each}
-      </div>
-    </div>
-  {/if}
+  <MediaManager 
+    selectedMedia={selectedMedia}
+    showMediaUploader={false}
+    on:mediaRemoved={(e) => removeSelectedMedia(e.detail.mediaId)}
+  />
 
   <div class="flex justify-between items-center mt-4">
     <div class="flex items-center space-x-2">

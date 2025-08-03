@@ -13,7 +13,8 @@
   import ContentEditor from './ContentEditor.svelte';
   import MediaUploader from './MediaUploader.svelte';
   import { TranslationService } from '$lib/services/translationService.js';
-  import { renderMarkdown, handleMediaSelection, removeMediaFromContent, validateEncryptionFields, truncateTitle } from '$lib/utils/postUtils.js';
+import { handleMediaSelection, removeMediaFromContent, validateEncryptionFields, truncateTitle } from '$lib/utils/postUtils.js';
+import { renderContent } from '$lib/services/MarkdownRenderer.js';
   
   // Import html2pdf for PDF generation
   import html2pdf from 'html2pdf.js';
@@ -91,10 +92,6 @@
   $effect(() => {
     const _ = [$posts, $locale, selectedCategory, searchTerm];
     displayedPosts = filterPosts();
-   
-    // if (displayedPosts.length > 0 && !$selectedPostId) {
-    //   $selectedPostId = displayedPosts[0]._id;
-    // }
   });
   // $effect(() => {
   //   info('displayedPosts', displayedPosts);
@@ -104,9 +101,6 @@
 
   onMount(() => {
     info('PostList component mounted');
-    if (displayedPosts.length > 0 && !$selectedPostId) {
-      $selectedPostId = displayedPosts[0]._id;
-    }
   });
 
   $effect(() => {
@@ -375,7 +369,7 @@
           : ''}
       </div>
       <div class="content">
-        ${renderMarkdown(selectedPost.content)}
+${renderContent(selectedPost.content)}
       </div>
     `;
     
@@ -569,7 +563,13 @@ ${convertMarkdownToLatex(selectedPost.content)}
       </div>
       <div class="space-y-2">
         {#each displayedPosts as post (post._id)}
-          <div data-testid="post-item-{post._id}" class="post-item w-full text-left p-3 rounded-md transition-colors cursor-pointer bg-white dark:bg-gray-800"
+          <div data-testid="post-item-{post._id}" class="post-item w-full text-left p-3 rounded-md transition-colors cursor-pointer"
+            class:bg-indigo-50={$selectedPostId === post._id}
+            class:dark:bg-indigo-900={$selectedPostId === post._id}
+            class:bg-white={$selectedPostId !== post._id}
+            class:dark:bg-gray-800={$selectedPostId !== post._id}
+            class:border-2={$selectedPostId === post._id}
+            class:border-indigo-500={$selectedPostId === post._id}
             onclick={() => selectPost(post._id)}
             onmouseover={() => hoveredPostId = post._id}
             onmouseout={() => hoveredPostId = null}
@@ -734,7 +734,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
 
                 {#if showPreview}
                   <div class="prose dark:prose-invert max-w-none min-h-[200px] p-4 border rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
-                    {@html renderMarkdown(editedContent || `*${$_('preview_will_appear_here')}...*`)}
+{@html renderContent(editedContent || `*${$_('preview_will_appear_here')}...*`)}
                   </div>
                 {:else}
                   <textarea
@@ -747,25 +747,11 @@ ${convertMarkdownToLatex(selectedPost.content)}
                 {/if}
               </div>
 
-              {#if selectedMedia.length > 0}
-                <div class="selected-media">
-                  <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{$_('selected_media')}</h4>
-                  <div class="flex flex-wrap gap-2">
-                    {#each selectedMedia as mediaId}
-                      <div class="bg-gray-100 dark:bg-gray-700 rounded px-2 py-1 text-sm flex items-center">
-                        <span class="truncate max-w-[150px]">{mediaId}</span>
-                        <button 
-                          type="button"
-                          class="ml-2 text-red-500 hover:text-red-700"
-                          onclick={() => removeSelectedMedia(mediaId)}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    {/each}
-                  </div>
-                </div>
-              {/if}
+              <MediaManager 
+                selectedMedia={selectedMedia}
+                showMediaUploader={false}
+                on:mediaRemoved={(e) => removeSelectedMedia(e.detail.mediaId)}
+              />
 
               <div class="flex space-x-4 justify-end">
                 <button

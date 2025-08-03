@@ -1,6 +1,6 @@
 <script lang="ts">
   import { _ } from 'svelte-i18n';
-  import { renderMarkdown } from '$lib/utils/postUtils.js';
+import { renderContent } from '$lib/services/MarkdownRenderer.js';
 
   interface Props {
     content: string;
@@ -39,7 +39,7 @@
 
   {#if showPreview}
     <div class="prose dark:prose-invert max-w-none min-h-[200px] p-4 border rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
-      {@html renderMarkdown(content || `*${$_('preview_will_appear_here')}...*`)}
+{@html renderContent(content || `*${$_('preview_will_appear_here')}...*`)}
     </div>
   {:else}
     <textarea

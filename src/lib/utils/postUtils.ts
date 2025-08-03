@@ -1,16 +1,14 @@
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
 import { get } from 'svelte/store';
 import { _ } from 'svelte-i18n';
+import { renderContent } from '../services/MarkdownRenderer';
 
 /**
- * Renders markdown content safely using marked and DOMPurify
+ * Renders markdown content safely using the centralized MarkdownRenderer
  */
 export function renderMarkdown(content: string): string {
   // Process the markdown with line breaks for PostList compatibility
   const contentWithBreaks = content.replace(/\n(?!\n)/g, '  \n');
-  const rawHtml = marked(contentWithBreaks);
-  return DOMPurify.sanitize(rawHtml);
+  return renderContent(contentWithBreaks);
 }
 
 /**

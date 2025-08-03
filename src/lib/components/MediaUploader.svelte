@@ -11,6 +11,7 @@
   let mediaList = $state([]);
   let errorMessage = $state('');
   let fs; // UnixFS instance
+  let mediaCache = new Map<string, string>(); // Cache for blob URLs
 
   onMount(async () => {
     if ($mediaDB) {
@@ -32,10 +33,48 @@
     }
   });
 
+  async function getBlobUrl(cid: string): Promise<string | null> {
+    if (!fs) {
+      if ($helia) {
+        fs = unixfs($helia);
+      } else {
+        return `https://dweb.link/ipfs/${cid}`;
+      }
+    }
+    
+    if (mediaCache.has(cid)) return mediaCache.get(cid);
+
+    try {
+      const chunks = [];
+      for await (const chunk of fs.cat(cid)) {
+        chunks.push(chunk);
+      }
+
+      const fileData = new Uint8Array(chunks.reduce((acc, val) => [...acc, ...val], []));
+      const blob = new Blob([fileData]);
+      const url = URL.createObjectURL(blob);
+      mediaCache.set(cid, url);
+      return url;
+    } catch (_error) {
+      error('Error fetching from IPFS:', _error);
+      return `https://dweb.link/ipfs/${cid}`;
+    }
+  }
+
   async function loadMedia() {
     try {
       const allMedia = await $mediaDB.all();
-      mediaList = allMedia.map(entry => entry.value);
+      const mediaWithUrls = await Promise.all(
+        allMedia.map(async (entry) => {
+          const media = entry.value;
+          if (media.type.startsWith('image/')) {
+            const url = await getBlobUrl(media.cid);
+            return { ...media, url };
+          }
+          return media;
+        })
+      );
+      mediaList = mediaWithUrls;
     } catch (_error) {
       error('Error loading media:', _error);
       errorMessage = 'Failed to load media';
@@ -193,7 +232,7 @@
         aria-label={`Select ${media.name}`}
       >
         {#if media.type.startsWith('image/')}
-          <img src={getMediaPreviewUrl(media)} alt={media.name} class="w-full h-24 object-cover" />
+          <img src={media.url || `https://dweb.link/ipfs/${media.cid}`} alt={media.name} class="w-full h-24 object-cover" />
         {:else if media.type.startsWith('video/')}
           <div class="w-full h-24 bg-gray-700 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
