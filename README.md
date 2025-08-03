@@ -8,7 +8,7 @@
   </tr>
 </table>
 
-> ⚠️ **Alpha Version Notice**: This code is experimental and was written with the help of early AI supported code editors and coding agents. It is not intended for production! Code may change, break backwards compatibility, or contain major issues. It has not been security audited. Use accordingly.
+> ⚠️ **Alpha Version Notice**: This code is experimental and was written with the help of early AI supported code editors and AI coding agents. It is not intended for production! Code may change, break backwards compatibility, or contain major issues. It has not been security audited. Use accordingly.
 
 [![Tests](https://github.com/NiKrause/orbit-blog/actions/workflows/test.yml/badge.svg)](https://github.com/NiKrause/orbit-blog/actions/workflows/test.yml)
 
