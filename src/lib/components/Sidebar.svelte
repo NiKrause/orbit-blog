@@ -208,5 +208,20 @@ svg {
   height: 1em !important;
   display: inline-block;
   vertical-align: middle;
+  pointer-events: none; /* Prevent SVG from interfering with button clicks */
 }
-</style> 
+
+/* Improve touch experience on mobile devices */
+button, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  min-height: 44px; /* Minimum touch target size */
+}
+
+/* Ensure cursor shows for interactive elements */
+.cursor-pointer, [role="button"] {
+  cursor: pointer;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+</style>

@@ -553,20 +553,35 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 
   function handleTouchStart(e) {
     touchStartX = e.touches[0].clientX;
+    // Prevent default to ensure touch events work properly on Android
+    e.preventDefault();
   }
 
   function handleTouchMove(e) {
     touchEndX = e.touches[0].clientX;
+    // Allow some movement but prevent default scrolling during swipe
+    if (Math.abs(touchEndX - touchStartX) > 10) {
+      e.preventDefault();
+    }
   }
 
-  function handleTouchEnd() {
+  function handleTouchEnd(e) {
+    // Ensure we have valid touch coordinates
+    if (touchStartX === 0 && touchEndX === 0) return;
+    
     if (touchStartX - touchEndX > SWIPE_THRESHOLD && sidebarVisible) {
       // Swipe left - hide sidebar
       sidebarVisible = false;
+      e.preventDefault();
     } else if (touchEndX - touchStartX > SWIPE_THRESHOLD && !sidebarVisible) {
       // Swipe right - show sidebar
       sidebarVisible = true;
+      e.preventDefault();
     }
+    
+    // Reset touch coordinates
+    touchStartX = 0;
+    touchEndX = 0;
   }
 
   // Add mouse-related functions
@@ -864,6 +879,30 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   
   .cursor-pointer {
     cursor: pointer;
+  }
+
+  /* Improve touch handling for Android browsers */
+  main {
+    touch-action: pan-x;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+
+  /* Touch targets should be large enough for mobile */
+  button, [role="button"] {
+    min-width: 44px;
+    min-height: 44px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  /* Ensure sidebar overlay and trigger areas work well on touch */
+  .fixed[role="button"] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* Make sure the sidebar takes appropriate space */
