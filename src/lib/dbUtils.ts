@@ -310,7 +310,8 @@ async function openOrCreateDB(
   config: DBConfig,
   canWriteToSettings: boolean,
   settingsDB: any,
-  isRemoteDB: boolean = false
+  isRemoteDB: boolean = false,
+  isBlocking: boolean = true  // New parameter to control blocking behavior
 ) {
   const dbAddressValue = dbContents.find(content => content.key === dbKey)?.value?.value;
   info(`Found ${dbKey}:`, dbAddressValue);
@@ -320,19 +321,31 @@ async function openOrCreateDB(
       const dbInstance = await orbitdbInstance.open(dbAddressValue);
       console.log(`${config.name} ${dbAddressValue} loaded`);
       
-      // Wait for database to be ready if it's a remote database
-      if (isRemoteDB) {
+      // Set the store immediately so it's available
+      config.store.set(dbInstance);
+      
+      // Only wait for readiness if this is a blocking database (settings/posts)
+      if (isRemoteDB && isBlocking) {
         updateLoadingState('waiting_db_ready', `Waiting for ${config.name} database to sync...`, 40);
-        const isReady = await waitForDatabaseReady(dbInstance, 15000); // 15 second timeout
+        const timeout = config.name === 'posts' ? 8000 : 5000; // Reduced timeouts
+        const isReady = await waitForDatabaseReady(dbInstance, timeout);
         
         if (!isReady) {
           warn(`Database ${config.name} did not become ready within timeout, proceeding anyway`);
         } else {
           info(`Database ${config.name} is ready for operations`);
         }
+      } else if (isRemoteDB && !isBlocking) {
+        // For non-blocking databases, just start the readiness check asynchronously
+        waitForDatabaseReady(dbInstance, 5000).then(isReady => {
+          if (isReady) {
+            info(`Database ${config.name} is ready for operations (async)`);
+          } else {
+            warn(`Database ${config.name} async readiness timeout, but continuing in background`);
+          }
+        });
       }
       
-      config.store.set(dbInstance);
       return dbInstance;
     } catch (_error) {
       error(`Failed to open ${config.name} database:`, _error);
@@ -610,17 +623,17 @@ export async function switchToRemoteDB(address: string, showModal = false) {
           return null;
         });
 
-        updateLoadingState('loading_comments', 'Opening comments database...', 70);
-        const commentsPromise = openOrCreateDB(orbitdbInstance, dbContents, 'commentsDBAddress', {
+        // Load comments database asynchronously (non-blocking)
+        openOrCreateDB(orbitdbInstance, dbContents, 'commentsDBAddress', {
           name: 'comments',
           directory: './orbitdb/comments',
           writeAccess: ["*"],
           store: commentsDB,
           addressStore: commentsDBAddress
-        }, canWriteToSettings, db, true)
+        }, canWriteToSettings, db, true, false) // isBlocking = false
         .then(async commentsInstance => {
           if (commentsInstance) {
-            info('commentsInstance', commentsInstance)
+            info('commentsInstance loaded asynchronously:', commentsInstance)
             commentsDBAddress = commentsInstance.address.toString()
             try {
               if (canWriteToSettings && hasWriteAccess(commentsInstance, get(identity).id)) {
@@ -632,20 +645,23 @@ export async function switchToRemoteDB(address: string, showModal = false) {
             
             const allComments = await commentsInstance.all();
             commentsCount = allComments.length;
+            info('Comments database ready with', commentsCount, 'comments');
           }
+        }).catch(err => {
+          warn('Error loading comments database (async):', err);
         });
 
-        updateLoadingState('loading_media', 'Opening media database...', 80);
-        const mediaPromise = openOrCreateDB(orbitdbInstance, dbContents, 'mediaDBAddress', {
+        // Load media database asynchronously (non-blocking)
+        openOrCreateDB(orbitdbInstance, dbContents, 'mediaDBAddress', {
           name: 'media',
           directory: './orbitdb/media',
           writeAccess: [get(identity).id],
           store: mediaDB,
           addressStore: mediaDBAddress
-        }, canWriteToSettings, db, true)
+        }, canWriteToSettings, db, true, false) // isBlocking = false
         .then(async mediaInstance => {
           if (mediaInstance) {
-            info('mediaInstance', mediaInstance)
+            info('mediaInstance loaded asynchronously:', mediaInstance)
             mediaDBAddress = mediaInstance.address.toString()
             try {
               if (canWriteToSettings && hasWriteAccess(mediaInstance, get(identity).id)) {
@@ -656,12 +672,19 @@ export async function switchToRemoteDB(address: string, showModal = false) {
             }
             const allMedia = await mediaInstance.all();
             mediaCount = allMedia.length;
+            info('Media database ready with', mediaCount, 'media items');
           }
+        }).catch(err => {
+          warn('Error loading media database (async):', err);
         });
-        // Wait for all operations to complete
-        updateLoadingState('loading_media', 'Finalizing database loading...', 90);
-        const [postsResult] = await Promise.all([postsPromise, commentsPromise, mediaPromise]);
         
+        // Only wait for posts database (critical)
+        updateLoadingState('loading_posts', 'Finalizing posts database...', 90);
+        const [postsResult] = await Promise.all([postsPromise]);
+        
+        // Immediately mark as complete after posts
+        updateLoadingState('complete', 'Blog loaded successfully!', 100);
+
         // Update remote DBs with the counts and access info
         updateRemoteDBEntry(address, {
           postsCount,
@@ -673,7 +696,6 @@ export async function switchToRemoteDB(address: string, showModal = false) {
           access: postsResult?.access
         });
 
-        updateLoadingState('complete', 'Blog loaded successfully!', 100);
         info('remoteDBs', get(remoteDBs))
         retry = false; // Stop retrying if all data is fetched
       } else {

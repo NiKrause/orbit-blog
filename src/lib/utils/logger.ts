@@ -12,20 +12,25 @@ if (typeof window !== 'undefined' && import.meta.env.DEV) {
 
 const log = logger('le-space:blog')
 
+const addTimestamp = (message: string) => {
+  const timestamp = new Date().toISOString();
+  return `[${timestamp}] ${message}`;
+};
+
 export const debug = (message: string, ...args: any[]) => {
-  log(message, ...args)
+  log(addTimestamp(message), ...args)
 }
 
 export const info = (message: string, ...args: any[]) => {
-  log(message, ...args)
+  log(addTimestamp(message), ...args)
 }
 
 export const warn = (message: string, ...args: any[]) => {
-  log.error(message, ...args)
+  log.error(addTimestamp(message), ...args)
 }
 
 export const error = (message: string, ...args: any[]) => {
-  log.error(message, ...args)
+  log.error(addTimestamp(message), ...args)
 }
 
 export default {

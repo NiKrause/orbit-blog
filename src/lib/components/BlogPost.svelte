@@ -5,6 +5,7 @@
   // Third-party imports
   import { renderContent, renderMermaidDiagrams } from '$lib/services/MarkdownRenderer.js';
   import { _ } from 'svelte-i18n';
+  import { unixfs } from '@helia/unixfs';
 
   // Local imports
   import type { BlogPost, Comment } from '$lib/types.js';

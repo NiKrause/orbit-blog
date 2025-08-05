@@ -9,6 +9,8 @@ export class DatabaseService {
     this.identityDatabases = new Map()
     this.databaseContexts = new Map() // Store database contexts for cross-referencing
     this.updateTimers = new Map() // Debouncing timers for update events
+    this.openDatabases = new Map() // Track open databases to prevent duplicates
+    this.eventHandlers = new Map() // Track event handlers for cleanup
   }
 
   async initialize(ipfs) {
@@ -60,8 +62,16 @@ export class DatabaseService {
     const endTimer = this.metrics.startSyncTimer('all_databases')
     
     try {
-      const db = await this.orbitdb.open(dbAddress)
-      syncLog(`Database opened: ${db.name} (${db.type})`)
+      // Check if database is already open to reuse connection
+      let db
+      if (this.openDatabases.has(dbAddress)) {
+        syncLog(`Database already open, reusing existing connection for ${dbAddress}`)
+        db = this.openDatabases.get(dbAddress)
+      } else {
+        db = await this.orbitdb.open(dbAddress)
+        this.openDatabases.set(dbAddress, db)
+        syncLog(`Database opened: ${db.name} (${db.type})`)
+      }
       
       // Store previous counts if we have them
       const previousCounts = this.identityDatabases.get(dbAddress) || { posts: 0, comments: 0, media: 0 }
@@ -168,8 +178,16 @@ export class DatabaseService {
       // Store current counts for next comparison
       this.identityDatabases.set(dbAddress, counts)
       
-      // Set up event listeners for future updates with debouncing
-      db.events.on('update', async () => { 
+      // Clean up existing event listeners if they exist
+      if (this.eventHandlers.has(dbAddress)) {
+        const handlers = this.eventHandlers.get(dbAddress)
+        for (const [event, handler] of Object.entries(handlers)) {
+          db.events.removeListener(event, handler)
+        }
+      }
+      
+      // Create new event handlers
+      const updateHandler = async () => { 
         syncLog(`Database updated: ${db.name}`)
         
         // Clear existing timer if it exists
@@ -233,10 +251,20 @@ export class DatabaseService {
         }, 500) // 500ms debounce delay
         
         this.updateTimers.set(dbAddress, timer)
-      })
+      }
       
-      db.events.on('error', async (error) => { 
+      const errorHandler = async (error) => { 
         syncLog(`Database error in ${db.name}:`, error)
+      }
+      
+      // Attach event listeners
+      db.events.on('update', updateHandler)
+      db.events.on('error', errorHandler)
+      
+      // Store handlers for cleanup
+      this.eventHandlers.set(dbAddress, {
+        update: updateHandler,
+        error: errorHandler
       })
       
       syncLog(`Database identity: ${db.identity?.id}`)

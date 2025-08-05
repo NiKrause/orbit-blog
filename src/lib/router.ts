@@ -79,10 +79,9 @@ export async function initHashRouter() {
         await switchToRemoteDB(_initialAddress, true)
         initialAddress.set(_initialAddress);
         info('Initial remote blog load success');
-        await setTimeout(async () => {
-            debug('Setting isLoadingRemoteBlog to false');
-            isLoadingRemoteBlog.set(false);
-        }, 1000);
+        // No delay needed - switchToRemoteDB will handle the loading state
+        debug('Setting isLoadingRemoteBlog to false');
+        isLoadingRemoteBlog.set(false);
         // console.log('Switching to remote blog again');
         // await switchToRemoteDB(_initialAddress, true) //Workaround for initial load issue
     }
@@ -111,8 +110,8 @@ export async function initHashRouter() {
             }
             finally {
                 // Set loading state to false when finished, whether successful or not
-                await setTimeout(() => isLoadingRemoteBlog.set(false), 1000); // Small delay for UX
-
+                // No delay needed - switchToRemoteDB will handle the loading state
+                isLoadingRemoteBlog.set(false);
                 // await switchToRemoteDB(address) //Workaround for initial load issue
             }
         }

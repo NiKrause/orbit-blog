@@ -50,6 +50,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     showPeers, 
     showSettings, 
     profilePictureCid,
+    profileImageUrl,
     blogName, 
     libp2p, 
     helia, 
@@ -88,8 +89,11 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   let showNotification = false;
 
   let settingsDBUpdateHandler;
-
   let showWebRTCTester = false;
+  
+  // Track event listeners to prevent memory leaks
+  let settingsDBUpdateListener = null;
+  let postsDBUpdateListener = null;
 
   $: sidebarPosition = $isRTL ? 'right' : 'left';
   $: sidebarButtonPosition = $isRTL ? 'right' : 'left';
@@ -269,8 +273,15 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   onDestroy(async () => {
     if (routerUnsubscribe) routerUnsubscribe();
     
+    // Clean up all event listeners
     if (settingsDBUpdateHandler) {
       $settingsDB?.events.removeListener('update', settingsDBUpdateHandler);
+    }
+    if (settingsDBUpdateListener) {
+      $settingsDB?.events.removeListener('update', settingsDBUpdateListener);
+    }
+    if (postsDBUpdateListener) {
+      $postsDB?.events.removeListener('update', postsDBUpdateListener);
     }
     
     try {
@@ -283,81 +294,17 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     }
   })
 
-  $:if($orbitdb){
-    info('connecting to voyager')
-    $orbitdb.open('settings', {
-          type: 'documents',
-          create: true,
-          overwrite: false,
-          directory: './orbitdb/settings',
-          identity: $identity,
-          identities: $identities,
-          AccessController: IPFSAccessController({write: [$identity.id]}),
-        }).then(_db => {
-          $settingsDB = _db;
-          window.settingsDB = _db;
-        }).catch( err => warn('error', err))
-        
-        $orbitdb.open('posts', {
-          type: 'documents',
-          create: true,
-          overwrite: false,
-          directory: './orbitdb/posts',
-          identity: $identity,
-          identities: $identities,
-          AccessController: IPFSAccessController({write: [$identity.id]}),
-        }).then(_db => {
-          $postsDB = _db;
-          window.postsDB = _db;
-          info('postsDB', _db.address.toString())
-          $postsDBAddress = _db.address.toString()
+  // Databases are now only opened in createDefaultDatabases() or switchToRemoteDB()
+  // This prevents duplicate protocol handler registration
 
-        }).catch( err => warn('error', err))
-
-        $orbitdb.open('remote-dbs', {
-          type: 'documents',
-          create: true,
-          overwrite: false,
-          identities: $identities,
-          identity: $identity,
-          AccessController: IPFSAccessController({write: [$identity.id]}),
-        }).then(_db => {
-          $remoteDBsDatabases = _db;
-          window.remoteDBsDatabases = _db;
-        }).catch(err => warn('Error opening remote DBs database:', err));
-
-        // // Add this to the initializeApp function after other database initializations
-        $orbitdb.open('comments', {
-          type: 'documents',
-          create: true,
-          overwrite: false,
-          directory: './orbitdb/comments',
-          identity: $identity,
-          identities: $identities,
-          AccessController: IPFSAccessController({write: ["*"]}),
-        }).then(_db => {
-          $commentsDB = _db;
-          info('commentsDB', _db)
-          window.commentsDB = _db;
-        }).catch(err => warn('error', err))
-
-        // // Add this to initialize the media database
-        $orbitdb.open('media', {
-          type: 'documents',
-          create: true,
-          overwrite: false,
-          directory: './orbitdb/media',
-          identity: $identity,
-          identities: $identities,
-          AccessController: IPFSAccessController({write: [$identity.id]}), 
-        }).then(_db => {
-          $mediaDB = _db;
-          info('mediaDB', _db)
-          window.mediaDB = _db;
-        }).catch(err => warn('error initializing media database', err))
-  }
-
-  $:if($settingsDB) {
+  // Track the last settingsDB address to prevent duplicate loading
+  let lastSettingsDBAddress = '';
+  
+  $:if($settingsDB && $settingsDB.address.toString() !== lastSettingsDBAddress) {
+    // Update the tracking variable
+    lastSettingsDBAddress = $settingsDB.address.toString();
+    info('Loading settings from new database:', lastSettingsDBAddress);
+    
     // Initial load of settings
     $settingsDB.get('blogName').then(result => 
       result?.value?.value !== undefined ? ($blogName = result.value.value) : null
@@ -417,8 +364,13 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       }
     });
 
-    // Add update event listener
-    $settingsDB?.events.on('update', async (entry) => {
+    // Clean up existing settingsDB event listener
+    if (settingsDBUpdateListener) {
+      $settingsDB?.events.removeListener('update', settingsDBUpdateListener);
+    }
+    
+    // Create new event listener
+    settingsDBUpdateListener = async (entry) => {
       info('Settings database update:', entry);
       if (entry?.payload?.op === 'PUT') {
         const { _id, ...rest } = entry.payload.value;
@@ -444,7 +396,10 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         info('settingsDB delete:', entry.payload.key);
         // Handle deletions if needed
       }
-    });
+    };
+    
+    // Add the new event listener
+    $settingsDB?.events.on('update', settingsDBUpdateListener);
   }
 
   // Add logging for profilePictureCid changes
@@ -463,7 +418,13 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       }));
     }).catch(err => warn('Error opening posts database:', err));
 
-    $postsDB.events.on('update', async (entry) => {
+    // Clean up existing postsDB event listener
+    if (postsDBUpdateListener) {
+      $postsDB?.events.removeListener('update', postsDBUpdateListener);
+    }
+    
+    // Create new event listener
+    postsDBUpdateListener = async (entry) => {
       info('Posts database update:', entry);
       if (entry?.payload?.op === 'PUT') {
         // Add or update the post in the store
@@ -475,7 +436,10 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         // Remove the post from the store
         $posts = $posts.filter(p => p._id !== entry.payload.key);
       }
-    });
+    };
+    
+    // Add the new event listener
+    $postsDB.events.on('update', postsDBUpdateListener);
   }
 
   $:if($remoteDBsDatabases){
@@ -539,17 +503,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     
     loadRemoteDBs() //.catch(err => console.error('Error loading remote DBs:', err));
   }
-  $settingsDB?.events.on('update', async (entry) => {
-      info('Setting database update:', entry);
-      if (entry?.payload?.op === 'PUT') {
-        const { _id, ...rest } = entry.payload.value;
-        info('settingsDB update:', rest);
-        settingsDB.update(current => [...current, { ...rest, _id: _id }]);
-      } else if (entry?.payload?.op === 'DEL') {
-        info('settingsDB delete:', entry.payload.key);
-        settingsDB.update(current => current.filter(post => post._id !== entry.payload.key));
-      }
-    });
 
   function handleTouchStart(e) {
     touchStartX = e.touches[0].clientX;
