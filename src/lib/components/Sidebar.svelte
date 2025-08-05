@@ -65,28 +65,14 @@
       {$_('blogs')}
     </button>
     <div class="space-y-1" data-testid="blogs-list">
-      <div 
-        class="text-[10px] md:text-xs text-gray-800 dark:text-gray-300 bg-gray-300 dark:bg-gray-600 p-1 rounded cursor-pointer hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
-        role="button"
-        tabindex="0"
+      <button 
+        class="w-full text-left text-[10px] md:text-xs text-gray-800 dark:text-gray-300 bg-gray-300 dark:bg-gray-600 p-1 rounded cursor-pointer hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
         onclick={async () => {
           if ($settingsDB.address) {
             try {   
                 switchToRemoteDB($settingsDB.address);
             } catch (error) {
               console.error('Error retrieving postsDBAddress from settingsDB:', error);
-            }
-          }
-        }}
-        onkeydown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            if ($settingsDB.address) {
-              try {   
-                  switchToRemoteDB($settingsDB.address);
-              } catch (error) {
-                console.error('Error retrieving postsDBAddress from settingsDB:', error);
-              }
             }
           }
         }}
@@ -125,7 +111,7 @@
             <span data-testid="connection-status">{$_('not_connected')}</span>
           {/if}
         </p>
-      </div>
+      </button>
     </div>
     <div class="space-y-1" data-testid="remote-blogs-list">
       {#if $remoteDBs?.length > 0}
