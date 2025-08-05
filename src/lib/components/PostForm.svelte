@@ -29,10 +29,20 @@ import { renderContent } from '$lib/services/MarkdownRenderer.js';
 
   async function handleSubmit() {
     console.log('Creating new post:', { title, category });
+    console.log('Current identity state:', $identity);
+    console.log('Identity ID:', $identity?.id);
+    
     if (title && content && category) {
       try {
         const _id = crypto.randomUUID();
         console.log('Creating post with _id:', _id);
+        
+        // Ensure identity is available before creating post
+        if (!$identity || !$identity.id) {
+          console.error('Identity not available when creating post');
+          alert('Identity not initialized. Please wait for the app to fully load.');
+          return;
+        }
         
         let postData = {
           _id,
@@ -46,6 +56,8 @@ import { renderContent } from '$lib/services/MarkdownRenderer.js';
           mediaIds: selectedMedia,
           published
         };
+        
+        console.log('PostData with identity:', {...postData, identity: postData.identity });
 
         if (isEncrypting) {
           console.log('Encrypting post', encryptionPassword);

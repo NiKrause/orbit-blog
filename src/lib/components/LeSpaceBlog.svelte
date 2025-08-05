@@ -414,7 +414,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       // info('posts--', _posts);
       $posts = _posts.map(entry => ({
         ...entry.value,
-        identity: entry.identity // This contains the creator's identity
+        identity: entry.value.identity || entry.identity?.id // Use saved identity or fallback to entry identity ID
       }));
     }).catch(err => warn('Error opening posts database:', err));
 
@@ -430,7 +430,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         // Add or update the post in the store
         $posts = [...$posts.filter(p => p._id !== entry.payload.value._id), {
           ...entry.payload.value,
-          identity: entry.identity
+          identity: entry.payload.value.identity || entry.identity?.id
         }];
       } else if (entry?.payload?.op === 'DEL') {
         // Remove the post from the store

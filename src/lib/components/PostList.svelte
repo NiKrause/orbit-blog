@@ -160,6 +160,16 @@ import { renderContent } from '$lib/services/MarkdownRenderer.js';
   async function saveEditedPost() {
     if (selectedPost && editedTitle && editedContent) {
       try {
+        console.log('Updating post with identity:', $identity);
+        console.log('Identity ID:', $identity?.id);
+        
+        // Ensure identity is available before updating post
+        if (!$identity || !$identity.id) {
+          console.error('Identity not available when updating post');
+          alert('Identity not initialized. Please wait for the app to fully load.');
+          return;
+        }
+        
         let updatedPost = {
           _id: $selectedPostId,
           title: editedTitle,
@@ -172,6 +182,8 @@ import { renderContent } from '$lib/services/MarkdownRenderer.js';
           mediaIds: selectedMedia,
           published: editedPublished
         };
+        
+        console.log('Updated post data with identity:', {...updatedPost, identity: updatedPost.identity });
 
         // If post is being encrypted or was previously encrypted
         if (isEncrypting || selectedPost.isEncrypted) {
