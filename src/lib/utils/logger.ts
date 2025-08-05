@@ -1,5 +1,15 @@
 import { logger } from '@libp2p/logger'
 
+// Enable debug logging in development
+if (typeof window !== 'undefined' && import.meta.env.DEV) {
+  // Check if debug is already set, if not set it for this app
+  if (!localStorage.debug || !localStorage.debug.includes('le-space:blog')) {
+    const currentDebug = localStorage.debug || '';
+    const newDebug = currentDebug ? `${currentDebug},le-space:blog*` : 'le-space:blog*';
+    localStorage.debug = newDebug;
+  }
+}
+
 const log = logger('le-space:blog')
 
 export const debug = (message: string, ...args: any[]) => {

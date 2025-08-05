@@ -48,6 +48,18 @@ function updateLoadingState(step: string, detail: string = '', progress: number 
   debug('Loading State:', { step, detail, progress });
 }
 
+// Add a global write operation tracker
+let writeOperationCounter = 0;
+function trackWriteOperation(operation: string, dbName: string, data: any = null) {
+  writeOperationCounter++;
+  const writeId = `write-${writeOperationCounter}`;
+  console.log(`🚀 [${writeId}] WRITE OPERATION: ${operation} to ${dbName}`);
+  console.log(`🚀 [${writeId}] Data:`, data);
+  console.log(`🚀 [${writeId}] Stack trace:`);
+  console.trace();
+  return writeId;
+}
+
 /**
  * Adds a remote database to the store
  * @param address - The address of the remote database
@@ -155,10 +167,132 @@ export async function addRemoteDBToStore(address: string, peerId: string, name?:
 
 // Add helper function at the top
 function hasWriteAccess(db: any, identityId: string): boolean {
-  console.log("db",db.name)
-  console.log("db.access.write.includes(identityId)",db.access.write.includes(identityId))
-  console.log("db.access.write.includes", db.access.write.includes("*"))
-  return db.access.write.includes(identityId) || db.access.write.includes("*");
+  try {
+    if (!db?.access?.write) {
+      console.warn('Database has no access control defined');
+      return false;
+    }
+    const hasAccess = db.access.write.includes(identityId) || db.access.write.includes("*");
+    debug("Write access check for", db.name || 'unknown', ":", hasAccess);
+    return hasAccess;
+  } catch (error) {
+    console.error('Error checking write access:', error);
+    return false;
+  }
+}
+
+// Wait for database to be ready (either 'join' or 'update' event)
+function waitForDatabaseReady(db: any, timeout: number = 10000): Promise<boolean> {
+  return new Promise((resolve) => {
+    let resolved = false;
+    const dbAddress = db.address?.toString() || 'unknown';
+    
+    const resolveOnce = (eventType: string) => {
+      if (resolved) return;
+      resolved = true;
+      debug(`Database ready via '${eventType}' event:`, dbAddress);
+      resolve(true);
+    };
+    
+    // Listen for join event (peer connections)
+    const joinHandler = (peerId: string, heads: any) => {
+      debug('Database join event:', dbAddress, peerId);
+      resolveOnce('join');
+    };
+    
+    // Listen for update event (data synchronization)
+    const updateHandler = (entry: any) => {
+      debug('Database update event:', dbAddress, entry?.payload?.op);
+      resolveOnce('update');
+    };
+    
+    db.events.on('join', joinHandler);
+    db.events.on('update', updateHandler);
+    
+    // Set timeout to prevent hanging
+    const timeoutId = setTimeout(() => {
+      if (resolved) return;
+      resolved = true;
+      
+      // Clean up event listeners
+      db.events.off('join', joinHandler);
+      db.events.off('update', updateHandler);
+      
+      warn(`Database readiness timeout after ${timeout}ms:`, dbAddress);
+      resolve(false);
+    }, timeout);
+    
+    // Clean up timeout when resolved
+    if (resolved) {
+      clearTimeout(timeoutId);
+      db.events.off('join', joinHandler);
+      db.events.off('update', updateHandler);
+    }
+  });
+}
+
+// Enhanced function to wait for database data to be available
+async function waitForDatabaseData(db: any, timeout: number = 20000): Promise<any[]> {
+  const dbAddress = db.address?.toString() || 'unknown';
+  const startTime = Date.now();
+  let retryCount = 0;
+  const maxRetries = 10;
+  
+  while (Date.now() - startTime < timeout && retryCount < maxRetries) {
+    retryCount++;
+    
+    try {
+      const data = await db.all();
+      
+      if (data && data.length > 0) {
+        debug(`Database data loaded on attempt ${retryCount}:`, dbAddress, `${data.length} entries`);
+        return data;
+      }
+      
+      // If no data yet, wait for events or timeout
+      debug(`Database ${dbAddress} empty on attempt ${retryCount}, waiting for sync...`);
+      
+      // Wait for either an update event or a short timeout
+      await new Promise((resolve) => {
+        let resolved = false;
+        
+        const resolveOnce = () => {
+          if (resolved) return;
+          resolved = true;
+          resolve(true);
+        };
+        
+        // Listen for update event
+        const updateHandler = () => {
+          debug('Data sync event detected for:', dbAddress);
+          db.events.off('update', updateHandler);
+          resolveOnce();
+        };
+        
+        db.events.on('update', updateHandler);
+        
+        // Fallback timeout for this iteration
+        setTimeout(() => {
+          db.events.off('update', updateHandler);
+          resolveOnce();
+        }, 2000); // Wait 2 seconds per attempt
+      });
+      
+    } catch (error) {
+      warn(`Error loading data from ${dbAddress} on attempt ${retryCount}:`, error);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+  
+  // Final attempt - return whatever we have (even if empty)
+  try {
+    const finalData = await db.all();
+    info(`Final data load attempt for ${dbAddress}: ${finalData?.length || 0} entries`);
+    return finalData || [];
+  } catch (error) {
+    warn(`Final data load failed for ${dbAddress}:`, error);
+    return [];
+  }
 }
 
 interface DBConfig {
@@ -175,7 +309,8 @@ async function openOrCreateDB(
   dbKey: string,
   config: DBConfig,
   canWriteToSettings: boolean,
-  settingsDB: any
+  settingsDB: any,
+  isRemoteDB: boolean = false
 ) {
   const dbAddressValue = dbContents.find(content => content.key === dbKey)?.value?.value;
   info(`Found ${dbKey}:`, dbAddressValue);
@@ -184,6 +319,19 @@ async function openOrCreateDB(
     try {
       const dbInstance = await orbitdbInstance.open(dbAddressValue);
       console.log(`${config.name} ${dbAddressValue} loaded`);
+      
+      // Wait for database to be ready if it's a remote database
+      if (isRemoteDB) {
+        updateLoadingState('waiting_db_ready', `Waiting for ${config.name} database to sync...`, 40);
+        const isReady = await waitForDatabaseReady(dbInstance, 15000); // 15 second timeout
+        
+        if (!isReady) {
+          warn(`Database ${config.name} did not become ready within timeout, proceeding anyway`);
+        } else {
+          info(`Database ${config.name} is ready for operations`);
+        }
+      }
+      
       config.store.set(dbInstance);
       return dbInstance;
     } catch (_error) {
@@ -192,7 +340,8 @@ async function openOrCreateDB(
         console.log(`No write access to settings - skipping ${config.name} database creation`);
       }
     }
-  } else if (canWriteToSettings) {
+  } else if (canWriteToSettings && !isRemoteDB) {
+    // Only create new databases for local setups, not remote ones
     info('creating new database', config.name)
     try {
       const dbInstance = await orbitdbInstance.open(config.name, {
@@ -206,7 +355,7 @@ async function openOrCreateDB(
       });
       config.store.set(dbInstance);
       const dbAddress = dbInstance.address.toString();
-      // Store in settings
+      // Store in settings (no need to wait for readiness on local creation)
       info('storing dbAddress in settings', dbAddress)
       await settingsDB.put({ _id: dbKey, value: dbAddress });
       return dbInstance;
@@ -214,7 +363,11 @@ async function openOrCreateDB(
       error(`Failed to create ${config.name} database:`, _error);
     }
   } else {
-    warn(`No ${config.name} database address found and no write access to create one`);
+    if (isRemoteDB && !dbAddressValue) {
+      warn(`No ${config.name} database address found in remote database`);
+    } else {
+      warn(`No ${config.name} database address found and no write access to create one`);
+    }
   }
   return null;
 }
@@ -302,16 +455,25 @@ async function waitForPeers(heliaInstance: any, minPeers: number = 1, timeout: n
 export async function switchToRemoteDB(address: string, showModal = false) {
   let retry = true;
   let cancelOperation = false;
+  let retryCount = 0;
+  const maxRetries = 3;
   
   let blogNameValue;
   let categoriesValue; 
   
   const orbitdbInstance = get(orbitdb);
   const heliaInstance = get(helia);
+  
+  console.log('🔄 switchToRemoteDB called with address:', address);
+  console.log('🔄 Current identity:', get(identity)?.id);
+  
   try {
     updateLoadingState('initializing', 'Starting database switch...', 5);
 
-    while (retry && !cancelOperation) {
+    while (retry && !cancelOperation && retryCount < maxRetries) {
+      retryCount++;
+      console.log(`🔄 switchToRemoteDB attempt ${retryCount}/${maxRetries} for address:`, address);
+      
       if (!orbitdbInstance) throw new Error("OrbitDB not initialized");
       
       // Connect to peers
@@ -327,18 +489,30 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       updateLoadingState('identifying_db', `Opening database: ${address}`, 30);
       
       // Try opening with Voyager first, fall back to direct OrbitDB if it fails
+      console.log('🔄 Opening database with address:', address);
       let db = await orbitdbInstance.open(address);
       
       if (!db) {
         throw new Error("Failed to open database with both Voyager and OrbitDB");
       }
       
+      console.log('✅ Database opened successfully:', {
+        address: db.address?.toString(),
+        name: db.name,
+        accessWrite: db.access?.write,
+        type: db.type
+      });
+      
       // Set the settings DB store
       settingsDB.set(db);
       
-      // Get all settings data
+      // Get all settings data with enhanced retry mechanism
       updateLoadingState('loading_settings', 'Loading blog configuration...', 40);
-      const dbContents = await db.all();
+      console.log('🔄 Loading settings from database...');
+      
+      // Use the enhanced data loading function to handle empty results
+      const dbContents = await waitForDatabaseData(db, 20000); // 20 second timeout
+      console.log('📄 Database contents loaded:', dbContents?.length || 0, 'entries');
       info('try to switch to remote dbContents', dbContents);
 
       // Set values from dbContents
@@ -383,7 +557,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
 
 
       // Check if all required data is available
-      if (blogNameValue && blogDescriptionValue && postsDBAddressValue)  {
+      if (blogNameValue && postsDBAddressValue)  {
         info('blogNameValue', blogNameValue);
         info('blogDescriptionValue', blogDescriptionValue);
         info('postsDBAddressValue', postsDBAddressValue);
@@ -404,14 +578,18 @@ export async function switchToRemoteDB(address: string, showModal = false) {
           writeAccess: [get(identity).id],
           store: postsDB,
           addressStore: postsDBAddress
-        }, canWriteToSettings, db)
+        }, canWriteToSettings, db, true)
         .then(async postsInstance => {
           if (postsInstance) {
             info('postsInstance', postsInstance)
             postsDBAddress = postsInstance.address.toString()
             // Only attempt to write if we have permissions
-            if (canWriteToSettings && hasWriteAccess(postsInstance, get(identity).id)) {
-              await get(settingsDB).put({ _id: 'postsDBAddress', value: postsDBAddress });
+            try {
+              if (canWriteToSettings && hasWriteAccess(postsInstance, get(identity).id)) {
+                await get(settingsDB).put({ _id: 'postsDBAddress', value: postsDBAddress });
+              }
+            } catch (writeError) {
+              console.warn('Could not update postsDBAddress in settings:', writeError.message);
             }
             const allPosts = (await postsInstance.all()).map(post => {
           const { _id, ...rest } = post.value;
@@ -439,13 +617,17 @@ export async function switchToRemoteDB(address: string, showModal = false) {
           writeAccess: ["*"],
           store: commentsDB,
           addressStore: commentsDBAddress
-        }, canWriteToSettings, db)
+        }, canWriteToSettings, db, true)
         .then(async commentsInstance => {
           if (commentsInstance) {
             info('commentsInstance', commentsInstance)
             commentsDBAddress = commentsInstance.address.toString()
-            if (canWriteToSettings && hasWriteAccess(commentsInstance, get(identity).id)) {
-              await get(settingsDB).put({ _id: 'commentsDBAddress', value: commentsDBAddress });
+            try {
+              if (canWriteToSettings && hasWriteAccess(commentsInstance, get(identity).id)) {
+                await get(settingsDB).put({ _id: 'commentsDBAddress', value: commentsDBAddress });
+              }
+            } catch (writeError) {
+              console.warn('Could not update commentsDBAddress in settings:', writeError.message);
             }
             
             const allComments = await commentsInstance.all();
@@ -460,13 +642,17 @@ export async function switchToRemoteDB(address: string, showModal = false) {
           writeAccess: [get(identity).id],
           store: mediaDB,
           addressStore: mediaDBAddress
-        }, canWriteToSettings, db)
+        }, canWriteToSettings, db, true)
         .then(async mediaInstance => {
           if (mediaInstance) {
             info('mediaInstance', mediaInstance)
             mediaDBAddress = mediaInstance.address.toString()
-            if (canWriteToSettings && hasWriteAccess(mediaInstance, get(identity).id)) {
-              await get(settingsDB).put({ _id: 'mediaDBAddress', value: mediaDBAddress });
+            try {
+              if (canWriteToSettings && hasWriteAccess(mediaInstance, get(identity).id)) {
+                await get(settingsDB).put({ _id: 'mediaDBAddress', value: mediaDBAddress });
+              }
+            } catch (writeError) {
+              console.warn('Could not update mediaDBAddress in settings:', writeError.message);
             }
             const allMedia = await mediaInstance.all();
             mediaCount = allMedia.length;
@@ -491,6 +677,18 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         info('remoteDBs', get(remoteDBs))
         retry = false; // Stop retrying if all data is fetched
       } else {
+        // If we don't have the minimum required data after several attempts, give up
+        if (!blogNameValue || !postsDBAddressValue) {
+          console.warn('❌ Missing required data after loading attempt. BlogName:', !!blogNameValue, 'PostsDBAddress:', !!postsDBAddressValue);
+          console.warn('❌ Retry count:', retryCount, '/', maxRetries);
+          
+          if (retryCount >= maxRetries) {
+            console.error('❌ Max retries reached, stopping to prevent endless loop');
+            updateLoadingState('error', 'Could not load required blog data after multiple attempts', 0);
+            retry = false;
+            return false;
+          }
+        }
         updateLoadingState('loading_settings', 'Waiting for required data...', 45);
         await new Promise(resolve => setTimeout(resolve, 500)); // Wait before retrying
       }
