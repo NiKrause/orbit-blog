@@ -163,6 +163,8 @@ import { renderContent } from '$lib/services/MarkdownRenderer.js';
   async function saveEditedPost() {
     if (selectedPost && editedTitle && editedContent) {
       try {
+        console.log('Updating post with identity:', $identity);
+        console.log('Identity ID:', $identity?.id);
         
         // Ensure identity is available before updating post
         if (!$identity || !$identity.id) {
@@ -579,7 +581,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
 
   <div class="grid grid-cols-12 gap-6 responsive-grid">
     <!-- Post List -->
-    <div class="col-span-4 bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 h-fit">
+    <div class="col-span-4 bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 h-fit post-list-container">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-xl font-semibold text-gray-900 dark:text-white">{$_('blog_posts')}</h2>
       </div>
@@ -649,20 +651,24 @@ ${convertMarkdownToLatex(selectedPost.content)}
                   <h3 data-testid="post-item-title" class="font-medium text-gray-900 dark:text-white overflow-hidden whitespace-nowrap" title={post.title}>
                     {post.isDecrypted ? truncateTitle(post.title, 40) : truncateTitle(post.isEncrypted ? $_('encrypted_post') : post.title, 40)}
                   </h3>
-                  <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    <span>
+                  <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    <div class="mb-1">
                       {formatTimestamp(post.createdAt || post.date)}
-                    </span>
+                    </div>
                     {#if post.categories && post.categories.length > 0}
-                      {#each post.categories as categoryItem}
-                        <span class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full text-xs mr-1">
-                          {categoryItem}
-                        </span>
-                      {/each}
+                      <div class="flex flex-wrap gap-1 mt-1">
+                        {#each post.categories as categoryItem}
+                          <span class="px-2 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full text-xs whitespace-nowrap flex-shrink-0">
+                            {categoryItem}
+                          </span>
+                        {/each}
+                      </div>
                     {:else if post.category}
-                      <span class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full text-xs">
-                        {post.category}
-                      </span>
+                      <div class="mt-1">
+                        <span class="px-2 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full text-xs whitespace-nowrap flex-shrink-0">
+                          {post.category}
+                        </span>
+                      </div>
                     {/if}
                   </div>
                 </div>
@@ -1068,6 +1074,10 @@ ${convertMarkdownToLatex(selectedPost.content)}
     position: relative;
     margin-bottom: 0.5rem;
     border: 1px solid transparent;
+    /* Prevent content overflow */
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    min-width: 0; /* Allow flex items to shrink below their content size */
   }
 
   /* Active state for touch feedback */
@@ -1097,6 +1107,9 @@ ${convertMarkdownToLatex(selectedPost.content)}
   @media (max-width: 768px) {
     .post-item {
       padding: 12px; /* Larger touch target */
+      /* Ensure proper width constraints on mobile */
+      max-width: 100%;
+      overflow: hidden;
     }
 
     .action-buttons {
@@ -1105,6 +1118,27 @@ ${convertMarkdownToLatex(selectedPost.content)}
       right: 8px;
       top: 50%;
       transform: translateY(-50%);
+      /* Ensure buttons don't overflow */
+      flex-shrink: 0;
+    }
+    
+    /* Make sure post content area doesn't overflow */
+    .post-content {
+      max-width: 100%;
+      overflow: hidden;
+    }
+    
+    /* Ensure category tags wrap properly on mobile */
+    .post-content .flex {
+      flex-wrap: wrap;
+    }
+    
+    /* Fix title overflow on mobile */
+    .post-content h3 {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: calc(100% - 120px); /* Account for action buttons */
     }
   }
 

@@ -397,24 +397,30 @@ function updateRenderedContent(): void {
     />
   {:else}
     <h1 data-testid="post-title" class="text-4xl font-bold mb-2 text-gray-900 dark:text-white">{title}</h1>
-    <div class="flex space-x-4 text-sm text-gray-500 dark:text-gray-400 mb-4">
-      <span title={post.identity || 'Unknown'}>
-        {$_('by')} {post.identity ? `...${post.identity.slice(-5)}` : $_('unknown')}
-      </span>
-      <span>{formatTimestamp(post.createdAt || post.date)}</span>
-      {#if post.updatedAt && post.updatedAt !== post.createdAt}
-        <span>({$_('updated')}: {formatTimestamp(post.updatedAt)})</span>
-      {/if}
-      {#if post.categories && post.categories.length > 0}
-        {#each post.categories as categoryItem}
-          <span class="px-2 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full">
-            {categoryItem}
-          </span>
-        {/each}
-      {:else if post.category}
-        <span class="px-2 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full">
-          {post.category}
+    <div class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+      <div class="flex flex-wrap gap-2 mb-2">
+        <span title={post.identity || 'Unknown'}>
+          {$_('by')} {post.identity ? `...${post.identity.slice(-5)}` : $_('unknown')}
         </span>
+        <span>{formatTimestamp(post.createdAt || post.date)}</span>
+        {#if post.updatedAt && post.updatedAt !== post.createdAt}
+          <span>({$_('updated')}: {formatTimestamp(post.updatedAt)})</span>
+        {/if}
+      </div>
+      {#if post.categories && post.categories.length > 0}
+        <div class="flex flex-wrap gap-2">
+          {#each post.categories as categoryItem}
+            <span class="px-2 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full whitespace-nowrap flex-shrink-0">
+              {categoryItem}
+            </span>
+          {/each}
+        </div>
+      {:else if post.category}
+        <div class="mt-1">
+          <span class="px-2 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full whitespace-nowrap flex-shrink-0">
+            {post.category}
+          </span>
+        </div>
       {/if}
     </div>
     
