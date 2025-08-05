@@ -888,20 +888,20 @@ ${convertMarkdownToLatex(selectedPost.content)}
 {#if showHistory}
   <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-      <h3 class="text-xl font-bold mb-4">{$_('post_history')}</h3>
+      <h3 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">{$_('post_history')}</h3>
       <div class="space-y-4">
         {#each postHistory as version}
-          <div class="border dark:border-gray-700 p-4 rounded">
-            <div class="flex justify-between mb-2">
-              <span class="text-sm text-gray-500">{formatTimestamp(version.createdAt)}</span>
+          <div class="border border-gray-200 dark:border-gray-700 p-4 rounded-lg">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-sm text-gray-500 dark:text-gray-400">{formatTimestamp(version.createdAt)}</span>
               <button
-                class="text-blue-600 hover:text-blue-800"
+                class="px-3 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 transition-colors"
                 onclick={() => restoreVersion(version)}
               >
                 {$_('restore_this_version')}
               </button>
             </div>
-            <h4 class="font-bold">{version.title}</h4>
+            <h4 class="font-bold text-gray-900 dark:text-white">{version.title}</h4>
             <div class="relative">
               <p class="text-sm text-gray-600 dark:text-gray-400 cursor-help">{version.content ? version.content.substring(0, version.content.length > 100 ? 100 : version.content.length) : $_('no_content')}...</p>
               {#if version.content && version.content.length > 100}
