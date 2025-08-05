@@ -30,9 +30,6 @@ import MultiSelect from './MultiSelect.svelte';
   let published = $state(false);
 
   async function handleSubmit() {
-    console.log('Creating new post:', { title, selectedCategories });
-    console.log('Current identity state:', $identity);
-    console.log('Identity ID:', $identity?.id);
     
     if (title && content && selectedCategories.length > 0) {
       try {

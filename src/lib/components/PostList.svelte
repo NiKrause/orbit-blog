@@ -163,8 +163,6 @@ import { renderContent } from '$lib/services/MarkdownRenderer.js';
   async function saveEditedPost() {
     if (selectedPost && editedTitle && editedContent) {
       try {
-        console.log('Updating post with identity:', $identity);
-        console.log('Identity ID:', $identity?.id);
         
         // Ensure identity is available before updating post
         if (!$identity || !$identity.id) {
@@ -1010,6 +1008,18 @@ ${convertMarkdownToLatex(selectedPost.content)}
   @media (max-width: 768px) {
     .responsive-grid {
       grid-template-columns: 1fr; /* Stack the columns on smaller screens */
+      gap: 1rem; /* Reduce gap on mobile */
+    }
+    
+    /* Override column spans on mobile */
+    .responsive-grid > * {
+      grid-column: 1 !important;
+    }
+    
+    /* Ensure post list doesn't get too wide on mobile */
+    .post-list-container {
+      max-width: 100vw;
+      overflow-x: hidden;
     }
   }
 
