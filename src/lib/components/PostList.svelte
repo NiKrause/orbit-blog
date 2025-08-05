@@ -60,6 +60,40 @@ import { renderContent } from '$lib/services/MarkdownRenderer.js';
   let encryptionPassword = $state('');
   let encryptionError = $state('');
 
+  // Derive available years from posts
+  let availableYears = $derived.by(() => {
+    const years = new Set();
+    $posts.forEach(post => {
+      const date = new Date(post.createdAt || post.date);
+      if (!isNaN(date.getTime())) {
+        years.add(date.getFullYear());
+      }
+    });
+    return Array.from(years).sort((a, b) => b - a); // Most recent first
+  });
+
+  // Function to jump to the last post of a specific year
+  function jumpToYear(year: number) {
+    const yearPosts = displayedPosts.filter(post => {
+      const date = new Date(post.createdAt || post.date);
+      return date.getFullYear() === year;
+    });
+    
+    if (yearPosts.length > 0) {
+      // Find the last post of that year (most recent)
+      const lastPostOfYear = yearPosts[yearPosts.length - 1];
+      $selectedPostId = lastPostOfYear._id;
+      
+      // Scroll to the post in the list
+      setTimeout(() => {
+        const postElement = document.querySelector(`[data-post-id="${lastPostOfYear._id}"]`);
+        if (postElement) {
+          postElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    }
+  }
+
   // Combined filtering function
   function filterPosts() {
     const currentLanguage = $locale;
@@ -581,11 +615,28 @@ ${convertMarkdownToLatex(selectedPost.content)}
 
   <div class="grid grid-cols-12 gap-6 responsive-grid">
     <!-- Post List -->
-    <div class="col-span-4 bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 h-fit post-list-container">
+    <div class="col-span-4 bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 post-list-container flex flex-col">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-xl font-semibold text-gray-900 dark:text-white">{$_('blog_posts')}</h2>
       </div>
-      <div class="space-y-2">
+      
+      <!-- Year Navigation Badges -->
+      {#if availableYears.length > 1}
+        <div class="mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
+          <div class="flex flex-wrap gap-1 max-h-20 overflow-y-auto" style="scrollbar-width: none;">
+            {#each availableYears as year}
+              <button
+                class="px-2 py-1 text-xs font-medium bg-amber-100 dark:bg-amber-800 text-amber-800 dark:text-amber-200 rounded-md hover:bg-amber-200 dark:hover:bg-amber-700 transition-colors flex-shrink-0 whitespace-nowrap"
+                onclick={() => jumpToYear(year)}
+                title={`Jump to last post from ${year}`}
+              >
+                {year}
+              </button>
+            {/each}
+          </div>
+        </div>
+      {/if}
+      <div class="space-y-2 overflow-y-auto max-h-96 min-h-48 pr-2" style="scrollbar-width: thin; scrollbar-color: rgb(156 163 175) transparent;">
         {#each displayedPosts as post (post._id)}
           <div data-testid="post-item-{post._id}" class="post-item w-full text-left p-3 rounded-md transition-colors cursor-pointer"
             class:bg-indigo-50={$selectedPostId === post._id}
