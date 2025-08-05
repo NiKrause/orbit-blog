@@ -505,21 +505,38 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   }
 
   function handleTouchStart(e) {
-    touchStartX = e.touches[0].clientX;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    touchStartX = clientX;
+    info('Touch/Mouse start:', touchStartX);
   }
 
   function handleTouchMove(e) {
-    touchEndX = e.touches[0].clientX;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    touchEndX = clientX;
   }
 
-  function handleTouchEnd() {
-    if (touchStartX - touchEndX > SWIPE_THRESHOLD && sidebarVisible) {
-      // Swipe left - hide sidebar
-      sidebarVisible = false;
-    } else if (touchEndX - touchStartX > SWIPE_THRESHOLD && !sidebarVisible) {
-      // Swipe right - show sidebar
-      sidebarVisible = true;
+  function handleTouchEnd(e) {
+    info('Touch/Mouse end:', 'startX:', touchStartX, 'endX:', touchEndX);
+    const deltaX = touchStartX - touchEndX;
+    const swipeDistance = Math.abs(deltaX);
+    
+    if (swipeDistance > SWIPE_THRESHOLD) {
+      if (deltaX > 0 && sidebarVisible) {
+        // Swipe left - hide sidebar
+        info('Swiping left to hide sidebar');
+        sidebarVisible = false;
+        e?.preventDefault?.();
+      } else if (deltaX < 0 && !sidebarVisible) {
+        // Swipe right - show sidebar
+        info('Swiping right to show sidebar');
+        sidebarVisible = true;
+        e?.preventDefault?.();
+      }
     }
+    
+    // Reset values
+    touchStartX = 0;
+    touchEndX = 0;
   }
 
   // Add mouse-related functions
@@ -554,7 +571,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 </script>
 <svelte:head>
   <title>{$blogName} {__APP_VERSION__}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
   <meta name="description" content="{$blogDescription}">
   <!-- <meta name="author" content="{$blogName}"> -->
   <meta name="keywords" content="{$categories}">
@@ -595,7 +612,10 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   <main class="flex min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors"
     ontouchstart={handleTouchStart}
     ontouchmove={handleTouchMove}
-    ontouchend={handleTouchEnd}>
+    ontouchend={handleTouchEnd}
+    onmousedown={handleTouchStart}
+    onmousemove={handleTouchMove}
+    onmouseup={handleTouchEnd}>
     
     {#if sidebarVisible}
       <div 
@@ -615,32 +635,27 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       ></div>
       
       <div 
-        role="button"
-        tabindex="0"
-        onclick={() => sidebarVisible = false}
-        ontouchend={(e) => {sidebarVisible = false; e.stopPropagation()}}
-        onkeydown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            sidebarVisible = false;
-          }
-        }}
         in:fly={{ x: $isRTL ? 400 : -400, duration: 400, easing: cubicOut }} 
         out:fly={{ x: $isRTL ? 400 : -400, duration: 400, easing: cubicOut }}
         class="fixed top-0 {sidebarPosition}-0 h-full z-40 max-w-[80vw]"
-        aria-label={$_('close_sidebar')}
       >
-        <button
-          class="absolute top-2 {sidebarButtonPosition}-1 z-50 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-full p-1 shadow-sm transition-all duration-300 focus:outline-none"
-          onclick={() => sidebarVisible = false}
-          ontouchend={(e) => {sidebarVisible = false; e.stopPropagation()}}
-          aria-label={$_('close')}>
-          <div class="w-4 h-4 text-gray-800 dark:text-gray-200">
-            <FaTimes />
-          </div>
-        </button>
         <Sidebar />
       </div>
+      
+      <!-- Close button positioned outside sidebar container to avoid event conflicts -->
+      <button
+        class="fixed top-2 {sidebarButtonPosition}-1 z-50 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-full p-2 shadow-lg transition-all duration-300 focus:outline-none"
+        onclick={(e) => {e.stopPropagation(); sidebarVisible = false;}}
+        ontouchstart={(e) => {e.stopPropagation();}}
+        ontouchend={(e) => {e.stopPropagation(); e.preventDefault(); sidebarVisible = false;}}
+        onmousedown={(e) => {e.stopPropagation();}}
+        onmouseup={(e) => {e.stopPropagation(); sidebarVisible = false;}}
+        aria-label={$_('close')}
+        data-testid="close-sidebar-button">
+        <div class="w-4 h-4 text-gray-800 dark:text-gray-200">
+          <FaTimes />
+        </div>
+      </button>
     {:else}
       <!-- Sidebar toggle button -->
       <button
