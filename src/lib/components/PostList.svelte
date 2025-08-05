@@ -23,6 +23,7 @@ import { renderContent } from '$lib/services/MarkdownRenderer.js';
   import { encryptPost } from '$lib/cryptoUtils.js';
   import PostPasswordPrompt from './PostPasswordPrompt.svelte';
   import { info, error } from '../utils/logger.js'
+  import MultiSelect from './MultiSelect.svelte';
 
   let searchTerm = $state('');
   let selectedCategory: Category | 'All' = $state('All');
@@ -31,7 +32,7 @@ import { renderContent } from '$lib/services/MarkdownRenderer.js';
   let editMode = $state(false); // Track if we're in edit mode
   let editedTitle = $state('');
   let editedContent = $state('');
-  let editedCategory: Category = $state();
+  let editedCategories = $state<string[]>([]); // Support multiple categories
   let editedUpdatedAt = $state('');
   let editedCreatedAt = $state('');
   let editedPublished = $state(false);
@@ -78,6 +79,7 @@ import { renderContent } from '$lib/services/MarkdownRenderer.js';
 
         // Category filter
         const matchesCategory = selectedCategory === 'All' || selectedCategory === undefined || 
+                              (post.categories && post.categories.includes(selectedCategory)) ||
                               post.category === selectedCategory;
 
         const matchesSearch = !searchTerm || 
@@ -149,7 +151,8 @@ import { renderContent } from '$lib/services/MarkdownRenderer.js';
     $selectedPostId = post._id;
     editedTitle = post.title;
     editedContent = post.content;
-    editedCategory = post.category;
+    // Handle both single category and multiple categories
+    editedCategories = post.categories || (post.category ? [post.category] : []);
     editedUpdatedAt = new Date(post.updatedAt).toISOString().slice(0, 16);
     editedCreatedAt = new Date(post.createdAt).toISOString().slice(0, 16);
     selectedMedia = post.mediaIds || [];
@@ -170,12 +173,16 @@ import { renderContent } from '$lib/services/MarkdownRenderer.js';
           return;
         }
         
+        // Support both single category (backward compatibility) and multiple categories
+        const categoryData = editedCategories.length > 0 ? editedCategories : [];
+        
         let updatedPost = {
           _id: $selectedPostId,
           title: editedTitle,
           content: editedContent,
           language: $locale,
-          category: editedCategory,
+          category: categoryData.length === 1 ? categoryData[0] : categoryData[0] || '', // Keep single category for backward compatibility
+          categories: categoryData, // New field for multiple categories
           createdAt: new Date(editedCreatedAt).getTime(),
           updatedAt: new Date(editedUpdatedAt).getTime(),
           identity: $identity.id,
@@ -281,7 +288,8 @@ import { renderContent } from '$lib/services/MarkdownRenderer.js';
   function restoreVersion(historicalPost: Post) {
     editedTitle = historicalPost.title;
     editedContent = historicalPost.content;
-    editedCategory = historicalPost.category;
+    // Handle both single category and multiple categories
+    editedCategories = historicalPost.categories || (historicalPost.category ? [historicalPost.category] : []);
     editMode = true;
     showHistory = false;
   }
@@ -462,11 +470,15 @@ ${convertMarkdownToLatex(selectedPost.content)}
     translationStatuses = Object.fromEntries([...$enabledLanguages].map(lang => [lang, 'default']));
 
     try {
+      // Support both single category (backward compatibility) and multiple categories
+        const categoryData = editedCategories.length > 0 ? editedCategories : [];
+
       const post = {
         _id:  $selectedPostId,
         title: editedTitle,
         content: editedContent,
-        category: editedCategory,
+        category: categoryData.length === 1 ? categoryData[0] : '', // Keep single category for backward compatibility
+        categories: categoryData, // New field for multiple categories
         language: $locale,
         isEncrypted: isEncrypting 
       };
@@ -643,9 +655,17 @@ ${convertMarkdownToLatex(selectedPost.content)}
                     <span>
                       {formatTimestamp(post.createdAt || post.date)}
                     </span>
-                    <span class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full text-xs">
-                      {post.category}
-                    </span>
+                    {#if post.categories && post.categories.length > 0}
+                      {#each post.categories as categoryItem}
+                        <span class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full text-xs mr-1">
+                          {categoryItem}
+                        </span>
+                      {/each}
+                    {:else if post.category}
+                      <span class="px-2 py-0.5 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full text-xs">
+                        {post.category}
+                      </span>
+                    {/if}
                   </div>
                 </div>
               </div>
@@ -676,17 +696,13 @@ ${convertMarkdownToLatex(selectedPost.content)}
               </div>
 
               <div>
-                <label for="edit-category" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{$_('category')}</label>
-                <select
+                <label for="edit-category" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{$_('categories')}</label>
+                <MultiSelect
+                  bind:values={editedCategories}
+                  options={$categories}
                   id="edit-category"
-                  bind:value={editedCategory}
-                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                >
-                  <option value="All">{$_('all')}</option>
-                  {#each [...$categories].sort((a, b) => b.localeCompare(a)) as cat}
-                    <option value={cat}>{cat}</option>
-                  {/each}
-                </select>
+                  placeholder="Select categories..."
+                />
               </div>
 
               <div>

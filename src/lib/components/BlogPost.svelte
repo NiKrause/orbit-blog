@@ -405,9 +405,17 @@ function updateRenderedContent(): void {
       {#if post.updatedAt && post.updatedAt !== post.createdAt}
         <span>({$_('updated')}: {formatTimestamp(post.updatedAt)})</span>
       {/if}
-      <span class="px-2 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full">
-        {post.category}
-      </span>
+      {#if post.categories && post.categories.length > 0}
+        {#each post.categories as categoryItem}
+          <span class="px-2 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full">
+            {categoryItem}
+          </span>
+        {/each}
+      {:else if post.category}
+        <span class="px-2 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full">
+          {post.category}
+        </span>
+      {/if}
     </div>
     
     <div data-testid="post-content" class="prose dark:prose-invert max-w-none mb-6">

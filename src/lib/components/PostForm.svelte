@@ -11,10 +11,12 @@
   import MediaUploader from './MediaUploader.svelte';
 import { handleMediaSelection, removeMediaFromContent, validateEncryptionFields } from '$lib/utils/postUtils.js';
 import { renderContent } from '$lib/services/MarkdownRenderer.js';
+import MultiSelect from './MultiSelect.svelte';
 
   let title = $state('');
   let content = $state('');
   let category: Category = $state('');
+  let selectedCategories = $state<string[]>([]);
   let showPreview = $state(false);
   let showMediaUploader = $state(false);
   let selectedMedia = $state<string[]>([]);
@@ -28,11 +30,11 @@ import { renderContent } from '$lib/services/MarkdownRenderer.js';
   let published = $state(false);
 
   async function handleSubmit() {
-    console.log('Creating new post:', { title, category });
+    console.log('Creating new post:', { title, selectedCategories });
     console.log('Current identity state:', $identity);
     console.log('Identity ID:', $identity?.id);
     
-    if (title && content && category) {
+    if (title && content && selectedCategories.length > 0) {
       try {
         const _id = crypto.randomUUID();
         console.log('Creating post with _id:', _id);
@@ -44,12 +46,16 @@ import { renderContent } from '$lib/services/MarkdownRenderer.js';
           return;
         }
         
+        // Support both single category (backward compatibility) and multiple categories
+        const categoryData = selectedCategories.length > 0 ? selectedCategories : (category ? [category] : []);
+        
         let postData = {
           _id,
           title,
           content,
           language: $locale,
-          category,
+          category: categoryData.length === 1 ? categoryData[0] : categoryData[0] || '', // Keep single category for backward compatibility
+          categories: categoryData, // New field for multiple categories
           createdAt: Date.now(),
           updatedAt: Date.now(),
           identity: $identity.id,
@@ -79,6 +85,7 @@ import { renderContent } from '$lib/services/MarkdownRenderer.js';
         title = '';
         content = '';
         category = '';
+        selectedCategories = [];
         selectedMedia = [];
         showPreview = false;
         isEncrypting = false;
@@ -183,33 +190,29 @@ import { renderContent } from '$lib/services/MarkdownRenderer.js';
   }
 </script>
 
-<form onsubmit={preventDefault(handleSubmit)} data-testid="post-form" class="space-y-4 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md {$isRTL ? 'rtl' : 'ltr'}">
+<form onsubmit={preventDefault(handleSubmit)} data-testid="post-form" class="space-y-4 bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-md {$isRTL ? 'rtl' : 'ltr'}">
   <h2 class="text-2xl font-bold mb-4 text-gray-900 dark:text-white">{$_('create_new_post')}</h2>
   
   <div>
     <label for="title" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{$_('title')}</label>
-    <input
+<input
       id="title"
       type="text"
       data-testid="post-title-input"
       bind:value={title}
-      class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+      class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
       required
     />
   </div>
 
   <div>
-    <label for="category" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{$_('category')}</label>
-    <select
-      id="category"
-      data-testid="category-select"
-      bind:value={category}
-      class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-    >
-      {#each $categories as cat}
-        <option value={cat}>{cat}</option>
-      {/each}
-    </select>
+    <label for="categories" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{$_('categories')}</label>
+    <MultiSelect
+      id="categories"
+      bind:values={selectedCategories}
+      options={$categories}
+      placeholder="Select categories..."
+    />
   </div>
 
   <div>
@@ -242,12 +245,12 @@ import { renderContent } from '$lib/services/MarkdownRenderer.js';
 {@html renderContent(content || `*${$_('preview_will_appear_here')}...*`)}
       </div>
     {:else}
-      <textarea
+<textarea
         id="content"
         data-testid="post-content-input"
         bind:value={content}
         rows="6"
-        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
         required
         placeholder={$_('markdown_placeholder')}
       ></textarea>
