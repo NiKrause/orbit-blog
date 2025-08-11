@@ -56,8 +56,9 @@
   <!-- DBs Section -->
   <div class="mb-3" data-testid="blogs-section">
     <button 
-      class="text-xs md:text-sm font-bold uppercase tracking-wider text-white dark:text-white bg-blue-500 rounded py-1 px-2 mb-1 cursor-pointer hover:bg-blue-600 w-full text-left focus:outline-none focus:ring-2 focus:ring-blue-600"
+      class="text-xs md:text-sm font-bold uppercase tracking-wider text-white dark:text-white bg-blue-500 rounded py-1 px-2 mb-1 cursor-pointer hover:bg-blue-600 w-full text-left focus:outline-none focus:ring-2 focus:ring-blue-600 touch-target"
       onclick={() => toggleSection('blogs')}
+      ontouchend={(e) => { e.preventDefault(); toggleSection('blogs'); }}
       title={$showDBManager ? $_("hide_database_manager") : $_("show_database_manager")}
       data-testid="blogs-header"
       aria-label={$showDBManager ? $_("hide_database_manager") : $_("show_database_manager")}
@@ -66,8 +67,18 @@
     </button>
     <div class="space-y-1" data-testid="blogs-list">
       <button 
-        class="w-full text-left text-[10px] md:text-xs text-gray-800 dark:text-gray-300 bg-gray-300 dark:bg-gray-600 p-1 rounded cursor-pointer hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+        class="w-full text-left text-[10px] md:text-xs text-gray-800 dark:text-gray-300 bg-gray-300 dark:bg-gray-600 p-1 rounded cursor-pointer hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors touch-target"
         onclick={async () => {
+          if ($settingsDB.address) {
+            try {   
+                switchToRemoteDB($settingsDB.address);
+            } catch (error) {
+              console.error('Error retrieving postsDBAddress from settingsDB:', error);
+            }
+          }
+        }}
+        ontouchend={async (e) => {
+          e.preventDefault();
           if ($settingsDB.address) {
             try {   
                 switchToRemoteDB($settingsDB.address);
@@ -117,8 +128,9 @@
       {#if $remoteDBs?.length > 0}
         {#each $remoteDBs as db}
           <button 
-            class="w-full text-left py-0.5 px-1 rounded text-[10px] md:text-xs truncate max-h-8 flex items-center {$postsDBAddress === db.address ? 'bg-blue-500 text-white' : db.access?.write?.includes($identity?.id) ? 'bg-green-300 dark:bg-green-600 text-gray-800 dark:text-gray-200 hover:bg-amber-400 dark:hover:bg-amber-500' : 'bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-400 dark:hover:bg-gray-500'}"
+            class="w-full text-left py-0.5 px-1 rounded text-[10px] md:text-xs truncate max-h-8 flex items-center touch-target {$postsDBAddress === db.address ? 'bg-blue-500 text-white' : db.access?.write?.includes($identity?.id) ? 'bg-green-300 dark:bg-green-600 text-gray-800 dark:text-gray-200 hover:bg-amber-400 dark:hover:bg-amber-500' : 'bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-400 dark:hover:bg-gray-500'}"
             onclick={() => switchToRemoteDB(db.address)}
+            ontouchend={(e) => { e.preventDefault(); switchToRemoteDB(db.address); }}
             title={db.name}
             data-testid={`remote-blog-${db.id}`}
           >
@@ -153,8 +165,9 @@
   <!-- Peers Section -->
   <div class="mb-3" data-testid="peers-section">
     <button 
-      class="text-xs md:text-sm font-bold uppercase tracking-wider text-white dark:text-white bg-yellow-500 rounded py-1 px-2 mb-1 cursor-pointer hover:bg-yellow-600 w-full text-left focus:outline-none focus:ring-2 focus:ring-yellow-600"
+      class="text-xs md:text-sm font-bold uppercase tracking-wider text-white dark:text-white bg-yellow-500 rounded py-1 px-2 mb-1 cursor-pointer hover:bg-yellow-600 w-full text-left focus:outline-none focus:ring-2 focus:ring-yellow-600 touch-target"
       onclick={() => toggleSection('peers')}
+      ontouchend={(e) => { e.preventDefault(); toggleSection('peers'); }}
       title={$showPeers ? $_("hide_connected_peers") : $_("show_connected_peers")}
       data-testid="peers-header"
       aria-label={$showPeers ? $_("hide_connected_peers") : $_("show_connected_peers")}
@@ -177,8 +190,9 @@
   <!-- Settings Section -->
   <div data-testid="settings-section">
     <button 
-      class="text-xs md:text-sm font-bold uppercase tracking-wider text-white dark:text-white bg-green-500 rounded py-1 px-2 mb-1 cursor-pointer hover:bg-green-600 w-full text-left focus:outline-none focus:ring-2 focus:ring-green-600"
+      class="text-xs md:text-sm font-bold uppercase tracking-wider text-white dark:text-white bg-green-500 rounded py-1 px-2 mb-1 cursor-pointer hover:bg-green-600 w-full text-left focus:outline-none focus:ring-2 focus:ring-green-600 touch-target"
       onclick={() => toggleSection('settings')}
+      ontouchend={(e) => { e.preventDefault(); toggleSection('settings'); }}
       title={$showSettings ? $_("hide_settings") : $_("show_settings")}
       data-testid="settings-header"
       aria-label={$showSettings ? $_("hide_settings") : $_("show_settings")}
@@ -195,4 +209,45 @@ svg {
   display: inline-block;
   vertical-align: middle;
 }
-</style> 
+
+/* Touch-friendly button styling for mobile */
+.touch-target {
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  touch-action: manipulation;
+  user-select: none;
+}
+
+/* Ensure minimum touch target size on mobile */
+@media (max-width: 768px) {
+  .touch-target {
+    min-height: 44px; /* Apple's recommended minimum touch target size */
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 8px 12px;
+  }
+  
+  /* Override small padding for mobile */
+  button.touch-target {
+    padding: 8px 12px !important;
+  }
+  
+  /* Ensure remote blog buttons have adequate touch targets */
+  button[data-testid^="remote-blog-"] {
+    min-height: 40px;
+    padding: 6px 8px;
+  }
+}
+
+/* Active state feedback for touch */
+.touch-target:active {
+  transform: scale(0.98);
+  opacity: 0.8;
+}
+
+/* Improve button focus visibility for keyboard navigation */
+.touch-target:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.5);
+  outline-offset: 2px;
+}
+</style>
