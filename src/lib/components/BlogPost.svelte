@@ -4,13 +4,14 @@
 
   // Third-party imports
   import { renderContent, renderMermaidDiagrams } from '$lib/services/MarkdownRenderer.js';
-  import { _ } from 'svelte-i18n';
+  import { _, locale } from 'svelte-i18n';
+  import { derived } from 'svelte/store';
   import { unixfs } from '@helia/unixfs';
 
   // Local imports
   import type { BlogPost, Comment } from '$lib/types.js';
   import { commentsDB, mediaDB, helia, isRTL, posts } from '$lib/store.js';
-  import { formatTimestamp } from '$lib/dateUtils.js';
+  import { formatTimestamp, formatTimestampLong } from '$lib/dateUtils.js';
   import { postsDB, categories, selectedPostId, identity, enabledLanguages } from '$lib/store.js';
   import { isEncryptedPost } from '$lib/cryptoUtils.js';
   import PostPasswordPrompt from './PostPasswordPrompt.svelte';
@@ -46,7 +47,15 @@
   let showPasswordPrompt = $state(false);
   let decryptionError = $state('');
 
+  // Create a reactive date formatter that updates when locale changes
+  const reactiveDateFormatter = derived(locale, ($locale) => {
+    return (timestamp: number | string) => formatTimestamp(timestamp);
+  });
 
+  // Create a reactive long-form date formatter for main post dates
+  const reactiveDateFormatterLong = derived(locale, ($locale) => {
+    return (timestamp: number | string) => formatTimestampLong(timestamp);
+  });
 
   // IPFS Related Functions
   /**
@@ -402,9 +411,9 @@ function updateRenderedContent(): void {
         <span title={post.identity || 'Unknown'}>
           {$_('by')} {post.identity ? `...${post.identity.slice(-5)}` : $_('unknown')}
         </span>
-        <span>{formatTimestamp(post.createdAt || post.date)}</span>
+        <span>{$reactiveDateFormatterLong(post.createdAt || post.date)}</span>
         {#if post.updatedAt && post.updatedAt !== post.createdAt}
-          <span>({$_('updated')}: {formatTimestamp(post.updatedAt)})</span>
+          <span>({$_('updated')}: {$reactiveDateFormatterLong(post.updatedAt)})</span>
         {/if}
       </div>
       {#if post.categories && post.categories.length > 0}
@@ -435,7 +444,7 @@ function updateRenderedContent(): void {
           <div class="flex items-center mb-2">
             <strong class="text-gray-900 dark:text-white">{comment.author}</strong>
             <span class="ml-2 text-sm text-gray-500 dark:text-gray-400">
-              {formatTimestamp(comment.createdAt)}
+              {$reactiveDateFormatter(comment.createdAt)}
             </span>
           </div>
           <p class="text-gray-700 dark:text-gray-300">{comment.content}</p>

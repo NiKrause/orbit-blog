@@ -52,26 +52,70 @@ export const setupI18n = () => {
   });
 };
 
-// Funktion zum Ermitteln der Anfangssprache
-function getInitialLocale(): string {
-  // Prüfe, ob wir im Browser sind
-  if (typeof window !== 'undefined') {
-    // Versuche, die gespeicherte Sprache zu laden
-    const savedLanguage = localStorage.getItem('language');
-    if (savedLanguage && Object.keys(LANGUAGES).includes(savedLanguage)) {
-      return savedLanguage;
-    }
-    
-    // Versuche, die Browsersprache zu verwenden
-    const browserLang = navigator.language.split('-')[0];
-    if (Object.keys(LANGUAGES).includes(browserLang)) {
-      return browserLang;
+/**
+ * Gets the browser's preferred languages in order of preference
+ */
+function getBrowserLanguagePreferences(): string[] {
+  if (typeof window === 'undefined') return ['en'];
+  
+  const languages: string[] = [];
+  
+  // Get all browser languages from navigator.languages
+  if (navigator.languages) {
+    navigator.languages.forEach(lang => {
+      // Extract main language code (e.g., 'en-US' -> 'en')
+      const mainLang = lang.split('-')[0];
+      if (!languages.includes(mainLang) && Object.keys(LANGUAGES).includes(mainLang)) {
+        languages.push(mainLang);
+      }
+    });
+  }
+  
+  // Fallback to navigator.language
+  if (languages.length === 0 && navigator.language) {
+    const mainLang = navigator.language.split('-')[0];
+    if (Object.keys(LANGUAGES).includes(mainLang)) {
+      languages.push(mainLang);
     }
   }
   
-  // Standardsprache
+  // Ensure we have at least English as fallback
+  if (!languages.includes('en')) {
+    languages.push('en');
+  }
+  
+  return languages;
+}
+
+// Funktion zum Ermitteln der Anfangssprache mit intelligenter Fallback-Logik
+function getInitialLocale(): string {
+  // Prüfe, ob wir im Browser sind
+  if (typeof window !== 'undefined') {
+    // Versuche, die gespeicherte Sprache zu laden (höchste Priorität)
+    const savedLanguage = localStorage.getItem('language');
+    if (savedLanguage && Object.keys(LANGUAGES).includes(savedLanguage)) {
+      console.info(`Using saved language preference: ${savedLanguage}`);
+      return savedLanguage;
+    }
+    
+    // Verwende Browser-Sprachpräferenzen in Reihenfolge
+    const browserLanguages = getBrowserLanguagePreferences();
+    if (browserLanguages.length > 0) {
+      const selectedLang = browserLanguages[0];
+      console.info(`Using browser language preference: ${selectedLang} (from ${browserLanguages.join(', ')})`);
+      return selectedLang;
+    }
+  }
+  
+  // Standardsprache als letzte Option
+  console.info('Using default language: en');
   return 'en';
 }
+
+/**
+ * Export browser language preferences for use by language fallback service
+ */
+export { getBrowserLanguagePreferences };
 
 // Funktion zum Ändern der Sprache
 export const setLanguage = (newLocale: string) => {

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { run } from 'svelte/legacy';
   import { _, locale } from 'svelte-i18n';
+  import { derived } from 'svelte/store';
 
   import { posts, selectedPostId, identity, postsDB, enabledLanguages, isRTL } from '$lib/store.js';
   import { formatTimestamp } from '$lib/dateUtils.js';
@@ -15,6 +16,7 @@
   import { TranslationService } from '$lib/services/translationService.js';
 import { handleMediaSelection, removeMediaFromContent, validateEncryptionFields, truncateTitle } from '$lib/utils/postUtils.js';
 import { renderContent } from '$lib/services/MarkdownRenderer.js';
+import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostInLanguage } from '$lib/services/languageFallbackService.js';
   
   // Import html2pdf for PDF generation
   import html2pdf from 'html2pdf.js';
@@ -60,6 +62,11 @@ import { renderContent } from '$lib/services/MarkdownRenderer.js';
   let encryptionPassword = $state('');
   let encryptionError = $state('');
 
+  // Create a reactive date formatter that updates when locale changes
+  const reactiveDateFormatter = derived(locale, ($locale) => {
+    return (timestamp: number | string) => formatTimestamp(timestamp);
+  });
+
   // Derive available years from posts
   let availableYears = $derived.by(() => {
     const years = new Set();
@@ -94,35 +101,14 @@ import { renderContent } from '$lib/services/MarkdownRenderer.js';
     }
   }
 
-  // Combined filtering function
+  // Combined filtering function with intelligent language fallback
   function filterPosts() {
-    const currentLanguage = $locale;
-    
-    return $posts
-      .filter(post => {
-        
-        // For users without write access, only show published posts
-        if (!hasWriteAccess() &&post.published === false) return false;
-
-        // Language filter - show posts that either:
-        // 1. Match the current language
-        // 2. Have no language specified and no translations (legacy posts)
-        const matchesLanguage = 
-          post.language === currentLanguage || 
-          (!post.language && !post.translatedFrom);
-
-        // Category filter
-        const matchesCategory = selectedCategory === 'All' || selectedCategory === undefined || 
-                              (post.categories && post.categories.includes(selectedCategory)) ||
-                              post.category === selectedCategory;
-
-        const matchesSearch = !searchTerm || 
-                            post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            post.content.toLowerCase().includes(searchTerm.toLowerCase());
-                            
-        return matchesLanguage && matchesCategory && matchesSearch;
-      })
-      .sort((a, b) => (b.createdAt || b.date) - (a.createdAt || a.date));
+    return filterPostsWithLanguageFallback(
+      $posts,
+      searchTerm,
+      selectedCategory,
+      hasWriteAccess
+    );
   }
 
   $effect(() => {
@@ -158,6 +144,11 @@ import { renderContent } from '$lib/services/MarkdownRenderer.js';
     // Log the original post
     info(`Selected post: ${selectedPost.title} (${selectedPost.language || 'no language'})`);
     info('posts', $posts) 
+    
+    // Get available languages for this post using the language service
+    const availableLanguages = getAvailableLanguagesForPost($posts, postId);
+    info(`Available languages for post: [${availableLanguages.join(', ')}]`);
+    
     // Find all related translations
     const allTranslations = $posts.filter(p => 
       // If this is a translated post, find all posts with same originalPostId including the original
@@ -704,7 +695,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
                   </h3>
                   <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">
                     <div class="mb-1">
-                      {formatTimestamp(post.createdAt || post.date)}
+                      {$reactiveDateFormatter(post.createdAt || post.date)}
                     </div>
                     {#if post.categories && post.categories.length > 0}
                       <div class="flex flex-wrap gap-1 mt-1">

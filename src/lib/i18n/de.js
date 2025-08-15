@@ -250,6 +250,8 @@ export default {
   "encrypt_post": "Beitrag verschlüsseln",
   "post_will_be_encrypted": "Beitrag wird verschlüsselt",
   "invalid_password": "Ungültiges Passwort. Bitte versuchen Sie es erneut.",
+  "delete_current_language_only": "Nur aktuelle Sprachversion löschen",
+  "delete_all_translations": "Alle Übersetzungen löschen",
   "no_posts_in_language": "Keine Beiträge in {language} verfügbar",
   "original_language": "Originalsprache",
   "translated_from": "Übersetzt aus {language}",

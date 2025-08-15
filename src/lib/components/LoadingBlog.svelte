@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { _ } from 'svelte-i18n';
+  import { _, locale } from 'svelte-i18n';
+  import { getVersionString } from '$lib/utils/buildInfo.js';
+  import { derived } from 'svelte/store';
 
   interface LoadingState {
     step: string;
@@ -28,6 +30,11 @@
     'loading_media': $_('loading_media'),
     'complete': $_('loading_complete')
   };
+
+  // Create a reactive version string that updates when locale changes
+  const reactiveVersionString = derived(locale, ($locale) => {
+    return getVersionString();
+  });
 </script>
 
 <div class="loading-overlay" data-testid="loading-overlay">
@@ -40,7 +47,7 @@
     <div class="progress-container">
       <div class="progress-bar" style="width: {loadingState.progress}%" data-testid="progress-bar"></div>
     </div>
-    <p class="version-text">{__APP_VERSION__}</p>
+    <p class="version-text">{$reactiveVersionString}</p>
   </div>
 </div>
 

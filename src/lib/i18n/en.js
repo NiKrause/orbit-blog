@@ -276,6 +276,8 @@ export default {
   "encrypt_post": "Encrypt post",
   "post_will_be_encrypted": "Post will be encrypted",
   "invalid_password": "Invalid password. Please try again.",
+  "delete_current_language_only": "Delete current language version only",
+  "delete_all_translations": "Delete all translations",
   "enter_encryption_password_explanation": "Please enter your password to encrypt your post. The password does not leave your device. When saving, the post will be encrypted with the password and will NOT be stored on your device. To view the post, you will need to enter the password to decrypt it.",
   "enter_password_to_encrypt": "Enter password to encrypt post",
   "encrypt": "Encrypt post on save",

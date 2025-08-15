@@ -1,7 +1,8 @@
 <script lang="ts">
   import { run } from 'svelte/legacy';
-  import { _ } from 'svelte-i18n';
+  import { _, locale } from 'svelte-i18n';
   import { isRTL } from '$lib/store.js';
+  import { derived } from 'svelte/store';
 
   import {
     postsDB,
@@ -18,6 +19,7 @@
   import { switchToRemoteDB } from '$lib/dbUtils.js';
   import PeersList from './PeersList.svelte';
   import { connectedPeersCount } from '$lib/peerConnections.js';
+  import { getCompactVersionString } from '$lib/utils/buildInfo.js';
   
   let _settingsDB: any = $state(), _identity: any = $state(), _postsDB: any = $state(), _postsDBAddress: any = $state();
   
@@ -32,6 +34,11 @@
       const access = _settingsDB?.access?.write;
       canWrite = access?.includes(_identity?.id)
     }
+  });
+
+  // Create a reactive compact version string that updates when locale changes
+  const reactiveCompactVersionString = derived(locale, ($locale) => {
+    return getCompactVersionString();
   });
 
   // Function to handle section toggling
@@ -199,6 +206,13 @@
     >
       {$_('settings')}
     </button>
+  </div>
+  
+  <!-- Version Info -->
+  <div class="mt-2 px-1" data-testid="version-section">
+    <p class="text-[8px] md:text-[10px] text-gray-500 dark:text-gray-400 text-center">
+      {$reactiveCompactVersionString}
+    </p>
   </div>
 </div>
 

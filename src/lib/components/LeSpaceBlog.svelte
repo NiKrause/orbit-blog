@@ -28,6 +28,9 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   import LanguageSelector from './LanguageSelector.svelte';
 
   import { FaBars, FaTimes } from 'svelte-icons/fa';
+  import { getLocaleVersionString } from '$lib/utils/buildInfo.js';
+  import { derived } from 'svelte/store';
+  import { locale } from 'svelte-i18n';
 
   import { libp2pOptions, multiaddrs } from '$lib/config.js';
   import { encryptSeedPhrase } from '$lib/cryptoUtils.js';
@@ -98,6 +101,11 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   $: sidebarPosition = $isRTL ? 'right' : 'left';
   $: sidebarButtonPosition = $isRTL ? 'right' : 'left';
   $: sidebarTriggerPosition = $isRTL ? 'right' : 'left';
+
+  // Create a reactive version string that updates when locale changes
+  const reactiveVersionString = derived(locale, ($locale) => {
+    return getLocaleVersionString();
+  });
 
   let fs;
 
@@ -738,7 +746,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
               <h6 class="text-sm text-gray-900 dark:text-white" data-testid="blog-description">
                 {$blogDescription}
               </h6>
-              <h6 class="text-xs text-gray-900 dark:text-white">{__APP_VERSION__}</h6>
+              <h6 class="text-xs text-gray-500 dark:text-gray-400">{$reactiveVersionString}</h6>
             </div>
           </div>
 
