@@ -2,7 +2,7 @@ import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { unixfs } from '@helia/unixfs';
 import mermaid from 'mermaid';
-import { error } from '../utils/logger.js';
+import { error, info } from '../utils/logger.js';
 import { helia } from '../store.js';
 import { get } from 'svelte/store';
 
@@ -77,10 +77,210 @@ const accordionExtension = {
 };
 
 /**
+ * Remote markdown import extension
+ * Allows importing markdown from remote URLs using @import[url] syntax
+ */
+const remoteImportExtension = {
+  name: 'remoteImport',
+  level: 'block',
+  start(src: string) {
+    return src.match(/^@import\[/)?.index;
+  },
+  tokenizer(src: string, tokens: any) {
+    const rule = /^@import\[([^\]]+)\](?:\s*\{([^}]*)\})?/;
+    const match = rule.exec(src);
+    
+    if (match) {
+      const [raw, url, options] = match;
+      const token = {
+        type: 'remoteImport',
+        raw,
+        url: url.trim(),
+        options: options ? options.trim() : '',
+        tokens: []
+      };
+      
+      return token;
+    }
+  },
+  renderer(token: any) {
+    const importId = `remote-import-${Math.random().toString(36).substr(2, 9)}`;
+    const { url, options } = token;
+    
+    // Parse options (e.g., "section=API, cache=false")
+    const opts = {};
+    if (options) {
+      options.split(',').forEach(opt => {
+        const [key, value] = opt.split('=').map(s => s.trim());
+        if (key && value) {
+          opts[key] = value;
+        }
+      });
+    }
+    
+    // Create placeholder that will be replaced with actual content
+    setTimeout(async () => {
+      try {
+        const element = document.getElementById(importId);
+        if (!element) return;
+        
+        element.innerHTML = `
+          <div class="remote-import-loading flex items-center space-x-2 p-4 bg-blue-50 dark:bg-blue-900 rounded-md">
+            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+            <span class="text-blue-700 dark:text-blue-300 text-sm">Loading content from ${url}...</span>
+          </div>
+        `;
+        
+        const remoteContent = await fetchRemoteMarkdown(url);
+        
+        // Process the remote content through markdown renderer
+        // Note: We need to be careful about infinite recursion
+        const processedContent = marked.parse(remoteContent, { renderer: setupRenderer() });
+        const sanitizedContent = DOMPurify.sanitize(processedContent, {
+          ADD_TAGS: ['details', 'summary', 'div', 'section', 'article'],
+          ADD_ATTR: ['id', 'class', 'aria-controls', 'aria-expanded', 'aria-labelledby', 'role', 'data-ipfs-cid', 'src', 'alt', 'title', 'data-remote-url'],
+          ALLOW_DATA_ATTR: true
+        });
+        
+        element.innerHTML = `
+          <div class="remote-import-content border-l-4 border-green-500 pl-4 my-4" data-remote-url="${url}">
+            <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+              📄 Imported from: <a href="${url}" target="_blank" rel="noopener noreferrer" class="text-blue-600 dark:text-blue-400 hover:underline">  ${url.split('/').pop()}</a>
+            </div>
+            ${sanitizedContent}
+          </div>
+        `;
+        
+        element.classList.remove('remote-import-loading');
+        element.classList.add('remote-import-loaded');
+        
+      } catch (fetchError) {
+        error(`Failed to load remote markdown from ${url}:`, fetchError);
+        const element = document.getElementById(importId);
+        if (element) {
+          element.innerHTML = `
+            <div class="remote-import-error p-4 bg-red-50 dark:bg-red-900 rounded-md border border-red-200 dark:border-red-700">
+              <div class="flex items-start space-x-2">
+                <svg class="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+                <div class="flex-1">
+                  <h4 class="text-red-800 dark:text-red-200 font-medium">Failed to load remote content</h4>
+                  <p class="text-red-700 dark:text-red-300 text-sm mt-1">Could not fetch markdown from: <code class="bg-red-100 dark:bg-red-800 px-1 rounded">${url}</code></p>
+                  <p class="text-red-600 dark:text-red-400 text-xs mt-2">${fetchError.message}</p>
+                </div>
+              </div>
+            </div>
+          `;
+          element.classList.remove('remote-import-loading');
+          element.classList.add('remote-import-error');
+        }
+      }
+    }, 0);
+    
+    // Return placeholder div
+    return `<div id="${importId}" class="remote-import-placeholder">
+      <div class="remote-import-loading flex items-center space-x-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
+        <div class="animate-pulse rounded-full h-4 w-4 bg-gray-400"></div>
+        <span class="text-gray-600 dark:text-gray-400 text-sm">Preparing to load content from ${url}...</span>
+      </div>
+    </div>`;
+  }
+};
+
+/**
  * Singleton instance of UnixFS for IPFS operations
  */
 let fs: ReturnType<typeof unixfs>;
 const mediaCache = new Map<string, string>();
+
+/**
+ * Cache for remote markdown content with expiration
+ */
+interface RemoteContentCache {
+  content: string;
+  timestamp: number;
+  expiry: number;
+}
+
+const remoteMarkdownCache = new Map<string, RemoteContentCache>();
+const CACHE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Checks if a URL is allowed for remote markdown fetching
+ */
+function isAllowedMarkdownUrl(url: string): boolean {
+  const allowedDomains = [
+    'raw.githubusercontent.com',
+    'gist.githubusercontent.com',
+    'gitlab.com',
+    'bitbucket.org',
+    // Add more trusted domains as needed
+  ];
+
+  try {
+    const urlObj = new URL(url);
+    return allowedDomains.some(domain => urlObj.hostname === domain || urlObj.hostname.endsWith('.' + domain));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Fetches remote markdown content with caching
+ */
+async function fetchRemoteMarkdown(url: string): Promise<string> {
+  // Check cache first
+  const cached = remoteMarkdownCache.get(url);
+  if (cached && Date.now() < cached.expiry) {
+    info(`Using cached content for ${url}`);
+    return cached.content;
+  }
+
+  // Validate URL
+  if (!isAllowedMarkdownUrl(url)) {
+    throw new Error(`Domain not allowed for remote markdown: ${url}`);
+  }
+
+  try {
+    info(`Fetching remote markdown from ${url}`);
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'text/plain, text/markdown, text/*',
+        'User-Agent': 'Le-Space-Blog/1.0'
+      },
+      // Add timeout
+      signal: AbortSignal.timeout(10000) // 10 second timeout
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const content = await response.text();
+    
+    // Cache the content
+    remoteMarkdownCache.set(url, {
+      content,
+      timestamp: Date.now(),
+      expiry: Date.now() + CACHE_EXPIRY_MS
+    });
+
+    info(`Successfully fetched and cached markdown from ${url}`);
+    return content;
+  } catch (fetchError) {
+    error(`Failed to fetch remote markdown from ${url}:`, fetchError);
+    
+    // Try to return stale cache if available
+    if (cached) {
+      info(`Using stale cached content for ${url}`);
+      return cached.content;
+    }
+    
+    throw fetchError;
+  }
+}
 
 /**
  * Checks if a domain is allowed for iframe embedding
@@ -238,7 +438,7 @@ function setupRenderer(): typeof marked.Renderer.prototype {
  * Configure marked with extensions
  */
 function configureMarked() {
-  marked.use({ extensions: [accordionExtension] });
+  marked.use({ extensions: [accordionExtension, remoteImportExtension] });
 }
 
 // Mermaid initialization
@@ -334,8 +534,12 @@ export function renderContent(content: string): string {
   
   const renderedContent = marked.parse(content, { renderer: setupRenderer() }) as string;
   return DOMPurify.sanitize(renderedContent, {
-    ADD_TAGS: ['details', 'summary', 'div'],
-    ADD_ATTR: ['id', 'class', 'aria-controls', 'aria-expanded', 'aria-labelledby', 'role', 'data-ipfs-cid', 'src', 'alt', 'title'],
+    ADD_TAGS: ['details', 'summary', 'div', 'section', 'article', 'svg', 'path'],
+    ADD_ATTR: [
+      'id', 'class', 'aria-controls', 'aria-expanded', 'aria-labelledby', 'role', 
+      'data-ipfs-cid', 'data-remote-url', 'src', 'alt', 'title', 'href', 'target', 
+      'rel', 'viewBox', 'fill', 'fill-rule', 'clip-rule', 'd'
+    ],
     ALLOW_DATA_ATTR: true
   });
 }

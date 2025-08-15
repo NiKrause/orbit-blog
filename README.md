@@ -34,7 +34,7 @@ Visit our IPNS link (requires [IPFS Companion](https://docs.ipfs.tech/install/ip
 - ✅ Blog address sharing
 - ✅ Blog subscriptions
 - ✅ Identity management via 12-word encrypted seed (Metamask, Nostr coming soon) 
-- ✅ Markdown support
+- ✅ **Advanced Markdown support** with custom extensions
 - ✅ Post search
 - ✅ Progressive Web App (PWA) support
 
@@ -62,6 +62,20 @@ LOG_LEVEL=debug npm run dev
 
 ### Default Log Level
 By default, the application logs at the `info` level, which provides a good balance between useful information and console clutter.
+
+## 📝 Markdown Documentation
+
+Le Space Blog supports standard Markdown plus powerful custom extensions:
+
+- 📁 **Accordion Extension**: Collapsible content sections using `----` syntax
+- 🌐 **Remote Import**: Import markdown from GitHub, GitLab, etc. using `@import[URL]`
+- 📊 **Mermaid Diagrams**: Create flowcharts, sequence diagrams, and more
+- 🖼️ **IPFS Images**: Display images stored on IPFS with `ipfs://` protocol
+- 🎥 **Enhanced Media**: Embed videos from trusted platforms
+
+**→ [Complete Markdown Guide](./MARKDOWN_GUIDE.md)**
+
+**→ [Remote Import Documentation](./REMOTE_MARKDOWN_IMPORT.md)**
 
 ## Roadmap
 
