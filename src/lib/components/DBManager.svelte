@@ -27,6 +27,8 @@
   let isLocalDB = $state(false);
   let showConfirmModal = $state(false);
   let dbToRemove: string | null = null;
+  let showConfirmDropCurrentModal = $state(false);
+  let dropCurrentModalMessage = $state('');
 
   async function generateQRCode(text: string) {
     try {
@@ -303,6 +305,199 @@
     dbToRemove = null;
     isModalOpen = false;
     showConfirmModal = false;
+  }
+
+  // Function to initiate dropping the current database
+  async function dropCurrentDatabase() {
+    if (!$settingsDB || !$selectedDBAddress) {
+      dropCurrentModalMessage = 'No current database to drop';
+      return;
+    }
+    
+    // Find current DB in remoteDBs to get the name
+    const currentDB = $remoteDBs.find(db => db.address === $selectedDBAddress);
+    const dbName = currentDB?.name || 'Current Database';
+    
+    dropCurrentModalMessage = `Are you sure you want to drop the current database "${dbName}" and all its linked sub-databases (posts, comments, media)? This action cannot be undone.`;
+    showConfirmDropCurrentModal = true;
+  }
+  
+  // Function to handle confirmed dropping of current database
+  async function handleConfirmDropCurrent(options) {
+    if (!$settingsDB || !$selectedDBAddress) {
+      return;
+    }
+    
+    // Store the current address before clearing stores
+    const currentAddress = $selectedDBAddress;
+    
+    isModalOpen = true;
+    modalMessage = $_('dropping_current_database');
+    
+    try {
+      // Find current DB entry in remoteDBs before dropping
+      const currentDBEntry = $remoteDBs.find(db => db.address === currentAddress);
+      debug('currentAddress:', currentAddress);
+      debug('$remoteDBs:', $remoteDBs);
+      debug('currentDBEntry found:', currentDBEntry);
+      
+      // Get all database addresses from current settings
+      const settingsData = await $settingsDB.all();
+      const postsAddressValue = settingsData.find(content => content.key === 'postsDBAddress')?.value?.value;
+      const commentsAddressValue = settingsData.find(content => content.key === 'commentsDBAddress')?.value?.value;
+      const mediaAddressValue = settingsData.find(content => content.key === 'mediaDBAddress')?.value?.value;
+      
+      const dropPromises = [];
+      
+      if (options.dropLocal) {
+        // Drop sub-databases
+        if (postsAddressValue) {
+          dropPromises.push(
+            $orbitdb.open(postsAddressValue).then(async (database) => {
+              await database.drop();
+              debug(`Dropped posts database: ${postsAddressValue}`);
+            })
+          );
+        }
+        
+        if (commentsAddressValue) {
+          dropPromises.push(
+            $orbitdb.open(commentsAddressValue).then(async (database) => {
+              await database.drop();
+              debug(`Dropped comments database: ${commentsAddressValue}`);
+            })
+          );
+        }
+        
+        if (mediaAddressValue) {
+          dropPromises.push(
+            $orbitdb.open(mediaAddressValue).then(async (database) => {
+              await database.drop();
+              debug(`Dropped media database: ${mediaAddressValue}`);
+            })
+          );
+        }
+        
+        // Drop main settings database last
+        dropPromises.push($settingsDB.drop());
+      }
+      
+      await Promise.all(dropPromises);
+      
+      // Additional cleanup: Clear browser storage for OrbitDB
+      modalMessage = 'Clearing browser storage...';
+      await clearOrbitDBBrowserStorage([
+        currentAddress,
+        postsAddressValue,
+        commentsAddressValue,
+        mediaAddressValue
+      ].filter(Boolean));
+      
+      // Remove from remoteDBs if it exists there (using stored address)
+      if (currentDBEntry) {
+        await $remoteDBsDatabases.del(currentDBEntry.id);
+        $remoteDBs = $remoteDBs.filter(db => db.id !== currentDBEntry.id);
+        debug(`Removed database ${currentDBEntry.name} from remoteDBs list`);
+      }
+      
+      // Clear stores after removal from remoteDBs
+      settingsDB.set(null);
+      posts.set([]);
+      allComments.set([]);
+      allMedia.set([]);
+      selectedDBAddress.set(null);
+      
+      debug('Successfully dropped current database and all sub-databases');
+      modalMessage = 'Current database dropped successfully';
+      
+      setTimeout(() => {
+        isModalOpen = false;
+      }, 2000);
+      
+    } catch (_error) {
+      error('Error dropping current database:', _error);
+      modalMessage = `Error dropping database: ${_error.message}`;
+      setTimeout(() => {
+        isModalOpen = false;
+      }, 3000);
+    } finally {
+      showConfirmDropCurrentModal = false;
+    }
+  }
+  
+  // Helper function to clear browser storage for OrbitDB databases
+  async function clearOrbitDBBrowserStorage(addresses) {
+    try {
+      // Clear IndexedDB databases that OrbitDB might create
+      const dbNames = [
+        'orbitdb',
+        'orbitdb-cache',
+        'orbitdb-keystore',
+        'level-js-orbitdb',
+        'blockstore',
+        'datastore'
+      ];
+      
+      // Also try to clear databases based on the addresses
+      for (const address of addresses) {
+        if (address) {
+          // OrbitDB might create databases with names based on addresses or hashes
+          const addressParts = address.split('/');
+          const hash = addressParts[addressParts.length - 1] || addressParts[addressParts.length - 2];
+          if (hash) {
+            dbNames.push(`orbitdb-${hash}`);
+            dbNames.push(`level-${hash}`);
+            dbNames.push(hash);
+          }
+        }
+      }
+      
+      // Attempt to delete each potential database
+      const deletePromises = dbNames.map(async (dbName) => {
+        try {
+          const deleteReq = indexedDB.deleteDatabase(dbName);
+          return new Promise((resolve, reject) => {
+            deleteReq.onsuccess = () => {
+              debug(`Cleared IndexedDB: ${dbName}`);
+              resolve(true);
+            };
+            deleteReq.onerror = () => {
+              // Don't reject, just log - database might not exist
+              debug(`IndexedDB ${dbName} does not exist or could not be deleted`);
+              resolve(false);
+            };
+            deleteReq.onblocked = () => {
+              debug(`IndexedDB ${dbName} deletion blocked`);
+              resolve(false);
+            };
+          });
+        } catch (err) {
+          debug(`Error deleting IndexedDB ${dbName}:`, err);
+          return false;
+        }
+      });
+      
+      await Promise.all(deletePromises);
+      
+      // Clear localStorage entries related to OrbitDB
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.includes('orbitdb') || key.includes('level') || 
+                   addresses.some(addr => addr && key.includes(addr)))) {
+          keysToRemove.push(key);
+        }
+      }
+      
+      keysToRemove.forEach(key => {
+        localStorage.removeItem(key);
+        debug(`Cleared localStorage key: ${key}`);
+      });
+      
+      debug('Browser storage cleanup completed');
+    } catch (err) {
+      error('Error clearing browser storage:', err);
+    }
   }
 
   // New helper function to handle the database dropping process
@@ -587,6 +782,16 @@
             >
               📋
             </button>
+            {#if $settingsDB}
+            <button 
+              title="Drop current database and all sub-databases"
+              onclick={() => dropCurrentDatabase()} 
+              class="text-red-500 hover:text-red-700 dark:hover:text-red-300"
+              data-testid="drop-current-db-button"
+            >
+              🗑️
+            </button>
+            {/if}
           </div>
           <div class="flex flex-col md:flex-row justify-center items-center gap-4">
             <!-- {#if qrCodeDataUrl}
@@ -839,6 +1044,21 @@ Fetch Later: ${db.fetchLater ? 'Yes' : 'No'}
       {#snippet children()}
         <p class="text-gray-700 dark:text-gray-300">
           {$_('remove_database_confirm')}
+        </p>
+      {/snippet}
+    </ConfirmModal>
+    
+    <!-- Drop Current Database Confirmation Modal -->
+    <ConfirmModal
+      isOpen={showConfirmDropCurrentModal}
+      onConfirm={(options) => handleConfirmDropCurrent(options)}
+      onCancel={() => showConfirmDropCurrentModal = false}
+      title="Drop Current Database"
+      showOptions={true}
+    >
+      {#snippet children()}
+        <p class="text-gray-700 dark:text-gray-300">
+          {dropCurrentModalMessage}
         </p>
       {/snippet}
     </ConfirmModal>
