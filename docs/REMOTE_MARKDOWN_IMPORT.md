@@ -4,19 +4,43 @@ The Le Space Blog now supports importing remote Markdown files directly into you
 
 ## Syntax
 
+### On-Demand Import (Default)
 ```markdown
 @import[URL]
 ```
 
-Or with options:
+### Physical Import
+```markdown
+@import[URL]{physical=true}
+```
+
+### With Additional Options
+```markdown
+@import[URL]{physical=true, attribution=false, section=API}
+```
+
+## Import Types
+
+### On-Demand Import (Default)
+Content is fetched and rendered dynamically when the page loads. This is the default behavior.
 
 ```markdown
-@import[URL]{option1=value1, option2=value2}
+@import[https://raw.githubusercontent.com/user/repo/main/README.md]
+```
+
+### Physical Import
+Content is fetched once and permanently embedded in the markdown before saving. This is ideal for:
+- **Translation workflows**: Import content physically, then translate the entire post
+- **Permanent archiving**: Content becomes part of your post permanently
+- **Offline functionality**: No need to fetch remote content when viewing
+
+```markdown
+@import[https://raw.githubusercontent.com/user/repo/main/README.md]{physical=true}
 ```
 
 ## Examples
 
-### Basic Import
+### Basic On-Demand Import
 ```markdown
 # My Blog Post
 
@@ -25,6 +49,18 @@ Here's some content from a remote GitHub repository:
 @import[https://raw.githubusercontent.com/user/repo/main/README.md]
 
 And here's more of my content.
+```
+
+### Physical Import for Translation
+```markdown
+# My Multilingual Blog Post
+
+Importing content that I want to translate:
+
+@import[https://raw.githubusercontent.com/user/repo/main/API.md]{physical=true}
+
+<!-- After clicking "Resolve Imports", the content will be embedded here -->
+<!-- Then you can use the translation feature to translate the entire post -->
 ```
 
 ### Import from Different Sources
@@ -51,10 +87,17 @@ For security reasons, only certain trusted domains are allowed:
 
 ## Features
 
-### 🔄 Automatic Caching
+### 🔄 Automatic Caching (On-Demand Imports)
 - Remote content is cached for 5 minutes
 - If a remote fetch fails, stale cached content is used as fallback
 - Cache improves loading performance for frequently accessed content
+
+### 🏗️ Physical Import Resolution
+- **"Resolve Imports" button**: Appears when physical imports are detected
+- **One-click resolution**: Fetches all physical imports and embeds them permanently
+- **Translation-ready**: Perfect for translating imported content
+- **Source attribution**: Automatically adds import source comments
+- **Error handling**: Clear feedback for failed imports
 
 ### 🔐 Security
 - Only whitelisted domains are allowed
@@ -63,10 +106,15 @@ For security reasons, only certain trusted domains are allowed:
 - 10-second timeout prevents hanging requests
 
 ### 🎨 Visual Indicators
-- Loading spinner while fetching content
+- **On-demand**: Loading spinner while fetching content, green border for imported content
+- **Physical**: Yellow warning for unresolved imports, green success for resolved imports
 - Success indicator showing the source URL
 - Error messages with detailed failure information
-- Green border highlighting imported content
+
+### 🌐 Translation Integration
+- Physical imports can be resolved before translation
+- Imported content becomes part of the translatable text
+- Supports the full translation workflow
 
 ### 📱 Responsive Design
 - Works seamlessly with the existing dark/light theme
@@ -74,6 +122,30 @@ For security reasons, only certain trusted domains are allowed:
 - Styled using existing TailwindCSS classes
 
 ## Advanced Usage
+
+### Physical Import Options
+
+#### Basic Physical Import
+```markdown
+@import[https://raw.githubusercontent.com/user/repo/main/docs.md]{physical=true}
+```
+
+#### Physical Import without Attribution
+```markdown
+@import[https://raw.githubusercontent.com/user/repo/main/docs.md]{physical=true, attribution=false}
+```
+
+#### Import Specific Section Physically
+```markdown
+@import[https://raw.githubusercontent.com/user/repo/main/docs.md]{physical=true, section=Installation}
+```
+
+### Translation Workflow
+1. **Write your post** with physical import statements
+2. **Click "Resolve Imports"** to fetch and embed the remote content
+3. **Verify the imported content** looks correct
+4. **Use the translation feature** to translate the entire post (including imported content)
+5. **Save and publish** your multilingual post
 
 ### URL Examples
 

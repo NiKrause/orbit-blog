@@ -92,6 +92,29 @@ const remoteImportExtension = {
     
     if (match) {
       const [raw, url, options] = match;
+      
+      // Parse options to check if this is a physical import
+      const parsedOptions: Record<string, string> = {};
+      if (options) {
+        options.split(',').forEach(opt => {
+          const [key, value] = opt.split('=').map(s => s.trim());
+          if (key && value) {
+            parsedOptions[key] = value;
+          }
+        });
+      }
+      
+      // Skip physical imports during rendering - they should be resolved before rendering
+      if (parsedOptions.physical === 'true') {
+        return {
+          type: 'physicalImportPlaceholder',
+          raw,
+          url: url.trim(),
+          options: options || '',
+          tokens: []
+        };
+      }
+      
       const token = {
         type: 'remoteImport',
         raw,
@@ -435,10 +458,36 @@ function setupRenderer(): typeof marked.Renderer.prototype {
 }
 
 /**
+ * Physical import placeholder extension
+ * Shows a notice that physical imports should be resolved before rendering
+ */
+const physicalImportPlaceholderExtension = {
+  name: 'physicalImportPlaceholder',
+  level: 'block',
+  renderer(token: any) {
+    const { url } = token;
+    return `
+      <div class="physical-import-placeholder p-4 bg-yellow-50 dark:bg-yellow-900 rounded-md border border-yellow-200 dark:border-yellow-700 my-4">
+        <div class="flex items-start space-x-2">
+          <svg class="h-5 w-5 text-yellow-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+          </svg>
+          <div class="flex-1">
+            <h4 class="text-yellow-800 dark:text-yellow-200 font-medium">Physical Import Pending</h4>
+            <p class="text-yellow-700 dark:text-yellow-300 text-sm mt-1">This import needs to be resolved: <code class="bg-yellow-100 dark:bg-yellow-800 px-1 rounded">${url}</code></p>
+            <p class="text-yellow-600 dark:text-yellow-400 text-xs mt-2">Use the "Resolve Imports" button to fetch and embed the content before saving.</p>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+};
+
+/**
  * Configure marked with extensions
  */
 function configureMarked() {
-  marked.use({ extensions: [accordionExtension, remoteImportExtension] });
+  marked.use({ extensions: [accordionExtension, remoteImportExtension, physicalImportPlaceholderExtension] });
 }
 
 // Mermaid initialization

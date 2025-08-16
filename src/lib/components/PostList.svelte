@@ -26,6 +26,7 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
   import PostPasswordPrompt from './PostPasswordPrompt.svelte';
   import { info, error } from '../utils/logger.js'
   import MultiSelect from './MultiSelect.svelte';
+  import { MarkdownImportResolver } from '$lib/services/MarkdownImportResolver.js';
 
   let searchTerm = $state('');
   let selectedCategory: Category | 'All' = $state('All');
@@ -61,6 +62,11 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
   let showPasswordPrompt = $state(false);
   let encryptionPassword = $state('');
   let encryptionError = $state('');
+
+  // Import resolution state
+  let isResolvingImports = $state(false);
+  let importResolutionError = $state('');
+  let importResolutionResult = $state<any>(null);
 
   // Create a reactive date formatter that updates when locale changes
   const reactiveDateFormatter = derived(locale, ($locale) => {
@@ -581,6 +587,37 @@ ${convertMarkdownToLatex(selectedPost.content)}
     showPasswordPrompt = false;
     encryptionError = '';
   }
+
+  // Function to handle resolving physical imports in edit mode
+  async function handleResolveImports() {
+    if (!editedContent) return;
+    
+    isResolvingImports = true;
+    importResolutionError = '';
+    importResolutionResult = null;
+    
+    try {
+      info('Resolving physical imports in edited content...');
+      const result = await MarkdownImportResolver.resolvePhysicalImports(editedContent);
+      
+      if (result.success) {
+        editedContent = result.resolvedContent;
+        importResolutionResult = result;
+        info(`Successfully resolved ${result.resolvedImports.length} physical imports`);
+      } else {
+        importResolutionError = `Failed to resolve some imports: ${result.errors.map(e => e.error).join(', ')}`;
+        importResolutionResult = result;
+      }
+    } catch (error) {
+      console.error('Error resolving imports:', error);
+      importResolutionError = error instanceof Error ? error.message : 'Unknown error occurred';
+    } finally {
+      isResolvingImports = false;
+    }
+  }
+
+  // Check if edited content has physical imports
+  let hasPhysicalImports = $derived(editMode && editedContent ? MarkdownImportResolver.hasPhysicalImports(editedContent) : false);
 </script>
 
 <div data-testid="post-list" class="space-y-4 {$isRTL ? 'rtl' : 'ltr'}">
@@ -792,6 +829,20 @@ ${convertMarkdownToLatex(selectedPost.content)}
                     >
                       {showMediaUploader ? $_('hide_media_library') : $_('add_media')}
                     </button>
+                    {#if hasPhysicalImports}
+                    <button
+                      type="button"
+                      onclick={handleResolveImports}
+                      disabled={isResolvingImports}
+                      class="text-sm text-green-600 dark:text-green-400 hover:text-green-500 dark:hover:text-green-300 disabled:opacity-50"
+                    >
+                      {#if isResolvingImports}
+                        🔄 Resolving...
+                      {:else}
+                        🔗 Resolve Imports
+                      {/if}
+                    </button>
+                    {/if}
                     <button
                       type="button"
                       onclick={() => showPreview = !showPreview}
@@ -826,6 +877,33 @@ ${convertMarkdownToLatex(selectedPost.content)}
                 showMediaUploader={false}
                 on:mediaRemoved={(e) => removeSelectedMedia(e.detail.mediaId)}
               />
+
+              {#if importResolutionError}
+                <div class="text-red-600 dark:text-red-400 text-sm mb-4">
+                  Import Resolution Error: {importResolutionError}
+                </div>
+              {/if}
+
+              {#if importResolutionResult && importResolutionResult.resolvedImports.length > 0}
+                <div class="p-3 bg-green-50 dark:bg-green-900 rounded-md border border-green-200 dark:border-green-700 mb-4">
+                  <h4 class="text-green-800 dark:text-green-200 font-medium text-sm">✅ Physical Imports Resolved</h4>
+                  <ul class="mt-1 text-green-700 dark:text-green-300 text-xs space-y-1">
+                    {#each importResolutionResult.resolvedImports as resolvedImport}
+                      <li>• {resolvedImport.title || 'Untitled'} from {resolvedImport.url}</li>
+                    {/each}
+                  </ul>
+                  {#if importResolutionResult.errors.length > 0}
+                    <div class="mt-2">
+                      <h5 class="text-red-800 dark:text-red-200 font-medium text-xs">Some imports failed:</h5>
+                      <ul class="mt-1 text-red-700 dark:text-red-300 text-xs space-y-1">
+                        {#each importResolutionResult.errors as error}
+                          <li>• {error.url}: {error.error}</li>
+                        {/each}
+                      </ul>
+                    </div>
+                  {/if}
+                </div>
+              {/if}
 
               <div class="flex space-x-4 justify-end">
                 <button

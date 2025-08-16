@@ -12,6 +12,8 @@
 import { handleMediaSelection, removeMediaFromContent, validateEncryptionFields } from '$lib/utils/postUtils.js';
 import { renderContent } from '$lib/services/MarkdownRenderer.js';
 import MultiSelect from './MultiSelect.svelte';
+import { MarkdownImportResolver } from '$lib/services/MarkdownImportResolver.js';
+import { info } from '$lib/utils/logger.js';
 
   let title = $state('');
   let content = $state('');
@@ -28,6 +30,11 @@ import MultiSelect from './MultiSelect.svelte';
   let encryptionPassword = $state('');
   let encryptionError = $state('');
   let published = $state(false);
+
+  // Import resolution state
+  let isResolvingImports = $state(false);
+  let importResolutionError = $state('');
+  let importResolutionResult = $state<any>(null);
 
   async function handleSubmit() {
     
@@ -185,6 +192,37 @@ import MultiSelect from './MultiSelect.svelte';
     showPasswordPrompt = false;
     encryptionError = '';
   }
+
+  // Function to handle resolving physical imports
+  async function handleResolveImports() {
+    if (!content) return;
+    
+    isResolvingImports = true;
+    importResolutionError = '';
+    importResolutionResult = null;
+    
+    try {
+      info('Resolving physical imports in content...');
+      const result = await MarkdownImportResolver.resolvePhysicalImports(content);
+      
+      if (result.success) {
+        content = result.resolvedContent;
+        importResolutionResult = result;
+        info(`Successfully resolved ${result.resolvedImports.length} physical imports`);
+      } else {
+        importResolutionError = `Failed to resolve some imports: ${result.errors.map(e => e.error).join(', ')}`;
+        importResolutionResult = result;
+      }
+    } catch (error) {
+      console.error('Error resolving imports:', error);
+      importResolutionError = error instanceof Error ? error.message : 'Unknown error occurred';
+    } finally {
+      isResolvingImports = false;
+    }
+  }
+
+  // Check if content has physical imports
+  let hasPhysicalImports = $derived(content ? MarkdownImportResolver.hasPhysicalImports(content) : false);
 </script>
 
 <form onsubmit={preventDefault(handleSubmit)} data-testid="post-form" class="space-y-4 bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-md {$isRTL ? 'rtl' : 'ltr'}">
@@ -223,6 +261,20 @@ import MultiSelect from './MultiSelect.svelte';
         >
           {showMediaUploader ? $_('hide_media_library') : $_('add_media')}
         </button>
+        {#if hasPhysicalImports}
+        <button
+          type="button"
+          onclick={handleResolveImports}
+          disabled={isResolvingImports}
+          class="text-sm text-green-600 dark:text-green-400 hover:text-green-500 dark:hover:text-green-300 disabled:opacity-50"
+        >
+          {#if isResolvingImports}
+            🔄 Resolving...
+          {:else}
+            🔗 Resolve Imports
+          {/if}
+        </button>
+        {/if}
         <button
           type="button"
           onclick={() => showPreview = !showPreview}
@@ -332,6 +384,33 @@ import MultiSelect from './MultiSelect.svelte';
   {#if encryptionError}
     <div class="mt-2 text-red-600 dark:text-red-400">
       {encryptionError}
+    </div>
+  {/if}
+
+  {#if importResolutionError}
+    <div class="mt-2 text-red-600 dark:text-red-400">
+      Import Resolution Error: {importResolutionError}
+    </div>
+  {/if}
+
+  {#if importResolutionResult && importResolutionResult.resolvedImports.length > 0}
+    <div class="mt-2 p-3 bg-green-50 dark:bg-green-900 rounded-md border border-green-200 dark:border-green-700">
+      <h4 class="text-green-800 dark:text-green-200 font-medium text-sm">✅ Physical Imports Resolved</h4>
+      <ul class="mt-1 text-green-700 dark:text-green-300 text-xs space-y-1">
+        {#each importResolutionResult.resolvedImports as resolvedImport}
+          <li>• {resolvedImport.title || 'Untitled'} from {resolvedImport.url}</li>
+        {/each}
+      </ul>
+      {#if importResolutionResult.errors.length > 0}
+        <div class="mt-2">
+          <h5 class="text-red-800 dark:text-red-200 font-medium text-xs">Some imports failed:</h5>
+          <ul class="mt-1 text-red-700 dark:text-red-300 text-xs space-y-1">
+            {#each importResolutionResult.errors as error}
+              <li>• {error.url}: {error.error}</li>
+            {/each}
+          </ul>
+        </div>
+      {/if}
     </div>
   {/if}
 </form>
