@@ -51,9 +51,9 @@ const accordionExtension = {
     
     // Apply additional sanitization with very strict rules for accordion content
     const sanitizeConfig = {
-      ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'code', 'pre', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote'],
-      ALLOWED_ATTR: ['class'],
-      FORBID_TAGS: ['script', 'style', 'object', 'embed', 'form', 'input', 'textarea', 'select', 'button', 'iframe'],
+      ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'code', 'pre', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'iframe'],
+      ALLOWED_ATTR: ['class', 'src', 'width', 'height', 'frameborder', 'allowfullscreen'],
+      FORBID_TAGS: ['script', 'style', 'object', 'embed', 'form', 'input', 'textarea', 'select', 'button'],
       FORBID_ATTR: ['onclick', 'onload', 'onerror', 'onmouseover', 'onfocus', 'onblur', 'onchange', 'onsubmit', 'style'],
       ALLOW_DATA_ATTR: false
     };
@@ -159,9 +159,9 @@ const remoteImportExtension = {
         // Process the remote content through markdown renderer
         // Note: We need to be careful about infinite recursion
         const processedContent = marked.parse(remoteContent, { renderer: setupRenderer() });
-        const sanitizedContent = DOMPurify.sanitize(processedContent, {
-          ADD_TAGS: ['details', 'summary', 'div', 'section', 'article'],
-          ADD_ATTR: ['id', 'class', 'aria-controls', 'aria-expanded', 'aria-labelledby', 'role', 'data-ipfs-cid', 'src', 'alt', 'title', 'data-remote-url'],
+        const sanitizedContent = DOMPurify.sanitize(processedContent as string, {
+          ADD_TAGS: ['details', 'summary', 'div', 'section', 'article', 'iframe'],
+          ADD_ATTR: ['id', 'class', 'aria-controls', 'aria-expanded', 'aria-labelledby', 'role', 'data-ipfs-cid', 'src', 'alt', 'title', 'data-remote-url', 'width', 'height', 'frameborder', 'allowfullscreen', 'sandbox', 'loading', 'referrerpolicy'],
           ALLOW_DATA_ATTR: true
         });
         
@@ -328,15 +328,35 @@ function isAllowedDomain(src: string, node?: Element): boolean {
 
   try {
     const url = new URL(src);
+    
     // Special handling for YouTube URLs to convert them to embed format
     if (url.hostname === 'www.youtube.com' && url.pathname.startsWith('/watch')) {
       const videoId = url.searchParams.get('v');
       if (videoId && node) {
         // Replace the node's src with the embed URL
         node.setAttribute('src', `https://www.youtube-nocookie.com/embed/${videoId}`);
+        // Add helpful attributes
+        if (!node.hasAttribute('width')) node.setAttribute('width', '560');
+        if (!node.hasAttribute('height')) node.setAttribute('height', '315');
+        if (!node.hasAttribute('frameborder')) node.setAttribute('frameborder', '0');
+        if (!node.hasAttribute('allowfullscreen')) node.setAttribute('allowfullscreen', '');
         return true;
       }
     }
+    
+    // Handle youtu.be short URLs
+    if (url.hostname === 'youtu.be') {
+      const videoId = url.pathname.slice(1); // Remove leading slash
+      if (videoId && node) {
+        node.setAttribute('src', `https://www.youtube-nocookie.com/embed/${videoId}`);
+        if (!node.hasAttribute('width')) node.setAttribute('width', '560');
+        if (!node.hasAttribute('height')) node.setAttribute('height', '315');
+        if (!node.hasAttribute('frameborder')) node.setAttribute('frameborder', '0');
+        if (!node.hasAttribute('allowfullscreen')) node.setAttribute('allowfullscreen', '');
+        return true;
+      }
+    }
+    
     return allowedDomains.some(domain => url.hostname.endsWith(domain));
   } catch {
     return false;
@@ -524,7 +544,23 @@ function setupDOMPurifyHooks(): void {
       const element = node as Element;
       const src = element.getAttribute('src');
       if (!src || !isAllowedDomain(src, element)) {
-        return node.parentNode?.removeChild(node);
+        // Replace blocked iframe with helpful error message
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'iframe-error p-4 bg-red-50 dark:bg-red-900 rounded-md border border-red-200 dark:border-red-700 my-4';
+        errorDiv.innerHTML = `
+          <div class="flex items-start space-x-2">
+            <svg class="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+            </svg>
+            <div class="flex-1">
+              <h4 class="text-red-800 dark:text-red-200 font-medium">Video Embedding Blocked</h4>
+              <p class="text-red-700 dark:text-red-300 text-sm mt-1">This video platform doesn't allow embedding: <code class="bg-red-100 dark:bg-red-800 px-1 rounded">${src}</code></p>
+              <p class="text-red-600 dark:text-red-400 text-xs mt-2">Try using a link instead: <a href="${src}" target="_blank" rel="noopener noreferrer" class="text-blue-600 dark:text-blue-400 hover:underline">Open Video</a></p>
+            </div>
+          </div>
+        `;
+        node.parentNode?.replaceChild(errorDiv, node);
+        return;
       }
       
       // Set secure attributes for iframes
@@ -583,11 +619,12 @@ export function renderContent(content: string): string {
   
   const renderedContent = marked.parse(content, { renderer: setupRenderer() }) as string;
   return DOMPurify.sanitize(renderedContent, {
-    ADD_TAGS: ['details', 'summary', 'div', 'section', 'article', 'svg', 'path'],
+    ADD_TAGS: ['details', 'summary', 'div', 'section', 'article', 'svg', 'path', 'iframe'],
     ADD_ATTR: [
       'id', 'class', 'aria-controls', 'aria-expanded', 'aria-labelledby', 'role', 
       'data-ipfs-cid', 'data-remote-url', 'src', 'alt', 'title', 'href', 'target', 
-      'rel', 'viewBox', 'fill', 'fill-rule', 'clip-rule', 'd'
+      'rel', 'viewBox', 'fill', 'fill-rule', 'clip-rule', 'd', 'width', 'height', 
+      'frameborder', 'allowfullscreen', 'sandbox', 'loading', 'referrerpolicy'
     ],
     ALLOW_DATA_ATTR: true
   });

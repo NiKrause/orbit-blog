@@ -210,24 +210,34 @@ Display images stored on IPFS using the `ipfs://` protocol:
 
 ### 5. 🎥 Enhanced Media Embedding
 
-Embed videos and media from trusted platforms:
+Embed videos and media from trusted platforms. **Note**: Many video platforms (including YouTube) block iframe embedding due to security policies. Use the recommended embed URLs below:
 
 ```markdown
-<!-- YouTube -->
-<iframe src="https://www.youtube.com/watch?v=VIDEO_ID"></iframe>
+<!-- YouTube (use embed URL, not watch URL) -->
+<iframe src="https://www.youtube-nocookie.com/embed/VIDEO_ID" width="560" height="315" frameborder="0" allowfullscreen></iframe>
 
 <!-- Vimeo -->  
-<iframe src="https://player.vimeo.com/video/VIDEO_ID"></iframe>
+<iframe src="https://player.vimeo.com/video/VIDEO_ID" width="560" height="315" frameborder="0" allowfullscreen></iframe>
 
-<!-- Other supported platforms -->
-<iframe src="https://player.bilibili.com/player.html?bvid=VIDEO_ID"></iframe>
+<!-- Dailymotion -->
+<iframe src="https://www.dailymotion.com/embed/video/VIDEO_ID" width="560" height="315" frameborder="0" allowfullscreen></iframe>
+
+<!-- Alternative: Use video links instead of iframes -->
+[Watch on YouTube](https://www.youtube.com/watch?v=VIDEO_ID)
+[Watch on Vimeo](https://vimeo.com/VIDEO_ID)
 ```
 
-#### Supported Platforms
-- 🎥 YouTube (`youtube.com`, `youtu.be`, `youtube-nocookie.com`)
-- 🎬 Vimeo (`player.vimeo.com`)
-- 📺 Dailymotion (`www.dailymotion.com`)
-- 🌏 International: Bilibili, Youku, Niconico, RuTube, and more
+#### Supported Platforms & Embed URLs
+- 🎥 **YouTube**: Use `https://www.youtube-nocookie.com/embed/VIDEO_ID` (not `youtube.com/watch`)
+- 🎬 **Vimeo**: `https://player.vimeo.com/video/VIDEO_ID`
+- 📺 **Dailymotion**: `https://www.dailymotion.com/embed/video/VIDEO_ID`
+- 🌏 **International platforms**: Bilibili, Youku, Niconico, RuTube, and more
+
+#### Important Notes
+- ❌ **Don't use**: `https://www.youtube.com/watch?v=VIDEO_ID` (will be blocked)
+- ✅ **Use instead**: `https://www.youtube-nocookie.com/embed/VIDEO_ID`
+- 🔗 **Alternative**: Link to videos instead of embedding if iframe doesn't work
+- 🛡️ **Security**: All iframes are sandboxed and validated for security
 
 ---
 

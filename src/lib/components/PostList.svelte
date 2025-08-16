@@ -48,8 +48,6 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
   let postToDelete = $state<Post | null>(null);
   let deleteAllTranslations = $state(false); // Add this new state variable
 
-  let displayedPosts = $state([]);
-
   // Add these state variables with the other state declarations at the top
   let isTranslating = $state(false);
   let translationError = $state('');
@@ -108,23 +106,42 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
     }
   }
 
-  // Combined filtering function with intelligent language fallback
-  function filterPosts() {
-    return filterPostsWithLanguageFallback(
+  // Capture the current values outside of the $derived to prevent reactive subscriptions inside the filter
+  let currentPostsDB = $state($postsDB);
+  let currentIdentity = $state($identity);
+  
+  // Update these values when the reactive stores change
+  $effect(() => {
+    currentPostsDB = $postsDB;
+  });
+  
+  $effect(() => {
+    currentIdentity = $identity;
+  });
+  
+  // Replace the $effect with a $derived store to prevent infinite reactive loops
+  let displayedPosts = $derived(
+    filterPostsWithLanguageFallback(
       $posts,
       searchTerm,
       selectedCategory,
-      hasWriteAccess
-    );
-  }
+      () => {  // Use captured values instead of reading reactive stores directly in the filter
+        if (!currentPostsDB || !currentIdentity) return false;
+        return currentPostsDB.access.write.includes(currentIdentity.id) || currentPostsDB.access.write.includes("*");
+      },
+      $locale || 'en',  // Pass the current locale directly instead of having the function call get(locale)
+      false  // Disable logging to prevent reactive loops
+    )
+  );
 
-  $effect(() => {
-    const _ = [$posts, $locale, selectedCategory, searchTerm];
-    displayedPosts = filterPosts();
-  });
+  // Add a function to check write permissions for UI display
+  function hasWriteAccess(): boolean {
+    if (!$postsDB || !$identity) return false;
+    return $postsDB.access.write.includes($identity.id) || $postsDB.access.write.includes("*");
+  }
   // $effect(() => {
   //   info('displayedPosts', displayedPosts);
-  // }); 
+  // });
 
   let selectedPost = $derived($selectedPostId ? displayedPosts.find(post => post._id === $selectedPostId) : null);
 
@@ -489,12 +506,6 @@ ${convertMarkdownToLatex(selectedPost.content)}
       .replace(/[&$%#_{}]/g, '\\$&'); // Escape special characters
   }
 
-  // Add a function to check write permissions
-  function hasWriteAccess(): boolean {
-    if (!$postsDB || !$identity) return false;
-    return $postsDB.access.write.includes($identity.id) || $postsDB.access.write.includes("*");
-  }
-
   // Modify the handleTranslate function similarly to the PostForm version
   async function handleTranslate() {
     isTranslating = true;
@@ -581,8 +592,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
         return post;
       });
 
-      // Force update of displayedPosts
-      displayedPosts = filterPosts();
+      // displayedPosts will automatically update via the $derived reactive declaration
     }
     
     showPasswordPrompt = false;

@@ -48,6 +48,11 @@
         name: 'IPFS Images', 
         syntax: '![My Image](ipfs://QmYourImageCIDHere)',
         description: 'Display images stored on IPFS'
+      },
+      { 
+        name: 'Video Embeds', 
+        syntax: '<iframe src="https://www.youtube-nocookie.com/embed/VIDEO_ID" width="560" height="315" frameborder="0" allowfullscreen></iframe>',
+        description: 'Embed videos (use embed URLs, not watch URLs)'
       }
     ]
   };

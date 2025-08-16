@@ -9,13 +9,19 @@
     "forceConsistentCasingInFileNames": true,
     "outDir": "dist",
     "rootDir": "src",
-    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "typeRoots": ["./node_modules/@types", "./src/types", "./src/types/@types"],
     "allowJs": true,
     "checkJs": false,
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "$lib/*": ["src/lib/*"]
+      "$lib/*": ["src/lib/*"],
+      "$lib/store": ["src/lib/store.ts"],
+      "$lib/store.js": ["src/lib/store.ts"],
+      "$lib/cryptoUtils": ["src/lib/cryptoUtils.ts"],
+      "$lib/cryptoUtils.js": ["src/lib/cryptoUtils.ts"],
+      "$lib/types": ["src/lib/types.ts"],
+      "$lib/types.js": ["src/lib/types.ts"]
     }
   },
   "include": ["src/**/*"],

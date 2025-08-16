@@ -47,14 +47,14 @@ function groupPostsByOriginalContent(posts: BlogPost[]): Map<string, PostGroup> 
 /**
  * Finds the best language match for a post group based on browser preferences
  */
-function findBestLanguageMatch(group: PostGroup, browserLanguages: string[], currentLocale: string): BlogPost | null {
+function findBestLanguageMatch(group: PostGroup, browserLanguages: string[], currentLocale: string, enableLogging: boolean = false): BlogPost | null {
   const availableLanguages = group.availableLanguages;
   
   // Priority 1: Current UI language (if user manually selected it)
   if (availableLanguages.includes(currentLocale)) {
     const post = group.posts.find(p => p.language === currentLocale);
     if (post) {
-      info(`Language fallback: Found post in current UI language '${currentLocale}'`);
+      if (enableLogging) info(`Language fallback: Found post in current UI language '${currentLocale}'`);
       return post;
     }
   }
@@ -64,7 +64,7 @@ function findBestLanguageMatch(group: PostGroup, browserLanguages: string[], cur
     if (availableLanguages.includes(browserLang)) {
       const post = group.posts.find(p => p.language === browserLang);
       if (post) {
-        info(`Language fallback: Found post in browser preferred language '${browserLang}'`);
+        if (enableLogging) info(`Language fallback: Found post in browser preferred language '${browserLang}'`);
         return post;
       }
     }
@@ -74,7 +74,7 @@ function findBestLanguageMatch(group: PostGroup, browserLanguages: string[], cur
   if (availableLanguages.includes('en')) {
     const post = group.posts.find(p => p.language === 'en');
     if (post) {
-      info(`Language fallback: Using English fallback`);
+      if (enableLogging) info(`Language fallback: Using English fallback`);
       return post;
     }
   }
@@ -84,13 +84,13 @@ function findBestLanguageMatch(group: PostGroup, browserLanguages: string[], cur
     // Try to find the original post first (without originalPostId)
     const originalPost = group.posts.find(p => !p.originalPostId);
     if (originalPost) {
-      info(`Language fallback: Using original post in language '${originalPost.language || 'unknown'}'`);
+      if (enableLogging) info(`Language fallback: Using original post in language '${originalPost.language || 'unknown'}'`);
       return originalPost;
     }
     
     // Otherwise take the first available translation
     const firstPost = group.posts[0];
-    info(`Language fallback: Using first available translation in language '${firstPost.language || 'unknown'}'`);
+    if (enableLogging) info(`Language fallback: Using first available translation in language '${firstPost.language || 'unknown'}'`);
     return firstPost;
   }
   
@@ -110,12 +110,15 @@ export function filterPostsWithLanguageFallback(
   posts: BlogPost[],
   searchTerm: string = '',
   selectedCategory: string | 'All' = 'All',
-  hasWriteAccess: () => boolean = () => true
+  hasWriteAccess: () => boolean = () => true,
+  currentLocale: string = 'en',
+  enableLogging: boolean = false
 ): BlogPost[] {
-  const currentLocale = get(locale) || 'en';
   const browserLanguages = getBrowserLanguagePreferences();
   
-  info(`Language fallback: Current locale '${currentLocale}', Browser preferences: [${browserLanguages.join(', ')}]`);
+  if (enableLogging) {
+    info(`Language fallback: Current locale '${currentLocale}', Browser preferences: [${browserLanguages.join(', ')}]`);
+  }
   
   // First apply non-language filters
   const filteredPosts = posts.filter(post => {
@@ -142,7 +145,7 @@ export function filterPostsWithLanguageFallback(
   const selectedPosts: BlogPost[] = [];
   
   postGroups.forEach((group, groupKey) => {
-    const bestPost = findBestLanguageMatch(group, browserLanguages, currentLocale);
+    const bestPost = findBestLanguageMatch(group, browserLanguages, currentLocale, enableLogging);
     if (bestPost) {
       selectedPosts.push(bestPost);
     }

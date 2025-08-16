@@ -1,7 +1,7 @@
 <script lang="ts">
   import { _ } from 'svelte-i18n';
   import { postsDB } from '$lib/store';
-  import type { Post } from '$lib/types';
+  import type { Post, Comment } from '$lib/types';
   import { info, error } from '../utils/logger.js'
 
   interface Props {
@@ -17,25 +17,26 @@
     info('Adding comment to post:', post._id);
     if (newComment && author) {
       try {
-        const comment = {
+        const comment: Comment = {
           _id: crypto.randomUUID(),
+          postId: post._id,
           content: newComment,
           author,
-          date: new Date().toISOString().split('T')[0]
+          createdAt: new Date().toISOString()
         };
 
         // Update the local post object with the new comment
-        post = {
+        const updatedPost = {
           ...post,
-          comments: [...post.comments, comment]
+          comments: [...(post.comments || []), comment]
         };
 
-        // Delete the old post first
-        info('Deleting post:', post);
-        await $postsDB.del(post._id);
-        info('Adding post again with new comments:', post);
-        // Then add the updated post as a new entry
-        await $postsDB.put(post)
+        // Update the post directly
+        info('Updating post with new comment:', updatedPost);
+        await $postsDB.put(updatedPost);
+        
+        // Update the local post reference
+        post = updatedPost;
 
         info('Comment added successfully');
         newComment = '';
@@ -49,17 +50,17 @@
   async function deleteComment(commentId: string) {
     try {
       // Filter out the deleted comment
-      post = {
+      const updatedPost = {
         ...post,
-        comments: post.comments.filter(comment => comment._id !== commentId)
+        comments: (post.comments || []).filter(comment => comment._id !== commentId)
       };
 
-      // Delete the old post first
-      info('Deleting post:', post);
-      await $postsDB.del(post._id);
+      // Update the post directly
+      info('Updating post after comment deletion:', updatedPost);
+      await $postsDB.put(updatedPost);
       
-      // Then add the updated post as a new entry
-      await $postsDB.put(post);
+      // Update the local post reference
+      post = updatedPost;
 
       info('Comment deleted successfully');
     } catch (_error) {
@@ -77,7 +78,7 @@
         <div class="flex justify-between items-center mb-2">
           <span class="font-medium text-gray-900 dark:text-white">{comment.author}</span>
           <div class="flex items-center gap-2">
-            <span class="text-sm text-gray-500 dark:text-gray-400">{comment.date}</span>
+            <span class="text-sm text-gray-500 dark:text-gray-400">{new Date(comment.createdAt).toLocaleDateString()}</span>
             <button
               onclick={() => deleteComment(comment._id)}
               class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
