@@ -32,6 +32,15 @@ export interface RemoteDB {
   mediaAddress: string;
   fetchLater?: boolean;
   date?: string;
+  pinnedToVoyager?: boolean;
+  access?: {
+    write?: string[];
+  };
+  postsCount?: number;
+  commentsCount?: number;
+  mediaCount?: number;
+  lastProcessed?: string;
+  lastAttempt?: string;
 }
 
 export type Category = string;

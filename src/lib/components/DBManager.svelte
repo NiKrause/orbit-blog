@@ -244,7 +244,7 @@
         }
       } catch (_err) {
         console.error('Error opening remote database:', _err);
-        modalMessage = `${$_('error')}: ${err.message || $_('unknown_error')} - ${$_('adding_to_queue_for_later')}`;
+        modalMessage = `${$_('error')}: ${_err.message || $_('unknown_error')} - ${$_('adding_to_queue_for_later')}`;
         
         await addRemoteDBToStore(dbAddress, dbName);
         
@@ -586,7 +586,7 @@
   });
   $effect(() => {
     if ($settingsDB) {  
-      $selectedDBAddress = $settingsDB.address;
+      $selectedDBAddress = $settingsDB.address.toString();
       generateQRCode($selectedDBAddress);
     }
   });
@@ -740,7 +740,7 @@
       // Only after everything is successful, register the database
       debug('registering new database', newSettingsDb);
       modalMessage = $_('registering_new_database');
-      const success = await addRemoteDBToStore(newSettingsDb.address);
+      const success = await addRemoteDBToStore(newSettingsDb.address.toString(), '', newDbName);
       debug('success', success);
       debug('registered new database', newSettingsDb.address, newPostsDb.address, newCommentsDb.address, newMediaDb.address);
       modalMessage = $_('clone_completed_successfully');
@@ -775,8 +775,8 @@
             />
             <button 
               title={$_('copy_to_clipboard')}
-              ontouchstart={() => copyToClipboard($settingsDB?.address || '')} 
-              onclick={() => copyToClipboard($settingsDB?.address || '')} 
+              ontouchstart={() => copyToClipboard($settingsDB?.address.toString() || '')} 
+              onclick={() => copyToClipboard($settingsDB?.address.toString() || '')}
               class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
               data-testid="copy-db-address-button"
             >

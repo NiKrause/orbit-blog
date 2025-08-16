@@ -2,7 +2,7 @@
   import { _ } from 'svelte-i18n';
   import { postsDB } from '$lib/store';
   import type { Post } from '$lib/types';
-  import { info, error } from '../utils/logger'
+  import { info, error } from '../utils/logger.js'
 
   interface Props {
     post: Post;
@@ -41,7 +41,7 @@
         newComment = '';
         author = '';
       } catch (_error) {
-        'Error adding comment:', _error);
+        error('Error adding comment:', _error);
       }
     }
   }

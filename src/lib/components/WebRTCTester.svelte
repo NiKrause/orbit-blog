@@ -350,8 +350,8 @@ async checkBrowserSupport() {
         }
       };
     } catch (__error) {
-      console.error('Error connecting peers:', error);
-      throw error;
+      console.error('Error connecting peers:', __error);
+      throw __error;
     }
   }
 

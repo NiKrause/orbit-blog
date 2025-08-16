@@ -4,7 +4,7 @@
   import { createEventDispatcher } from 'svelte';
   import { unixfs } from '@helia/unixfs';
   import { helia, mediaDB } from '$lib/store';
-  import { error } from '../utils/logger';
+  import { error } from '../utils/logger.js';
   import MediaUploader from './MediaUploader.svelte';
 
   interface Props {

@@ -7,7 +7,7 @@
   import { unixfs } from '@helia/unixfs';
   import { onMount, onDestroy } from 'svelte';
   import { getImageUrlFromHelia, revokeImageUrl } from '../utils/mediaUtils.js';
-  import { info, debug, error } from '../utils/logger'
+  import { info, debug, error } from '../utils/logger.js'
   let persistentSeedPhrase = false; // Default to true since we're always encrypting now
   let showChangePasswordModal = $state(false);
   let newPassword = $state('');
@@ -109,9 +109,7 @@
       $categories = [...$categories, newCategory.trim()];
       $settingsDB?.put({ _id: 'categories', value: $categories });
       //log the settingsDB address
-      //log settingsdb name
       debug('settingsDB address', $settingsDB?.address.toString())
-      debug('settingsDB name', $settingsDB?.name)
       newCategory = '';
     }
   }

@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { mediaDB, helia } from '$lib/store';
   import { unixfs } from '@helia/unixfs';
-  import { error } from '../utils/logger'
+  import { error } from '../utils/logger.js'
 
   let { onMediaSelected = (mediaCid: string) => {} } = $props();
 
@@ -149,7 +149,7 @@
       await loadMedia();
     } catch (_error) {
       error('Error uploading files:', _error);
-      errorMessage = error.message || 'Failed to upload files';
+      errorMessage = (_error as Error)?.message || 'Failed to upload files';
     } finally {
       uploading = false;
     }

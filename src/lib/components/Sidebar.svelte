@@ -78,7 +78,7 @@
         onclick={async () => {
           if ($settingsDB.address) {
             try {   
-                switchToRemoteDB($settingsDB.address);
+                switchToRemoteDB($settingsDB.address.toString());
             } catch (error) {
               console.error('Error retrieving postsDBAddress from settingsDB:', error);
             }
@@ -88,7 +88,7 @@
           e.preventDefault();
           if ($settingsDB.address) {
             try {   
-                switchToRemoteDB($settingsDB.address);
+                switchToRemoteDB($settingsDB.address.toString());
             } catch (error) {
               console.error('Error retrieving postsDBAddress from settingsDB:', error);
             }
@@ -99,10 +99,10 @@
         aria-label={`${$_('click_to_load_your_blog')} ${$settingsDB?.address}`}
       >
         <p class="truncate" data-testid="blog-info">
-          {#if $settingsDB && $settingsDB.pinnedToVoyager !== undefined}
+          {#if $settingsDB}
             <span 
-              class="inline-block {$isRTL ? 'mr-1' : 'ml-1'} w-2 h-2 rounded-full {$settingsDB.pinnedToVoyager ? 'bg-green-500' : canWrite ? 'bg-orange-500' : 'bg-red-500'}"
-              title={$settingsDB.pinnedToVoyager ? $_("pinned_to_voyager") : canWrite ? $_("not_pinned_to_voyager") : $_("no_write_access")}
+              class="inline-block {$isRTL ? 'mr-1' : 'ml-1'} w-2 h-2 rounded-full {canWrite ? 'bg-orange-500' : 'bg-red-500'}"
+              title={canWrite ? $_("write_access") : $_("no_write_access")}
               data-testid="blog-status-indicator"
             ></span>
           {/if}

@@ -15,7 +15,7 @@
   import { postsDB, categories, selectedPostId, identity, enabledLanguages } from '$lib/store.js';
   import { isEncryptedPost } from '$lib/cryptoUtils.js';
   import PostPasswordPrompt from './PostPasswordPrompt.svelte';
-  import { info, debug, error } from '../utils/logger'
+  import { info, debug, error } from '../utils/logger.js'
 
   /**
    * Component props interface
