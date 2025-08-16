@@ -89,7 +89,7 @@ export default {
   "confirm_delete": "Löschen bestätigen",
   "delete_post_confirm": "Sind Sie sicher, dass Sie diesen Beitrag löschen möchten",
   "preview_will_appear_here": "Vorschau wird hier angezeigt",
-  "markdown_placeholder": "# Dein Markdown-Inhalt hier...\n\n## Unterstützte Markdown-Funktionen:\n- Überschriften (# für h1, ## für h2, usw.)\n- **Fett** und *kursiv* Text\n- Listen (nummeriert und unnummeriert)\n- [Links](https://example.com)\n- `Code-Blöcke`\n- > Zitate",
+  "markdown_placeholder": "# Dein Markdown-Inhalt hier...\n\n## Unterstützte Markdown-Funktionen:\n- Überschriften (# für h1, ## für h2, usw.)\n- **Fett** und *kursiv* Text\n- Listen (nummeriert und unnummeriert)\n- [Links](https://example.com)\n- `Code-Blöcke`\n- > Zitate\n- @import(url) für Remote-Inhalte\n- @import(url){physical=true} für permanente Einbettung\n- ---- Akkordeons, Mermaid-Diagramme, IPFS-Bilder\n- ? für vollständige Markdown-Hilfe",
   "restore_this_version": "Diese Version wiederherstellen",
   "no_content": "Kein Inhalt",
   

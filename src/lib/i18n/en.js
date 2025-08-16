@@ -94,7 +94,7 @@ export default {
   "confirm_delete": "Confirm Delete",
   "delete_post_confirm": "Are you sure you want to delete this post",
   "preview_will_appear_here": "Preview will appear here",
-  "markdown_placeholder": "# Your markdown content here...\n\n## Supported markdown features:\n- Headers (# for h1, ## for h2, etc.)\n- **Bold** and *italic* text\n- Lists (ordered and unordered)\n- [Links](https://example.com)\n- `Code blocks`\n- > Blockquotes",
+  "markdown_placeholder": "# Your markdown content here...\n\n## Supported markdown features:\n- Headers (# for h1, ## for h2, etc.)\n- **Bold** and *italic* text\n- Lists (ordered and unordered)\n- [Links](https://example.com)\n- `Code blocks`\n- > Blockquotes\n- @import(url) to import remote content\n- @import(url){physical=true} for permanent embeds\n- ---- accordions, mermaid diagrams, IPFS images\n- Click ? button for full Markdown help",
   "restore_this_version": "Restore this version",
   "no_content": "No content",
   

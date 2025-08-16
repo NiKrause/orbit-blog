@@ -27,6 +27,7 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
   import { info, error } from '../utils/logger.js'
   import MultiSelect from './MultiSelect.svelte';
   import { MarkdownImportResolver } from '$lib/services/MarkdownImportResolver.js';
+  import MarkdownHelp from './MarkdownHelp.svelte';
 
   let searchTerm = $state('');
   let selectedCategory: Category | 'All' = $state('All');
@@ -843,6 +844,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
                       {/if}
                     </button>
                     {/if}
+                    <MarkdownHelp />
                     <button
                       type="button"
                       onclick={() => showPreview = !showPreview}
@@ -868,6 +870,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
                     rows="10"
                     class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                     required
+                    placeholder={$_('markdown_placeholder')}
                   ></textarea>
                 {/if}
               </div>

@@ -14,6 +14,7 @@ import { renderContent } from '$lib/services/MarkdownRenderer.js';
 import MultiSelect from './MultiSelect.svelte';
 import { MarkdownImportResolver } from '$lib/services/MarkdownImportResolver.js';
 import { info } from '$lib/utils/logger.js';
+import MarkdownHelp from './MarkdownHelp.svelte';
 
   let title = $state('');
   let content = $state('');
@@ -275,6 +276,7 @@ import { info } from '$lib/utils/logger.js';
           {/if}
         </button>
         {/if}
+        <MarkdownHelp />
         <button
           type="button"
           onclick={() => showPreview = !showPreview}
