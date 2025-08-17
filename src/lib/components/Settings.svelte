@@ -4,7 +4,7 @@
   import { settingsDB, profilePictureCid, blogName, blogDescription, categories, seedPhrase, libp2p, orbitdb, enabledLanguages, aiApiKey, aiApiUrl, identity, isRTL, mediaDB, helia } from '../store.js';
   import { encryptSeedPhrase } from '../cryptoUtils.js';
   import { LANGUAGES } from '../i18n/index.js';
-  import { unixfs } from '@helia/unixfs';
+  import { unixfs, type UnixFS } from '@helia/unixfs';
   import { onMount, onDestroy } from 'svelte';
   import { getImageUrlFromHelia, revokeImageUrl } from '../utils/mediaUtils.js';
   import { info, debug, error } from '../utils/logger.js'

@@ -27,7 +27,8 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   import LoadingBlog from './LoadingBlog.svelte';
   import LanguageSelector from './LanguageSelector.svelte';
 
-  import { FaBars, FaTimes } from 'svelte-icons/fa';
+  import FaBars from 'svelte-icons/fa/FaBars.svelte';
+  import FaTimes from 'svelte-icons/fa/FaTimes.svelte';
   import { getLocaleVersionString } from '$lib/utils/buildInfo.js';
   import { derived } from 'svelte/store';
   import { locale } from 'svelte-i18n';
@@ -313,63 +314,76 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     lastSettingsDBAddress = $settingsDB.address.toString();
     info('Loading settings from new database:', lastSettingsDBAddress);
     
-    // Initial load of settings
-    $settingsDB.get('blogName').then(result => 
-      result?.value?.value !== undefined ? ($blogName = result.value.value) : null
-    );
-    
-    $settingsDB.get('blogDescription').then(result => 
-      result?.value?.value !== undefined ? ($blogDescription = result.value.value) : null
-    );
-    
-    $settingsDB.get('categories').then(result => 
-      result?.value?.value !== undefined ? ($categories = result.value.value) : null
-    );
-    $settingsDB.get('postsDBAddress').then(result => {
-        if(result?.value?.value !== undefined){
-          $postsDBAddress = result.value.value
-        } else if($postsDBAddress && $postsDB.address){
-          const postsDBAddress = $postsDB?.address.toString()
-          try {
-            $settingsDB?.put({ _id: 'postsDBAddress', value: postsDBAddress});
-            $settingsDB?.all().then(result => debug('settingsDB.all()', result))
-          } catch (err) {
-            console.error('Failed to write to DB:', $postsDB?.address?.toString?.(), err);
-          }
+    // Initial load of settings - use .all() to get all documents first to avoid CID parsing errors on empty DBs
+    $settingsDB.all().then(allSettings => {
+      info('All settings from database:', allSettings);
+      
+      // Process each setting
+      for (const entry of allSettings) {
+        const setting = entry.value;
+        switch(setting._id) {
+          case 'blogName':
+            if (setting.value !== undefined) blogName.set(setting.value);
+            break;
+          case 'blogDescription':
+            if (setting.value !== undefined) blogDescription.set(setting.value);
+            break;
+          case 'categories':
+            if (setting.value !== undefined) categories.set(setting.value);
+            break;
+          case 'postsDBAddress':
+            if (setting.value !== undefined) postsDBAddress.set(setting.value);
+            break;
+          case 'commentsDBAddress':
+            if (setting.value !== undefined) commentsDBAddress.set(setting.value);
+            break;
+          case 'mediaDBAddress':
+            // Currently not storing this in a variable, but could be used later
+            break;
+          case 'profilePicture':
+            if (setting.value !== undefined) {
+              profilePictureCid.set(setting.value);
+              info('Set profile picture CID from settings:', setting.value);
+            }
+            break;
         }
       }
-    )
-    $settingsDB.get('commentsDBAddress').then(result => {
-      if(result?.value?.value !== undefined){
-        $commentsDBAddress = result.value.value
-      } else if($commentsDB && $commentsDB.address){
-        const commentsDBAddress = $commentsDB?.address.toString()
+      
+      // If no postsDBAddress found but we have a postsDB, save it
+      if (!$postsDBAddress && $postsDB?.address) {
+        const postsDBAddressValue = $postsDB.address.toString();
         try {
-          $settingsDB?.put({ _id: 'commentsDBAddress', value: commentsDBAddress});
-          $settingsDB?.all().then(result => debug('settingsDB.all()', result))
+          $settingsDB?.put({ _id: 'postsDBAddress', value: postsDBAddressValue});
+          postsDBAddress.set(postsDBAddressValue);
         } catch (err) {
-          console.error('Failed to write to DB:', $commentsDB?.address?.toString?.(), err);
+          console.error('Failed to write postsDBAddress to DB:', err);
         }
       }
-    })
-    $settingsDB.get('mediaDBAddress').then(result => {
-      if(result?.value?.value !== undefined){
-      } else if($mediaDB && $mediaDB.address){
-        const mediaDBAddress = $mediaDB?.address.toString()
+      
+      // If no commentsDBAddress found but we have a commentsDB, save it
+      if (!$commentsDBAddress && $commentsDB?.address) {
+        const commentsDBAddressValue = $commentsDB.address.toString();
+        try {
+          $settingsDB?.put({ _id: 'commentsDBAddress', value: commentsDBAddressValue});
+          commentsDBAddress.set(commentsDBAddressValue);
+        } catch (err) {
+          console.error('Failed to write commentsDBAddress to DB:', err);
+        }
+      }
+      
+      // If no mediaDBAddress found but we have a mediaDB, save it
+      if ($mediaDB?.address) {
+        const mediaDBAddress = $mediaDB.address.toString();
         try {
           $settingsDB?.put({ _id: 'mediaDBAddress', value: mediaDBAddress});
-          $settingsDB?.all().then(result => debug('settingsDB.all()', result))
         } catch (err) {
-          console.error('Failed to write to DB:', $mediaDB?.address?.toString?.(), err);
+          console.error('Failed to write mediaDBAddress to DB:', err);
         }
       }
-    })
-
-    $settingsDB.get('profilePicture').then(result => {
-      if (result?.value?.value) {
-        $profilePictureCid = result.value.value;
-        info('Set profile picture CID from settings:', $profilePictureCid);
-      }
+    }).catch(err => {
+      warn('Error loading settings from database:', err);
+      // If database is completely empty or has issues, we can still continue
+      // The settings will be created as needed when the user makes changes
     });
 
     // Clean up existing settingsDB event listener

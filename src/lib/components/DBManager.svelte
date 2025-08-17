@@ -505,22 +505,41 @@
     try {
       const remotedb = await $orbitdb.open(db.address);
       
-      // Get all database addresses
-      const [postsAddressEntry, commentsAddressEntry, mediaAddressEntry] = await Promise.all([
-        remotedb.get('postsDBAddress'),
-        remotedb.get('commentsDBAddress'),
-        remotedb.get('mediaDBAddress')
-      ]);
+      // Get all database addresses using .all() to avoid CID parsing errors on empty databases
+      const allSettings = await remotedb.all();
+      
+      // Extract addresses from settings
+      let postsAddress = null;
+      let commentsAddress = null;
+      let mediaAddress = null;
+      
+      for (const entry of allSettings) {
+        const setting = entry.value;
+        switch(setting._id) {
+          case 'postsDBAddress':
+            if (setting.value !== undefined) postsAddress = setting.value;
+            break;
+          case 'commentsDBAddress':
+            if (setting.value !== undefined) commentsAddress = setting.value;
+            break;
+          case 'mediaDBAddress':
+            if (setting.value !== undefined) mediaAddress = setting.value;
+            break;
+        }
+      }
       
       const dropPromises = [];
       
       if (options.dropLocal) {
-        for (const entry of [postsAddressEntry, commentsAddressEntry, mediaAddressEntry]) {
-          if (entry?.value?.value) {
+        // Drop sub-databases if they exist
+        for (const address of [postsAddress, commentsAddress, mediaAddress]) {
+          if (address) {
             dropPromises.push(
-              $orbitdb.open(entry.value.value).then(async (database) => {
+              $orbitdb.open(address).then(async (database) => {
                 await database.drop();
-                debug(`Dropped database: ${entry.value.value}`);
+                debug(`Dropped database: ${address}`);
+              }).catch(err => {
+                debug(`Failed to drop database ${address}:`, err);
               })
             );
           }

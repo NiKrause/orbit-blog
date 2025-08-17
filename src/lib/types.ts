@@ -13,6 +13,9 @@ export interface Post {
   originalPostId?: string;
   comments?: Comment[];
   published?: boolean;
+  categories?: string[];
+  isEncrypted?: boolean;
+  isDecrypted?: boolean;
 }
 
 export interface Comment {
@@ -53,6 +56,16 @@ export interface BlogPost {
   language: string;
   translatedFrom?: string;
   isEncrypted?: boolean;
+  originalPostId?: string;
+  published?: boolean;
+  categories?: string[];
+  createdAt?: number;
+  updatedAt?: number;
+  identity?: string;
+  mediaIds?: string[];
+  date?: number;
+  isDecrypted?: boolean;
+  comments?: Comment[];
 }
 
 export interface Media {
@@ -79,6 +92,11 @@ export interface DatabaseUpdate {
 
 export interface Helia {
   libp2p: Libp2p;
+  blockstore: {
+    get: (cid: any) => Promise<any>;
+    has: (cid: any) => Promise<boolean>;
+    put: (cid: any, block: any) => Promise<void>;
+  };
 }
 
 export interface Libp2p {
@@ -86,6 +104,7 @@ export interface Libp2p {
     toString: () => string;
   };
   getConnections: () => Connection[];
+  getMultiaddrs: () => { toString: () => string }[];
   addEventListener: (event: string, handler: (event: any) => void) => void;
   removeEventListener: (event: string, handler: (event: any) => void) => void;
   peerStore: {
@@ -122,8 +141,15 @@ export interface OrbitDB {
   put: (entry: any) => Promise<void>;
   get: (key: string) => Promise<any>;
   all: () => Promise<any[]>;
+  del: (key: string) => Promise<void>;
+  drop: () => Promise<void>;
+  close: () => Promise<void>;
+  log: {
+    iterator: (options?: { reverse?: boolean }) => AsyncIterable<any>;
+  };
   events: {
     on: (event: string, handler: (entry: DatabaseUpdate) => void) => void;
+    removeListener: (event: string, handler: (entry: DatabaseUpdate) => void) => void;
   };
 }
 

@@ -135,9 +135,9 @@
       {#if $remoteDBs?.length > 0}
         {#each $remoteDBs as db}
           <button 
-            class="w-full text-left py-0.5 px-1 rounded text-[10px] md:text-xs truncate max-h-8 flex items-center touch-target {$postsDBAddress === db.address ? 'bg-blue-500 text-white' : db.access?.write?.includes($identity?.id) ? 'bg-green-300 dark:bg-green-600 text-gray-800 dark:text-gray-200 hover:bg-amber-400 dark:hover:bg-amber-500' : 'bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-400 dark:hover:bg-gray-500'}"
-            onclick={() => switchToRemoteDB(db.address)}
-            ontouchend={(e) => { e.preventDefault(); switchToRemoteDB(db.address); }}
+            class="w-full text-left py-0.5 px-1 rounded text-[10px] md:text-xs truncate max-h-8 flex items-center touch-target {$settingsDB?.address?.toString() === db.address ? 'bg-blue-500 text-white' : db.access?.write?.includes($identity?.id) ? 'bg-green-300 dark:bg-green-600 text-gray-800 dark:text-gray-200 hover:bg-amber-400 dark:hover:bg-amber-500' : 'bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 hover:bg-gray-400 dark:hover:bg-gray-500'}"
+        onclick={() => switchToRemoteDB(db.address, true)}
+        ontouchend={(e) => { e.preventDefault(); switchToRemoteDB(db.address, true); }}
             title={db.name}
             data-testid={`remote-blog-${db.id}`}
           >

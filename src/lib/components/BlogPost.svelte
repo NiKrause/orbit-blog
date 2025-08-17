@@ -9,7 +9,7 @@
   import { unixfs } from '@helia/unixfs';
 
   // Local imports
-  import type { BlogPost, Comment } from '$lib/types.js';
+  import type { BlogPost, Comment, Category } from '$lib/types.js';
   import { commentsDB, mediaDB, helia, isRTL, posts } from '$lib/store.js';
   import { formatTimestamp, formatTimestampLong } from '$lib/dateUtils.js';
   import { postsDB, categories, selectedPostId, identity, enabledLanguages } from '$lib/store.js';

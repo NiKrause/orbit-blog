@@ -26,6 +26,8 @@
   let currentTest = $state('');
 
   class WebRTCNetworkTester {
+  results: any;
+  
   constructor() {
     this.results = {
       browserSupport: {},
