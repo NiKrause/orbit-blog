@@ -8,10 +8,13 @@ export const LANGUAGES = {
   el: 'Ελληνικά',
   en: 'English',
   es: 'Español',
+  fa: 'فارسی',
   fr: 'Français',
+  he: 'עברית',
   hi: 'हिन्दी',
   id: 'Bahasa Indonesia',
   it: 'Italiano',
+  ka: 'ქართული',
   nl: 'Nederlands',
   pt: 'Português',
   ru: 'Русский',
@@ -21,7 +24,7 @@ export const LANGUAGES = {
 };
 
 // Define RTL languages
-const RTL_LANGUAGES = ['ar'];
+const RTL_LANGUAGES = ['ar', 'fa', 'he'];
 
 // Registriere die Übersetzungsdateien
 const registerTranslations = () => {
@@ -29,7 +32,11 @@ const registerTranslations = () => {
   register('en', () => import('./en.js'));
   register('de', () => import('./de.js'));
   register('el', () => import('./el.js'));
+  register('fa', () => import('./fa.js'));
+  register('he', () => import('./he.js'));
   register('hi', () => import('./hi.js'));
+  register('id', () => import('./id.js'));
+  register('ka', () => import('./ka.js'));
   register('nl', () => import('./nl.js'));
   register('fr', () => import('./fr.js'));
   register('es', () => import('./es.js'));
