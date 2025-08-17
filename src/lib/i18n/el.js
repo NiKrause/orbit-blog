@@ -292,5 +292,42 @@ export default {
     "loading_comments": "Φόρτωση σχολίων...",
     "loading_media": "Φόρτωση μέσων...",
     "loading_complete": "Η φόρτωση ολοκληρώθηκε",
-    "encryption_failed": "Αποτυχία κρυπτογράφησης"
+    "encryption_failed": "Αποτυχία κρυπτογράφησης",
+
+    // Χαμένες μεταφράσεις
+    "force_retranslate_tooltip": "Υποχρεώστε επανάληψη μετάφρασης (αντικατάσταση υπαρχουσών μεταφράσεων)",
+    "delete_current_language_only": "Διαγραφή μόνο της τρέχουσας γλωσσικής έκδοσης",
+    "delete_all_translations": "Διαγραφή όλων των μεταφράσεων",
+
+    // PWA Eject
+    "eject_pwa_title": "Επαναφορά στις ρυθμίσεις εργοστασίου",
+    "eject_pwa_subtitle": "Διαγραφή όλων των δεδομένων και επαναφορά της εφαρμογής",
+    "eject_pwa_confirm": "Επαναφορά Εφαρμογής",
+    "eject_final_confirmation": "Είστε βέβαιοι ότι θέλετε να επαναφέρετε την εφαρμογή; Αυτή η ενέργεια δεν μπορεί να αναιρεθεί!",
+    "eject_starting": "Έναρξη διαδικασίας επαναφοράς...",
+    "eject_clearing_service_worker": "Εκκαθάριση cache service worker...",
+    "eject_clearing_databases": "Εκκαθάριση βάσεων δεδομένων...",
+    "eject_clearing_local_storage": "Εκκαθάριση τοπικής αποθήκευσης...",
+    "eject_clearing_orbit_data": "Εκκαθάριση δεδομένων OrbitDB...",
+    "eject_clearing_ipfs_data": "Εκκαθάριση δεδομένων IPFS...",
+    "eject_complete": "Η επαναφορά ολοκληρώθηκε, αναφόρτωση...",
+    "eject_failed": "Η επαναφορά απέτυχε",
+    "eject_please_wait": "Παρακαλώ περιμένετε ενώ η εφαρμογή επαναφέρεται.",
+    "eject_warning_title": "Προειδοποίηση: Απώλεια Δεδομένων",
+    "eject_warning_data": "Όλες οι δημοσιεύσεις του ιστολογίου σας, τα σχόλια και τα πολυμέσα θα διαγραφούν οριστικά",
+    "eject_warning_posts": "Οι βάσεις δεδομένων OrbitDB και το περιεχόμενο IPFS σας θα διαγραφούν",
+    "eject_warning_settings": "Όλες οι ρυθμίσεις και προτιμήσεις θα επαναφερθούν στις αρχικές τιμές",
+    "eject_warning_media": "Οι μεταφορτωμένες εικόνες και αρχεία θα χαθούν οριστικά",
+    "eject_warning_irreversible": "Αυτή η ενέργεια είναι μη αναστρέψιμη και δεν μπορεί να ακυρωθεί",
+    "eject_options": "Επιλογές Επαναφοράς",
+    "eject_clear_service_worker": "Εκκαθάριση service worker και cache",
+    "eject_clear_indexed_db": "Εκκαθάριση βάσεων δεδομένων IndexedDB",
+    "eject_clear_local_storage": "Εκκαθάριση τοπικής αποθήκευσης (διατήρηση θέματος/γλώσσας)",
+    "eject_clear_orbit_db": "Εκκαθάριση δεδομένων OrbitDB",
+    "eject_clear_helia_data": "Εκκαθάριση δεδομένων IPFS/Helia",
+    "storage_usage": "Τρέχουσα Χρήση Αποθηκευτικού Χώρου",
+    "current_usage": "Χρησιμοποιείται",
+    "storage_quota": "Διαθέσιμο",
+    "backup_recommendation": "Σύσταση Αντιγράφων Ασφαλείας",
+    "backup_recommendation_text": "Εξετάστε τη δυνατότητα να εξαγάγετε τις σημαντικές δημοσιεύσεις σας ως PDF ή να αντιγράψετε τις διευθύνσεις βάσεων δεδομένων πριν συνεχίσετε."
   }

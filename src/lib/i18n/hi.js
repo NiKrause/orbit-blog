@@ -288,5 +288,42 @@ export default {
     "loading_posts": "पोस्ट लोड की जा रही हैं...",
     "loading_comments": "टिप्पणियाँ लोड की जा रही हैं...",
     "loading_media": "मीडिया लोड किया जा रहा है...",
-    "loading_complete": "लोडिंग पूर्ण"
+    "loading_complete": "लोडिंग पूर्ण",
+
+    // लापता अनुवाद
+    "force_retranslate_tooltip": "पूर्व अनुवादों को बदलते हुए जबरदस्ती पुन: अनुवाद करें",
+    "delete_current_language_only": "केवल वर्तमान भाषा संस्करण हटाएं",
+    "delete_all_translations": "सभी अनुवाद हटाएं",
+
+    // PWA Eject
+    "eject_pwa_title": "फैक्ट्री रीसेट",
+    "eject_pwa_subtitle": "सभी डेटा को हटाएं और ऐप रीसेट करें",
+    "eject_pwa_confirm": "ऐप रीसेट करें",
+    "eject_final_confirmation": "क्या आप वास्तव में ऐप रीसेट करना चाहते हैं? यह कार्य पूर्ववत नहीं हो सकता!",
+    "eject_starting": "रीसेट प्रक्रिया शुरू हो रही है...",
+    "eject_clearing_service_worker": "सर्विस वर्कर कैश हटा रहा है...",
+    "eject_clearing_databases": "डेटाबेस हटा रहा है...",
+    "eject_clearing_local_storage": "लोकल स्टोरेज हटा रहा है...",
+    "eject_clearing_orbit_data": "OrbitDB डेटा हटा रहा है...",
+    "eject_clearing_ipfs_data": "IPFS डेटा हटा रहा है...",
+    "eject_complete": "रीसेट पूरा हुआ, रीलोड कर रहा है...",
+    "eject_failed": "रीसेट असफल",
+    "eject_please_wait": "कृपया इंतज़ार करें जब तक ऐप रीसेट होता है।",
+    "eject_warning_title": "चेतावनी: डेटा का नुकसान",
+    "eject_warning_data": "आपके ब्लॉग के सभी पोस्ट, कमेंट और मीडिया हमेशा के लिए हट जाएंगे",
+    "eject_warning_posts": "आपके OrbitDB डेटाबेस और IPFS कंटेंट हट जाएंगे",
+    "eject_warning_settings": "सभी सेटिंग्स और पसंदीदा डिफ़ॉल्ट में रीसेट हो जाएंगे",
+    "eject_warning_media": "अपलोड की गई तस्वीरें और फाइलें हमेशा के लिए खो जाएंगी",
+    "eject_warning_irreversible": "यह कार्य अपरिवर्तनीय है और इसे पूर्ववत नहीं किया जा सकता",
+    "eject_options": "रीसेट विकल्प",
+    "eject_clear_service_worker": "सर्विस वर्कर और कैश हटाएं",
+    "eject_clear_indexed_db": "IndexedDB डेटाबेस हटाएं",
+    "eject_clear_local_storage": "लोकल स्टोरेज हटाएं (थीम/भाषा बरकरार रखें)",
+    "eject_clear_orbit_db": "OrbitDB डेटा हटाएं",
+    "eject_clear_helia_data": "IPFS/Helia डेटा हटाएं",
+    "storage_usage": "वर्तमान स्टोरेज उपयोग",
+    "current_usage": "उपयोग में",
+    "storage_quota": "उपलब्ध",
+    "backup_recommendation": "बैकअप सुरक्षा सुझाव",
+    "backup_recommendation_text": "आगे बढ़ने से पहले अपनी महत्वपूर्ण पोस्ट्स को PDF के रूप में एक्सपोर्ट करने या डेटाबेस पते को कॉपी करने पर विचार करें।"
   }

@@ -270,6 +270,7 @@ export default {
   "translation_config_missing": "Please configure AI translation settings first",
   "fill_required_fields": "Please fill in all required fields",
   "translation_failed": "Translation failed. Please try again",
+  "force_retranslate_tooltip": "Force re-translate (overwrite existing translations)",
   "no_posts_in_language": "No posts available in {language}",
   "original_language": "Original language",
   "translated_from": "Translated from {language}",

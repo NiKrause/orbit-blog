@@ -171,6 +171,7 @@ export default {
   "error_cloning_database": "Fehler beim Klonen der Datenbank",
   "drop_local_database_copies": "Lokale Datenbankkopien löschen",
   "unpin_from_voyager_node": "Von Voyager-Knoten lösen",
+  "this_will_delete_all_translations": "Dies wird alle Übersetzungen löschen",
   
   // Connected Peers
   "connected_peers": "Verbundene Peers",
@@ -279,5 +280,58 @@ export default {
   "loading_posts": "Lade Beiträge...",
   "loading_comments": "Lade Kommentare...",
   "loading_media": "Lade Medien...",
-  "loading_complete": "Laden abgeschlossen"
+  "loading_complete": "Laden abgeschlossen",
+  
+  // Missing sections from English
+  "please_select_image": "Bitte wählen Sie ein Bild aus",
+  "upload_picture": "Bild hochladen",
+  "change_picture": "Bild ändern",
+  "image_too_large": "Bild ist zu groß",
+  "media_db_not_initialized": "Medien-Datenbank oder IPFS nicht initialisiert",
+  
+  // Language
+  "select_language": "Sprache auswählen",
+  "language": "Sprache",
+  
+  // AI Translation
+  "ai_translation_settings": "KI-Übersetzungseinstellungen",
+  "ai_api_key": "KI-API-Schlüssel",
+  "ai_api_url": "KI-API-URL",
+  "translate_and_post": "Übersetzen und veröffentlichen",
+  "translating": "Übersetze...",
+  "translation_config_missing": "Bitte konfigurieren Sie zuerst die KI-Übersetzungseinstellungen",
+  "translation_failed": "Übersetzung fehlgeschlagen. Bitte versuchen Sie es erneut",
+  "force_retranslate_tooltip": "Erneut übersetzen erzwingen (vorhandene Übersetzungen überschreiben)",
+  
+  // PWA Eject
+  "eject_pwa_title": "Werksreset",
+  "eject_pwa_subtitle": "Alle Daten löschen und Anwendung zurücksetzen",
+  "eject_pwa_confirm": "Anwendung zurücksetzen",
+  "eject_final_confirmation": "Sind Sie absolut sicher, dass Sie die Anwendung zurücksetzen möchten? Diese Aktion kann nicht rückgängig gemacht werden!",
+  "eject_starting": "Starte Reset-Prozess...",
+  "eject_clearing_service_worker": "Lösche Service Worker Cache...",
+  "eject_clearing_databases": "Lösche Datenbanken...",
+  "eject_clearing_local_storage": "Lösche lokalen Speicher...",
+  "eject_clearing_orbit_data": "Lösche OrbitDB-Daten...",
+  "eject_clearing_ipfs_data": "Lösche IPFS-Daten...",
+  "eject_complete": "Reset abgeschlossen, lade neu...",
+  "eject_failed": "Reset fehlgeschlagen",
+  "eject_please_wait": "Bitte warten Sie, während die Anwendung zurückgesetzt wird.",
+  "eject_warning_title": "Warnung: Datenverlust",
+  "eject_warning_data": "Alle Ihre Blog-Beiträge, Kommentare und Medien werden dauerhaft gelöscht",
+  "eject_warning_posts": "Ihre OrbitDB-Datenbanken und IPFS-Inhalte werden entfernt",
+  "eject_warning_settings": "Alle Einstellungen und Präferenzen werden auf die Standardwerte zurückgesetzt",
+  "eject_warning_media": "Hochgeladene Bilder und Dateien gehen dauerhaft verloren",
+  "eject_warning_irreversible": "Diese Aktion ist irreversibel und kann nicht rückgängig gemacht werden",
+  "eject_options": "Reset-Optionen",
+  "eject_clear_service_worker": "Service Worker und Cache löschen",
+  "eject_clear_indexed_db": "IndexedDB-Datenbanken löschen",
+  "eject_clear_local_storage": "Lokalen Speicher löschen (behält Theme/Sprache)",
+  "eject_clear_orbit_db": "OrbitDB-Daten löschen",
+  "eject_clear_helia_data": "IPFS/Helia-Daten löschen",
+  "storage_usage": "Aktuelle Speichernutzung",
+  "current_usage": "Verwendet",
+  "storage_quota": "Verfügbar",
+  "backup_recommendation": "Backup-Empfehlung",
+  "backup_recommendation_text": "Erwägen Sie, Ihre wichtigen Beiträge als PDF zu exportieren oder Ihre Datenbank-Adressen zu sichern, bevor Sie fortfahren."
 }

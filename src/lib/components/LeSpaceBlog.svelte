@@ -192,15 +192,15 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       info('UnixFS initialized');
     }
 
+    // Always create local databases first (needed for tracking remote DBs, etc.)
+    await createDefaultDatabases();
+    
+    // Then, if we have an initial address, switch to the remote database
     if ($initialAddress) {
       info('Loading remote database from initialAddress:', $initialAddress);
       await switchToRemoteDB($initialAddress);
       sidebarVisible = false;
-      return; // Don't create default databases
     }
-
-    // Only create default databases if we don't have an initial address
-    await createDefaultDatabases();
   }
 
   // Move the default database creation to a separate function

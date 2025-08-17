@@ -507,14 +507,26 @@ ${convertMarkdownToLatex(selectedPost.content)}
   }
 
   // Modify the handleTranslate function similarly to the PostForm version
-  async function handleTranslate() {
+  async function handleTranslate(forceRetranslate = false) {
+    console.log('🎯 TRANSLATE BUTTON CLICKED! 🎯');
+    console.log('🚀 Houston, we have a translation request! Starting countdown...');
+    console.log('3... 2... 1... BLAST OFF! 🚀');
+    
     isTranslating = true;
     translationError = '';
     translationStatuses = Object.fromEntries([...$enabledLanguages].map(lang => [lang, 'default']));
+    
+    console.log('🔧 Setting up the translation machinery...');
+    console.log('⚡ isTranslating =', isTranslating);
+    console.log('🌍 Enabled languages:', [...$enabledLanguages]);
+    console.log('📝 Current post title:', editedTitle);
+    console.log('📄 Content length:', editedContent?.length, 'characters');
 
     try {
       // Support both single category (backward compatibility) and multiple categories
         const categoryData = editedCategories.length > 0 ? editedCategories : [];
+        
+        console.log('🏷️ Categories collected:', categoryData);
 
       const post = {
         _id:  $selectedPostId,
@@ -525,6 +537,13 @@ ${convertMarkdownToLatex(selectedPost.content)}
         language: $locale,
         isEncrypted: isEncrypting 
       };
+      
+      console.log('📦 Post package prepared for translation:');
+      console.log('   🆔 ID:', post._id);
+      console.log('   🏷️ Title:', post.title);
+      console.log('   🌐 Language:', post.language);
+      console.log('   🔒 Encrypted:', post.isEncrypted);
+      console.log('🎪 Time to call the Translation Circus! 🎪');
 
       const result = await TranslationService.translateAndSavePost({
         post,
@@ -536,20 +555,35 @@ ${convertMarkdownToLatex(selectedPost.content)}
           updatedAt: new Date(editedUpdatedAt).getTime()
         },
         encryptionPassword: encryptionPassword,
-        isEncrypting: isEncrypting
+        isEncrypting: isEncrypting,
+        forceRetranslate: forceRetranslate
       })
+      
+      console.log('🎭 Translation Circus has returned! Results:', result);
 
       if (result.success) {
+        console.log('🎉 SUCCESS! Translation party time! 🎉');
+        console.log('🏆 Translation statuses:', result.translationStatuses);
+        console.log('🚪 Exiting edit mode like a boss!');
         translationStatuses = result.translationStatuses;
         editMode = false;
       } else {
+        console.log('😱 OH NO! Translation failed! 😱');
+        console.log('💥 Error:', result.error);
+        console.log('📊 Status report:', result.translationStatuses);
         translationError = result.error;
         translationStatuses = result.translationStatuses;
       }
     } catch (error) {
+      console.log('🔥 CATASTROPHIC FAILURE! 🔥');
+      console.log('💀 The translation gods are angry:', error);
+      console.log('🆘 Emergency protocols activated!');
       translationError = $_('translation_failed');
     } finally {
+      console.log('🏁 Translation marathon complete!');
+      console.log('😴 Setting isTranslating to false... zzz');
       isTranslating = false;
+      console.log('✅ All done! Thanks for using the Le Space Blog Translation Extravaganza! ✨');
     }
   }
 
@@ -926,30 +960,43 @@ ${convertMarkdownToLatex(selectedPost.content)}
                 >
                   {$_('cancel')}
                 </button>
-                <button
-                  type="button"
-                  onclick={handleTranslate}
-                  disabled={isTranslating}
-                  class="inline-flex items-center gap-2 bg-indigo-600 dark:bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors disabled:opacity-50"
-                >
-                  <div class="grid grid-cols-3 gap-1">
-                    {#each [...$enabledLanguages] as lang}
-                      <LanguageStatusLED 
-                        language={lang} 
-                        status={
-                          translationStatuses[lang] === 'success' ? 'success' :
-                          translationStatuses[lang] === 'error' ? 'error' : 
-                          'default'
-                        }
-                      />
-                    {/each}
-                  </div>
-                  {#if isTranslating}
-                    {$_('translating')}...
-                  {:else}
-                    {$_('translate_and_post')}
-                  {/if}
-                </button>
+                <div class="relative inline-block">
+                  <button
+                    type="button"
+                    onclick={handleTranslate}
+                    disabled={isTranslating}
+                    class="inline-flex items-center gap-2 bg-indigo-600 dark:bg-indigo-500 text-white py-2 px-4 rounded-l-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors disabled:opacity-50"
+                  >
+                    <div class="grid grid-cols-3 gap-1">
+                      {#each [...$enabledLanguages] as lang}
+                        <LanguageStatusLED 
+                          language={lang} 
+                          status={
+                            translationStatuses[lang] === 'success' ? 'success' :
+                            translationStatuses[lang] === 'error' ? 'error' : 
+                            'default'
+                          }
+                        />
+                      {/each}
+                    </div>
+                    {#if isTranslating}
+                      {$_('translating')}...
+                    {:else}
+                      {$_('translate_and_post')}
+                    {/if}
+                  </button>
+                  <button
+                    type="button"
+                    onclick={() => handleTranslate(true)}
+                    disabled={isTranslating}
+                    title={$_('force_retranslate_tooltip')}
+                    class="inline-flex items-center px-2 py-2 bg-indigo-600 dark:bg-indigo-500 text-white border-l border-indigo-500 dark:border-indigo-400 rounded-r-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors disabled:opacity-50"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
                 <button
                   type="button"
                   onclick={handleEncrypt}
