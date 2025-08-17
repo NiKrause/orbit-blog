@@ -2,7 +2,7 @@ import { Ed25519Provider } from 'key-did-provider-ed25519';
 import EthereumIdentityProvider from '@orbitdb/identity-provider-ethereum';
 import * as KeyDIDResolver from "key-did-resolver";
 import OrbitDBIdentityProviderDID from "@orbitdb/identity-provider-did";
-import { createIdentities, useIdentityProvider } from "@orbitdb/core";
+import { Identities, useIdentityProvider } from "@orbitdb/core";
 
 /**
  *
@@ -20,7 +20,7 @@ import { createIdentities, useIdentityProvider } from "@orbitdb/core";
 export async function createIdentityProvider(type='ed25519', seed, ipfs) {
     let identity
     let identityProvider;
-    const identities = await createIdentities({ ipfs })
+    const identities = await Identities({ ipfs })
     switch (type) {
         case 'ed25519':
             const keyDidResolver = KeyDIDResolver.getResolver()

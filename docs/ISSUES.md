@@ -15,6 +15,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 ### Todos, Features, Issues
 - Todos:
+    - [ ] add an "eject PWA" icon in case this is a PWA and delete all orbitdb stored indexdb data
     - [ ] add github repo as projects
     - [ ] add deamo argumentation maps
     - [ ] when starting browser let user decide for memory sessions o persistent storage (and support the blog author)

@@ -8,7 +8,8 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 
   import { createHelia } from 'helia';
   import { createLibp2p } from 'libp2p';
-  import { createOrbitDB, IPFSAccessController, createIdentities } from '@orbitdb/core';
+  import { createOrbitDB, IPFSAccessController } from '@orbitdb/core';
+  import { Identities } from '@orbitdb/core';
   
   import { LevelDatastore } from 'datastore-level';
   import { LevelBlockstore } from 'blockstore-level';
@@ -26,6 +27,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   import PasswordModal from './PasswordModal.svelte';
   import LoadingBlog from './LoadingBlog.svelte';
   import LanguageSelector from './LanguageSelector.svelte';
+  import PWAEjectModal from './PWAEjectModal.svelte';
 
   import FaBars from 'svelte-icons/fa/FaBars.svelte';
   import FaTimes from 'svelte-icons/fa/FaTimes.svelte';
@@ -73,18 +75,21 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   } from '$lib/store';
 
   import { info, debug, warn, error } from '../utils/logger.js'
+  import { canEject } from '../utils/pwaEject.js'
 
   let blockstore = new LevelBlockstore('./helia-blocks');
   let datastore = new LevelDatastore('./helia-data');
 
   let encryptedSeedPhrase = localStorage.getItem('encryptedSeedPhrase');
 
-  let showPasswordModal = encryptedSeedPhrase ? true : false;
+  let showPasswordModal = $state(encryptedSeedPhrase ? true : false);
   let isNewUser = !encryptedSeedPhrase;
-  let canWrite = false;
+  let canWrite = $state(false);
+  let showEjectModal = $state(false);
+  let canEjectPWA = $state(false);
 
   // Add sidebar state variables
-  let sidebarVisible = true;
+  let sidebarVisible = $state(true);
   let touchStartX = 0;
   let touchEndX = 0;
   const SWIPE_THRESHOLD = 50; 
@@ -99,16 +104,23 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   let settingsDBUpdateListener = null;
   let postsDBUpdateListener = null;
 
-  $: sidebarPosition = $isRTL ? 'right' : 'left';
-  $: sidebarButtonPosition = $isRTL ? 'right' : 'left';
-  $: sidebarTriggerPosition = $isRTL ? 'right' : 'left';
+  const sidebarPosition = $derived($isRTL ? 'right' : 'left');
+  const sidebarButtonPosition = $derived($isRTL ? 'right' : 'left');
+  const sidebarTriggerPosition = $derived($isRTL ? 'right' : 'left');
 
   // Create a reactive version string that updates when locale changes
   const reactiveVersionString = derived(locale, ($locale) => {
     return getLocaleVersionString();
   });
 
-  let fs;
+  // Check if PWA can be ejected (runs once on mount)
+  $effect(() => {
+    canEject().then(result => {
+      canEjectPWA = result;
+    });
+  });
+
+  let fs = $state();
 
   if(!encryptedSeedPhrase) {
       info('no seed phrase, generating new one')
@@ -162,8 +174,8 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     // info('invalid', invalid)
     // info('dialable', dialable)
     // info('undialable', undialable)
-    $identities = await createIdentities({ ipfs: $helia })
-    $identity = await $identities.createIdentity({ id: 'me' })
+    $identities = await Identities({ ipfs: $helia });
+    $identity = await $identities.createIdentity({ id: 'me' });
     
     $orbitdb = await createOrbitDB({
       ipfs: $helia,
@@ -266,18 +278,22 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     }).catch(err => warn('error initializing media database', err))
   }
 
-  $:if($initialAddress) {
-    info('initialAddress', $initialAddress);
-    sidebarVisible = false;
-  }
+  $effect(() => {
+    if($initialAddress) {
+      info('initialAddress', $initialAddress);
+      sidebarVisible = false;
+    }
+  });
   
   /**
    * Check if the user has write access to the posts database
   */
-  $:if ($orbitdb && $postsDB && $identity) {
+  $effect(() => {
+    if ($orbitdb && $postsDB && $identity) {
       const access = $postsDB.access;
       canWrite = access.write.includes($identity.id) && $postsDB.address === $postsDBAddress
-  }
+    }
+  });
 
   onDestroy(async () => {
     if (routerUnsubscribe) routerUnsubscribe();
@@ -309,7 +325,8 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   // Track the last settingsDB address to prevent duplicate loading
   let lastSettingsDBAddress = '';
   
-  $:if($settingsDB && $settingsDB.address.toString() !== lastSettingsDBAddress) {
+  $effect(() => {
+    if($settingsDB && $settingsDB.address.toString() !== lastSettingsDBAddress) {
     // Update the tracking variable
     lastSettingsDBAddress = $settingsDB.address.toString();
     info('Loading settings from new database:', lastSettingsDBAddress);
@@ -422,16 +439,18 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     
     // Add the new event listener
     $settingsDB?.events.on('update', settingsDBUpdateListener);
-  }
+    }
+  });
 
   // Add logging for profilePictureCid changes
-  $: {
+  $effect(() => {
     if ($profilePictureCid) {
       info('Profile picture CID changed:', $profilePictureCid);
     }
-  }
+  });
 
-  $:if($postsDB){
+  $effect(() => {
+    if($postsDB){
     $postsDB.all().then(_posts => {
       // info('posts--', _posts);
       $posts = _posts.map(entry => ({
@@ -462,9 +481,11 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     
     // Add the new event listener
     $postsDB.events.on('update', postsDBUpdateListener);
-  }
+    }
+  });
 
-  $:if($remoteDBsDatabases){
+  $effect(() => {
+    if($remoteDBsDatabases){
     info('Remote DBs database opened successfully:', $remoteDBsDatabases);
     
     const loadRemoteDBs = async () => {
@@ -524,7 +545,8 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     };
     
     loadRemoteDBs() //.catch(err => console.error('Error loading remote DBs:', err));
-  }
+    }
+  });
 
   function handleTouchStart(e) {
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -584,12 +606,20 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     }
   }
 
-  $: {
+  function openEjectModal() {
+    showEjectModal = true;
+  }
+
+  function closeEjectModal() {
+    showEjectModal = false;
+  }
+
+  $effect(() => {
     if ($helia && !fs) {
       fs = unixfs($helia as any);
       info('LeSpaceBlog - UnixFS initialized');
     }
-  }
+  });
 </script>
 <svelte:head>
   <title>{$blogName} {__APP_VERSION__}</title>
@@ -788,7 +818,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       {/if}
     </div>
   </div>
-    <!-- Add GitHub link, Language Selector and ThemeToggle -->
+    <!-- Add GitHub link, Language Selector, ThemeToggle, and PWA Eject -->
     <div class="fixed-controls">
           <a
             href="https://github.com/Le-Space/le-space-blog"
@@ -802,7 +832,22 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
           </a>
           <LanguageSelector />
           <ThemeToggle />
+          {#if canEjectPWA}
+            <button
+              class="control-button eject-button"
+              onclick={openEjectModal}
+              title={$_('eject_pwa_title')}
+              aria-label={$_('eject_pwa_title')}>
+              <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"/>
+              </svg>
+            </button>
+          {/if}
     </div>
+{/if}
+
+{#if showEjectModal}
+  <PWAEjectModal on:close={closeEjectModal} />
 {/if}
 
 <style>
@@ -898,6 +943,16 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     border-radius: 0.5rem;
     transition-property: all;
     transition-duration: 300ms;
+  }
+
+  :global(.eject-button) {
+    background-color: rgba(248, 113, 113, 0.1) !important;
+    border: 1px solid rgba(220, 38, 38, 0.2);
+  }
+
+  :global(.eject-button:hover) {
+    background-color: rgba(248, 113, 113, 0.2) !important;
+    border-color: rgba(220, 38, 38, 0.4);
     color: rgb(55 65 81 / var(--tw-text-opacity));
   }
 
