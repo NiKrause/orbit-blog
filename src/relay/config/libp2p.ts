@@ -58,7 +58,7 @@ export const createLibp2pConfig = (privateKey: PrivateKey): Libp2pOptions => ({
   peerDiscovery: [
     pubsubPeerDiscovery({
       interval: 5000, // Check every 5 seconds
-      topics: ['le-space._peer-discovery._p2p._pubsub'],
+      topics: ['todo._peer-discovery._p2p._pubsub'],
       listenOnly: false
     })
   ],
