@@ -33,7 +33,7 @@
   let commentAuthor = $state('');
   let comments: Comment[] = $state([]);
   let postMedia = $state([]);
-  let fs = $state();
+  let fs = $state<any>();
   let renderedContent = $state('');
   
   // Cache for IPFS content
@@ -64,7 +64,7 @@
    */
   function initUnixFs(): boolean {
     if ($helia) {
-      fs = unixfs($helia);
+      fs = unixfs($helia as any);
       return true;
     }
     return false;
@@ -200,40 +200,43 @@ function updateRenderedContent(): void {
   // Remove this effect as it causes unnecessary re-renders
   // updateRenderedContent is already called in onMount and the selectedPostId effect
 
-  $effect(async () => {
+  $effect(() => {
     if ($selectedPostId) {
-      const post = await $postsDB.get($selectedPostId);
-      info('post', post);
-      if (post) {
-        title = post.value.title;
-        content = post.value.content;
-        category = post.value.category;
-        selectedMedia = post.value.mediaIds || [];
+      // Async operations should be wrapped in an IIFE
+      (async () => {
+        const post = await $postsDB.get($selectedPostId);
         info('post', post);
-        isEncrypted = post.value.isEncrypted || isEncryptedPost({ title, content });
-        info('isEncryptedPost function', isEncryptedPost({ title, content }));
-        info('isEncrypted', isEncrypted);
-        if (isEncrypted) {
-          showPasswordPrompt = true;
-        } else {
-          // Update rendered content when not encrypted
-          updateRenderedContent();
-        }
-        if ($commentsDB) {
-        loadComments();
-        
-        $commentsDB.events.on('update', async (entry) => {
-          if (entry?.payload?.op === 'PUT') {
-            const comment = entry.payload.value;
-            if (comment.postId === post._id) {
-              await loadComments();
-            }
-          } else if (entry?.payload?.op === 'DEL') {
-            await loadComments();
+        if (post) {
+          title = post.value.title;
+          content = post.value.content;
+          category = post.value.category;
+          selectedMedia = post.value.mediaIds || [];
+          info('post', post);
+          isEncrypted = post.value.isEncrypted || isEncryptedPost({ title, content });
+          info('isEncryptedPost function', isEncryptedPost({ title, content }));
+          info('isEncrypted', isEncrypted);
+          if (isEncrypted) {
+            showPasswordPrompt = true;
+          } else {
+            // Update rendered content when not encrypted
+            updateRenderedContent();
           }
-        });
-      }
-      }
+          if ($commentsDB) {
+            loadComments();
+            
+            $commentsDB.events.on('update', async (entry) => {
+              if (entry?.payload?.op === 'PUT') {
+                const comment = entry.payload.value;
+                if (comment.postId === post._id) {
+                  await loadComments();
+                }
+              } else if (entry?.payload?.op === 'DEL') {
+                await loadComments();
+              }
+            });
+          }
+        }
+      })();
     }
   });
 

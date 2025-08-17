@@ -225,7 +225,7 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
         // Support both single category (backward compatibility) and multiple categories
         const categoryData = editedCategories.length > 0 ? editedCategories : [];
         
-        let updatedPost = {
+        let updatedPost: Partial<Post> = {
           _id: $selectedPostId,
           title: editedTitle,
           content: editedContent,

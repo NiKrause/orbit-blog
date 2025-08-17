@@ -95,8 +95,9 @@ export interface Helia {
   blockstore: {
     get: (cid: any) => Promise<any>;
     has: (cid: any) => Promise<boolean>;
-    put: (cid: any, block: any) => Promise<void>;
+    put: (cid: any, block: any) => Promise<any>;
   };
+  datastore?: any;
 }
 
 export interface Libp2p {

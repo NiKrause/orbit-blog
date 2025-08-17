@@ -28,6 +28,7 @@ interface TranslateAndSaveOptions {
     updatedAt: number;
   };
   onStatusUpdate?: (lang: string, status: string) => void;
+  isEncrypting?: boolean;
 }
 
 export class TranslationService {

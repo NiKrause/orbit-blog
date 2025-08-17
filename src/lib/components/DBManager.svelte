@@ -4,7 +4,6 @@
 
   import { onDestroy } from 'svelte';
   import { settingsDB, posts, allComments, allMedia, remoteDBs, selectedDBAddress, orbitdb, remoteDBsDatabases, identity, identities, isRTL } from '$lib/store.js';
-  import QRCode from 'qrcode';
   import Modal from './Modal.svelte';
   import { switchToRemoteDB, addRemoteDBToStore } from '$lib/dbUtils.js';
   import { IPFSAccessController } from '@orbitdb/core';
@@ -15,9 +14,7 @@
   let dbAddress = $state('');
   let dbName = $state('');
   let dbPeerId = '';
-  let qrCodeDataUrl = '';
-  let showScanner = $state(false);
-  let videoElement: HTMLVideoElement | undefined = $state();
+  // QR scanner variables removed
   let isModalOpen = $state(false);
   let did = '';
   let modalMessage = $state($_("loading_database_from_p2p"));
@@ -30,79 +27,11 @@
   let showConfirmDropCurrentModal = $state(false);
   let dropCurrentModalMessage = $state('');
 
-  async function generateQRCode(text: string) {
-    try {
-      qrCodeDataUrl = await QRCode.toDataURL(text, {
-        width: 200,
-        margin: 2,
-      });
-    } catch (_error) {
-      error('Error generating QR code:', _error);
-    }
-  }
+  // QR code generation function removed
 
-  async function startScanner() {
-    try {
-      showScanner = true;
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      
-      if (videoElement) {
-        videoElement.srcObject = stream;
-        videoElement.play();
-        requestAnimationFrame(scanQRCode);
-      }
-    } catch (_error) {
-      error('Error accessing camera:', _error);
-      showScanner = false;
-    }
-  }
+  // QR scanner functions removed
 
-  async function stopScanner() {
 
-    if (videoElement && videoElement.srcObject) {
-      const stream = videoElement.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
-      videoElement.srcObject = null;
-    }
-    showScanner = false;
-  }
-
-  async function scanQRCode() {
-    
-    if (!showScanner || !videoElement) return;
-
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width = videoElement.videoWidth;
-      canvas.height = videoElement.videoHeight;
-      const ctx = canvas.getContext('2d');
-      
-      if (ctx && videoElement.videoWidth > 0) {
-        ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        
-        // Here you would typically use a QR code detection library
-        // For this example, we'll simulate detection by assuming any text is a valid address
-        const scannedText = await new Promise<string>((resolve) => {
-          // Simulate QR code detection
-          setTimeout(() => {
-            resolve(dbAddress || 'scanned-address');
-          }, 100);
-        });
-
-        if (scannedText) {
-          dbAddress = scannedText;
-          await stopScanner();
-          return;
-        }
-      }
-
-      requestAnimationFrame(scanQRCode);
-    } catch (_error) {
-      error('Error scanning QR code:', _error);
-      requestAnimationFrame(scanQRCode);
-    }
-  }
 
   async function processQueue() {
     if (isQueueRunning) return;
@@ -606,7 +535,6 @@
   $effect(() => {
     if ($settingsDB) {  
       $selectedDBAddress = $settingsDB.address.toString();
-      generateQRCode($selectedDBAddress);
     }
   });
 
@@ -813,11 +741,7 @@
             {/if}
           </div>
           <div class="flex flex-col md:flex-row justify-center items-center gap-4">
-            <!-- {#if qrCodeDataUrl}
-              <div class="flex justify-center bg-white p-4 rounded-lg">
-                <img src={qrCodeDataUrl} alt="Database QR Code" class="w-48 h-48" />
-              </div>
-            {/if} -->
+            <!-- QR code display section removed -->
             <!-- <button
               on:click={dropAndSync}
               class="bg-purple-600 dark:bg-purple-500 text-white py-2 px-4 rounded-md hover:bg-purple-700 dark:hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors flex items-center gap-2"
@@ -872,15 +796,7 @@
                 class="flex-1 mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 data-testid="remote-db-address-input"
               />
-              <button
-                title={$_('scan_qr_code')}
-                ontouchstart={startScanner}
-                onclick={startScanner}
-                class="mt-1 px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 text-sm"
-                data-testid="scan-qr-button"
-              >
-                {$_('scan_qr')}
-              </button>
+              <!-- QR scan button removed -->
             </div>
           </div>
         {/if}
@@ -897,28 +813,7 @@
       </div>
     </div>
 
-    {#if showScanner}
-      <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg max-w-lg w-full mx-4">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{$_('scan_qr_code')}</h3>
-            <button
-              onclick={stopScanner}
-              class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            >
-              {$_('close')}
-            </button>
-          </div>
-          <video
-            bind:this={videoElement}
-            class="w-full aspect-square object-cover rounded-lg"
-            playsinline
-          >
-            <track kind="captions" src="" label="No captions available" default>
-          </video>
-        </div>
-      </div>
-    {/if}
+    <!-- QR scanner modal removed -->
 
     {#if $remoteDBs.length > 0}
       <div class="text-gray-900 dark:text-white">{$_('number_of_databases')}: {$remoteDBs.length}</div>

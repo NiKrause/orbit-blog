@@ -5,7 +5,7 @@ import { LANGUAGES } from './i18n/index.js';
 
 // Create writable stores
 export const identity = writable<{ id: string } | null>(null);
-export const identities = writable<{ id: string }[] | null>(null);
+export const identities = writable<any>(null);
 export const settingsDB = writable<OrbitDB | null>(null);
 export const postsDB = writable<OrbitDB | null>(null);
 export const loadingState = writable({

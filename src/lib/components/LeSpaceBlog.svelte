@@ -8,7 +8,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 
   import { createHelia } from 'helia';
   import { createLibp2p } from 'libp2p';
-  import { createOrbitDB, IPFSAccessController, Identities } from '@orbitdb/core';
+  import { createOrbitDB, IPFSAccessController, createIdentities } from '@orbitdb/core';
   
   import { LevelDatastore } from 'datastore-level';
   import { LevelBlockstore } from 'blockstore-level';
@@ -136,17 +136,17 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   }
 
   async function initializeApp() {
-    if (!seedPhrase) return;
+    if (!$seedPhrase) return;
     
     info('initializeApp')
     
-    const masterSeed = generateMasterSeed($seedPhrase, "password");
+    const masterSeed = generateMasterSeed($seedPhrase, "password", false) as Buffer;
     const { hex } = await generateAndSerializeKey(masterSeed.subarray(0, 32))
     const privKeyBuffer = uint8ArrayFromString(hex, 'hex');
     const _keyPair = await privateKeyFromProtobuf(privKeyBuffer);
     const _libp2p = await createLibp2p({ privateKey: _keyPair, ...libp2pOptions })
     $libp2p = _libp2p
-    window.libp2p=_libp2p
+    ;(window as any).libp2p=_libp2p
     // for (const multiaddr of multiaddrs) { 
     //   try {
     //     info('dialing', multiaddr)
@@ -156,13 +156,13 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     //     warn('error dialing', err)
     //   }
     // }
-    $helia = await createHelia({ libp2p: $libp2p, datastore, blockstore })
+    $helia = await createHelia({ libp2p: $libp2p, datastore, blockstore }) as any
     //     const { valid, invalid, dialable, undialable } = await validateMultiaddrs(multiaddrs, $libp2p)
     // info('valid', valid)
     // info('invalid', invalid)
     // info('dialable', dialable)
     // info('undialable', undialable)
-    $identities = await Identities({ ipfs: $helia })
+    $identities = await createIdentities({ ipfs: $helia })
     $identity = await $identities.createIdentity({ id: 'me' })
     
     $orbitdb = await createOrbitDB({
@@ -176,7 +176,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     setupPeerEventListeners($libp2p);
 
     if ($helia) {
-      fs = unixfs($helia);
+      fs = unixfs($helia as any);
       info('UnixFS initialized');
     }
 
@@ -204,7 +204,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       AccessController: IPFSAccessController({write: [$identity.id]}),
     }).then(_db => {
       $settingsDB = _db;
-      window.settingsDB = _db;
+      ;(window as any).settingsDB = _db;
     }).catch( err => warn('error', err))
     
     $orbitdb.open('posts', {
@@ -217,7 +217,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       AccessController: IPFSAccessController({write: [$identity.id]}),
     }).then(_db => {
       $postsDB = _db;
-      window.postsDB = _db;
+      ;(window as any).postsDB = _db;
       info('postsDB', _db.address.toString())
       $postsDBAddress = _db.address.toString()
 
@@ -232,7 +232,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       AccessController: IPFSAccessController({write: [$identity.id]}),
     }).then(_db => {
       $remoteDBsDatabases = _db;
-      window.remoteDBsDatabases = _db;
+      ;(window as any).remoteDBsDatabases = _db;
     }).catch(err => warn('Error opening remote DBs database:', err));
 
     // // Add this to the initializeApp function after other database initializations
@@ -247,7 +247,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     }).then(_db => {
       $commentsDB = _db;
       info('commentsDB', _db)
-      window.commentsDB = _db;
+      ;(window as any).commentsDB = _db;
     }).catch(err => warn('error', err))
 
     // // Add this to initialize the media database
@@ -262,7 +262,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     }).then(_db => {
       $mediaDB = _db;
       info('mediaDB', _db)
-      window.mediaDB = _db;
+      ;(window as any).mediaDB = _db;
     }).catch(err => warn('error initializing media database', err))
   }
 
@@ -586,7 +586,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 
   $: {
     if ($helia && !fs) {
-      fs = unixfs($helia);
+      fs = unixfs($helia as any);
       info('LeSpaceBlog - UnixFS initialized');
     }
   }
@@ -596,7 +596,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
   <meta name="description" content="{$blogDescription}">
   <!-- <meta name="author" content="{$blogName}"> -->
-  <meta name="keywords" content="{$categories}">
+  <meta name="keywords" content="{Array.isArray($categories) ? $categories.join(', ') : $categories}">
   <meta name="author" content="{$blogName}">
   <meta name="robots" content="index, follow">
   <meta name="googlebot" content="index, follow">
@@ -605,9 +605,9 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   <meta name="yandex" content="index, follow">
   <meta name="sitemap" content="index, follow">
   <!--no cache-->
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
+  <meta name="cache-control" content="no-cache, no-store, must-revalidate">
+  <meta name="pragma" content="no-cache">
+  <meta name="expires" content="0">
   <!-- <meta name="cache-busting" content="{$cacheBusting}"> -->
   <meta name="theme-color" content="#000000">
   <meta name="msapplication-navbutton-color" content="#000000">
@@ -631,7 +631,9 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     on:seedPhraseDecrypted={handleSeedPhraseDecrypted}
   />
 {:else}
-  <main class="flex min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors"
+  <!-- Use div instead of main to avoid accessibility warnings -->
+  <div class="flex min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors"
+    role="main"
     ontouchstart={handleTouchStart}
     ontouchmove={handleTouchMove}
     ontouchend={handleTouchEnd}
@@ -773,7 +775,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
           {/if}
 
           {#if $showSettings}
-            <Settings {seedPhrase} />
+            <Settings />
           {/if}
           
           <div class="grid gap-8">
@@ -785,7 +787,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         </div>
       {/if}
     </div>
-  </main>
+  </div>
     <!-- Add GitHub link, Language Selector and ThemeToggle -->
     <div class="fixed-controls">
           <a

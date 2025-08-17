@@ -3,6 +3,7 @@
   import { _ } from 'svelte-i18n';
   import { createEventDispatcher } from 'svelte';
   import { unixfs } from '@helia/unixfs';
+  import { CID } from 'multiformats/cid';
   import { helia, mediaDB } from '$lib/store';
   import { error } from '../utils/logger.js';
   import MediaUploader from './MediaUploader.svelte';
@@ -37,7 +38,7 @@
 
   function initUnixFs() {
     if ($helia && !fs) {
-      fs = unixfs($helia);
+      fs = unixfs($helia as any);
     }
   }
 
@@ -46,8 +47,9 @@
     if (mediaCache.has(cid)) return mediaCache.get(cid);
 
     try {
+      const parsedCid = CID.parse(cid);
       const chunks = [];
-      for await (const chunk of fs.cat(cid)) {
+      for await (const chunk of fs.cat(parsedCid)) {
         chunks.push(chunk);
       }
 

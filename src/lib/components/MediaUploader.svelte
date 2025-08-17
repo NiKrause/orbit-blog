@@ -19,7 +19,7 @@
       
       // Initialize UnixFS
       if ($helia) {
-        fs = unixfs($helia);
+        fs = unixfs($helia as any);
       }
       
       // Listen for media database updates
@@ -36,7 +36,7 @@
   async function getBlobUrl(cid: string): Promise<string | null> {
     if (!fs) {
       if ($helia) {
-        fs = unixfs($helia);
+        fs = unixfs($helia as any);
       } else {
         return `https://dweb.link/ipfs/${cid}`;
       }
@@ -114,7 +114,7 @@
     }
     
     if (!fs) {
-      fs = unixfs($helia);
+      fs = unixfs($helia as any);
     }
     
     uploading = true;

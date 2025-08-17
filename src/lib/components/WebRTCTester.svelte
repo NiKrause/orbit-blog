@@ -4,15 +4,45 @@
   import { createEventDispatcher, onMount } from 'svelte';
   const dispatch = createEventDispatcher();
 
-  let testResults = $state({
+  interface STUNTestResult {
+    working?: boolean;
+    publicIP?: string;
+    port?: number;
+    error?: string;
+  }
+
+  interface ThroughputTestResult {
+    duration?: number;
+    throughputMBps?: number;
+    latency?: number;
+  }
+
+  interface TestResults {
+    browserSupport: Record<string, boolean>;
+    iceServers: any[];
+    networkInfo: Record<string, any>;
+    connectivityTests: Record<string, any>;
+    stunTests?: STUNTestResult;
+    turnTests: Record<string, any>;
+    portTests: Record<string, any>;
+    throughputTests?: ThroughputTestResult;
+    symmetricNAT: boolean | null;
+    vpnDetection: {
+      isVpnDetected: boolean;
+      publicIPs: string[];
+      ipLocations: Record<string, any>;
+    };
+  }
+
+  let testResults = $state<TestResults>({
     browserSupport: {},
     iceServers: [],
     networkInfo: {},
     connectivityTests: {},
-    stunTests: {},
+    stunTests: undefined,
     turnTests: {},
     portTests: {},
-    throughputTests: {},
+    throughputTests: undefined,
     symmetricNAT: null,
     vpnDetection: {
       isVpnDetected: false,
@@ -60,11 +90,12 @@
     return this.results;
   }
   async checkNetworkType() {
+  const connection = (navigator as any).connection;
   this.results.networkInfo = {
-    type: (navigator.connection && navigator.connection.type) || 'unknown',
-    downlink: (navigator.connection && navigator.connection.downlink) || 'unknown',
-    rtt: (navigator.connection && navigator.connection.rtt) || 'unknown',
-    effectiveType: (navigator.connection && navigator.connection.effectiveType) || 'unknown',
+    type: (connection && connection.type) || 'unknown',
+    downlink: (connection && connection.downlink) || 'unknown',
+    rtt: (connection && connection.rtt) || 'unknown',
+    effectiveType: (connection && connection.effectiveType) || 'unknown',
     publicIP: await this.getPublicIP(),
     localIPs: await this.getLocalIPs()
   };
@@ -80,9 +111,9 @@ async testICEServers() {
     const result = await this.testICEServer(server);
     this.results.iceServers.push({
       server: server.urls,
-      connectivity: result.success,
-      responseTime: result.responseTime,
-      error: result.error
+      connectivity: (result as any).success,
+      responseTime: (result as any).responseTime,
+      error: (result as any).error
     });
   }
 }
@@ -91,7 +122,7 @@ async testSTUNConnectivity() {
     iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
   });
 
-  return new Promise((resolve) => {
+  return new Promise<void>((resolve) => {
     const timeout = setTimeout(() => {
       this.results.stunTests.working = false;
       resolve();
@@ -142,7 +173,7 @@ async testDataChannelThroughput() {
   const testData = new Array(1024 * 1024).fill('X').join(''); // 1MB of data
   let startTime;
 
-  return new Promise((resolve) => {
+  return new Promise<void>((resolve) => {
     dc1.onopen = () => {
       startTime = performance.now();
       dc1.send(testData);
@@ -173,7 +204,7 @@ async checkBrowserSupport() {
     'WebRTC API': typeof RTCPeerConnection !== 'undefined',
     'Data Channels': typeof RTCPeerConnection !== 'undefined' && 
                     'createDataChannel' in RTCPeerConnection.prototype,
-    'Network Information': typeof navigator.connection !== 'undefined',
+    'Network Information': typeof (navigator as any).connection !== 'undefined',
     'WebRTC Statistics': typeof RTCPeerConnection !== 'undefined' && 
                         'getStats' in RTCPeerConnection.prototype,
     'Screen Sharing': typeof navigator.mediaDevices !== 'undefined' && 
@@ -372,7 +403,7 @@ async checkBrowserSupport() {
     // Collect all public IPs
     for (const server of stunServers) {
       const ip = await this.getMappedAddress(server);
-      if (ip) {
+      if (ip && typeof ip === 'string') {
         const ipOnly = ip.split(':')[0];
         publicIPs.add(ipOnly);
       }
@@ -399,7 +430,7 @@ async checkBrowserSupport() {
           throw new Error(data.message || 'IP lookup failed');
         }
         
-        this.results.vpnDetection.ipLocations[ip] = {
+        this.results.vpnDetection.ipLocations[ip as string] = {
           country: data.country,
           city: data.city,
           region: data.regionName,
@@ -407,7 +438,7 @@ async checkBrowserSupport() {
         };
       } catch (_error) {
         console.error(`Failed to get location for IP ${ip}:`, _error);
-        this.results.vpnDetection.ipLocations[ip] = {
+        this.results.vpnDetection.ipLocations[ip as string] = {
           error: 'Location lookup failed'
         };
       }
@@ -480,11 +511,11 @@ async checkBrowserSupport() {
       console.warn($_('webrtc_warn_symmetric_nat'));
     }
     
-    if (!results.stunTests.working) {
+    if (!results.stunTests?.working) {
       console.warn($_('webrtc_warn_stun_failed'));
     }
     
-    if (results.throughputTests.throughputMBps < 1) {
+    if ((results.throughputTests?.throughputMBps || 0) < 1) {
       console.warn($_('webrtc_warn_low_throughput'));
     }
   }
@@ -562,8 +593,8 @@ async checkBrowserSupport() {
             <div class="text-xs sm:text-sm">
               <div class="flex justify-between mb-2">
                 <span class="text-gray-600 dark:text-gray-400">{$_('stun_connectivity')}</span>
-                <span class={testResults.stunTests.working ? 'text-green-500' : 'text-red-500'}>
-                  {testResults.stunTests.working ? '✓ {$_("working")}' : '✗ {$_("failed")}'}
+                <span class={testResults.stunTests?.working ? 'text-green-500' : 'text-red-500'}>
+                  {testResults.stunTests?.working ? '✓ {$_("working")}' : '✗ {$_("failed")}'}
                 </span>
               </div>
               <div class="flex justify-between">
@@ -576,20 +607,20 @@ async checkBrowserSupport() {
           </div>
 
           <!-- Throughput Tests -->
-          {#if testResults.throughputTests.throughputMBps}
+          {#if testResults.throughputTests?.throughputMBps}
             <div class="border dark:border-gray-700 rounded-lg p-3 sm:p-4">
               <h3 class="font-bold mb-2 text-gray-900 dark:text-white text-sm sm:text-base">Performance</h3>
               <div class="text-xs sm:text-sm">
                 <div class="flex justify-between">
                   <span class="text-gray-600 dark:text-gray-400">Throughput</span>
                   <span class="text-gray-900 dark:text-white">
-                    {testResults.throughputTests.throughputMBps.toFixed(2)} MB/s
+                    {testResults.throughputTests?.throughputMBps?.toFixed(2) || 0} MB/s
                   </span>
                 </div>
                 <div class="flex justify-between">
                   <span class="text-gray-600 dark:text-gray-400">Latency</span>
                   <span class="text-gray-900 dark:text-white">
-                    {testResults.throughputTests.latency.toFixed(0)} ms
+                    {testResults.throughputTests?.latency?.toFixed(0) || 0} ms
                   </span>
                 </div>
               </div>

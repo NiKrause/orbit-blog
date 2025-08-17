@@ -47,7 +47,7 @@
     }
     
     if ($helia) {
-      fs = unixfs($helia);
+      fs = unixfs($helia as any);
       info('UnixFS initialized during mount');
     } else {
       info('Helia not initialized during mount');
@@ -150,7 +150,7 @@
     }
 
     if (!fs) {
-      fs = unixfs($helia);
+      fs = unixfs($helia as any);
       info('UnixFS initialized');
     }
 

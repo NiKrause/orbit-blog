@@ -2,7 +2,7 @@
   import { preventDefault } from 'svelte/legacy';
   import { _, locale } from 'svelte-i18n';
 
-  import type { Category } from '$lib/types.js';
+  import type { Category, Post } from '$lib/types.js';
   import { postsDB, categories, selectedPostId, identity, enabledLanguages, isRTL } from '$lib/store.js';
   import { encryptPost } from '$lib/cryptoUtils.js';
   import PostPasswordPrompt from './PostPasswordPrompt.svelte';
@@ -54,7 +54,7 @@ import MarkdownHelp from './MarkdownHelp.svelte';
         // Support both single category (backward compatibility) and multiple categories
         const categoryData = selectedCategories.length > 0 ? selectedCategories : (category ? [category] : []);
         
-        let postData = {
+        let postData: Partial<Post> = {
           _id,
           title,
           content,
