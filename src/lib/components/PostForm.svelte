@@ -438,9 +438,5 @@ import MarkdownHelp from './MarkdownHelp.svelte';
     margin-left: 0;
   }
 
-  :global([dir="rtl"]) .gap-2 > * + * {
-    margin-right: 0.5rem;
-    margin-left: 0;
-  }
 
 </style>

@@ -821,12 +821,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     opacity: 0.9; /* Slightly reduce opacity on hover for visual feedback */
   }
 
-  /* Ensure dark mode styles are applied correctly */
-  .dark button {
-    background-color: inherit;
-    color: inherit;
-  }
-
   /* Add styles for sidebar interaction */
   .w-4 {
     width: 1rem;

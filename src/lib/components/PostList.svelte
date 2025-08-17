@@ -81,7 +81,7 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
         years.add(date.getFullYear());
       }
     });
-    return Array.from(years).sort((a, b) => b - a); // Most recent first
+    return Array.from(years).sort((a: number, b: number) => b - a); // Most recent first
   });
 
   // Function to jump to the last post of a specific year
@@ -122,7 +122,7 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
   // Replace the $effect with a $derived store to prevent infinite reactive loops
   let displayedPosts = $derived(
     filterPostsWithLanguageFallback(
-      $posts,
+      $posts as any[],
       searchTerm,
       selectedCategory,
       () => {  // Use captured values instead of reading reactive stores directly in the filter
@@ -170,7 +170,7 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
     info('posts', $posts) 
     
     // Get available languages for this post using the language service
-    const availableLanguages = getAvailableLanguagesForPost($posts, postId);
+    const availableLanguages = getAvailableLanguagesForPost($posts as any[], postId);
     info(`Available languages for post: [${availableLanguages.join(', ')}]`);
     
     // Find all related translations
@@ -195,7 +195,7 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
     }
   }
 
-  function editPost(post: Post, event: MouseEvent) {
+  function editPost(post: Post, event: MouseEvent | KeyboardEvent | TouchEvent) {
     event.stopPropagation();
     $selectedPostId = post._id;
     editedTitle = post.title;
@@ -267,7 +267,7 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
     }
   }
 
-  async function deletePost(post: Post, event: MouseEvent) {
+  async function deletePost(post: Post, event: MouseEvent | TouchEvent) {
     event.stopPropagation();
     postToDelete = post;
     showDeleteConfirm = true;
@@ -317,7 +317,7 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
 
   // Using shared truncateTitle function from utils
 
-  async function viewPostHistory(post: Post, event: MouseEvent) {
+  async function viewPostHistory(post: Post, event: MouseEvent | TouchEvent) {
     event.stopPropagation();
     showHistory = true;
     
@@ -666,7 +666,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
             {#each availableYears as year}
               <button
                 class="px-2 py-1 text-xs font-medium bg-amber-100 dark:bg-amber-800 text-amber-800 dark:text-amber-200 rounded-md hover:bg-amber-200 dark:hover:bg-amber-700 transition-colors flex-shrink-0 whitespace-nowrap"
-                onclick={() => jumpToYear(year)}
+                onclick={() => jumpToYear(year as number)}
                 title={`Jump to last post from ${year}`}
               >
                 {year}
@@ -1285,10 +1285,6 @@ ${convertMarkdownToLatex(selectedPost.content)}
     margin-left: 0;
   }
 
-  :global([dir="rtl"]) .gap-2 > * + * {
-    margin-right: 0.5rem;
-    margin-left: 0;
-  }
 
   :global([dir="rtl"]) .text-left {
     text-align: right;

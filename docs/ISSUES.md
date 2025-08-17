@@ -15,6 +15,8 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 ### Todos, Features, Issues
 - Todos:
+    - [ ] add github repo as projects
+    - [ ] add deamo argumentation maps
     - [ ] when starting browser let user decide for memory sessions o persistent storage (and support the blog author)
     - [x] Create a two browser e2e tests with two browsers 
         - [x] create a blog and two posts
@@ -33,12 +35,12 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [x] add a publish state (unpublished / published) to PostList and PostForm and only show published posts 
     - [ ] bug: when unpublish a translated post other related posts in other languages should be unpublished too (optional)
     - [x] bug: when deleting a translated post other related posts in other languages should be deleted too (optional)
-    - [ ] UI-Bug: Navigation tattered.
-    - [ ] UI-Bug: iOS-Mobile looks terrible.
-    - [ ] UI-Bug: If a post isn't translated into the current language, try other fallback (browser) languages otherwise en, zh, hi, es
+    - [x] UI-Bug: Navigation tattered.
+    - [x] UI-Bug: iOS-Mobile looks terrible.
+    - [x] UI-Bug: If a post isn't translated into the current language, try other fallback (browser) languages otherwise en, zh, hi, es
     - [ ] UI-Bug: Translate button doesn't do anything while translating - we need to animate the button a little bit better (LED's need to reactively work while translation is ongoing)
     - [ ] Feature: when adding IPFS-image links into markdown, it should also parse external CIDs not just cids which are inside our media library
-    - [ ] Bug: Peer-to-Peer between browsers broken (WebRTC upgrade from circuit-relay-v2)
+    - [x] Bug: Peer-to-Peer between browsers broken (WebRTC upgrade from circuit-relay-v2)
     - [ ] Feature: Instead of an own article link external
         - [ ] in posts it needs filetype link which syncs the remote db (with all comments and media)
 
