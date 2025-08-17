@@ -403,6 +403,104 @@ async function getBlobUrl(cid: string): Promise<string | null> {
 }
 
 /**
+ * Parses image size options from markdown syntax
+ * Supports: ![alt](url){size=small|medium|large|full} or ![alt](url){width=300,height=200}
+ */
+function parseImageSizeOptions(text: string): { sizeClass: string; attributes: string; cleanText: string } {
+  // Check for size options in curly braces at the end of alt text
+  const sizeMatch = text?.match(/^(.*)\{(.+)\}$/);
+  if (!sizeMatch) {
+    return { sizeClass: '', attributes: '', cleanText: text || '' };
+  }
+
+  const cleanText = sizeMatch[1].trim();
+  const options = sizeMatch[2].trim();
+  let sizeClass = '';
+  let attributes = '';
+
+  // Parse different option formats
+  const optionPairs = options.split(',').map(opt => opt.trim());
+  
+  optionPairs.forEach(option => {
+    const [key, value] = option.split('=').map(s => s.trim());
+    
+    switch (key) {
+      case 'size':
+        switch (value) {
+          case 'xs':
+          case 'tiny':
+            sizeClass += ' w-16 h-auto';
+            break;
+          case 'small':
+          case 'sm':
+            sizeClass += ' w-32 h-auto';
+            break;
+          case 'medium':
+          case 'md':
+            sizeClass += ' w-64 h-auto';
+            break;
+          case 'large':
+          case 'lg':
+            sizeClass += ' w-96 h-auto';
+            break;
+          case 'xl':
+          case 'extra-large':
+            sizeClass += ' w-[32rem] h-auto';
+            break;
+          case 'full':
+            sizeClass += ' w-full h-auto';
+            break;
+          case 'responsive':
+            sizeClass += ' w-full sm:w-1/2 md:w-1/3 lg:w-1/4 h-auto';
+            break;
+          default:
+            sizeClass += ' w-64 h-auto'; // default to medium
+        }
+        break;
+      case 'width':
+        if (value.match(/^\d+$/)) {
+          attributes += ` width="${value}"`;
+        } else {
+          sizeClass += ` w-[${value}]`;
+        }
+        break;
+      case 'height':
+        if (value.match(/^\d+$/)) {
+          attributes += ` height="${value}"`;
+        } else {
+          sizeClass += ` h-[${value}]`;
+        }
+        break;
+      case 'class':
+        sizeClass += ` ${value}`;
+        break;
+      case 'align':
+        switch (value) {
+          case 'left':
+            sizeClass += ' float-left mr-4 mb-2';
+            break;
+          case 'right':
+            sizeClass += ' float-right ml-4 mb-2';
+            break;
+          case 'center':
+            sizeClass += ' mx-auto block';
+            break;
+        }
+        break;
+      case 'rounded':
+        if (value === 'true' || value === '') {
+          sizeClass += ' rounded-lg';
+        } else if (value === 'full') {
+          sizeClass += ' rounded-full';
+        }
+        break;
+    }
+  });
+
+  return { sizeClass: sizeClass.trim(), attributes: attributes.trim(), cleanText };
+}
+
+/**
  * Configure and retrieve the marked renderer
  */
 function setupRenderer(): typeof marked.Renderer.prototype {
@@ -410,6 +508,10 @@ function setupRenderer(): typeof marked.Renderer.prototype {
   const defaultImageRenderer = renderer.image.bind(renderer);
 
   renderer.image = (href, title, text) => {
+    // Parse size options from alt text
+    const { sizeClass, attributes, cleanText } = parseImageSizeOptions(text);
+    const finalAltText = cleanText || 'Image';
+    
     if (href.startsWith('ipfs://')) {
       const cid = href.replace('ipfs://', '');
       
@@ -438,15 +540,25 @@ function setupRenderer(): typeof marked.Renderer.prototype {
         }
       }, 0);
       
-      // Return placeholder image with loading state
+      // Build class string with both IPFS and size classes
+      const combinedClasses = `ipfs-loading${sizeClass ? ' ' + sizeClass : ''}`;
+      
+      // Return placeholder image with loading state and size classes
       return `<img id="${placeholderId}" 
                    src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23f3f4f6'/%3E%3Ctext x='50' y='50' font-family='Arial' font-size='12' text-anchor='middle' dy='.3em' fill='%236b7280'%3ELoading...%3C/text%3E%3C/svg%3E" 
-                   alt="${text || 'IPFS Image'}" 
+                   alt="${finalAltText}" 
                    title="${title || 'Loading IPFS content...'}" 
-                   class="ipfs-loading" 
-                   data-ipfs-cid="${cid}" />`;
+                   class="${combinedClasses}" 
+                   data-ipfs-cid="${cid}" 
+                   ${attributes} />`;
     }
-    return defaultImageRenderer(href, title, text);
+    
+    // Handle regular images with size options
+    const classAttr = sizeClass ? ` class="${sizeClass}"` : '';
+    const attributesStr = attributes ? ` ${attributes}` : '';
+    const titleAttr = title ? ` title="${title}"` : '';
+    
+    return `<img src="${href}" alt="${finalAltText}"${titleAttr}${classAttr}${attributesStr} />`;
   };
 
   renderer.code = (code, language) => {

@@ -41,6 +41,51 @@ Le Space Blog supports all standard Markdown features:
 ![Image alt text](https://example.com/image.jpg)
 ```
 
+#### 📐 **Responsive Image Sizing** (NEW!)
+
+Le Space Blog now supports responsive image sizing with custom syntax:
+
+```markdown
+<!-- Predefined sizes -->
+![Small image{size=small}](https://example.com/image.jpg)
+![Medium image{size=medium}](https://example.com/image.jpg)  
+![Large image{size=large}](https://example.com/image.jpg)
+![Full width image{size=full}](https://example.com/image.jpg)
+![Responsive image{size=responsive}](https://example.com/image.jpg)
+
+<!-- Custom dimensions -->
+![Custom size{width=300,height=200}](https://example.com/image.jpg)
+![Custom width only{width=400}](https://example.com/image.jpg)
+
+<!-- Alignment options -->
+![Left aligned{size=medium,align=left}](https://example.com/image.jpg)
+![Center aligned{size=large,align=center}](https://example.com/image.jpg)
+![Right aligned{size=small,align=right}](https://example.com/image.jpg)
+
+<!-- Styling options -->
+![Rounded image{size=medium,rounded=true}](https://example.com/image.jpg)
+![Circular image{size=small,rounded=full}](https://example.com/image.jpg)
+
+<!-- Multiple options combined -->
+![Profile photo{size=medium,align=center,rounded=full,class=shadow-lg}](https://example.com/profile.jpg)
+```
+
+**Available Size Options:**
+- `size=xs|tiny` - Very small (64px width)
+- `size=small|sm` - Small (128px width) 
+- `size=medium|md` - Medium (256px width)
+- `size=large|lg` - Large (384px width)
+- `size=xl|extra-large` - Extra large (512px width)
+- `size=full` - Full container width
+- `size=responsive` - Responsive breakpoints (full on mobile, smaller on desktop)
+
+**Additional Options:**
+- `width=300` - Set width in pixels or CSS units like `width=50%`
+- `height=200` - Set height in pixels or CSS units
+- `align=left|center|right` - Image alignment
+- `rounded=true|full` - Add rounded corners or make circular
+- `class=custom-class` - Add custom CSS classes
+
 ### Code Blocks
 ````markdown
 ```javascript

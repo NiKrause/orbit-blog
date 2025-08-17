@@ -25,6 +25,11 @@
     ],
     custom: [
       { 
+        name: '📐 Responsive Images (NEW!)', 
+        syntax: '![Small{size=small}](url)\n![Large centered{size=large,align=center}](url)\n![Custom{width=300,height=200}](url)\n![Rounded{size=medium,rounded=true}](url)',
+        description: 'Control image size, alignment, and styling with custom syntax'
+      },
+      { 
         name: 'Accordions', 
         syntax: '----\n## Section Title\nCollapsible content here...\n- Lists work too\n- **Bold text**\n----',
         description: 'Create collapsible sections'
