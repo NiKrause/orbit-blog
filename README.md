@@ -47,6 +47,7 @@ Visit our IPNS link (requires [IPFS Companion](https://docs.ipfs.tech/install/ip
 - ✅ LibP2P-Transport via secure Websocket, WebRTC and Webtransport
 
 ### Testing 
+This project is tested with BrowserStack
 [This project is tested with BrowserStack](https://www.browserstack.com/)
 
 The web application uses the flexible libp2p logging system. You can configure the logging level through the browser's console. Checkout the following log levels:
