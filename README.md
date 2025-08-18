@@ -46,7 +46,8 @@ Visit our IPNS link (requires [IPFS Companion](https://docs.ipfs.tech/install/ip
 - ✅ URL hash routing for blog sharing
 - ✅ LibP2P-Transport via secure Websocket, WebRTC and Webtransport
 
-## Logging Configuration
+### Testing 
+[This project is tested with BrowserStack](https://www.browserstack.com/)
 
 The web application uses the flexible libp2p logging system. You can configure the logging level through the browser's console. Checkout the following log levels:
 localStorage.setItem('debug', 'le-space:*') observers the le-space blog internals db and replication operations
@@ -85,12 +86,6 @@ Le Space Blog supports standard Markdown plus powerful custom extensions:
   - zkEmail-Integration for account recovery (under consideration)
   - write permissions for certain roles (One-Time Write Permission, Permanent Write Permission)
   
-- Pinning Service Infrastructure 
-  - Custom Voyager instance 
-  - Voyager supports Pubsub peer discovery
-  - Centralized Fiat+Crypto Pinning Gateway
-  - Decentralized-Peer-to-Peer Voyager Network for OrbitDB Pinning
-
 ### Future Plans
 - Advanced Data Management
   - Encrypted backups and restoration
