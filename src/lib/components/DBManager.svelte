@@ -2,14 +2,15 @@
   import { run } from 'svelte/legacy';
   import { _ } from 'svelte-i18n';
 
-  import { onDestroy } from 'svelte';
-  import { settingsDB, posts, allComments, allMedia, remoteDBs, selectedDBAddress, orbitdb, remoteDBsDatabases, identity, identities, isRTL } from '$lib/store.js';
+  import { onDestroy, onMount } from 'svelte';
+  import { settingsDB, posts, allComments, allMedia, remoteDBs, selectedDBAddress, orbitdb, remoteDBsDatabases, identity, identities, isRTL, postsDB } from '$lib/store.js';
   import Modal from './Modal.svelte';
   import { switchToRemoteDB, addRemoteDBToStore } from '$lib/dbUtils.js';
   import { IPFSAccessController } from '@orbitdb/core';
   import ConfirmModal from './ConfirmModal.svelte';
   import type { RemoteDB } from '$lib/types.js';
   import { error, debug } from '../utils/logger.js'
+  import { getOplogLength, analyzeOplogHealth, getStatusColorClasses, formatOplogLength, type OplogStats } from '../utils/oplogUtils.js';
 
   let dbAddress = $state('');
   let dbName = $state('');
@@ -26,6 +27,8 @@
   let dbToRemove: string | null = null;
   let showConfirmDropCurrentModal = $state(false);
   let dropCurrentModalMessage = $state('');
+  let oplogStats: OplogStats | null = $state(null);
+  let oplogRefreshInterval: number | undefined = $state();
 
   // QR code generation function removed
 
@@ -141,9 +144,34 @@
     }
   }
 
+  // Function to refresh oplog stats
+  async function refreshOplogStats() {
+    if ($postsDB) {
+      try {
+        const length = await getOplogLength($postsDB);
+        oplogStats = analyzeOplogHealth(length);
+      } catch (err) {
+        error('Error refreshing oplog stats:', err);
+      }
+    } else {
+      oplogStats = null;
+    }
+  }
+
+  onMount(() => {
+    // Initial oplog stats load
+    refreshOplogStats();
+    
+    // Refresh every 30 seconds
+    oplogRefreshInterval = window.setInterval(refreshOplogStats, 30000);
+  });
+
   onDestroy(() => {
     if (queueCheckInterval) {
       clearInterval(queueCheckInterval);
+    }
+    if (oplogRefreshInterval) {
+      clearInterval(oplogRefreshInterval);
     }
   });
 
@@ -537,6 +565,13 @@
       $selectedDBAddress = $settingsDB.address.toString();
     }
   });
+  
+  // Refresh oplog stats when postsDB changes
+  $effect(() => {
+    if ($postsDB) {
+      refreshOplogStats();
+    }
+  });
 
   async function cloneDatabase(sourceDb) {
     isModalOpen = true;
@@ -754,6 +789,36 @@
           </div>
         </div>
       </div>
+      
+      <!-- Oplog Health Indicator -->
+      {#if oplogStats}
+        {@const colorClasses = getStatusColorClasses(oplogStats.color)}
+        <div class="mt-4 p-4 rounded-lg border-2 {colorClasses.border} {colorClasses.bg}">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <div class="w-4 h-4 rounded-full {colorClasses.indicator} animate-pulse"></div>
+              <div>
+                <div class="font-semibold {colorClasses.text}">
+                  Posts DB Oplog: {formatOplogLength(oplogStats.length)} entries
+                </div>
+                <div class="text-sm {colorClasses.text} opacity-90">
+                  {oplogStats.message}
+                </div>
+              </div>
+            </div>
+            {#if oplogStats.recommendCompaction}
+              <button
+                class="px-4 py-2 bg-white dark:bg-gray-800 {colorClasses.text} border-2 {colorClasses.border} rounded-md hover:opacity-80 transition-opacity font-medium"
+                onclick={() => {
+                  alert('Compaction feature coming soon! This will create a fresh database with only the latest versions of all posts.');
+                }}
+              >
+                Compact Database
+              </button>
+            {/if}
+          </div>
+        </div>
+      {/if}
     </div>
 
     <div class="border-t dark:border-gray-700 pt-4">
