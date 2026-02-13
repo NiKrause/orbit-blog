@@ -8,12 +8,14 @@ import { join } from 'node:path';
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const RELAY_START_TIMEOUT_MS = 45_000;
 
+const HOST = '127.0.0.1';
+
 const isPortFree = (port) =>
   new Promise((resolve) => {
     const server = createServer();
     server.once('error', () => resolve(false));
     server.once('listening', () => server.close(() => resolve(true)));
-    server.listen(port);
+    server.listen(port, HOST);
   });
 
 const isUdpPortFree = (port) =>
@@ -177,4 +179,3 @@ run().catch((err) => {
   console.error(`[mocha] ${err instanceof Error ? err.message : String(err)}`);
   process.exit(1);
 });
-

@@ -87,8 +87,10 @@ test.describe('Blog Sharing between Alice and Bob', () => {
         }
 
         await pageAlice.goto(BASE_URL);
-        await expect(pageAlice.getByTestId('blog-name')).toBeVisible();
-        await expect(pageAlice.getByTestId('blog-description')).toBeVisible();
+        // CI can be slower to hydrate; also remote-load overlay may briefly appear.
+        await expect(pageAlice.getByTestId('loading-overlay')).toBeHidden({ timeout: 60000 });
+        await expect(pageAlice.getByTestId('blog-name')).toBeVisible({ timeout: 60000 });
+        await expect(pageAlice.getByTestId('blog-description')).toBeVisible({ timeout: 60000 });
 
         await pageAlice.getByTestId('settings-header').click();
         await closeSidebarIfOpen(pageAlice);

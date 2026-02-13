@@ -24,8 +24,9 @@ const isPortFree = (port) =>
       server.close(() => resolve(true));
     });
 
-    // Bind on all interfaces to catch wildcard/IPv6 listeners too.
-    server.listen(port);
+    // Bind the same host Vite uses so we don't "win" against an IPv6-only listener
+    // and then fail later when Vite tries to bind on 127.0.0.1.
+    server.listen(port, HOST);
   });
 
 const findFreePort = async (start, end) => {
