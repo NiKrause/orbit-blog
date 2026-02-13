@@ -324,6 +324,11 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 
   // Track the last settingsDB address to prevent duplicate loading
   let lastSettingsDBAddress = '';
+  // Persist sub-DB addresses into settings only once per (settingsAddr, subDbAddr) pair.
+  let lastPersistedSettingsAddr = '';
+  let lastPersistedPostsAddr = '';
+  let lastPersistedCommentsAddr = '';
+  let lastPersistedMediaAddr = '';
   
   $effect(() => {
     if($settingsDB && $settingsDB.address.toString() !== lastSettingsDBAddress) {
@@ -442,6 +447,44 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     }
   });
 
+  // Ensure settings DB contains pointers to the sub-databases. Without these,
+  // other peers cannot discover which posts/comments/media DB to open.
+  $effect(() => {
+    if (!$settingsDB || !$identity) return;
+
+    const canWriteSettings = $settingsDB?.access?.write?.includes($identity.id);
+    if (!canWriteSettings) return;
+
+    const settingsAddr = $settingsDB.address?.toString?.() || '';
+
+    const postsAddr = $postsDB?.address?.toString?.() || '';
+    if (postsAddr && (settingsAddr !== lastPersistedSettingsAddr || postsAddr !== lastPersistedPostsAddr)) {
+      lastPersistedSettingsAddr = settingsAddr;
+      lastPersistedPostsAddr = postsAddr;
+      $settingsDB.put({ _id: 'postsDBAddress', value: postsAddr }).catch((err) => {
+        console.error('Failed to persist postsDBAddress to settings:', err);
+      });
+    }
+
+    const commentsAddr = $commentsDB?.address?.toString?.() || '';
+    if (commentsAddr && (settingsAddr !== lastPersistedSettingsAddr || commentsAddr !== lastPersistedCommentsAddr)) {
+      lastPersistedSettingsAddr = settingsAddr;
+      lastPersistedCommentsAddr = commentsAddr;
+      $settingsDB.put({ _id: 'commentsDBAddress', value: commentsAddr }).catch((err) => {
+        console.error('Failed to persist commentsDBAddress to settings:', err);
+      });
+    }
+
+    const mediaAddr = $mediaDB?.address?.toString?.() || '';
+    if (mediaAddr && (settingsAddr !== lastPersistedSettingsAddr || mediaAddr !== lastPersistedMediaAddr)) {
+      lastPersistedSettingsAddr = settingsAddr;
+      lastPersistedMediaAddr = mediaAddr;
+      $settingsDB.put({ _id: 'mediaDBAddress', value: mediaAddr }).catch((err) => {
+        console.error('Failed to persist mediaDBAddress to settings:', err);
+      });
+    }
+  });
+
   // Add logging for profilePictureCid changes
   $effect(() => {
     if ($profilePictureCid) {
@@ -549,17 +592,20 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   });
 
   function handleTouchStart(e) {
+    if (showPasswordModal) return;
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     touchStartX = clientX;
     info('Touch/Mouse start:', touchStartX);
   }
 
   function handleTouchMove(e) {
+    if (showPasswordModal) return;
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     touchEndX = clientX;
   }
 
   function handleTouchEnd(e) {
+    if (showPasswordModal) return;
     info('Touch/Mouse end:', 'startX:', touchStartX, 'endX:', touchEndX);
     const deltaX = touchStartX - touchEndX;
     const swipeDistance = Math.abs(deltaX);
@@ -653,6 +699,17 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   <meta name="msapplication-TileImage" content="{$blogName}">
   <meta name="dir" content={$isRTL ? 'rtl' : 'ltr'}>
 </svelte:head>
+
+<!-- Capture swipe gestures globally instead of attaching listeners to a non-interactive element. -->
+<svelte:window
+  ontouchstart={handleTouchStart}
+  ontouchmove={handleTouchMove}
+  ontouchend={handleTouchEnd}
+  onmousedown={handleTouchStart}
+  onmousemove={handleTouchMove}
+  onmouseup={handleTouchEnd}
+/>
+
 {#if showPasswordModal}
   <PasswordModal 
     {isNewUser} 
@@ -661,15 +718,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     on:seedPhraseDecrypted={handleSeedPhraseDecrypted}
   />
 {:else}
-  <!-- Use div instead of main to avoid accessibility warnings -->
-  <div class="flex min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors"
-    role="main"
-    ontouchstart={handleTouchStart}
-    ontouchmove={handleTouchMove}
-    ontouchend={handleTouchEnd}
-    onmousedown={handleTouchStart}
-    onmousemove={handleTouchMove}
-    onmouseup={handleTouchEnd}>
+  <div class="flex min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors" role="main">
     
     {#if sidebarVisible}
       <div 

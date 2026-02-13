@@ -36,7 +36,7 @@
     "relay:quiet": "npm run build:relay && ENABLE_GENERAL_LOGS=false ENABLE_SYNC_LOGS=false ENABLE_SYNC_STATS=false node dist/relay/index.js",
     "relay:verbose": "npm run build:relay && ENABLE_GENERAL_LOGS=true ENABLE_SYNC_LOGS=true ENABLE_SYNC_STATS=true LOG_LEVEL_CONNECTION=true LOG_LEVEL_PEER=true LOG_LEVEL_DATABASE=true node dist/relay/index.js",
     "test": "mocha --config .mocharc.cjs test/orbitdb*.test.js",
-    "test:e2e": "playwright test tests/BlogSetup.spec.ts tests/BlogSharing.spec.ts tests/BlogSharing-Close-A.spec.ts",
+    "test:e2e": "playwright test tests/Connectivity.spec.ts tests/BlogSetup.spec.ts tests/BlogSharing.spec.ts tests/BlogSharing-Close-A.spec.ts",
     "test:e2e:ui": "playwright test --ui",
     "test:watch": "mocha --config .mocharc.cjs --watch",
     "ipfs-publish": "npm version patch && npm run build && ./ipfs-publish.sh",

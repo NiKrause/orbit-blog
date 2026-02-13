@@ -85,14 +85,13 @@ button:focus-visible {
     -webkit-tap-highlight-color: transparent;
   }
   
-  /* Remove hover effects on touch devices */
-  button:hover,
-  a:hover,
-  .hover\:* {
-    background-color: inherit;
-    color: inherit;
-    opacity: 1;
-  }
+	  /* Remove hover effects on touch devices (limit to known interactive elements). */
+	  button:hover,
+	  a:hover {
+	    background-color: inherit;
+	    color: inherit;
+	    opacity: 1;
+	  }
   
   /* Ensure touch feedback */
   button:active,

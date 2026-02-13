@@ -16,9 +16,7 @@ import { keychain } from '@libp2p/keychain'
 import { prometheusMetrics } from '@libp2p/prometheus-metrics'
 import type { Libp2pOptions } from 'libp2p'
 import type { PrivateKey } from '@libp2p/interface'
-import { LevelDatastore } from 'datastore-level';
-
-const datastore = new LevelDatastore('./orbitdb/keystore');
+import type { Datastore } from 'interface-datastore'
 
 const appendAnnounce = (
   process.env.NODE_ENV === 'development'
@@ -31,19 +29,31 @@ const appendAnnounceArray = appendAnnounce
   .map(addr => addr.trim())
   .filter(Boolean);
 
-export const createLibp2pConfig = (privateKey: PrivateKey): Libp2pOptions => ({
+const RELAY_TCP_PORT = Number(process.env.RELAY_TCP_PORT || 9091)
+const RELAY_WS_PORT = Number(process.env.RELAY_WS_PORT || 9092)
+const RELAY_WEBRTC_PORT = Number(process.env.RELAY_WEBRTC_PORT || 9093)
+const RELAY_LISTEN_IPV4 = process.env.RELAY_LISTEN_IPV4 || '0.0.0.0'
+const RELAY_LISTEN_IPV6 = process.env.RELAY_LISTEN_IPV6 || '::'
+const RELAY_DISABLE_IPV6 =
+  process.env.RELAY_DISABLE_IPV6 === 'true' || process.env.RELAY_DISABLE_IPV6 === '1'
+
+export const createLibp2pConfig = (privateKey: PrivateKey, datastore: Datastore): Libp2pOptions => ({
   privateKey,
   datastore,
   metrics: prometheusMetrics(),
   addresses: {
     listen: [
-      '/ip4/0.0.0.0/tcp/9091',
+      `/ip4/${RELAY_LISTEN_IPV4}/tcp/${RELAY_TCP_PORT}`,
       // '/ip4/0.0.0.0/udp/9091/quic-v1',
-      '/ip4/0.0.0.0/tcp/9092/ws',
-      '/ip4/0.0.0.0/udp/9093/webrtc-direct',
-      '/ip6/::/tcp/9091',
-      '/ip6/::/tcp/9092/ws',
-      '/ip6/::/udp/9093/webrtc-direct',
+      `/ip4/${RELAY_LISTEN_IPV4}/tcp/${RELAY_WS_PORT}/ws`,
+      `/ip4/${RELAY_LISTEN_IPV4}/udp/${RELAY_WEBRTC_PORT}/webrtc-direct`,
+      ...(!RELAY_DISABLE_IPV6
+        ? [
+            `/ip6/${RELAY_LISTEN_IPV6}/tcp/${RELAY_TCP_PORT}`,
+            `/ip6/${RELAY_LISTEN_IPV6}/tcp/${RELAY_WS_PORT}/ws`,
+            `/ip6/${RELAY_LISTEN_IPV6}/udp/${RELAY_WEBRTC_PORT}/webrtc-direct`,
+          ]
+        : []),
     ],
     ...(appendAnnounceArray.length > 0 && { appendAnnounce: appendAnnounceArray }),
   },
@@ -117,38 +127,3 @@ export const createLibp2pConfig = (privateKey: PrivateKey): Libp2pOptions => ({
     keychain: keychain()
   }
 })
-
-async function listAllData() {
-  try {
-    const query = datastore.query({});
-    for await (const entry of query) {
-      try {
-        const keyStr = entry.key.toString();
-        const valueStr = entry.value.toString();
-        console.log("----", keyStr);
-        console.log('Key:', keyStr, 'Value:', valueStr);
-      } catch (err) {
-        console.error('Error processing entry:', err);
-        // Try to delete the key if you can access it
-        if (entry && entry.key) {
-          try {
-            await datastore.delete(entry.key);
-            console.log('Deleted invalid key:', entry.key.toString());
-          } catch (deleteErr) {
-            console.error('Failed to delete invalid key:', deleteErr);
-          }
-        }
-      }
-    }
-  } catch (err) {
-    console.error('Error accessing datastore:', err);
-    // Don't close the datastore here as libp2p needs it
-    console.log('Datastore has corrupted keys. Continuing with libp2p initialization...');
-    console.log('Note: You may want to manually delete ./orbitdb/keystore directory if issues persist');
-  }
-}
-
-// Only run this in test mode to avoid issues in production
-if (process.argv.includes('--test')) {
-  listAllData().catch(console.error);
-}

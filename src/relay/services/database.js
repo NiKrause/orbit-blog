@@ -159,6 +159,16 @@ export class DatabaseService {
       }
       
       syncLog(`Records found: ${records.length} total in ${db.name}`)
+
+      // If this is a settings DB, verify whether it contains the posts DB pointer.
+      // This is the easiest way to confirm the app stored `postsDBAddress` correctly.
+      if (dbType === 'settings') {
+        try {
+          await this.handleSettingsDatabase(db, records)
+        } catch (e) {
+          syncLog('handleSettingsDatabase failed:', e?.message || e)
+        }
+      }
       
       // Enhanced logging with blog context
       const relatedCounts = this.getRelatedDatabases(blogName)
@@ -292,10 +302,11 @@ export class DatabaseService {
       // const endTimer = this.metrics.startSyncTimer('database_join')
       try {
         // log('syncing database', db.name)
-        const count = await db.all()
-        counts = count.length
-        syncLog("count", count.length)
-        // const records = await db.all()
+        const records = await db.all()
+        syncLog('count', records.length)
+
+        // For settings DBs, try to follow the pointer to the posts DB so we can
+        // confirm the posts DB address is present and pinning is working.
         if (db.name.startsWith('settings')) {
           await this.handleSettingsDatabase(db, records)
         }
@@ -313,7 +324,12 @@ export class DatabaseService {
   async handleSettingsDatabase(db, records) {
     syncLog('handleSettingsDatabase', db.name)
     const postsDBRecord = records.find(record => record.key === 'postsDBAddress')
-    if (postsDBRecord?.value.value) {
+    const commentsDBRecord = records.find(record => record.key === 'commentsDBAddress')
+    const mediaDBRecord = records.find(record => record.key === 'mediaDBAddress')
+
+    syncLog('settings keys present:', records.map(r => r.key).filter(Boolean).sort())
+    if (postsDBRecord?.value?.value) {
+      syncLog('postsDBAddress (from settings):', postsDBRecord.value.value)
       try {
         const postsDB = await this.orbitdb.open(postsDBRecord.value.value)
         const postsRecords = await postsDB.all()
@@ -330,6 +346,20 @@ export class DatabaseService {
       } catch (_error) {
         syncLog('Error opening posts database:', _error)
       }
+    } else {
+      syncLog('postsDBAddress missing in settings DB')
+    }
+
+    if (commentsDBRecord?.value?.value) {
+      syncLog('commentsDBAddress (from settings):', commentsDBRecord.value.value)
+    } else {
+      syncLog('commentsDBAddress missing in settings DB')
+    }
+
+    if (mediaDBRecord?.value?.value) {
+      syncLog('mediaDBAddress (from settings):', mediaDBRecord.value.value)
+    } else {
+      syncLog('mediaDBAddress missing in settings DB')
     }
   }
 }

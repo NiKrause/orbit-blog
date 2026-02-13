@@ -107,11 +107,21 @@ export default defineConfig(({ command, mode }) => {
         'node:path': 'path-browserify',
         buffer: 'buffer/',
         'safe-buffer': 'safe-buffer',
+        // Avoid esbuild "direct-eval" warning from protobufjs optional dependency resolver.
+        // In the browser bundle we don't need Node-style runtime requires for optional deps.
+        ...(!isLib
+          ? { '@protobufjs/inquire': path.resolve(__dirname, 'src/shims/protobufjs-inquire.ts') }
+          : {}),
         '$lib': path.resolve(__dirname, 'src/lib')
       }
     },
     optimizeDeps: {
       esbuildOptions: {
+        // Silence dependency warning from protobufjs ("Use of eval ... strongly discouraged").
+        // This is a third-party dependency used in the browser bundle.
+        logOverride: {
+          'direct-eval': 'silent',
+        },
         define: {
           global: 'globalThis',
         },
@@ -119,6 +129,11 @@ export default defineConfig(({ command, mode }) => {
         plugins: [],
       },
       include: ['path-browserify']
+    },
+    esbuild: {
+      logOverride: {
+        'direct-eval': 'silent',
+      },
     },
     define: {
       __APP_VERSION__: JSON.stringify(pkg.version),

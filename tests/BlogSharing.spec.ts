@@ -6,6 +6,9 @@ const config = {
         
 
 test.describe('Blog Sharing between Alice and Bob', () => {
+    // This file shares mutable state across tests (aliceBlogAddress, pageAlice/pageBob),
+    // so it must run serially.
+    test.describe.configure({ mode: 'serial' });
     
     let pageAlice;
     let pageBob;
@@ -14,6 +17,14 @@ test.describe('Blog Sharing between Alice and Bob', () => {
     let wsAddr;
     let contextAlice;  // Separate context for Alice
     let contextBob;    // Separate context for Bob
+
+    async function closeSidebarOverlayIfPresent(page) {
+        const overlay = page.locator('[aria-label="close_sidebar"]');
+        if (await overlay.isVisible()) {
+            await overlay.click();
+            await expect(overlay).toBeHidden();
+        }
+    }
 
     function updateSeedNodes(nodes: string) {
         config.seedNodes = nodes;
@@ -50,6 +61,10 @@ test.describe('Blog Sharing between Alice and Bob', () => {
         pageAlice.on('console', msg => {
             console.log('BROWSER LOG:', msg.text());
         });
+        pageAlice.on('pageerror', err => {
+            console.error('PAGE ERROR:', err.message);
+            if (err.stack) console.error(err.stack);
+        });
         await pageAlice.goto('http://localhost:5173');
         await pageAlice.evaluate(() => {
             localStorage.setItem('debug', 'libp2p:*,le-space:*');
@@ -70,6 +85,11 @@ test.describe('Blog Sharing between Alice and Bob', () => {
         
         // Configure blog settings
         await pageAlice.getByTestId('settings-header').click();
+        // Settings render in main content; close the sidebar overlay so it doesn't intercept clicks.
+        const closeSidebarOverlay = pageAlice.locator('[aria-label="close_sidebar"]');
+        if (await closeSidebarOverlay.isVisible()) {
+            await closeSidebarOverlay.click();
+        }
         await pageAlice.getByTestId('blog-settings-accordion').click();
         await pageAlice.getByTestId('blog-name-input').fill('Bach Chronicles');
         await pageAlice.getByTestId('blog-description-input').fill('Exploring the life and works of Johann Sebastian Bach');
@@ -99,7 +119,11 @@ test.describe('Blog Sharing between Alice and Bob', () => {
         for (const post of bachPosts) {
             await pageAlice.getByTestId('post-title-input').fill(post.title);
             await pageAlice.getByTestId('post-content-input').fill(post.content);
-            await pageAlice.getByTestId('category-select').selectOption(post.category);
+            // Category selection is a custom MultiSelect with id="categories"
+            await pageAlice.locator('#categories [role="button"]').click();
+            await pageAlice.locator('#categories').getByRole('button', { name: post.category, exact: true }).click();
+            // Close dropdown so it doesn't cover other controls
+            await pageAlice.locator('#categories [role="button"]').click();
             await pageAlice.locator('#publish').check();
             await pageAlice.getByTestId('publish-post-button').click();
             
@@ -134,6 +158,11 @@ test.describe('Blog Sharing between Alice and Bob', () => {
         await pageAlice.getByTestId('menu-button').click();
         await pageAlice.getByTestId('blogs-header').click();
         await pageAlice.getByTestId('db-manager-container').waitFor({ state: 'visible' });
+        // DBManager is in main content, close sidebar overlay so buttons are clickable.
+        const closeSidebarOverlay2 = pageAlice.locator('[aria-label="close_sidebar"]');
+        if (await closeSidebarOverlay2.isVisible()) {
+            await closeSidebarOverlay2.click();
+        }
         
         // Verify the database address input is visible and has a value
         const dbAddressInput = pageAlice.getByTestId('db-address-input');
@@ -155,12 +184,18 @@ test.describe('Blog Sharing between Alice and Bob', () => {
         pageBob.on('console', msg => {
             console.log('BROWSER LOG:', msg.text());
         }); 
+        pageBob.on('pageerror', err => {
+            console.error('PAGE ERROR:', err.message);
+            if (err.stack) console.error(err.stack);
+        });
         await pageBob.goto(`http://localhost:5173/#${aliceBlogAddress}`);
         await pageBob.evaluate(() => {
             localStorage.setItem('debug', 'libp2p:*,le-space:*');
         });
         await expect(pageBob.getByTestId('loading-overlay')).toBeVisible({ timeout: 30000 });
-        await expect(pageBob.getByTestId('blog-name')).toHaveText('Bach Chronicles', { timeout: 30000 });
+        // Remote blog load can take a while depending on replication/bootstrap timing.
+        await expect(pageBob.getByTestId('loading-overlay')).toBeHidden({ timeout: 120000 });
+        await expect(pageBob.getByTestId('blog-name')).toHaveText('Bach Chronicles', { timeout: 120000 });
         const posts = await pageBob.getByTestId('post-item-title').all();
         const postTitles = await Promise.all(posts.map(post => post.textContent()));
         expect(postTitles).toContain("The Birth of a Musical Genius");
@@ -175,8 +210,8 @@ test.describe('Blog Sharing between Alice and Bob', () => {
 
     test('Alice deletes and restores her blog from OrbitDB address', async ({ browser }) => {
         // Close Bob's browser first
-        await pageBob.close();
-        await contextBob.close();
+        if (pageBob) await pageBob.close();
+        if (contextBob) await contextBob.close();
 
         // Reopen Alice's browser
         contextAlice = await browser.newContext({
@@ -196,10 +231,13 @@ test.describe('Blog Sharing between Alice and Bob', () => {
         // await pageAlice.getByTestId('menu-button').click();  
         await pageAlice.getByTestId('blogs-header').click();
         await pageAlice.getByTestId('db-manager-container').waitFor({ state: 'visible' });
+        // DBManager renders in main content; ensure sidebar overlay doesn't intercept clicks.
+        await closeSidebarOverlayIfPresent(pageAlice);
 
         //DBManager add aliceBlogAddress as remote database
         // await pageAlice.getByTestId('add-remote-db-button').click();
         await pageAlice.getByTestId('remote-db-address-input').fill(aliceBlogAddress);
+        await closeSidebarOverlayIfPresent(pageAlice);
         await pageAlice.getByTestId('add-db-button').click();
  
         //check if aliceBlogAddress is in the remote databases list
@@ -240,7 +278,7 @@ test.describe('Blog Sharing between Alice and Bob', () => {
         //delete the database
         await pageAlice.getByTestId('delete-db-button').click();
         // Click the confirm button in the modal
-        await pageAlice.getByText('Confirm').click();
+        await pageAlice.getByRole('button', { name: 'Confirm' }).first().click();
         
         //wait until the database is deleted
         await expect(pageAlice.getByTestId('remote-db-item')).not.toBeVisible();

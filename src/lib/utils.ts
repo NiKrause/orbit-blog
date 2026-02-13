@@ -2,7 +2,7 @@ import { mnemonicToSeedSync } from "bip39";
 import HDKey from "hdkey";
 import { createHash } from 'crypto';
 import { writable } from 'svelte/store';
-import { keys }  from 'libp2p-crypto';
+import { generateKeyPairFromSeed, privateKeyToProtobuf } from '@libp2p/crypto/keys';
 import { fromString as uint8ArrayFromString, toString as uint8ArrayToString } from 'uint8arrays';
 import { createFromPrivKey } from '@libp2p/peer-id-factory'
 /**
@@ -45,15 +45,13 @@ export const generateMasterSeed = (mnemonicSeedphrase, password, toHex = false) 
  * libp2p needs a PeerId which we generate from a seed phrase  
  */
 import type { PeerId } from '@libp2p/interface'
-import type { PrivateKey } from 'libp2p-crypto'
+import type { PrivateKey } from '@libp2p/interface'
 
 export async function createPeerIdFromSeedPhrase(seedPhrase: string): Promise<{peerId: PeerId, privateKey: PrivateKey}> { 
   const masterSeed = generateMasterSeed(seedPhrase, "password", false) as Buffer;
-  const { keyPair, hex } = await generateAndSerializeKey(masterSeed.subarray(0, 32))
-  const encoded = uint8ArrayFromString(hex, 'hex')
-  const privateKey = await keys.unmarshalPrivateKey(encoded)
-  const peerId = await createFromPrivKey(privateKey)
-  return {peerId, privateKey}
+  const { keyPair } = await generateAndSerializeKey(masterSeed.subarray(0, 32))
+  const peerId = await createFromPrivKey(keyPair)
+  return { peerId, privateKey: keyPair }
 }
 
 
@@ -62,17 +60,18 @@ export const createHdKeyFromMasterKey = (masterseed, network) => {
 }
 
 export async function generateAndSerializeKey(seed: Uint8Array): Promise<{
-  keyPair: keys.supportedKeys.ed25519.Ed25519PrivateKey,
+  keyPair: PrivateKey,
   hex: string
 }> {
   // Generate an Ed25519 key pair from the seed
-  const keyPair = await keys.generateKeyPairFromSeed('Ed25519', seed, 256)
-  const marshalledPrivateKey = await keys.marshalPrivateKey(keyPair);
-  return {keyPair, hex: Buffer.from(marshalledPrivateKey).toString('hex')}
+  const keyPair = await generateKeyPairFromSeed('Ed25519', seed)
+  const marshalledPrivateKey = privateKeyToProtobuf(keyPair)
+  return { keyPair, hex: Buffer.from(marshalledPrivateKey).toString('hex') }
 }
 
 export async function createKeyPairFromPrivateKey(privateKey: Buffer) {
-    return keys.supportedKeys.ed25519.unmarshalEd25519PrivateKey(privateKey);
+    // Kept for compatibility - callers should migrate to @libp2p/crypto/keys APIs.
+    throw new Error('createKeyPairFromPrivateKey is deprecated - use @libp2p/crypto/keys instead')
 }
   
 

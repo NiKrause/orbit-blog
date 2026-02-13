@@ -33,7 +33,7 @@ async function main() {
     privateKey = storage.privateKey
   }
   
-  const libp2p = await createLibp2p(createLibp2pConfig(privateKey))
+  const libp2p = await createLibp2p(createLibp2pConfig(privateKey, datastore))
   const ipfs = await createHelia({ libp2p, datastore, blockstore })
 
   const databaseService = new DatabaseService()

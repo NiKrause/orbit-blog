@@ -6,19 +6,39 @@ import { fileURLToPath } from 'url'
 
 let relayProcess: ChildProcess | null = null;
 
+// Keep these ports in sync with `playwright.config.ts` so the app bootstraps
+// against the relay spawned by Playwright globalSetup.
+const RELAY_TCP_PORT = 19091
+const RELAY_WS_PORT = 19092
+const RELAY_WEBRTC_PORT = 19093
+
+function pipeChildOutput(child: ChildProcess, prefix: string) {
+    const write = (stream: NodeJS.WriteStream, data: Buffer) => {
+        // Prefix each chunk; good enough for test logs without heavy line buffering.
+        stream.write(`[${prefix}] ${data.toString()}`);
+    };
+
+    if (child.stdout) child.stdout.on('data', (d: Buffer) => write(process.stdout, d));
+    if (child.stderr) child.stderr.on('data', (d: Buffer) => write(process.stderr, d));
+}
+
 async function waitForRelay(timeoutMs = 10000): Promise<boolean> {
     const startTime = Date.now();
+    const readyMarkers = [
+        // Might be logged via debug-style logger (can be disabled)
+        'Starting relay server',
+        // Always printed via console.log in dist/relay/index.js after libp2p starts
+        'p2p addr:'
+    ];
     
     return new Promise((resolve) => {
         const checkInterval = setInterval(() => {
-            if (relayProcess?.stdout) {
-                // Check if process is still running
-                if (relayProcess.exitCode !== null) {
-                    clearInterval(checkInterval);
-                    console.error('Relay process exited with code:', relayProcess.exitCode);
-                    resolve(false);
-                    return;
-                }
+            // Check if process is still running
+            if (relayProcess && relayProcess.exitCode !== null) {
+                clearInterval(checkInterval);
+                console.error('Relay process exited with code:', relayProcess.exitCode);
+                resolve(false);
+                return;
             }
 
             // Timeout check
@@ -38,13 +58,18 @@ async function waitForRelay(timeoutMs = 10000): Promise<boolean> {
                 resolve(false);
             });
 
-            relayProcess.stdout?.on('data', (data) => {
-                if (data.toString().includes('Starting relay server')) {
+            const onData = (data: Buffer) => {
+                // libp2p/debug-style logging often goes to stderr, so watch both streams.
+                const text = data.toString();
+                if (readyMarkers.some((m) => text.includes(m))) {
                     clearInterval(checkInterval);
                     console.log('Relay server started successfully');
                     resolve(true);
                 }
-            });
+            }
+
+            relayProcess.stdout?.on('data', onData);
+            relayProcess.stderr?.on('data', onData);
         }
     });
 }
@@ -59,14 +84,30 @@ export async function setupTestEnvironment() {
 
         // Start relay server with ES modules support
         console.log('Starting relay server...');
-        relayProcess = spawn('node', ['--experimental-specifier-resolution=node', 'src/relay.js'], {
+        // Run the compiled relay (src uses TS modules that Node can't import directly).
+        relayProcess = spawn('node', ['dist/relay/index.js', '--test'], {
             stdio: ['inherit', 'pipe', 'pipe'],
             env: {
                 ...process.env,
                 DEBUG: 'le-space:*,libp2p:*',
-                NODE_OPTIONS: '--experimental-specifier-resolution=node'
+
+                // Avoid collisions with a locally running relay that might be using the defaults.
+                RELAY_TCP_PORT: String(RELAY_TCP_PORT),
+                RELAY_WS_PORT: String(RELAY_WS_PORT),
+                RELAY_WEBRTC_PORT: String(RELAY_WEBRTC_PORT),
+
+                // Make relay logs visible and useful in Playwright output.
+                ENABLE_GENERAL_LOGS: 'true',
+                ENABLE_SYNC_LOGS: 'true',
+                ENABLE_SYNC_STATS: 'true',
+                LOG_LEVEL_CONNECTION: 'true',
+                LOG_LEVEL_PEER: 'true',
+                LOG_LEVEL_DATABASE: 'true',
+                LOG_LEVEL_SYNC: 'true',
             }
         });
+
+        pipeChildOutput(relayProcess, 'relay');
 
         // Set up error handling
         relayProcess.on('error', (err) => {
@@ -74,12 +115,8 @@ export async function setupTestEnvironment() {
             throw err;
         });
 
-        relayProcess.stderr?.on('data', (data) => {
-            console.error('Relay stderr:', data.toString());
-        });
-
         // Wait for relay to start
-        const started = await waitForRelay();
+        const started = await waitForRelay(30000);
         if (!started) {
             throw new Error('Failed to start relay server');
         }

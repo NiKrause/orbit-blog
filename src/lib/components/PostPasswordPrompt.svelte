@@ -4,21 +4,20 @@
   import { createEventDispatcher } from 'svelte';
   import { decryptPost } from '$lib/cryptoUtils';
 
-  interface Props {
-    post: {
-      title: string;
-      content: string;
-    };
-    mode: 'encrypt' | 'decrypt';
-  }
-  $effect(() => {
-    console.log('post',post);
-    console.log('mode', mode);
-  });
-  let { post, mode }: Props = $props();
-  console.log('post', post);
-  console.log('mode', mode);
-  const dispatch = createEventDispatcher();
+	  interface Props {
+	    post: {
+	      title: string;
+	      content: string;
+	    };
+	    mode: 'encrypt' | 'decrypt';
+	  }
+	  let { post, mode }: Props = $props();
+	  // Debug: keep inside an effect so it always reflects the latest prop values.
+	  $effect(() => {
+	    console.log('post', post);
+	    console.log('mode', mode);
+	  });
+	  const dispatch = createEventDispatcher();
    
   let password = $state('');
   let errorMessage = $state('');

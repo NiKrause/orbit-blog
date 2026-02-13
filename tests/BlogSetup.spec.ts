@@ -2,6 +2,8 @@ import { test, expect, chromium } from '@playwright/test';
 
 
 test.describe('Blog Setup and Bach Posts', () => {
+    // Uses a shared `page` across tests via beforeAll, so run serially.
+    test.describe.configure({ mode: 'serial' });
     let page;
 
     test.beforeAll(async ({ browser }) => {
@@ -9,6 +11,10 @@ test.describe('Blog Setup and Bach Posts', () => {
         page = await browser.newPage();
         page.on('console', msg => {
             console.log('BROWSER LOG:', msg.text());
+        });
+        page.on('pageerror', err => {
+            console.error('PAGE ERROR:', err.message);
+            if (err.stack) console.error(err.stack);
         });
         await page.goto('http://localhost:5173'); 
     });
@@ -51,6 +57,11 @@ test.describe('Blog Setup and Bach Posts', () => {
     test('Setup blog settings and create Bach posts', async () => {
         // Configure blog settings
         await page.getByTestId('settings-header').click();
+        // Settings render in main content; close the sidebar overlay so it doesn't intercept clicks.
+        const closeSidebarOverlay = page.locator('[aria-label="close_sidebar"]');
+        if (await closeSidebarOverlay.isVisible()) {
+            await closeSidebarOverlay.click();
+        }
         await page.getByTestId('blog-settings-accordion').click(); // Open the accordion first
         await page.getByTestId('blog-name-input').fill('Bach Chronicles');
         await page.getByTestId('blog-description-input').fill('Exploring the life and works of Johann Sebastian Bach');
@@ -86,10 +97,11 @@ test.describe('Blog Setup and Bach Posts', () => {
         await page.getByTestId('menu-button').click();
         //check if sidebar is open
         await expect(page.getByTestId('sidebar-container')).toBeVisible();
-        //close settings
-        await page.getByTestId('settings-header').click();
-        //check if settings is closed
-        await expect(page.getByTestId('settings-section')).toBeHidden();
+        // Close sidebar so it doesn't block interactions with main content
+        const closeSidebarOverlay2 = page.locator('[aria-label="close_sidebar"]');
+        if (await closeSidebarOverlay2.isVisible()) {
+            await closeSidebarOverlay2.click();
+        }
         await expect(page.getByTestId('sidebar-container')).toBeHidden();
 
         // First try to create a post without a category (negative test)
@@ -130,20 +142,23 @@ test.describe('Blog Setup and Bach Posts', () => {
             }
         ];
 
-        for (const post of bachPosts) {
-            // Navigate to new post page
-            // await page.getByTestId('new-post-link').click();
-            
-            // Fill in post details including category
-            await page.getByTestId('post-title-input').fill(post.title);
-            await page.getByTestId('post-content-input').fill(post.content);
-            await page.getByTestId('category-select').selectOption(post.category);
-            
-            // Wait for all form elements to be ready
-            await expect(page.getByTestId('post-title-input')).toBeVisible();
-            await expect(page.getByTestId('post-content-input')).toBeVisible();
-            await expect(page.getByTestId('category-select')).toBeVisible();
-            await expect(page.getByTestId('publish-post-button')).toBeEnabled();
+	        for (const post of bachPosts) {
+	            // Navigate to new post page
+	            // await page.getByTestId('new-post-link').click();
+	            
+	            // Fill in post details including category
+	            await page.getByTestId('post-title-input').fill(post.title);
+	            await page.getByTestId('post-content-input').fill(post.content);
+	            // Category selection is a custom MultiSelect with id="categories"
+	            await page.locator('#categories [role="button"]').click();
+	            await page.locator('#categories').getByRole('button', { name: post.category, exact: true }).click();
+	            // Close dropdown so it doesn't cover the submit button
+	            await page.locator('#categories [role="button"]').click();
+	            
+	            // Wait for all form elements to be ready
+	            await expect(page.getByTestId('post-title-input')).toBeVisible();
+	            await expect(page.getByTestId('post-content-input')).toBeVisible();
+	            await expect(page.getByTestId('publish-post-button')).toBeEnabled();
 
             // Submit post
             await page.getByTestId('publish-post-button').click();
@@ -176,4 +191,3 @@ test.describe('Blog Setup and Bach Posts', () => {
         await page.close();
     });
 });
-
