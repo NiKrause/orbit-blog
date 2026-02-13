@@ -25,13 +25,11 @@ jobs:
         # cache: 'npm'
 
     - name: Install dependencies
-      run: npm install
+      run: npm ci
 
     - name: Run Mocha tests
       run: |
        npm run build:relay
-       npm run relay:test &
-       sleep 10
        npx mocha --exit "test/**/*.test.js"
     - name: install playwright
       run: npx playwright install --with-deps

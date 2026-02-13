@@ -17,8 +17,11 @@ import { prometheusMetrics } from '@libp2p/prometheus-metrics'
 import type { Libp2pOptions } from 'libp2p'
 import type { PrivateKey } from '@libp2p/interface'
 import { LevelDatastore } from 'datastore-level';
+import { join } from 'path';
 
-const datastore = new LevelDatastore('./orbitdb/keystore');
+const RELAY_DATA_DIR = process.env.RELAY_DATA_DIR || './orbitdb';
+const KEYSTORE_DIR = process.env.RELAY_KEYSTORE_DIR || join(RELAY_DATA_DIR, 'keystore');
+const datastore = new LevelDatastore(KEYSTORE_DIR);
 
 const appendAnnounce = (
   process.env.NODE_ENV === 'development'
@@ -122,37 +125,5 @@ export const createLibp2pConfig = (privateKey: PrivateKey): Libp2pOptions => ({
   }
 })
 
-async function listAllData() {
-  try {
-    const query = datastore.query({});
-    for await (const entry of query) {
-      try {
-        const keyStr = entry.key.toString();
-        const valueStr = entry.value.toString();
-        console.log("----", keyStr);
-        console.log('Key:', keyStr, 'Value:', valueStr);
-      } catch (err) {
-        console.error('Error processing entry:', err);
-        // Try to delete the key if you can access it
-        if (entry && entry.key) {
-          try {
-            await datastore.delete(entry.key);
-            console.log('Deleted invalid key:', entry.key.toString());
-          } catch (deleteErr) {
-            console.error('Failed to delete invalid key:', deleteErr);
-          }
-        }
-      }
-    }
-  } catch (err) {
-    console.error('Error accessing datastore:', err);
-    // Don't close the datastore here as libp2p needs it
-    console.log('Datastore has corrupted keys. Continuing with libp2p initialization...');
-    console.log('Note: You may want to manually delete ./orbitdb/keystore directory if issues persist');
-  }
-}
-
-// Only run this in test mode to avoid issues in production
-if (process.argv.includes('--test')) {
-  listAllData().catch(console.error);
-}
+// Note: we intentionally do not iterate/query the datastore at module init time.
+// Doing so can flake on CI (iterator lifecycle vs open/close) and can race with libp2p startup.

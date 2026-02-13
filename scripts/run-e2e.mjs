@@ -3,6 +3,8 @@ import { createSocket } from 'node:dgram';
 import { request } from 'node:http';
 import { spawn } from 'node:child_process';
 import { access, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const HOST = '127.0.0.1';
 const PORT_START = 5173;
@@ -11,6 +13,7 @@ const PORT_END = 5273;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const RELAY_START_TIMEOUT_MS = 45_000;
 const TEST_DATA_DIRS = ['orbitdb', 'helia-data', 'helia-blocks'];
+let relayDataDir = null;
 
 const isPortFree = (port) =>
   new Promise((resolve) => {
@@ -134,6 +137,14 @@ const cleanupTestData = async () => {
       console.warn(`[e2e] failed to cleanup ${dir}: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
+
+  if (relayDataDir) {
+    try {
+      await rm(relayDataDir, { recursive: true, force: true });
+    } catch (err) {
+      console.warn(`[e2e] failed to cleanup relay data dir ${relayDataDir}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
 };
 
 const normalizeRelayAddr = (addr) => {
@@ -213,8 +224,15 @@ const run = async () => {
   let vite;
   let relay;
 
+  // Isolate relay filesystem state per run so CI steps (and parallel local runs) never fight over LevelDB locks.
+  relayDataDir = process.env.E2E_RELAY_DATA_DIR || join(tmpdir(), `le-space-relay-${process.pid}-${Date.now()}`);
+
   console.log(`[e2e] using base URL: ${baseUrl}`);
   console.log('[e2e] building relay...');
+
+  // Ensure we start from a clean slate even if a previous step in the same CI job created data dirs.
+  await cleanupTestData();
+
   try {
     await runCommand('npm', ['run', 'build:relay']);
   } catch (err) {
@@ -235,6 +253,7 @@ const run = async () => {
     ...process.env,
     DEBUG: process.env.DEBUG || 'libp2p:relay:*,le-space:relay*',
     METRICS_PORT: process.env.METRICS_PORT || '0',
+    RELAY_DATA_DIR: relayDataDir,
     RELAY_TCP_PORT: String(relayTcpPort),
     RELAY_WS_PORT: String(relayWsPort),
     RELAY_WEBRTC_PORT: String(relayWebRtcPort)

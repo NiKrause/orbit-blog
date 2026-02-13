@@ -14,6 +14,7 @@ const log = logger('le-space:relay')
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const TEST_PRIVATE_KEY = process.env.TEST_PRIVATE_KEY
+const RELAY_DATA_DIR = process.env.RELAY_DATA_DIR || './orbitdb'
 
 async function main() {
   log('Starting relay server')
@@ -21,7 +22,7 @@ async function main() {
   let privateKey
 
   // const hostDirectory = join(__dirname, '..', 'pinning-service')
-  const storage = await initializeStorage('./orbitdb/pinning-service')
+  const storage = await initializeStorage(join(RELAY_DATA_DIR, 'pinning-service'))
   const blockstore = storage.blockstore
   const datastore = storage.datastore
 
@@ -80,4 +81,7 @@ async function main() {
   }
 }
 
-main().catch(console.error)
+main().catch((err) => {
+  console.error(err)
+  process.exit(1)
+})
