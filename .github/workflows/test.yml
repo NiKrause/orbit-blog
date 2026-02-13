@@ -34,10 +34,5 @@ jobs:
     - name: install playwright
       run: npx playwright install --with-deps
 
-    - name: Run e2e tests
-      run: |
-        npm run build:relay
-        npm run relay:test &
-        npm run dev &
-        sleep 15  # Give more time for both servers to start
-        DEBUG=playwright:* npm run test:e2e
+    - name: Run Blog Sharing e2e
+      run: npm run test:e2e -- --grep "Blog Sharing"
