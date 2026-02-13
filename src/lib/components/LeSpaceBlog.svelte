@@ -74,8 +74,10 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     isRTL
   } from '$lib/store';
 
-  import { info, debug, warn, error } from '../utils/logger.js'
-  import { canEject } from '../utils/pwaEject.js'
+	  import { info, debug, warn, error } from '../utils/logger.js'
+	  import { canEject } from '../utils/pwaEject.js'
+
+	  const e2eEnabled = import.meta.env.VITE_E2E === '1';
 
   let blockstore = new LevelBlockstore('./helia-blocks');
   let datastore = new LevelDatastore('./helia-data');
@@ -103,6 +105,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   // Track event listeners to prevent memory leaks
   let settingsDBUpdateListener = null;
   let postsDBUpdateListener = null;
+  let ensureSettingsWriteInFlight = false;
 
   const sidebarPosition = $derived($isRTL ? 'right' : 'left');
   const sidebarButtonPosition = $derived($isRTL ? 'right' : 'left');
@@ -278,10 +281,59 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     }).catch(err => warn('error initializing media database', err))
   }
 
+  const readSettingValue = (entries: any[], settingId: string) => {
+    const byKey = entries.find((entry: any) => entry.key === settingId)?.value?.value;
+    if (byKey !== undefined) return byKey;
+    const byId = entries.find((entry: any) => entry.value?._id === settingId)?.value?.value;
+    return byId;
+  };
+
+  async function ensureRequiredLocalSettings() {
+    if (ensureSettingsWriteInFlight) return;
+    if (!$settingsDB || !$identity) return;
+
+    const access = $settingsDB.access?.write || [];
+    if (!access.includes($identity.id) && !access.includes('*')) return;
+
+    const desired = {
+      postsDBAddress: $postsDB?.address?.toString(),
+      commentsDBAddress: $commentsDB?.address?.toString(),
+      mediaDBAddress: $mediaDB?.address?.toString()
+    };
+
+    const hasAnyDesired = Object.values(desired).some(Boolean);
+    if (!hasAnyDesired) return;
+
+    ensureSettingsWriteInFlight = true;
+    try {
+      const settingsEntries = await $settingsDB.all();
+
+      for (const [settingId, settingValue] of Object.entries(desired)) {
+        if (!settingValue) continue;
+
+        const currentValue = readSettingValue(settingsEntries, settingId);
+        if (currentValue !== settingValue) {
+          await $settingsDB.put({ _id: settingId, value: settingValue });
+        }
+      }
+    } catch (err) {
+      warn('Failed to ensure required local settings:', err);
+    } finally {
+      ensureSettingsWriteInFlight = false;
+    }
+  }
+
   $effect(() => {
     if($initialAddress) {
       info('initialAddress', $initialAddress);
       sidebarVisible = false;
+    }
+  });
+
+  // Ensure settings DB always contains local DB address references once DBs are available.
+  $effect(() => {
+    if ($settingsDB && ($postsDB || $commentsDB || $mediaDB)) {
+      ensureRequiredLocalSettings();
     }
   });
   
@@ -331,14 +383,15 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     lastSettingsDBAddress = $settingsDB.address.toString();
     info('Loading settings from new database:', lastSettingsDBAddress);
     
-    // Initial load of settings - use .all() to get all documents first to avoid CID parsing errors on empty DBs
-    $settingsDB.all().then(allSettings => {
-      info('All settings from database:', allSettings);
-      
-      // Process each setting
-      for (const entry of allSettings) {
-        const setting = entry.value;
-        switch(setting._id) {
+	    // Initial load of settings - use .all() to get all documents first to avoid CID parsing errors on empty DBs
+	    $settingsDB.all().then(allSettings => {
+	      info('All settings from database:', allSettings);
+	      const hasSetting = (id) => allSettings.some((entry) => entry?.value?._id === id);
+	      
+	      // Process each setting
+	      for (const entry of allSettings) {
+	        const setting = entry.value;
+	        switch(setting._id) {
           case 'blogName':
             if (setting.value !== undefined) blogName.set(setting.value);
             break;
@@ -363,40 +416,40 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
               info('Set profile picture CID from settings:', setting.value);
             }
             break;
-        }
-      }
-      
-      // If no postsDBAddress found but we have a postsDB, save it
-      if (!$postsDBAddress && $postsDB?.address) {
-        const postsDBAddressValue = $postsDB.address.toString();
-        try {
-          $settingsDB?.put({ _id: 'postsDBAddress', value: postsDBAddressValue});
-          postsDBAddress.set(postsDBAddressValue);
-        } catch (err) {
-          console.error('Failed to write postsDBAddress to DB:', err);
-        }
-      }
-      
-      // If no commentsDBAddress found but we have a commentsDB, save it
-      if (!$commentsDBAddress && $commentsDB?.address) {
-        const commentsDBAddressValue = $commentsDB.address.toString();
-        try {
-          $settingsDB?.put({ _id: 'commentsDBAddress', value: commentsDBAddressValue});
-          commentsDBAddress.set(commentsDBAddressValue);
-        } catch (err) {
-          console.error('Failed to write commentsDBAddress to DB:', err);
-        }
-      }
-      
-      // If no mediaDBAddress found but we have a mediaDB, save it
-      if ($mediaDB?.address) {
-        const mediaDBAddress = $mediaDB.address.toString();
-        try {
-          $settingsDB?.put({ _id: 'mediaDBAddress', value: mediaDBAddress});
-        } catch (err) {
-          console.error('Failed to write mediaDBAddress to DB:', err);
-        }
-      }
+	        }
+	      }
+	      
+	      // Ensure settings DB persists the database addresses.
+	      // The in-memory stores can be populated even when settings are missing these keys,
+	      // which breaks remote clients that rely on settingsDBAddress -> postsDBAddress.
+	      if (!hasSetting('postsDBAddress') && $postsDB?.address) {
+	        const postsDBAddressValue = $postsDB.address.toString();
+	        try {
+	          $settingsDB?.put({ _id: 'postsDBAddress', value: postsDBAddressValue});
+	          postsDBAddress.set(postsDBAddressValue);
+	        } catch (err) {
+	          console.error('Failed to write postsDBAddress to DB:', err);
+	        }
+	      }
+	      
+	      if (!hasSetting('commentsDBAddress') && $commentsDB?.address) {
+	        const commentsDBAddressValue = $commentsDB.address.toString();
+	        try {
+	          $settingsDB?.put({ _id: 'commentsDBAddress', value: commentsDBAddressValue});
+	          commentsDBAddress.set(commentsDBAddressValue);
+	        } catch (err) {
+	          console.error('Failed to write commentsDBAddress to DB:', err);
+	        }
+	      }
+	      
+	      if (!hasSetting('mediaDBAddress') && $mediaDB?.address) {
+	        const mediaDBAddress = $mediaDB.address.toString();
+	        try {
+	          $settingsDB?.put({ _id: 'mediaDBAddress', value: mediaDBAddress});
+	        } catch (err) {
+	          console.error('Failed to write mediaDBAddress to DB:', err);
+	        }
+	      }
     }).catch(err => {
       warn('Error loading settings from database:', err);
       // If database is completely empty or has issues, we can still continue
@@ -449,15 +502,15 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     }
   });
 
-  $effect(() => {
-    if($postsDB){
-    $postsDB.all().then(_posts => {
-      // info('posts--', _posts);
-      $posts = _posts.map(entry => ({
-        ...entry.value,
-        identity: entry.value.identity || entry.identity?.id // Use saved identity or fallback to entry identity ID
-      }));
-    }).catch(err => warn('Error opening posts database:', err));
+	  $effect(() => {
+	    if($postsDB){
+	    $postsDB.all().then(_posts => {
+	      // info('posts--', _posts);
+	      $posts = _posts.map(entry => ({
+	        ...entry.value,
+	        identity: entry.value.identity || entry.identity?.id // Use saved identity or fallback to entry identity ID
+	      }));
+	    }).catch(err => warn('Error opening posts database:', err));
 
     // Clean up existing postsDB event listener
     if (postsDBUpdateListener) {
@@ -480,9 +533,20 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     };
     
     // Add the new event listener
-    $postsDB.events.on('update', postsDBUpdateListener);
-    }
-  });
+	    $postsDB.events.on('update', postsDBUpdateListener);
+	    }
+	  });
+
+	  // E2E hook: allow Playwright to read replicated data without scraping the DOM.
+	  $effect(() => {
+	    if (!e2eEnabled) return;
+	    if (typeof window === 'undefined') return;
+	    const w = window as any;
+	    w.__LE_SPACE_E2E__ = w.__LE_SPACE_E2E__ || {};
+	    w.__LE_SPACE_E2E__.postTitles = Array.isArray($posts) ? $posts.map((p: any) => p?.title).filter(Boolean) : [];
+	    w.__LE_SPACE_E2E__.postCount = Array.isArray($posts) ? $posts.length : 0;
+	    w.__LE_SPACE_E2E__.settingsAddress = $settingsDB?.address?.toString?.() || null;
+	  });
 
   $effect(() => {
     if($remoteDBsDatabases){

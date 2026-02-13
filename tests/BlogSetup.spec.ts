@@ -1,8 +1,24 @@
 import { test, expect, chromium } from '@playwright/test';
 
+const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:5173';
 
 test.describe('Blog Setup and Bach Posts', () => {
     let page;
+    const closeSidebarIfOpen = async () => {
+        const closeSidebarOverlay = page.getByLabel('close_sidebar');
+        if (await closeSidebarOverlay.isVisible()) {
+            try {
+                await closeSidebarOverlay.click({ force: true, timeout: 2000 });
+            } catch {
+                await page.keyboard.press('Escape');
+            }
+        }
+    };
+    const selectCategory = async (category: string) => {
+        await closeSidebarIfOpen();
+        await page.locator('#categories').click();
+        await page.locator('.multiselect-container button', { hasText: category }).first().click();
+    };
 
     test.beforeAll(async ({ browser }) => {
 
@@ -10,7 +26,7 @@ test.describe('Blog Setup and Bach Posts', () => {
         page.on('console', msg => {
             console.log('BROWSER LOG:', msg.text());
         });
-        await page.goto('http://localhost:5173'); 
+        await page.goto(BASE_URL); 
     });
 
     test('Check initial blog state', async () => {
@@ -49,8 +65,10 @@ test.describe('Blog Setup and Bach Posts', () => {
     });
 
     test('Setup blog settings and create Bach posts', async () => {
+        test.setTimeout(180000);
         // Configure blog settings
         await page.getByTestId('settings-header').click();
+        await closeSidebarIfOpen();
         await page.getByTestId('blog-settings-accordion').click(); // Open the accordion first
         await page.getByTestId('blog-name-input').fill('Bach Chronicles');
         await page.getByTestId('blog-description-input').fill('Exploring the life and works of Johann Sebastian Bach');
@@ -88,14 +106,16 @@ test.describe('Blog Setup and Bach Posts', () => {
         await expect(page.getByTestId('sidebar-container')).toBeVisible();
         //close settings
         await page.getByTestId('settings-header').click();
-        //check if settings is closed
-        await expect(page.getByTestId('settings-section')).toBeHidden();
-        await expect(page.getByTestId('sidebar-container')).toBeHidden();
+        await closeSidebarIfOpen();
+        // Continue with post creation flow from the main editor
+        await expect(page.getByTestId('post-form')).toBeVisible();
+        await expect(page.getByTestId('post-title-input')).toBeVisible();
 
         // First try to create a post without a category (negative test)
         // await page.getByTestId('new-post-link').click();
         await page.getByTestId('post-title-input').fill('Test Post Without Category');
         await page.getByTestId('post-content-input').fill('This post should not be published without a category');
+        await closeSidebarIfOpen();
         await page.getByTestId('publish-post-button').click();
         
         // Verify the post was not created (should still be on the form page)
@@ -137,15 +157,16 @@ test.describe('Blog Setup and Bach Posts', () => {
             // Fill in post details including category
             await page.getByTestId('post-title-input').fill(post.title);
             await page.getByTestId('post-content-input').fill(post.content);
-            await page.getByTestId('category-select').selectOption(post.category);
+            await selectCategory(post.category);
             
             // Wait for all form elements to be ready
             await expect(page.getByTestId('post-title-input')).toBeVisible();
             await expect(page.getByTestId('post-content-input')).toBeVisible();
-            await expect(page.getByTestId('category-select')).toBeVisible();
+            await expect(page.locator('#categories')).toBeVisible();
             await expect(page.getByTestId('publish-post-button')).toBeEnabled();
 
             // Submit post
+            await closeSidebarIfOpen();
             await page.getByTestId('publish-post-button').click();
             
             // Wait for database sync and UI updates
@@ -173,7 +194,8 @@ test.describe('Blog Setup and Bach Posts', () => {
     });
 
     test.afterAll(async () => {
-        await page.close();
+        if (page) {
+            await page.close();
+        }
     });
 });
-

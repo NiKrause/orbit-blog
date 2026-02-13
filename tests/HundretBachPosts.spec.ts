@@ -1,17 +1,35 @@
 import { test, expect, chromium } from '@playwright/test';
 
+const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:5173';
+
 test.describe.skip('Blog Setup and Bach Posts', () => {
     let page;
+    const closeSidebarIfOpen = async () => {
+        const closeSidebarOverlay = page.getByLabel('close_sidebar');
+        if (await closeSidebarOverlay.isVisible()) {
+            try {
+                await closeSidebarOverlay.click({ force: true, timeout: 2000 });
+            } catch {
+                await page.keyboard.press('Escape');
+            }
+        }
+    };
+    const selectCategory = async (category: string) => {
+        await closeSidebarIfOpen();
+        await page.locator('#categories').click();
+        await page.locator('.multiselect-container button', { hasText: category }).first().click();
+    };
 
     test.beforeAll(async ({ browser }) => {
         page = await browser.newPage();
-        await page.goto('http://localhost:5173'); 
+        await page.goto(BASE_URL); 
     });
 
     test.describe('Bach Blog with 100 Posts', () => {
         test('Create comprehensive Bach blog with 100 posts', async () => {
             // Configure blog settings
             await page.getByTestId('settings-header').click();
+            await closeSidebarIfOpen();
             await page.getByTestId('blog-settings-accordion').click();
             await page.getByTestId('blog-name-input').fill('The Complete Bach Chronicle');
             await page.getByTestId('blog-description-input').fill('A comprehensive exploration of J.S. Bach\'s life, works, and lasting influence');
@@ -304,9 +322,10 @@ test.describe.skip('Blog Setup and Bach Posts', () => {
             for (const post of bachPosts) {
                 await page.getByTestId('post-title-input').fill(post.title);
                 await page.getByTestId('post-content-input').fill(post.content);
-                await page.getByTestId('category-select').selectOption(post.category);
+                await selectCategory(post.category);
                 
                 await expect(page.getByTestId('publish-post-button')).toBeEnabled();
+                await closeSidebarIfOpen();
                 await page.getByTestId('publish-post-button').click();
                 
                 // Wait for database sync

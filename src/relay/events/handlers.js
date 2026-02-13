@@ -6,6 +6,9 @@ import { loggingConfig } from '../config/logging.js'
 
 export function setupEventHandlers(libp2p, databaseService) {
   const cleanupFunctions = []
+  const canHandleTopic =
+    databaseService && typeof databaseService.handleSubscriptionChange === 'function'
+  const canHandleMessage = databaseService && typeof databaseService.handlePubsubMessage === 'function'
 
   const peerConnectHandler = async event => {
     const peer = event.detail
@@ -62,10 +65,13 @@ export function setupEventHandlers(libp2p, databaseService) {
   const syncQueue = new PQueue({ concurrency: 2 })
 
   const syncOrbitDBHandler = (msg) => {
-    if (msg?.topic?.startsWith('/orbitdb/')) {
-      syncLog('subscription-change', msg.topic)
-      syncQueue.add(() => databaseService.syncAllOrbitDBRecords(msg.topic))
+    if (!msg?.topic?.startsWith('/orbitdb/')) return
+    syncLog('subscription-change', msg.topic)
+    if (canHandleTopic) {
+      databaseService.handleSubscriptionChange(msg.topic)
+      return
     }
+    syncQueue.add(() => databaseService.syncAllOrbitDBRecords(msg.topic))
   }
   
   // Subscribe to OrbitDB topics
@@ -77,6 +83,14 @@ export function setupEventHandlers(libp2p, databaseService) {
     syncLog('Received pubsub message:', msg.topic)
     if (msg.topic && msg.topic.startsWith('/orbitdb/')) {
       syncLog('OrbitDB topic message received:', msg.topic)
+      if (canHandleMessage) {
+        databaseService.handlePubsubMessage(msg)
+        return
+      }
+      if (canHandleTopic) {
+        databaseService.handleSubscriptionChange(msg.topic)
+        return
+      }
       syncQueue.add(() => databaseService.syncAllOrbitDBRecords(msg.topic))
     }
   }
@@ -112,6 +126,10 @@ export function setupEventHandlers(libp2p, databaseService) {
         syncLog('New subscription:', subscription)
         if (subscription.topic && subscription.topic.startsWith('/orbitdb/')) {
           syncLog('OrbitDB subscription detected:', subscription.topic)
+          if (canHandleTopic) {
+            databaseService.handleSubscriptionChange(subscription.topic)
+            return
+          }
           syncQueue.add(() => databaseService.syncAllOrbitDBRecords(subscription.topic))
         }
       })
@@ -123,6 +141,10 @@ export function setupEventHandlers(libp2p, databaseService) {
     syncLog('Gossipsub subscription change:', event.detail)
     if (event.detail?.topic?.startsWith('/orbitdb/')) {
       syncLog('OrbitDB gossipsub topic:', event.detail.topic)
+      if (canHandleTopic) {
+        databaseService.handleSubscriptionChange(event.detail.topic)
+        return
+      }
       syncQueue.add(() => databaseService.syncAllOrbitDBRecords(event.detail.topic))
     }
   })

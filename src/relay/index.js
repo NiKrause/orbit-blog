@@ -2,10 +2,9 @@ import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import 'dotenv/config'
 import { createLibp2p } from 'libp2p'
-import { createHelia } from 'helia'
 import { createLibp2pConfig } from './config/libp2p.js'
 import { initializeStorage } from './services/storage.js'
-import { DatabaseService } from './services/database.js'
+import { PinningService } from './services/pinning.js'
 import { MetricsServer } from './services/metrics.js'
 import { setupEventHandlers } from './events/handlers.js'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
@@ -34,11 +33,18 @@ async function main() {
   }
   
   const libp2p = await createLibp2p(createLibp2pConfig(privateKey))
-  const ipfs = await createHelia({ libp2p, datastore, blockstore })
 
-  const databaseService = new DatabaseService()
-  await databaseService.initialize(ipfs)
-  await setupEventHandlers(libp2p, databaseService)
+  const pinningDisabled = process.env.DISABLE_PINNING === 'true'
+  const pinningService = pinningDisabled ? null : new PinningService()
+  if (pinningService) {
+    await pinningService.initialize(libp2p, datastore, blockstore)
+  } else {
+    log('Pinning service disabled via DISABLE_PINNING=true')
+  }
+
+  await setupEventHandlers(libp2p, pinningService || {
+    syncAllOrbitDBRecords: async () => {}
+  })
   const metricsServer = new MetricsServer()
   metricsServer.start()
   
@@ -62,7 +68,9 @@ async function main() {
   }
 
   async function handleShutdown() {
-    await ipfs.blockstore.child.child.child.close()
+    if (pinningService) {
+      await pinningService.cleanup()
+    }
     await datastore.close()
     await blockstore.close()
     log('Received shutdown signal. Cleaning up...')

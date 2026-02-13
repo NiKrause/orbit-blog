@@ -31,19 +31,23 @@ const appendAnnounceArray = appendAnnounce
   .map(addr => addr.trim())
   .filter(Boolean);
 
+const RELAY_TCP_PORT = Number(process.env.RELAY_TCP_PORT || 9091);
+const RELAY_WS_PORT = Number(process.env.RELAY_WS_PORT || 9092);
+const RELAY_WEBRTC_PORT = Number(process.env.RELAY_WEBRTC_PORT || 9093);
+
 export const createLibp2pConfig = (privateKey: PrivateKey): Libp2pOptions => ({
   privateKey,
   datastore,
   metrics: prometheusMetrics(),
   addresses: {
     listen: [
-      '/ip4/0.0.0.0/tcp/9091',
+      `/ip4/0.0.0.0/tcp/${RELAY_TCP_PORT}`,
       // '/ip4/0.0.0.0/udp/9091/quic-v1',
-      '/ip4/0.0.0.0/tcp/9092/ws',
-      '/ip4/0.0.0.0/udp/9093/webrtc-direct',
-      '/ip6/::/tcp/9091',
-      '/ip6/::/tcp/9092/ws',
-      '/ip6/::/udp/9093/webrtc-direct',
+      `/ip4/0.0.0.0/tcp/${RELAY_WS_PORT}/ws`,
+      `/ip4/0.0.0.0/udp/${RELAY_WEBRTC_PORT}/webrtc-direct`,
+      `/ip6/::/tcp/${RELAY_TCP_PORT}`,
+      `/ip6/::/tcp/${RELAY_WS_PORT}/ws`,
+      `/ip6/::/udp/${RELAY_WEBRTC_PORT}/webrtc-direct`,
     ],
     ...(appendAnnounceArray.length > 0 && { appendAnnounce: appendAnnounceArray }),
   },
@@ -79,7 +83,7 @@ export const createLibp2pConfig = (privateKey: PrivateKey): Libp2pOptions => ({
   streamMuxers: [yamux()],
   services: {
     ping: ping(),
-    autonat: autoNAT(),
+    autoNAT: autoNAT(),
     aminoDHT: kadDHT({
       protocol: '/ipfs/kad/1.0.0',
       peerInfoMapper: removePrivateAddressesMapper

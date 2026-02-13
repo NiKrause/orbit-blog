@@ -32,7 +32,7 @@ jobs:
        npm run build:relay
        npm run relay:test &
        sleep 10
-       npx mocha "test/**/*.test.js"
+       npx mocha --exit "test/**/*.test.js"
     - name: install playwright
       run: npx playwright install --with-deps
 

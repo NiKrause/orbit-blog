@@ -75,6 +75,28 @@ export async function addRemoteDBToStore(address: string, peerId: string, name?:
   const identitiesInstance = get(identities);
   if (!orbitdbInstance) throw new Error("OrbitDB not initialized");
 
+  const waitForSetting = async (
+    db: any,
+    settingId: string,
+    timeoutMs: number = 30000,
+    intervalMs: number = 500
+  ) => {
+    const started = Date.now();
+    while (Date.now() - started < timeoutMs) {
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const contents = await db.all();
+        const value = getSettingValue(contents, settingId);
+        if (value) return value;
+      } catch (_err) {
+        // ignore transient read failures and keep polling
+      }
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    }
+    return undefined;
+  };
+
   
   try {
     let settingsDb;
@@ -117,16 +139,25 @@ export async function addRemoteDBToStore(address: string, peerId: string, name?:
       debug('settingsDb', settingsDb)
       
       // Get all settings data like in switchToRemoteDB function
-      const dbContents = await settingsDb.all();
+      let dbContents = await settingsDb.all();
       
       // Try to get blog name
-      const blogNameValue = dbContents.find(content => content.key === 'blogName')?.value?.value;
+      const blogNameValue = getSettingValue(dbContents, 'blogName');
       if (blogNameValue) {
         newDB.name = blogNameValue;
       }
       
       // Try to get posts address
-      const postsAddressValue = dbContents.find(content => content.key === 'postsDBAddress')?.value?.value;
+      let postsAddressValue = getSettingValue(dbContents, 'postsDBAddress');
+      if (!postsAddressValue) {
+        // Remote settings may replicate after we open the DB; wait a bit so we don't
+        // persist an empty postsAddress entry that never gets updated.
+        await waitForDatabaseReady(settingsDb, 15000);
+        postsAddressValue = await waitForSetting(settingsDb, 'postsDBAddress', 45000);
+        if (postsAddressValue) {
+          dbContents = await settingsDb.all();
+        }
+      }
       if (postsAddressValue) {
         newDB.postsAddress = postsAddressValue;
         
@@ -313,7 +344,7 @@ async function openOrCreateDB(
   isRemoteDB: boolean = false,
   isBlocking: boolean = true  // New parameter to control blocking behavior
 ) {
-  const dbAddressValue = dbContents.find(content => content.key === dbKey)?.value?.value;
+  const dbAddressValue = getSettingValue(dbContents, dbKey);
   info(`Found ${dbKey}:`, dbAddressValue);
 
   if (dbAddressValue) {
@@ -415,6 +446,23 @@ function updateRemoteDBEntry(
   });
 }
 
+const REMOTE_DB_MIN_PEERS = 2;
+
+function getSettingValue(dbContents: any[], settingId: string): any {
+  const entry = dbContents.find(
+    (content) => content?.key === settingId || content?.value?._id === settingId
+  );
+
+  if (!entry) return undefined;
+
+  const rawValue = entry?.value;
+  if (rawValue && typeof rawValue === 'object' && 'value' in rawValue) {
+    return rawValue.value;
+  }
+
+  return rawValue;
+}
+
 async function waitForPeers(heliaInstance: any, minPeers: number = 1, timeout: number = 30000): Promise<boolean> {
   const startTime = Date.now();
   
@@ -492,7 +540,10 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       // Connect to peers
       updateLoadingState('connecting_peers', 'Connecting to P2P network...', 10);
 
-      await waitForPeers(heliaInstance);
+      const hasRequiredPeers = await waitForPeers(heliaInstance, REMOTE_DB_MIN_PEERS);
+      if (!hasRequiredPeers) {
+        throw new Error(`Timed out waiting for at least ${REMOTE_DB_MIN_PEERS} peers before opening remote DB`);
+      }
       const peers = await heliaInstance?.libp2p?.getPeers();
       updateLoadingState('connecting_peers', `Connected to ${peers?.length || 0} peers`, 20);
       
@@ -529,19 +580,19 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       info('try to switch to remote dbContents', dbContents);
 
       // Set values from dbContents
-      blogNameValue = dbContents.find(content => content.key === 'blogName')?.value?.value;
+      blogNameValue = getSettingValue(dbContents, 'blogName');
       info('blogNameValue', blogNameValue);
-      const blogDescriptionValue = dbContents.find(content => content.key === 'blogDescription')?.value?.value;
+      const blogDescriptionValue = getSettingValue(dbContents, 'blogDescription');
       info('blogDescriptionValue', blogDescriptionValue);
-      const postsDBAddressValue = dbContents.find(content => content.key === 'postsDBAddress')?.value?.value;
+      const postsDBAddressValue = getSettingValue(dbContents, 'postsDBAddress');
       info('postsDBAddressValue', postsDBAddressValue);
-      const commentsDBAddressValue = dbContents.find(content => content.key === 'commentsDBAddress')?.value?.value;
+      const commentsDBAddressValue = getSettingValue(dbContents, 'commentsDBAddress');
       info('commentsDBAddressValue', commentsDBAddressValue);
-      const mediaDBAddressValue = dbContents.find(content => content.key === 'mediaDBAddress')?.value?.value;
+      const mediaDBAddressValue = getSettingValue(dbContents, 'mediaDBAddress');
       info('mediaDBAddressValue', mediaDBAddressValue);
-      categoriesValue = dbContents.find(content => content.key === 'categories')?.value?.value || ['please add categories']; // Fetch categories
+      categoriesValue = getSettingValue(dbContents, 'categories') || ['please add categories']; // Fetch categories
       info('categoriesValue', categoriesValue);
-      const profilePictureValue = dbContents.find(content => content.key === 'profilePicture')?.value?.value;
+      const profilePictureValue = getSettingValue(dbContents, 'profilePicture');
       info('profilePictureValue', profilePictureValue);
 
       updateLoadingState('loading_settings', 'Processing blog settings...', 50);

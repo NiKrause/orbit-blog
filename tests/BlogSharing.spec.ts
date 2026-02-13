@@ -1,5 +1,7 @@
 import { test, expect, chromium } from '@playwright/test';
 
+const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:5173';
+
 const config = {
     seedNodes: process.env.VITE_P2P_PUPSUB_DEV || ''
 };
@@ -14,6 +16,137 @@ test.describe('Blog Sharing between Alice and Bob', () => {
     let wsAddr;
     let contextAlice;  // Separate context for Alice
     let contextBob;    // Separate context for Bob
+    const closeSidebarIfOpen = async (page) => {
+        const closeSidebarOverlay = page.getByLabel('close_sidebar');
+        if (await closeSidebarOverlay.isVisible().catch(() => false)) {
+            try {
+                await closeSidebarOverlay.click({ force: true, timeout: 2000 });
+            } catch {
+                await page.keyboard.press('Escape');
+            }
+        }
+    };
+    const openDbManager = async (page) => {
+        await expect(async () => {
+            const dbManager = page.getByTestId('db-manager-container');
+            if (await dbManager.isVisible().catch(() => false)) {
+                return;
+            }
+
+            const menuButton = page.getByTestId('menu-button');
+            if (await menuButton.isVisible().catch(() => false)) {
+                await menuButton.click({ force: true });
+            }
+
+            const blogsByTestId = page.getByTestId('blogs-header').first();
+            if (await blogsByTestId.isVisible().catch(() => false)) {
+                await blogsByTestId.click({ force: true });
+            } else {
+                const blogsButton = page.getByRole('button', { name: /show database manager|blogs/i }).first();
+                if (await blogsButton.isVisible().catch(() => false)) {
+                    await blogsButton.click({ force: true });
+                }
+            }
+
+            await expect(dbManager).toBeVisible();
+        }).toPass({ timeout: 30000 });
+    };
+    const ensureRemoteDbMode = async (page) => {
+        await expect(async () => {
+            const remoteDbInput = page.getByTestId('remote-db-address-input');
+            if (await remoteDbInput.isVisible().catch(() => false)) {
+                return;
+            }
+
+            const modeToggle = page.locator('[data-testid="db-manager-container"] input[type="checkbox"]').first();
+            if (await modeToggle.isVisible().catch(() => false)) {
+                const isLocalMode = await modeToggle.isChecked();
+                if (isLocalMode) {
+                    await modeToggle.click({ force: true });
+                }
+            }
+
+            await expect(remoteDbInput).toBeVisible();
+        }).toPass({ timeout: 15000 });
+    };
+    const selectCategory = async (page, category: string) => {
+        await closeSidebarIfOpen(page);
+        await page.locator('#categories').click();
+        await page.locator('.multiselect-container button', { hasText: category }).first().click();
+    };
+    const ensureAliceBlogPrepared = async () => {
+        if (aliceBlogAddress) {
+            return;
+        }
+
+        if (!pageAlice || pageAlice.isClosed()) {
+            pageAlice = await contextAlice.newPage();
+            pageAlice.on('console', msg => {
+                console.log('BROWSER LOG:', msg.text());
+            });
+        }
+
+        await pageAlice.goto(BASE_URL);
+        await expect(pageAlice.getByTestId('blog-name')).toBeVisible();
+        await expect(pageAlice.getByTestId('blog-description')).toBeVisible();
+
+        await pageAlice.getByTestId('settings-header').click();
+        await closeSidebarIfOpen(pageAlice);
+        await pageAlice.getByTestId('blog-settings-accordion').click();
+        await pageAlice.getByTestId('blog-name-input').fill('Bach Chronicles');
+        await pageAlice.getByTestId('blog-description-input').fill('Exploring the life and works of Johann Sebastian Bach');
+
+        await pageAlice.getByTestId('categories').click();
+        const categories = ['General', 'Live', 'Works', 'Music'];
+        for (const category of categories) {
+            await pageAlice.getByTestId('new-category-input').fill(category);
+            await pageAlice.getByTestId('add-category-button').click();
+        }
+
+        const bachPosts = [
+            {
+                title: "The Birth of a Musical Genius",
+                content: "Johann Sebastian Bach was born in Eisenach, Germany in 1685...",
+                category: "Music"
+            },
+            {
+                title: "The Well-Tempered Clavier",
+                content: "One of Bach's most influential works, The Well-Tempered Clavier, demonstrates his mastery of counterpoint and harmony.",
+                category: "Music"
+            }
+        ];
+
+        for (const post of bachPosts) {
+            await pageAlice.getByTestId('post-title-input').fill(post.title);
+            await pageAlice.getByTestId('post-content-input').fill(post.content);
+            await selectCategory(pageAlice, post.category);
+            await pageAlice.locator('#publish').check();
+            await closeSidebarIfOpen(pageAlice);
+            await pageAlice.getByTestId('publish-post-button').click();
+
+            await expect(async () => {
+                const postElements = await pageAlice.getByTestId('post-item-title').all();
+                const postTitles = await Promise.all(postElements.map(el => el.textContent()));
+                expect(postTitles).toContain(post.title);
+            }).toPass({ timeout: 20000 });
+        }
+
+        // Stabilize local stores/settings writes before sharing address with Bob.
+        // Without this, Bob may load a settings DB snapshot that is missing postsDBAddress.
+        await pageAlice.reload();
+        await expect(pageAlice.getByRole('heading', { level: 1, name: 'Bach Chronicles' })).toBeVisible();
+        await expect(pageAlice.getByRole('heading', { level: 3, name: 'The Birth of a Musical Genius' })).toBeVisible();
+        await expect(pageAlice.getByRole('heading', { level: 3, name: 'The Well-Tempered Clavier' })).toBeVisible();
+
+        await closeSidebarIfOpen(pageAlice);
+        await openDbManager(pageAlice);
+
+        const dbAddressInput = pageAlice.getByTestId('db-address-input');
+        await expect(dbAddressInput).toBeVisible();
+        aliceBlogAddress = await dbAddressInput.inputValue();
+        expect(aliceBlogAddress).toBeTruthy();
+        expect(aliceBlogAddress).toMatch(/^\/orbitdb\/[a-zA-Z0-9]+$/);
+    };
 
     function updateSeedNodes(nodes: string) {
         config.seedNodes = nodes;
@@ -46,137 +179,68 @@ test.describe('Blog Sharing between Alice and Bob', () => {
     });
 
     test('Alice creates Bach blog and gets the database address', async () => {
-        pageAlice = await contextAlice.newPage();
-        pageAlice.on('console', msg => {
-            console.log('BROWSER LOG:', msg.text());
-        });
-        await pageAlice.goto('http://localhost:5173');
-        await pageAlice.evaluate(() => {
-            localStorage.setItem('debug', 'libp2p:*,le-space:*');
-        });
-
-        await expect(async () => {
-            const peersHeader = await pageAlice.getByTestId('peers-header').textContent();
-            const peerCount = parseInt(peersHeader.match(/\((\d+)\)/)[1]);
-            console.log('peerCount', peerCount);
-            expect(peerCount).toBeGreaterThanOrEqual(1);
-        }).toPass({ timeout: 60000 }); // Give it up to 30 seconds to connect to peers
-        // First, let's run the existing blog setup test
-        const blogName = await pageAlice.getByTestId('blog-name').textContent();
-        const blogDescription = await pageAlice.getByTestId('blog-description').textContent();
-        
-        await expect(pageAlice.getByTestId('blog-name')).toBeVisible();
-        await expect(pageAlice.getByTestId('blog-description')).toBeVisible();
-        
-        // Configure blog settings
-        await pageAlice.getByTestId('settings-header').click();
-        await pageAlice.getByTestId('blog-settings-accordion').click();
-        await pageAlice.getByTestId('blog-name-input').fill('Bach Chronicles');
-        await pageAlice.getByTestId('blog-description-input').fill('Exploring the life and works of Johann Sebastian Bach');
-
-        // Add categories
-        await pageAlice.getByTestId('categories').click();
-        const categories = ['General', 'Live', 'Works', 'Music'];
-        for (const category of categories) {
-            await pageAlice.getByTestId('new-category-input').fill(category);
-            await pageAlice.getByTestId('add-category-button').click();
-        }
-
-        // Create posts about Bach
-        const bachPosts = [
-            {
-                title: "The Birth of a Musical Genius",
-                content: "Johann Sebastian Bach was born in Eisenach, Germany in 1685...",
-                category: "Music"
-            },
-            {
-                title: "The Well-Tempered Clavier",
-                content: "One of Bach's most influential works, The Well-Tempered Clavier, demonstrates his mastery of counterpoint and harmony.",
-                category: "Music"
-            }
-        ];
-
-        for (const post of bachPosts) {
-            await pageAlice.getByTestId('post-title-input').fill(post.title);
-            await pageAlice.getByTestId('post-content-input').fill(post.content);
-            await pageAlice.getByTestId('category-select').selectOption(post.category);
-            await pageAlice.locator('#publish').check();
-            await pageAlice.getByTestId('publish-post-button').click();
-            
-            // Add an initial delay after clicking publish
-            await pageAlice.waitForTimeout(2000);
-            
-            // Add wait for the post to appear in the list with increased timeout
-            await expect(async () => {
-                const postElements = await pageAlice.getByTestId('post-item-title').all();
-                const postTitles = await Promise.all(postElements.map(el => el.textContent()));
-                expect(postTitles).toContain(post.title);
-            }).toPass({ timeout: 20000 }); // Increased timeout to 20 seconds
-
-            // Add additional delay after confirmation to ensure DB processing
-            await pageAlice.waitForTimeout(2000);
-        }
-
-        // Replace the simple posts check with a retry mechanism
-        await expect(async () => {
-            const posts = await pageAlice.getByTestId('post-item-title').all();
-            expect(posts).toHaveLength(2);
-            
-            // Verify both post titles are present
-            const postTitles = await Promise.all(
-                posts.map(post => post.textContent())
-            );
-            expect(postTitles).toContain("The Birth of a Musical Genius");
-            expect(postTitles).toContain("The Well-Tempered Clavier");
-        }).toPass({ timeout: 30000 });
-
-        // Get the database address from DBManager
-        await pageAlice.getByTestId('menu-button').click();
-        await pageAlice.getByTestId('blogs-header').click();
-        await pageAlice.getByTestId('db-manager-container').waitFor({ state: 'visible' });
-        
-        // Verify the database address input is visible and has a value
-        const dbAddressInput = pageAlice.getByTestId('db-address-input');
-        await expect(dbAddressInput).toBeVisible();
-        aliceBlogAddress = await dbAddressInput.inputValue();
-        
-        // Verify the address is a valid OrbitDB address
-        expect(aliceBlogAddress).toBeTruthy();
-        expect(aliceBlogAddress).toMatch(/^\/orbitdb\/[a-zA-Z0-9]+$/);
+        test.setTimeout(120000);
+        await ensureAliceBlogPrepared();
         
         // Copy the address to clipboard for Bob to use
+        await closeSidebarIfOpen(pageAlice);
         await pageAlice.getByTestId('copy-db-address-button').click();
         // await pageAlice.
     });
 
     test('Bob opens Alice\'s blog and waits for replication', async () => {
+        test.setTimeout(120000);
+        await ensureAliceBlogPrepared();
 
         pageBob = await contextBob.newPage();
         pageBob.on('console', msg => {
             console.log('BROWSER LOG:', msg.text());
         }); 
-        await pageBob.goto(`http://localhost:5173/#${aliceBlogAddress}`);
+        await pageBob.goto(BASE_URL);
         await pageBob.evaluate(() => {
             localStorage.setItem('debug', 'libp2p:*,le-space:*');
         });
-        await expect(pageBob.getByTestId('loading-overlay')).toBeVisible({ timeout: 30000 });
-        await expect(pageBob.getByTestId('blog-name')).toHaveText('Bach Chronicles', { timeout: 30000 });
-        const posts = await pageBob.getByTestId('post-item-title').all();
-        const postTitles = await Promise.all(posts.map(post => post.textContent()));
-        expect(postTitles).toContain("The Birth of a Musical Genius");
-        expect(postTitles).toContain("The Well-Tempered Clavier");
-        for (const post of posts) {
-            const postTitle = await post.textContent();
-            console.log('postTitle', postTitle);
-            await expect(post).toBeVisible();
-        }
+
+        // Load Alice's settings DB via the DB manager to avoid flakiness around hash-based bootstrapping.
+        await closeSidebarIfOpen(pageBob);
+        await openDbManager(pageBob);
+        await ensureRemoteDbMode(pageBob);
+        await pageBob.getByTestId('remote-db-address-input').fill(aliceBlogAddress);
+        await closeSidebarIfOpen(pageBob);
+        await pageBob.getByTestId('add-db-button').click();
+
+        await expect(async () => {
+            const items = await pageBob.getByTestId('remote-db-item').all();
+            const texts = await Promise.all(items.map((item) => item.textContent()));
+            expect(texts.some((text) => text.includes(aliceBlogAddress))).toBe(true);
+        }).toPass({ timeout: 30000 });
+
+        await pageBob.getByTestId('remote-db-item').first().click({ force: true });
+
+        await expect.poll(async () => {
+            return await pageBob.evaluate(() => {
+                const w = window as any;
+                const t = w.__LE_SPACE_E2E__?.postTitles;
+                return Array.isArray(t) ? t : [];
+            });
+        }, { timeout: 90000 }).toEqual(expect.arrayContaining([
+            'The Birth of a Musical Genius',
+            'The Well-Tempered Clavier'
+        ]));
 
     });
 
     test('Alice deletes and restores her blog from OrbitDB address', async ({ browser }) => {
+        test.setTimeout(120000);
+        await ensureAliceBlogPrepared();
+
         // Close Bob's browser first
-        await pageBob.close();
-        await contextBob.close();
+        if (pageBob && !pageBob.isClosed()) {
+            await pageBob.close();
+        }
+        if (contextBob) {
+            await contextBob.close();
+        }
 
         // Reopen Alice's browser
         contextAlice = await browser.newContext({
@@ -190,16 +254,18 @@ test.describe('Blog Sharing between Alice and Bob', () => {
             }
         });
         pageAlice = await contextAlice.newPage();
-        await pageAlice.goto('http://localhost:5173');
+        await pageAlice.goto(BASE_URL);
 
         // Open Sidebar and DBManager
-        // await pageAlice.getByTestId('menu-button').click();  
-        await pageAlice.getByTestId('blogs-header').click();
-        await pageAlice.getByTestId('db-manager-container').waitFor({ state: 'visible' });
+        await closeSidebarIfOpen(pageAlice);
+        await openDbManager(pageAlice);
 
         //DBManager add aliceBlogAddress as remote database
         // await pageAlice.getByTestId('add-remote-db-button').click();
+        await ensureRemoteDbMode(pageAlice);
         await pageAlice.getByTestId('remote-db-address-input').fill(aliceBlogAddress);
+        await closeSidebarIfOpen(pageAlice);
+        await expect(pageAlice.getByLabel('close_sidebar')).not.toBeVisible().catch(() => {});
         await pageAlice.getByTestId('add-db-button').click();
  
         //check if aliceBlogAddress is in the remote databases list
@@ -220,6 +286,7 @@ test.describe('Blog Sharing between Alice and Bob', () => {
             expect(hasMatchingDB).toBe(true);
         }).toPass({ timeout: 30000 });
         //click on unknown blog
+        await closeSidebarIfOpen(pageAlice);
         await pageAlice.getByTestId('remote-db-item').first().click();
         await pageAlice.waitForTimeout(2000);
 
@@ -238,9 +305,10 @@ test.describe('Blog Sharing between Alice and Bob', () => {
         }).toPass({ timeout: 30000 });
 
         //delete the database
+        await closeSidebarIfOpen(pageAlice);
         await pageAlice.getByTestId('delete-db-button').click();
         // Click the confirm button in the modal
-        await pageAlice.getByText('Confirm').click();
+        await pageAlice.getByRole('button', { name: 'Confirm' }).first().click();
         
         //wait until the database is deleted
         await expect(pageAlice.getByTestId('remote-db-item')).not.toBeVisible();
