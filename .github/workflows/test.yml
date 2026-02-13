@@ -11,8 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TEST_PRIVATE_KEY: 08011240821cb6bc3d4547fcccb513e82e4d718089f8a166b23ffcd4a436754b6b0774cf07447d1693cd10ce11ef950d7517bad6e9472b41a927cd17fc3fb23f8c70cd99
-      VITE_SEED_NODES_DEV: /ip4/127.0.0.1/tcp/9092/ws/p2p/12D3KooWAJjbRkp8FPF5MKgMU53aUTxWkqvDrs4zc1VMbwRwfsbE
-      VITE_SEED_NODES: /ip4/127.0.0.1/tcp/9092/ws/p2p/12D3KooWAJjbRkp8FPF5MKgMU53aUTxWkqvDrs4zc1VMbwRwfsbE
     steps:
     - uses: actions/checkout@v4
 
@@ -25,19 +23,20 @@ jobs:
     - name: Install dependencies
       run: npm install
 
+    - name: Install Playwright Browsers
+      run: npx playwright install --with-deps
+
     - name: Run Mocha tests
       run: |
        npm run build:relay
        npm run relay:test &
+       RELAY_PID=$!
+       trap "kill $RELAY_PID" EXIT
        sleep 10
        npx mocha "test/**/*.test.js"
-    - name: install playwright
-      run: npx playwright install --with-deps
 
     - name: Run e2e tests
       run: |
         npm run build:relay
-        npm run relay:test &
-        npm run dev &
-        sleep 15  # Give more time for both servers to start
+        # Playwright config starts the Vite dev server, and globalSetup starts the relay.
         DEBUG=playwright:* npm run test:e2e
