@@ -36,19 +36,48 @@ export class MetricsServer {
   }
 
   start(port = process.env.METRICS_PORT || 9090) {
-    const server = http.createServer(async (req, res) => {
-      if (req.url === '/metrics') {
-        res.setHeader('Content-Type', client.register.contentType)
-        res.end(await this.getMetrics())
-      } else {
-        res.statusCode = 404
-        res.end('Not found')
-      }
-    })
+    if (process.env.METRICS_DISABLED === 'true' || process.env.METRICS_DISABLED === '1') {
+      log('Metrics server disabled (METRICS_DISABLED)')
+      return null
+    }
 
-    server.listen(port, () => {
-      log(`Metrics server listening on port ${port}`)
-    })
+    const desiredPort = typeof port === 'string' ? Number(port) : port
+
+    const createServer = () =>
+      http.createServer(async (req, res) => {
+        if (req.url === '/metrics') {
+          res.setHeader('Content-Type', client.register.contentType)
+          res.end(await this.getMetrics())
+        } else {
+          res.statusCode = 404
+          res.end('Not found')
+        }
+      })
+
+    const listen = (p) =>
+      new Promise((resolve) => {
+        const server = createServer()
+        server.on('error', (err) => {
+          // Metrics must never crash the relay; it's optional observability.
+          if (err?.code === 'EADDRINUSE' && p !== 0) {
+            log(`Metrics port ${p} in use; retrying on an ephemeral port`)
+            // Retry on an ephemeral port.
+            listen(0).then(resolve)
+            return
+          }
+          log('Metrics server failed to start:', err?.message || err)
+          resolve(null)
+        })
+
+        server.listen(p, () => {
+          const addr = server.address()
+          const actualPort = (addr && typeof addr === 'object') ? addr.port : p
+          log(`Metrics server listening on port ${actualPort}`)
+          resolve(server)
+        })
+      })
+
+    return listen(Number.isFinite(desiredPort) ? desiredPort : 9090)
   }
 
   // Helper methods for tracking sync operations

@@ -95,6 +95,8 @@ export async function setupTestEnvironment() {
                 RELAY_TCP_PORT: String(RELAY_TCP_PORT),
                 RELAY_WS_PORT: String(RELAY_WS_PORT),
                 RELAY_WEBRTC_PORT: String(RELAY_WEBRTC_PORT),
+                // Prevent CI flakes from port collisions (e.g. 9090 already bound on runners).
+                METRICS_PORT: '0',
 
                 // Make relay logs visible and useful in Playwright output.
                 ENABLE_GENERAL_LOGS: 'true',
