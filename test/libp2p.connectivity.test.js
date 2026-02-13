@@ -31,7 +31,12 @@ describe('Libp2p Connectivity Tests', function() {
       connectionEncrypters: [noise()],
       services: {
         pubsub: gossipsub(),
-        pubsubPeerDiscovery: pubsubPeerDiscovery(),
+        // Explicitly enable publishing announcements so discovery works even with minimal peers.
+        pubsubPeerDiscovery: pubsubPeerDiscovery({
+          interval: 5000,
+          topics: [pubsubTopicDev, pubsubTopic],
+          listenOnly: false
+        }),
         identify: identify(),
         identifyPush: identifyPush()
       }
@@ -100,6 +105,10 @@ describe('Libp2p Connectivity Tests', function() {
 
     it('should discover peers through pubsub', function(done) {
       this.timeout(60000); // Increase timeout for peer discovery
+
+      if (seedNodesDev.length === 0 && seedNodes.length === 0) {
+        this.skip();
+      }
       
       let peerCount = 0;
       const checkPeers = () => {

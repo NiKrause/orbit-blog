@@ -27,6 +27,13 @@ jobs:
       run: npx playwright install --with-deps
 
     - name: Run Mocha tests
+      env:
+        # Mocha libp2p tests expect at least one seed node so pubsub peer discovery can find peers.
+        # Use the locally started relay (default ws port 9092) and the relay's fixed test peer id.
+        VITE_SEED_NODES_DEV: /ip4/127.0.0.1/tcp/9092/ws/p2p/12D3KooWAJjbRkp8FPF5MKgMU53aUTxWkqvDrs4zc1VMbwRwfsbE
+        VITE_SEED_NODES: /ip4/127.0.0.1/tcp/9092/ws/p2p/12D3KooWAJjbRkp8FPF5MKgMU53aUTxWkqvDrs4zc1VMbwRwfsbE
+        VITE_P2P_PUPSUB_DEV: todo._peer-discovery._p2p._pubsub
+        VITE_P2P_PUPSUB: todo._peer-discovery._p2p._pubsub
       run: |
        npm run build:relay
        npm run relay:test &
