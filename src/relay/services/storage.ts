@@ -10,7 +10,9 @@ export async function initializeStorage(hostDirectory: string) {
   const blockstore = new LevelBlockstore(join(hostDirectory, '/', 'ipfs', '/', 'blocks'))
   await blockstore.open()
   
-  const privateKey = await loadOrCreateSelfKey(datastore)
+  // @libp2p/config currently resolves a separate interface-datastore version,
+  // so this cast avoids private-field type incompatibility across duplicates.
+  const privateKey = await loadOrCreateSelfKey(datastore as any)
   
   return { datastore, blockstore, privateKey }
 }
