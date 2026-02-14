@@ -11,6 +11,10 @@ IPNS: `ipns://k51qzi5uqu5dixys1k2prgbng4z9uxgvc4kj8l1xww1v5irt5cn3j5q402a0yb`
 
 Gateway: `https://k51qzi5uqu5dixys1k2prgbng4z9uxgvc4kj8l1xww1v5irt5cn3j5q402a0yb.ipns.dweb.link/`
 
+Latest IPFS CID: (run `./ipfs-publish.sh`)
+
+Latest IPFS Gateway: (run `./ipfs-publish.sh`)
+
 ## What It Does
 - Create a personal blog in the browser.
 - Replicate posts, comments, and media directly between peers.
