@@ -85,6 +85,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   let showPasswordModal = $state(encryptedSeedPhrase ? true : false);
   let isNewUser = !encryptedSeedPhrase;
   let canWrite = $state(false);
+  let ownerIdentityId = $state<string | null>(null);
   let showEjectModal = $state(false);
   let canEjectPWA = $state(false);
 
@@ -210,77 +211,100 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 
   // Move the default database creation to a separate function
   async function createDefaultDatabases() {
-    // All the existing database creation code goes here
-    $orbitdb.open('settings', {
-      type: 'documents',
-      create: true,
-      overwrite: false,
-      directory: './orbitdb/settings',
-      identity: $identity,
-      identities: $identities,
-      AccessController: IPFSAccessController({write: [$identity.id]}),
-    }).then(_db => {
-      $settingsDB = _db;
-      ;(window as any).settingsDB = _db;
-    }).catch( err => warn('error', err))
-    
-    $orbitdb.open('posts', {
-      type: 'documents',
-      create: true,
-      overwrite: false,
-      directory: './orbitdb/posts',
-      identity: $identity,
-      identities: $identities,
-      AccessController: IPFSAccessController({write: [$identity.id]}),
-    }).then(_db => {
-      $postsDB = _db;
-      ;(window as any).postsDB = _db;
+    // IMPORTANT: This must await all opens. Otherwise, the `.then(...)` handlers can
+    // run *after* `switchToRemoteDB()` and overwrite the global stores back to local DBs.
+    try {
+      const _db = await $orbitdb.open('settings', {
+        type: 'documents',
+        create: true,
+        overwrite: false,
+        directory: './orbitdb/settings',
+        identity: $identity,
+        identities: $identities,
+        AccessController: IPFSAccessController({ write: [$identity.id] }),
+      })
+      $settingsDB = _db
+      ;(window as any).settingsDB = _db
+
+      // Persist the blog owner identity so remote viewers can reliably detect ownership.
+      ownerIdentityId = $identity.id
+      try {
+        const entry = await _db.get('ownerIdentity')
+        const existing = entry?.value?.value
+        if (!existing) await _db.put({ _id: 'ownerIdentity', value: $identity.id })
+      } catch {
+        // best-effort only
+      }
+    } catch (err) {
+      warn('Error opening settings DB:', err)
+    }
+
+    try {
+      const _db = await $orbitdb.open('posts', {
+        type: 'documents',
+        create: true,
+        overwrite: false,
+        directory: './orbitdb/posts',
+        identity: $identity,
+        identities: $identities,
+        AccessController: IPFSAccessController({ write: [$identity.id] }),
+      })
+      $postsDB = _db
+      ;(window as any).postsDB = _db
       info('postsDB', _db.address.toString())
       $postsDBAddress = _db.address.toString()
+    } catch (err) {
+      warn('Error opening posts DB:', err)
+    }
 
-    }).catch( err => warn('error', err))
+    try {
+      const _db = await $orbitdb.open('remote-dbs', {
+        type: 'documents',
+        create: true,
+        overwrite: false,
+        identities: $identities,
+        identity: $identity,
+        AccessController: IPFSAccessController({ write: [$identity.id] }),
+      })
+      $remoteDBsDatabases = _db
+      ;(window as any).remoteDBsDatabases = _db
+    } catch (err) {
+      warn('Error opening remote DBs database:', err)
+    }
 
-    $orbitdb.open('remote-dbs', {
-      type: 'documents',
-      create: true,
-      overwrite: false,
-      identities: $identities,
-      identity: $identity,
-      AccessController: IPFSAccessController({write: [$identity.id]}),
-    }).then(_db => {
-      $remoteDBsDatabases = _db;
-      ;(window as any).remoteDBsDatabases = _db;
-    }).catch(err => warn('Error opening remote DBs database:', err));
+    try {
+      const _db = await $orbitdb.open('comments', {
+        type: 'documents',
+        create: true,
+        overwrite: false,
+        directory: './orbitdb/comments',
+        identity: $identity,
+        identities: $identities,
+        AccessController: IPFSAccessController({ write: ['*'] }),
+      })
+      $commentsDB = _db
+      $commentsDBAddress = _db.address.toString()
+      ;(window as any).commentsDB = _db
+    } catch (err) {
+      warn('Error opening comments DB:', err)
+    }
 
-    // // Add this to the initializeApp function after other database initializations
-    $orbitdb.open('comments', {
-      type: 'documents',
-      create: true,
-      overwrite: false,
-      directory: './orbitdb/comments',
-      identity: $identity,
-      identities: $identities,
-      AccessController: IPFSAccessController({write: ["*"]}),
-    }).then(_db => {
-      $commentsDB = _db;
-      info('commentsDB', _db)
-      ;(window as any).commentsDB = _db;
-    }).catch(err => warn('error', err))
-
-    // // Add this to initialize the media database
-    $orbitdb.open('media', {
-      type: 'documents',
-      create: true,
-      overwrite: false,
-      directory: './orbitdb/media',
-      identity: $identity,
-      identities: $identities,
-      AccessController: IPFSAccessController({write: [$identity.id]}), 
-    }).then(_db => {
-      $mediaDB = _db;
-      info('mediaDB', _db)
-      ;(window as any).mediaDB = _db;
-    }).catch(err => warn('error initializing media database', err))
+    try {
+      const _db = await $orbitdb.open('media', {
+        type: 'documents',
+        create: true,
+        overwrite: false,
+        directory: './orbitdb/media',
+        identity: $identity,
+        identities: $identities,
+        AccessController: IPFSAccessController({ write: [$identity.id] }),
+      })
+      $mediaDB = _db
+      $mediaDBAddress = _db.address.toString()
+      ;(window as any).mediaDB = _db
+    } catch (err) {
+      warn('Error opening media DB:', err)
+    }
   }
 
   $effect(() => {
@@ -295,8 +319,8 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   */
   $effect(() => {
     if ($orbitdb && $postsDB && $identity) {
-      const access = $postsDB.access;
-      canWrite = access.write.includes($identity.id) && $postsDB.address === $postsDBAddress
+      const postsAddr = $postsDB.address?.toString?.() || String($postsDB.address || '');
+      canWrite = Boolean(ownerIdentityId && ownerIdentityId === $identity.id) && (postsAddr === $postsDBAddress)
     }
   });
 
@@ -329,11 +353,44 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 
   // Track the last settingsDB address to prevent duplicate loading
   let lastSettingsDBAddress = '';
+  let lastOwnerIdentitySettingsAddr = '';
   // Persist sub-DB addresses into settings only once per (settingsAddr, subDbAddr) pair.
   let lastPersistedSettingsAddr = '';
   let lastPersistedPostsAddr = '';
   let lastPersistedCommentsAddr = '';
   let lastPersistedMediaAddr = '';
+
+  // Load ownerIdentity from the current settings DB (local or remote).
+  $effect(() => {
+    if (!$settingsDB || !$identity) return;
+    const settingsAddr = $settingsDB.address?.toString?.() || '';
+    if (!settingsAddr || settingsAddr === lastOwnerIdentitySettingsAddr) return;
+    lastOwnerIdentitySettingsAddr = settingsAddr;
+
+    const loadOwner = async (retries = 10) => {
+      try {
+        const entry = await $settingsDB.get('ownerIdentity');
+        const value = entry?.value?.value;
+        if (value) {
+          ownerIdentityId = value;
+          return;
+        }
+
+        // If we're the settings writer (local blog), treat us as owner even if the entry isn't persisted yet.
+        if ($settingsDB.access?.write?.includes($identity.id)) {
+          ownerIdentityId = $identity.id;
+        }
+
+        if (retries > 0) {
+          setTimeout(() => loadOwner(retries - 1), 300);
+        }
+      } catch {
+        if (retries > 0) setTimeout(() => loadOwner(retries - 1), 300);
+      }
+    };
+
+    loadOwner();
+  });
   
   $effect(() => {
     if($settingsDB && $settingsDB.address.toString() !== lastSettingsDBAddress) {
@@ -344,6 +401,8 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     // Initial load of settings - use .all() to get all documents first to avoid CID parsing errors on empty DBs
     $settingsDB.all().then(allSettings => {
       info('All settings from database:', allSettings);
+
+      const canWriteSettings = $settingsDB?.access?.write?.includes?.($identity?.id);
       
       // Process each setting
       for (const entry of allSettings) {
@@ -376,8 +435,8 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         }
       }
       
-      // If no postsDBAddress found but we have a postsDB, save it
-      if (!$postsDBAddress && $postsDB?.address) {
+      // If no postsDBAddress found but we have a postsDB, save it (only if we can write settings).
+      if (canWriteSettings && !$postsDBAddress && $postsDB?.address) {
         const postsDBAddressValue = $postsDB.address.toString();
         try {
           $settingsDB?.put({ _id: 'postsDBAddress', value: postsDBAddressValue});
@@ -387,8 +446,8 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         }
       }
       
-      // If no commentsDBAddress found but we have a commentsDB, save it
-      if (!$commentsDBAddress && $commentsDB?.address) {
+      // If no commentsDBAddress found but we have a commentsDB, save it (only if we can write settings).
+      if (canWriteSettings && !$commentsDBAddress && $commentsDB?.address) {
         const commentsDBAddressValue = $commentsDB.address.toString();
         try {
           $settingsDB?.put({ _id: 'commentsDBAddress', value: commentsDBAddressValue});
@@ -398,8 +457,8 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         }
       }
       
-      // If no mediaDBAddress found but we have a mediaDB, save it
-      if ($mediaDB?.address) {
+      // If no mediaDBAddress found but we have a mediaDB, save it (only if we can write settings).
+      if (canWriteSettings && $mediaDB?.address) {
         const mediaDBAddress = $mediaDB.address.toString();
         try {
           $settingsDB?.put({ _id: 'mediaDBAddress', value: mediaDBAddress});
@@ -867,6 +926,12 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
             {#if canWrite}
               <PostForm />
             {/if}
+            <!-- e2e/debug hook: lets tests verify write gating without relying on UI text -->
+            <span
+              data-testid="can-write-debug"
+              class="hidden"
+              >{canWrite ? '1' : '0'}|{ownerIdentityId || ''}|{$identity?.id || ''}|{$settingsDB?.address?.toString?.() || ''}|{$postsDB?.address?.toString?.() || ''}|{$postsDBAddress || ''}</span
+            >
           </div>
         </div>
       {/if}

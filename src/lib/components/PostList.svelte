@@ -3,7 +3,7 @@
   import { _, locale } from 'svelte-i18n';
   import { derived } from 'svelte/store';
 
-  import { posts, selectedPostId, identity, postsDB, enabledLanguages, isRTL } from '$lib/store.js';
+  import { posts, selectedPostId, identity, postsDB, settingsDB, enabledLanguages, isRTL } from '$lib/store.js';
   import { formatTimestamp } from '$lib/dateUtils.js';
 
   import type { Post, Category } from '$lib/types.js';
@@ -31,6 +31,8 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
 
   let searchTerm = $state('');
   let selectedCategory: Category | 'All' = $state('All');
+  let ownerIdentityId = $state<string | null>(null);
+  let lastOwnerIdentitySettingsAddr = '';
   // let selectedPostId: string | null = null;
   let hoveredPostId = $state<string | null>(null); // Track the ID of the hovered post
   let editMode = $state(false); // Track if we're in edit mode
@@ -134,10 +136,39 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
     )
   );
 
+  // Load blog owner identity from settings DB (works for local and remote views).
+  $effect(() => {
+    if (!$settingsDB || !$identity) return;
+    const addr = $settingsDB.address?.toString?.() || '';
+    if (!addr || addr === lastOwnerIdentitySettingsAddr) return;
+    lastOwnerIdentitySettingsAddr = addr;
+
+    const loadOwner = async (retries = 10) => {
+      try {
+        const entry = await $settingsDB.get('ownerIdentity');
+        const value = entry?.value?.value;
+        if (value) {
+          ownerIdentityId = value;
+          return;
+        }
+
+        if ($settingsDB.access?.write?.includes($identity.id)) {
+          ownerIdentityId = $identity.id;
+        }
+
+        if (retries > 0) setTimeout(() => loadOwner(retries - 1), 300);
+      } catch {
+        if (retries > 0) setTimeout(() => loadOwner(retries - 1), 300);
+      }
+    };
+
+    loadOwner();
+  });
+
   // Add a function to check write permissions for UI display
   function hasWriteAccess(): boolean {
-    if (!$postsDB || !$identity) return false;
-    return $postsDB.access.write.includes($identity.id) || $postsDB.access.write.includes("*");
+    if (!$identity || !ownerIdentityId) return false;
+    return ownerIdentityId === $identity.id;
   }
   // $effect(() => {
   //   info('displayedPosts', displayedPosts);
@@ -743,6 +774,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
                     onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); editPost(post, e); } }}
                     ontouchend={(e) => { e.preventDefault(); e.stopPropagation(); editPost(post, e); }}
                     aria-label={$_('edit_post')}
+                    data-testid={"post-edit-" + post._id}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
@@ -753,6 +785,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
                     onclick={(e) => deletePost(post, e)}
                     ontouchend={(e) => {e.preventDefault(); e.stopPropagation(); deletePost(post, e)}}
                     aria-label={$_('delete_post')}
+                    data-testid={"post-delete-" + post._id}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
@@ -763,6 +796,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
                     onclick={(e) => viewPostHistory(post, e)}
                     ontouchend={(e) => {e.preventDefault(); e.stopPropagation(); viewPostHistory(post, e)}}
                     aria-label={$_('view_history')}
+                    data-testid={"post-history-" + post._id}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"/>

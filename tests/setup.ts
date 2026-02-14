@@ -1,8 +1,9 @@
-import { rm } from 'fs/promises'
+import { rm, access } from 'fs/promises'
 import { join } from 'path'
 import { spawn, type ChildProcess } from 'child_process'
 import { dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { constants } from 'fs'
 
 let relayProcess: ChildProcess | null = null;
 
@@ -74,6 +75,30 @@ async function waitForRelay(timeoutMs = 10000): Promise<boolean> {
     });
 }
 
+async function ensureRelayBuilt() {
+    try {
+        await access('dist/relay/index.js', constants.F_OK);
+        return;
+    } catch {
+        // fall through
+    }
+
+    console.log('Relay build output missing (dist/relay/index.js). Building relay...');
+    const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+
+    await new Promise<void>((resolve, reject) => {
+        const child = spawn(npmCmd, ['run', 'build:relay'], {
+            stdio: 'inherit',
+            env: process.env
+        });
+        child.on('error', reject);
+        child.on('exit', (code) => {
+            if (code === 0) resolve();
+            else reject(new Error(`Failed to build relay (exit code ${code})`));
+        });
+    });
+}
+
 export async function setupTestEnvironment() {
     console.log('Setting up test environment...');
     
@@ -84,6 +109,7 @@ export async function setupTestEnvironment() {
 
         // Start relay server with ES modules support
         console.log('Starting relay server...');
+        await ensureRelayBuilt();
         // Run the compiled relay (src uses TS modules that Node can't import directly).
         relayProcess = spawn('node', ['dist/relay/index.js', '--test'], {
             stdio: ['inherit', 'pipe', 'pipe'],
@@ -95,6 +121,10 @@ export async function setupTestEnvironment() {
                 RELAY_TCP_PORT: String(RELAY_TCP_PORT),
                 RELAY_WS_PORT: String(RELAY_WS_PORT),
                 RELAY_WEBRTC_PORT: String(RELAY_WEBRTC_PORT),
+                // The Node relay's WebRTC stack binds UDP sockets. In some environments (local sandboxing,
+                // CI runners, parallel jobs) this can flake or be disallowed. The webapp connects to the
+                // relay over WebSockets for tests, so keep the relay WS-only here.
+                RELAY_DISABLE_WEBRTC: 'true',
                 // Prevent CI flakes from port collisions (e.g. 9090 already bound on runners).
                 METRICS_PORT: '0',
 

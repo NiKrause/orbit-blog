@@ -36,6 +36,8 @@ const RELAY_LISTEN_IPV4 = process.env.RELAY_LISTEN_IPV4 || '0.0.0.0'
 const RELAY_LISTEN_IPV6 = process.env.RELAY_LISTEN_IPV6 || '::'
 const RELAY_DISABLE_IPV6 =
   process.env.RELAY_DISABLE_IPV6 === 'true' || process.env.RELAY_DISABLE_IPV6 === '1'
+const RELAY_DISABLE_WEBRTC =
+  process.env.RELAY_DISABLE_WEBRTC === 'true' || process.env.RELAY_DISABLE_WEBRTC === '1'
 
 export const createLibp2pConfig = (privateKey: PrivateKey, datastore: Datastore): Libp2pOptions => ({
   privateKey,
@@ -46,12 +48,14 @@ export const createLibp2pConfig = (privateKey: PrivateKey, datastore: Datastore)
       `/ip4/${RELAY_LISTEN_IPV4}/tcp/${RELAY_TCP_PORT}`,
       // '/ip4/0.0.0.0/udp/9091/quic-v1',
       `/ip4/${RELAY_LISTEN_IPV4}/tcp/${RELAY_WS_PORT}/ws`,
-      `/ip4/${RELAY_LISTEN_IPV4}/udp/${RELAY_WEBRTC_PORT}/webrtc-direct`,
+      ...(!RELAY_DISABLE_WEBRTC ? [`/ip4/${RELAY_LISTEN_IPV4}/udp/${RELAY_WEBRTC_PORT}/webrtc-direct`] : []),
       ...(!RELAY_DISABLE_IPV6
         ? [
             `/ip6/${RELAY_LISTEN_IPV6}/tcp/${RELAY_TCP_PORT}`,
             `/ip6/${RELAY_LISTEN_IPV6}/tcp/${RELAY_WS_PORT}/ws`,
-            `/ip6/${RELAY_LISTEN_IPV6}/udp/${RELAY_WEBRTC_PORT}/webrtc-direct`,
+            ...(!RELAY_DISABLE_WEBRTC
+              ? [`/ip6/${RELAY_LISTEN_IPV6}/udp/${RELAY_WEBRTC_PORT}/webrtc-direct`]
+              : []),
           ]
         : []),
     ],
@@ -61,8 +65,7 @@ export const createLibp2pConfig = (privateKey: PrivateKey, datastore: Datastore)
     circuitRelayTransport(),
     tcp(),
     // quic(),
-    webRTC(),
-    webRTCDirect(),
+    ...(!RELAY_DISABLE_WEBRTC ? [webRTC(), webRTCDirect()] : []),
     webSockets()
   ],
   peerDiscovery: [
