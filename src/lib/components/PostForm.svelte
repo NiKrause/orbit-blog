@@ -226,23 +226,23 @@ import MarkdownHelp from './MarkdownHelp.svelte';
   let hasPhysicalImports = $derived(content ? MarkdownImportResolver.hasPhysicalImports(content) : false);
 </script>
 
-<form onsubmit={preventDefault(handleSubmit)} data-testid="post-form" class="space-y-4 bg-gray-50 dark:bg-gray-800 p-6 rounded-lg shadow-md {$isRTL ? 'rtl' : 'ltr'}">
-  <h2 class="text-2xl font-bold mb-4 text-gray-900 dark:text-white">{$_('create_new_post')}</h2>
+<form onsubmit={preventDefault(handleSubmit)} data-testid="post-form" class="card p-6 space-y-4 {$isRTL ? 'rtl' : 'ltr'}">
+  <h2 class="text-lg font-semibold mb-2" style="color: var(--text);">{$_('create_new_post')}</h2>
   
   <div>
-    <label for="title" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{$_('title')}</label>
-<input
+    <label for="title" class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">{$_('title')}</label>
+    <input
       id="title"
       type="text"
       data-testid="post-title-input"
       bind:value={title}
-      class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+      class="input"
       required
     />
   </div>
 
   <div>
-    <label for="categories" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{$_('categories')}</label>
+    <label for="categories" class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">{$_('categories')}</label>
     <MultiSelect
       id="categories"
       bind:values={selectedCategories}
@@ -253,12 +253,12 @@ import MarkdownHelp from './MarkdownHelp.svelte';
 
   <div>
     <div class="flex justify-between items-center mb-2">
-      <label for="content" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{$_('content')}</label>
-      <div class="flex space-x-2">
+      <label for="content" class="block text-xs font-medium" style="color: var(--text-secondary);">{$_('content')}</label>
+      <div class="flex gap-2">
         <button
           type="button"
           onclick={() => showMediaUploader = !showMediaUploader}
-          class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300"
+          class="btn-ghost btn-sm"
         >
           {showMediaUploader ? $_('hide_media_library') : $_('add_media')}
         </button>
@@ -267,20 +267,16 @@ import MarkdownHelp from './MarkdownHelp.svelte';
           type="button"
           onclick={handleResolveImports}
           disabled={isResolvingImports}
-          class="text-sm text-green-600 dark:text-green-400 hover:text-green-500 dark:hover:text-green-300 disabled:opacity-50"
+          class="btn-ghost btn-sm disabled:opacity-50"
         >
-          {#if isResolvingImports}
-            🔄 Resolving...
-          {:else}
-            🔗 Resolve Imports
-          {/if}
+          {isResolvingImports ? 'Resolving...' : 'Resolve Imports'}
         </button>
         {/if}
         <MarkdownHelp />
         <button
           type="button"
           onclick={() => showPreview = !showPreview}
-          class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300"
+          class="btn-ghost btn-sm"
         >
           {showPreview ? $_('show_editor') : $_('show_preview')}
         </button>
@@ -292,16 +288,17 @@ import MarkdownHelp from './MarkdownHelp.svelte';
     {/if}
 
     {#if showPreview}
-      <div class="prose dark:prose-invert max-w-none min-h-[200px] p-4 border rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
+      <div class="prose dark:prose-invert max-w-none min-h-[200px] p-4 rounded-md" style="background-color: var(--bg-tertiary); border: 1px solid var(--border);">
 {@html renderContent(content || `*${$_('preview_will_appear_here')}...*`)}
       </div>
     {:else}
-<textarea
+      <textarea
         id="content"
         data-testid="post-content-input"
         bind:value={content}
         rows="6"
-        class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+        class="input"
+        style="min-height: 150px;"
         required
         placeholder={$_('markdown_placeholder')}
       ></textarea>
@@ -314,101 +311,66 @@ import MarkdownHelp from './MarkdownHelp.svelte';
     on:mediaRemoved={(e) => removeSelectedMedia(e.detail.mediaId)}
   />
 
-  <div class="flex justify-between items-center mt-4">
-    <div class="flex items-center space-x-2">
+  <div class="flex justify-between items-center pt-3" style="border-top: 1px solid var(--border);">
+    <div class="flex items-center gap-2">
       <input
         type="checkbox"
         id="publish"
         bind:checked={published}
-        class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+        class="rounded"
+        style="border-color: var(--border); color: var(--accent);"
       />
-      <label for="publish" class="text-sm text-gray-700 dark:text-gray-300">{$_('publish_post')}</label>
+      <label for="publish" class="text-sm" style="color: var(--text-secondary);">{$_('publish_post')}</label>
     </div>
 
-    <button
-      type="button"
-      onclick={handleEncrypt}
-      class="inline-flex items-center gap-2 bg-indigo-600 dark:bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
-    >
-      <!-- {#if isEncrypting}
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
-        </svg>
-        {$_('post_will_be_encrypted')}
-      {:else} -->
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+    <div class="flex gap-2">
+      <button
+        type="button"
+        onclick={handleEncrypt}
+        class="btn-outline inline-flex items-center gap-1.5"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
         </svg>
         {$_('encrypt_post')}
-      <!-- {/if} -->
-    </button>
-
-    <!-- <button
-      type="button"
-      onclick={handleTranslate}
-      disabled={isTranslating}
-      class="inline-flex items-center gap-2 bg-indigo-600 dark:bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors disabled:opacity-50"
-    >
-      <div class="grid grid-cols-3 gap-1">
-        {#each [...$enabledLanguages] as lang}
-          <LanguageStatusLED 
-            language={lang} 
-            status={
-              translationStatuses[lang] === 'success' ? 'success' :
-              translationStatuses[lang] === 'error' ? 'error' : 
-              'default'
-            }
-          />
-        {/each}
-      </div>
-      {#if isTranslating}
-        {$_('translating')}...
-      {:else}
-        {$_('translate_and_post')}
-      {/if}
-    </button> -->
-    
-    <button
-      type="submit"
-      data-testid="publish-post-button"
-      class="bg-indigo-600 dark:bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
-    >
-      {$_('create_post')}
-    </button>
+      </button>
+      
+      <button
+        type="submit"
+        data-testid="publish-post-button"
+        class="btn-primary"
+      >
+        {$_('create_post')}
+      </button>
+    </div>
   </div>
 
   {#if translationError}
-    <div class="mt-2 text-red-600 dark:text-red-400">
-      {translationError}
-    </div>
+    <div class="mt-2 text-sm" style="color: var(--danger);">{translationError}</div>
   {/if}
 
   {#if encryptionError}
-    <div class="mt-2 text-red-600 dark:text-red-400">
-      {encryptionError}
-    </div>
+    <div class="mt-2 text-sm" style="color: var(--danger);">{encryptionError}</div>
   {/if}
 
   {#if importResolutionError}
-    <div class="mt-2 text-red-600 dark:text-red-400">
-      Import Resolution Error: {importResolutionError}
-    </div>
+    <div class="mt-2 text-sm" style="color: var(--danger);">Import Resolution Error: {importResolutionError}</div>
   {/if}
 
   {#if importResolutionResult && importResolutionResult.resolvedImports.length > 0}
-    <div class="mt-2 p-3 bg-green-50 dark:bg-green-900 rounded-md border border-green-200 dark:border-green-700">
-      <h4 class="text-green-800 dark:text-green-200 font-medium text-sm">✅ Physical Imports Resolved</h4>
-      <ul class="mt-1 text-green-700 dark:text-green-300 text-xs space-y-1">
+    <div class="mt-2 p-3 rounded-md" style="background-color: var(--bg-tertiary); border: 1px solid var(--border);">
+      <h4 class="font-medium text-sm" style="color: var(--success);">Physical Imports Resolved</h4>
+      <ul class="mt-1 text-xs space-y-1" style="color: var(--text-secondary);">
         {#each importResolutionResult.resolvedImports as resolvedImport}
-          <li>• {resolvedImport.title || 'Untitled'} from {resolvedImport.url}</li>
+          <li>{resolvedImport.title || 'Untitled'} from {resolvedImport.url}</li>
         {/each}
       </ul>
       {#if importResolutionResult.errors.length > 0}
         <div class="mt-2">
-          <h5 class="text-red-800 dark:text-red-200 font-medium text-xs">Some imports failed:</h5>
-          <ul class="mt-1 text-red-700 dark:text-red-300 text-xs space-y-1">
+          <h5 class="font-medium text-xs" style="color: var(--danger);">Some imports failed:</h5>
+          <ul class="mt-1 text-xs space-y-1" style="color: var(--danger);">
             {#each importResolutionResult.errors as error}
-              <li>• {error.url}: {error.error}</li>
+              <li>{error.url}: {error.error}</li>
             {/each}
           </ul>
         </div>
@@ -428,15 +390,7 @@ import MarkdownHelp from './MarkdownHelp.svelte';
 {/if}
 
 <style>
-  /* RTL specific styles */
   :global([dir="rtl"]) .flex {
     flex-direction: row-reverse;
   }
-
-  :global([dir="rtl"]) .space-x-2 > * + * {
-    margin-right: 0.5rem;
-    margin-left: 0;
-  }
-
-
 </style>

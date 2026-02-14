@@ -665,19 +665,20 @@ ${convertMarkdownToLatex(selectedPost.content)}
   let hasPhysicalImports = $derived(editMode && editedContent ? MarkdownImportResolver.hasPhysicalImports(editedContent) : false);
 </script>
 
-<div data-testid="post-list" class="space-y-4 {$isRTL ? 'rtl' : 'ltr'}">
-  <div class="flex space-x-4 mb-6">
+<div data-testid="post-list" class="{$isRTL ? 'rtl' : 'ltr'}">
+  <!-- Search + Filter Bar -->
+  <div class="flex gap-3 mb-6">
     <input
       type="text"
       placeholder={$_('search_posts')}
       bind:value={searchTerm}
-      class="flex-1 rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+      class="input flex-1"
     />
-    <label for="edit-category" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{$_('category')}</label>
     <select
       id="edit-category"
       bind:value={selectedCategory}
-      class="rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+      class="input"
+      style="width: auto; min-width: 120px;"
     >
       <option value="All">{$_('all')}</option>
       {#each [...$categories].sort((a, b) => b.localeCompare(a)) as cat}
@@ -687,19 +688,19 @@ ${convertMarkdownToLatex(selectedPost.content)}
   </div>
 
   <div class="grid grid-cols-12 gap-6 responsive-grid">
-    <!-- Post List -->
-    <div class="col-span-4 bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 post-list-container flex flex-col">
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">{$_('blog_posts')}</h2>
+    <!-- Post List Panel -->
+    <div class="col-span-4 card p-4 post-list-container flex flex-col">
+      <div class="flex justify-between items-center mb-3">
+        <h2 class="text-sm font-semibold" style="color: var(--text);">{$_('blog_posts')}</h2>
       </div>
       
-      <!-- Year Navigation Badges -->
+      <!-- Year Navigation -->
       {#if availableYears.length > 1}
-        <div class="mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
-          <div class="flex flex-wrap gap-1 max-h-20 overflow-y-auto" style="scrollbar-width: none;">
+        <div class="mb-3 pb-3" style="border-bottom: 1px solid var(--border-subtle);">
+          <div class="flex flex-wrap gap-1 max-h-16 overflow-y-auto" style="scrollbar-width: none;">
             {#each availableYears as year}
               <button
-                class="px-2 py-1 text-xs font-medium bg-amber-100 dark:bg-amber-800 text-amber-800 dark:text-amber-200 rounded-md hover:bg-amber-200 dark:hover:bg-amber-700 transition-colors flex-shrink-0 whitespace-nowrap"
+                class="badge cursor-pointer hover:opacity-80 transition-opacity"
                 onclick={() => jumpToYear(year as number)}
                 title={`Jump to last post from ${year}`}
               >
@@ -709,15 +710,11 @@ ${convertMarkdownToLatex(selectedPost.content)}
           </div>
         </div>
       {/if}
-      <div class="space-y-2 overflow-y-auto max-h-96 min-h-48 pr-2" style="scrollbar-width: thin; scrollbar-color: rgb(156 163 175) transparent;">
+
+      <div class="space-y-0.5 overflow-y-auto max-h-96 min-h-48" style="scrollbar-width: thin;">
         {#each displayedPosts as post (post._id)}
-          <div data-testid="post-item-{post._id}" class="post-item w-full text-left p-3 rounded-md transition-colors cursor-pointer"
-            class:bg-indigo-50={$selectedPostId === post._id}
-            class:dark:bg-indigo-900={$selectedPostId === post._id}
-            class:bg-white={$selectedPostId !== post._id}
-            class:dark:bg-gray-800={$selectedPostId !== post._id}
-            class:border-2={$selectedPostId === post._id}
-            class:border-indigo-500={$selectedPostId === post._id}
+          <div data-testid="post-item-{post._id}" class="post-item w-full text-left px-3 py-2.5 rounded-md transition-all cursor-pointer"
+            style="{$selectedPostId === post._id ? 'background-color: var(--bg-active); border-left: 2px solid var(--accent);' : 'border-left: 2px solid transparent;'}"
             onclick={() => selectPost(post._id)}
             onmouseover={() => hoveredPostId = post._id}
             onmouseout={() => hoveredPostId = null}
@@ -732,69 +729,62 @@ ${convertMarkdownToLatex(selectedPost.content)}
             data-post-id={post._id}
           >
             <div class="post-content">
-              <!-- Only show buttons if user has write access -->
-
               {#if hasWriteAccess()}
-                <div class="flex justify-end space-x-2 action-buttons {hoveredPostId === post._id ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300 ease-in-out">
+                <div class="flex justify-end gap-1 action-buttons {hoveredPostId === post._id ? 'opacity-100' : 'opacity-0'} transition-opacity">
                   <button
                     type="button"
-                    class="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 touch-manipulation"
+                    class="btn-icon"
                     onclick={(e) => { e.stopPropagation(); editPost(post, e); }}
                     onkeydown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); editPost(post, e); } }}
                     ontouchend={(e) => { e.preventDefault(); e.stopPropagation(); editPost(post, e); }}
                     aria-label={$_('edit_post')}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                     </svg>
                   </button>
                   <button
-                    class="p-1 text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                    class="btn-icon"
+                    style="color: var(--danger);"
                     onclick={(e) => deletePost(post, e)}
                     ontouchend={(e) => {e.preventDefault(); e.stopPropagation(); deletePost(post, e)}}
                     aria-label={$_('delete_post')}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                       <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
                     </svg>
                   </button>
                   <button
-                    class="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
+                    class="btn-icon"
                     onclick={(e) => viewPostHistory(post, e)}
                     ontouchend={(e) => {e.preventDefault(); e.stopPropagation(); viewPostHistory(post, e)}}
                     aria-label={$_('view_history')}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"/>
                     </svg>
                   </button>
                 </div>
               {/if}
-              <div class="flex justify-between items-start">
-                <div class="flex-1">
-                  <h3 data-testid="post-item-title" class="font-medium text-gray-900 dark:text-white overflow-hidden whitespace-nowrap" title={post.title}>
-                    {post.isDecrypted ? truncateTitle(post.title, 40) : truncateTitle(post.isEncrypted ? $_('encrypted_post') : post.title, 40)}
-                  </h3>
-                  <div class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    <div class="mb-1">
-                      {$reactiveDateFormatter(post.createdAt || post.date)}
+              <div>
+                <h3 data-testid="post-item-title" class="text-sm font-medium overflow-hidden whitespace-nowrap text-ellipsis" style="color: var(--text);" title={post.title}>
+                  {post.isDecrypted ? truncateTitle(post.title, 40) : truncateTitle(post.isEncrypted ? $_('encrypted_post') : post.title, 40)}
+                </h3>
+                <div class="mt-1">
+                  <span class="text-xs" style="color: var(--text-muted);">
+                    {$reactiveDateFormatter(post.createdAt || post.date)}
+                  </span>
+                  {#if post.categories && post.categories.length > 0}
+                    <div class="flex flex-wrap gap-1 mt-1">
+                      {#each post.categories as categoryItem}
+                        <span class="badge">{categoryItem}</span>
+                      {/each}
                     </div>
-                    {#if post.categories && post.categories.length > 0}
-                      <div class="flex flex-wrap gap-1 mt-1">
-                        {#each post.categories as categoryItem}
-                          <span class="px-2 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full text-xs whitespace-nowrap flex-shrink-0">
-                            {categoryItem}
-                          </span>
-                        {/each}
-                      </div>
-                    {:else if post.category}
-                      <div class="mt-1">
-                        <span class="px-2 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full text-xs whitespace-nowrap flex-shrink-0">
-                          {post.category}
-                        </span>
-                      </div>
-                    {/if}
-                  </div>
+                  {:else if post.category}
+                    <div class="mt-1">
+                      <span class="badge">{post.category}</span>
+                    </div>
+                  {/if}
                 </div>
               </div>
             </div>
@@ -808,23 +798,23 @@ ${convertMarkdownToLatex(selectedPost.content)}
       {#if selectedPost}
         {#if editMode}
           <!-- Edit Form -->
-          <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-            <h2 class="text-2xl font-bold mb-4 text-gray-900 dark:text-white">{$_('edit_post')}</h2>
+          <div class="card p-6">
+            <h2 class="text-lg font-semibold mb-4" style="color: var(--text);">{$_('edit_post')}</h2>
             
             <div class="space-y-4">
               <div>
-                <label for="edit-title" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{$_('title')}</label>
+                <label for="edit-title" class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">{$_('title')}</label>
                 <input
                   id="edit-title"
                   type="text"
                   bind:value={editedTitle}
-                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  class="input"
                   required
                 />
               </div>
 
               <div>
-                <label for="edit-category" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{$_('categories')}</label>
+                <label for="edit-category" class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">{$_('categories')}</label>
                 <MultiSelect
                   bind:values={editedCategories}
                   options={$categories}
@@ -833,44 +823,46 @@ ${convertMarkdownToLatex(selectedPost.content)}
                 />
               </div>
 
-              <div>
-                <label for="edit-updated-at" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{$_('last_updated')}</label>
-                <input
-                  id="edit-updated-at"
-                  type="datetime-local"
-                  bind:value={editedUpdatedAt}
-                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                />
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label for="edit-updated-at" class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">{$_('last_updated')}</label>
+                  <input
+                    id="edit-updated-at"
+                    type="datetime-local"
+                    bind:value={editedUpdatedAt}
+                    class="input"
+                  />
+                </div>
+                <div>
+                  <label for="edit-created-at" class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">{$_('created_at')}</label>
+                  <input
+                    id="edit-created-at"
+                    type="datetime-local"
+                    bind:value={editedCreatedAt}
+                    class="input"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label for="edit-created-at" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{$_('created_at')}</label>
-                <input
-                  id="edit-created-at"
-                  type="datetime-local"
-                  bind:value={editedCreatedAt}
-                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div class="flex items-center space-x-2">
+              <div class="flex items-center gap-2">
                 <input
                   type="checkbox"
                   id="edit-published"
                   bind:checked={editedPublished}
-                  class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  class="rounded"
+                  style="border-color: var(--border); color: var(--accent);"
                 />
-                <label for="edit-published" class="text-sm text-gray-700 dark:text-gray-300">{$_('publish_post')}</label>
+                <label for="edit-published" class="text-sm" style="color: var(--text-secondary);">{$_('publish_post')}</label>
               </div>
 
               <div>
                 <div class="flex justify-between items-center mb-2">
-                  <label for="edit-content" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{$_('content')}</label>
-                  <div class="flex space-x-2">
+                  <label for="edit-content" class="block text-xs font-medium" style="color: var(--text-secondary);">{$_('content')}</label>
+                  <div class="flex gap-2">
                     <button
                       type="button"
                       onclick={() => showMediaUploader = !showMediaUploader}
-                      class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300"
+                      class="btn-ghost btn-sm"
                     >
                       {showMediaUploader ? $_('hide_media_library') : $_('add_media')}
                     </button>
@@ -879,20 +871,16 @@ ${convertMarkdownToLatex(selectedPost.content)}
                       type="button"
                       onclick={handleResolveImports}
                       disabled={isResolvingImports}
-                      class="text-sm text-green-600 dark:text-green-400 hover:text-green-500 dark:hover:text-green-300 disabled:opacity-50"
+                      class="btn-ghost btn-sm disabled:opacity-50"
                     >
-                      {#if isResolvingImports}
-                        🔄 Resolving...
-                      {:else}
-                        🔗 Resolve Imports
-                      {/if}
+                      {isResolvingImports ? 'Resolving...' : 'Resolve Imports'}
                     </button>
                     {/if}
                     <MarkdownHelp />
                     <button
                       type="button"
                       onclick={() => showPreview = !showPreview}
-                      class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300"
+                      class="btn-ghost btn-sm"
                     >
                       {showPreview ? $_('show_editor') : $_('show_preview')}
                     </button>
@@ -904,7 +892,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
                 {/if}
 
                 {#if showPreview}
-                  <div class="prose dark:prose-invert max-w-none min-h-[200px] p-4 border rounded-md bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
+                  <div class="prose dark:prose-invert max-w-none min-h-[200px] p-4 rounded-md" style="background-color: var(--bg-tertiary); border: 1px solid var(--border);">
 {@html renderContent(editedContent || `*${$_('preview_will_appear_here')}...*`)}
                   </div>
                 {:else}
@@ -912,7 +900,8 @@ ${convertMarkdownToLatex(selectedPost.content)}
                     id="edit-content"
                     bind:value={editedContent}
                     rows="10"
-                    class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    class="input"
+                    style="min-height: 200px;"
                     required
                     placeholder={$_('markdown_placeholder')}
                   ></textarea>
@@ -926,25 +915,25 @@ ${convertMarkdownToLatex(selectedPost.content)}
               />
 
               {#if importResolutionError}
-                <div class="text-red-600 dark:text-red-400 text-sm mb-4">
+                <div class="text-sm" style="color: var(--danger);">
                   Import Resolution Error: {importResolutionError}
                 </div>
               {/if}
 
               {#if importResolutionResult && importResolutionResult.resolvedImports.length > 0}
-                <div class="p-3 bg-green-50 dark:bg-green-900 rounded-md border border-green-200 dark:border-green-700 mb-4">
-                  <h4 class="text-green-800 dark:text-green-200 font-medium text-sm">✅ Physical Imports Resolved</h4>
-                  <ul class="mt-1 text-green-700 dark:text-green-300 text-xs space-y-1">
+                <div class="p-3 rounded-md" style="background-color: var(--bg-tertiary); border: 1px solid var(--border);">
+                  <h4 class="font-medium text-sm" style="color: var(--success);">Physical Imports Resolved</h4>
+                  <ul class="mt-1 text-xs space-y-1" style="color: var(--text-secondary);">
                     {#each importResolutionResult.resolvedImports as resolvedImport}
-                      <li>• {resolvedImport.title || 'Untitled'} from {resolvedImport.url}</li>
+                      <li>{resolvedImport.title || 'Untitled'} from {resolvedImport.url}</li>
                     {/each}
                   </ul>
                   {#if importResolutionResult.errors.length > 0}
                     <div class="mt-2">
-                      <h5 class="text-red-800 dark:text-red-200 font-medium text-xs">Some imports failed:</h5>
-                      <ul class="mt-1 text-red-700 dark:text-red-300 text-xs space-y-1">
+                      <h5 class="font-medium text-xs" style="color: var(--danger);">Some imports failed:</h5>
+                      <ul class="mt-1 text-xs space-y-1" style="color: var(--danger);">
                         {#each importResolutionResult.errors as error}
-                          <li>• {error.url}: {error.error}</li>
+                          <li>{error.url}: {error.error}</li>
                         {/each}
                       </ul>
                     </div>
@@ -952,22 +941,22 @@ ${convertMarkdownToLatex(selectedPost.content)}
                 </div>
               {/if}
 
-              <div class="flex space-x-4 justify-end">
+              <div class="flex gap-3 justify-end pt-2" style="border-top: 1px solid var(--border);">
                 <button
                   type="button"
                   onclick={() => editMode = false}
-                  class="bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-100 py-2 px-4 rounded-md hover:bg-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
+                  class="btn-outline"
                 >
                   {$_('cancel')}
                 </button>
-                <div class="relative inline-block">
+                <div class="relative inline-flex">
                   <button
                     type="button"
                     onclick={handleTranslate}
                     disabled={isTranslating}
-                    class="inline-flex items-center gap-2 bg-indigo-600 dark:bg-indigo-500 text-white py-2 px-4 rounded-l-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors disabled:opacity-50"
+                    class="btn-outline inline-flex items-center gap-2 rounded-r-none disabled:opacity-50"
                   >
-                    <div class="grid grid-cols-3 gap-1">
+                    <div class="grid grid-cols-3 gap-0.5">
                       {#each [...$enabledLanguages] as lang}
                         <LanguageStatusLED 
                           language={lang} 
@@ -990,9 +979,10 @@ ${convertMarkdownToLatex(selectedPost.content)}
                     onclick={() => handleTranslate(true)}
                     disabled={isTranslating}
                     title={$_('force_retranslate_tooltip')}
-                    class="inline-flex items-center px-2 py-2 bg-indigo-600 dark:bg-indigo-500 text-white border-l border-indigo-500 dark:border-indigo-400 rounded-r-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors disabled:opacity-50"
+                    class="btn-outline rounded-l-none px-2 disabled:opacity-50"
+                    style="border-left: none;"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                       <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
                     </svg>
                   </button>
@@ -1000,15 +990,15 @@ ${convertMarkdownToLatex(selectedPost.content)}
                 <button
                   type="button"
                   onclick={handleEncrypt}
-                  class="inline-flex items-center gap-2 bg-indigo-600 dark:bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
+                  class="btn-outline inline-flex items-center gap-1.5"
                 >
                   {#if isEncrypting || selectedPost.isEncrypted}
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                       <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
                     </svg>
                     {$_('decrypt_post')}
                   {:else}
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                       <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
                     </svg>
                     {$_('encrypt_post')}
@@ -1017,7 +1007,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
                 <button
                   type="button"
                   onclick={saveEditedPost}
-                  class="bg-indigo-600 dark:bg-indigo-500 text-white py-2 px-4 rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors"
+                  class="btn-primary"
                 >
                   {$_('save_changes')}
                 </button>
@@ -1026,13 +1016,12 @@ ${convertMarkdownToLatex(selectedPost.content)}
           </div>
         {:else}
           <!-- View Mode -->
-          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md">
-            <!-- Replace Export Buttons with small icons -->
-            <div class="flex justify-end p-2 space-x-2">
+          <div class="card">
+            <div class="flex justify-end px-4 pt-3 gap-1">
               <button
                 type="button"
                 onclick={exportToPdf}
-                class="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 p-1"
+                class="btn-icon"
                 aria-label={$_('export_as_pdf')}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1043,7 +1032,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
               <button
                 type="button"
                 onclick={exportToLatex}
-                class="text-gray-600 hover:text-green-600 dark:text-gray-400 dark:hover:text-green-400 p-1"
+                class="btn-icon"
                 aria-label={$_('export_as_latex')}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -1056,7 +1045,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
           </div>
         {/if}
       {:else}
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center text-gray-500 dark:text-gray-400">
+        <div class="card p-8 text-center" style="color: var(--text-muted);">
           <p>{$_('select_post_to_view')}</p>
         </div>
       {/if}
@@ -1064,26 +1053,26 @@ ${convertMarkdownToLatex(selectedPost.content)}
   </div>
 </div>
 
-<!-- Add this modal for showing history -->
+<!-- History Modal -->
 {#if showHistory}
-  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-      <h3 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">{$_('post_history')}</h3>
-      <div class="space-y-4">
+  <div class="fixed inset-0 flex items-center justify-center z-50" style="background-color: rgba(0, 0, 0, 0.4); backdrop-filter: blur(2px);">
+    <div class="card p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto mx-4" style="box-shadow: var(--shadow-lg);">
+      <h3 class="text-lg font-semibold mb-4" style="color: var(--text);">{$_('post_history')}</h3>
+      <div class="space-y-3">
         {#each postHistory as version}
-          <div class="border border-gray-200 dark:border-gray-700 p-4 rounded-lg">
+          <div class="p-4 rounded-md" style="border: 1px solid var(--border);">
             <div class="flex justify-between items-center mb-2">
-              <span class="text-sm text-gray-500 dark:text-gray-400">{formatTimestamp(version.createdAt)}</span>
+              <span class="text-xs" style="color: var(--text-muted);">{formatTimestamp(version.createdAt)}</span>
               <button
-                class="px-3 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 transition-colors"
+                class="btn-primary btn-sm"
                 onclick={() => restoreVersion(version)}
               >
                 {$_('restore_this_version')}
               </button>
             </div>
-            <h4 class="font-bold text-gray-900 dark:text-white">{version.title}</h4>
+            <h4 class="font-medium text-sm" style="color: var(--text);">{version.title}</h4>
             <div class="relative">
-              <p class="text-sm text-gray-600 dark:text-gray-400 cursor-help">{version.content ? version.content.substring(0, version.content.length > 100 ? 100 : version.content.length) : $_('no_content')}...</p>
+              <p class="text-xs mt-1 cursor-help" style="color: var(--text-secondary);">{version.content ? version.content.substring(0, version.content.length > 100 ? 100 : version.content.length) : $_('no_content')}...</p>
               {#if version.content && version.content.length > 100}
                 <div class="content-tooltip">
                   <div class="tooltip-content">
@@ -1096,7 +1085,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
         {/each}
       </div>
       <button
-        class="mt-4 bg-gray-200 dark:bg-gray-700 px-4 py-2 rounded"
+        class="btn-outline mt-4"
         onclick={() => showHistory = false}
       >
         {$_('close')}
@@ -1105,46 +1094,46 @@ ${convertMarkdownToLatex(selectedPost.content)}
   </div>
 {/if}
 
-<!-- Add this modal for confirming deletion -->
+<!-- Delete Confirmation Modal -->
 {#if showDeleteConfirm}
-  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl max-w-md w-full">
-      <h3 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">{$_('confirm_delete')}</h3>
-      <p class="text-gray-600 dark:text-gray-300 mb-4">
+  <div class="fixed inset-0 flex items-center justify-center z-50" style="background-color: rgba(0, 0, 0, 0.4); backdrop-filter: blur(2px);">
+    <div class="card p-6 max-w-md w-full mx-4" style="box-shadow: var(--shadow-lg);">
+      <h3 class="text-lg font-semibold mb-3" style="color: var(--text);">{$_('confirm_delete')}</h3>
+      <p class="text-sm mb-4" style="color: var(--text-secondary);">
         {$_('delete_post_confirm')} "{postToDelete?.title}"?
       </p>
       
-      <div class="mb-6">
-        <div class="flex items-center space-x-2 mb-2">
+      <div class="mb-6 space-y-2">
+        <label class="flex items-center gap-2 cursor-pointer">
           <input
             type="radio"
             id="delete-current"
             bind:group={deleteAllTranslations}
             value={false}
-            class="text-indigo-600 focus:ring-indigo-500"
+            style="color: var(--accent);"
           />
-          <label for="delete-current" class="text-gray-700 dark:text-gray-300">
+          <span class="text-sm" style="color: var(--text-secondary);">
             {$_('delete_current_language_only')} ({postToDelete?.language || $locale})
-          </label>
-        </div>
+          </span>
+        </label>
         
-        <div class="flex items-center space-x-2">
+        <label class="flex items-center gap-2 cursor-pointer">
           <input
             type="radio"
             id="delete-all"
             bind:group={deleteAllTranslations}
             value={true}
-            class="text-indigo-600 focus:ring-indigo-500"
+            style="color: var(--accent);"
           />
-          <label for="delete-all" class="text-gray-700 dark:text-gray-300">
+          <span class="text-sm" style="color: var(--text-secondary);">
             {$_('delete_all_translations')}
-          </label>
-        </div>
+          </span>
+        </label>
       </div>
 
-      <div class="flex justify-end space-x-4">
+      <div class="flex justify-end gap-3">
         <button
-          class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+          class="btn-outline"
           onclick={() => {
             showDeleteConfirm = false;
             postToDelete = null;
@@ -1154,7 +1143,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
           {$_('cancel')}
         </button>
         <button
-          class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+          class="btn-danger"
           onclick={confirmDelete}
         >
           {$_('delete')}
@@ -1185,31 +1174,24 @@ ${convertMarkdownToLatex(selectedPost.content)}
     max-width: 100%; 
   }
 
-  /* Add transition styles for opacity */
   .transition-opacity {
-    transition: opacity 0.3s ease-in-out;
+    transition: opacity 0.15s ease;
   }
-
 
   @media (max-width: 768px) {
     .responsive-grid {
-      grid-template-columns: 1fr; /* Stack the columns on smaller screens */
-      gap: 1rem; /* Reduce gap on mobile */
+      grid-template-columns: 1fr;
+      gap: 1rem;
     }
-    
-    /* Override column spans on mobile */
     .responsive-grid > * {
       grid-column: 1 !important;
     }
-    
-    /* Ensure post list doesn't get too wide on mobile */
     .post-list-container {
       max-width: 100vw;
       overflow-x: hidden;
     }
   }
 
-  /* Tooltip styles */
   .relative {
     position: relative;
   }
@@ -1224,24 +1206,16 @@ ${convertMarkdownToLatex(selectedPost.content)}
     bottom: 125%;
     left: 50%;
     transform: translateX(-50%);
-    background-color: #fff;
-    color: #333;
+    background-color: var(--bg-secondary);
+    color: var(--text);
     padding: 0.75rem;
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
     opacity: 0;
-    transition: opacity 0.3s, visibility 0.3s;
+    transition: opacity 0.2s, visibility 0.2s;
   }
   
-  /* Dark mode support */
-  @media (prefers-color-scheme: dark) {
-    .content-tooltip .tooltip-content {
-      background-color: #374151;
-      color: #e5e7eb;
-    }
-  }
-  
-  /* Show tooltip on hover */
   .relative:hover .content-tooltip .tooltip-content {
     visibility: visible;
     opacity: 1;
@@ -1252,90 +1226,56 @@ ${convertMarkdownToLatex(selectedPost.content)}
     touch-action: manipulation;
     user-select: none;
     position: relative;
-    margin-bottom: 0.5rem;
-    border: 1px solid transparent;
-    /* Prevent content overflow */
     word-wrap: break-word;
     overflow-wrap: break-word;
-    min-width: 0; /* Allow flex items to shrink below their content size */
-  }
-
-  /* Active state for touch feedback */
-  .post-item.active {
-    background-color: rgba(0, 0, 0, 0.05);
-  }
-
-  /* Dark mode active state */
-  :global(.dark) .post-item.active {
-    background-color: rgba(255, 255, 255, 0.05);
+    min-width: 0;
   }
 
   .post-item:hover {
-    border-color: #e5e7eb;
+    background-color: var(--bg-hover) !important;
   }
 
-  /* Improve touch target size for buttons */
   .action-buttons button {
-    min-width: 44px;
-    min-height: 44px;
+    min-width: 32px;
+    min-height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
-  /* Add specific mobile styles */
   @media (max-width: 768px) {
     .post-item {
-      padding: 12px; /* Larger touch target */
-      /* Ensure proper width constraints on mobile */
+      padding: 12px;
       max-width: 100%;
       overflow: hidden;
     }
-
     .action-buttons {
-      opacity: 1 !important; /* Always show buttons on mobile */
+      opacity: 1 !important;
       position: absolute;
       right: 8px;
       top: 50%;
       transform: translateY(-50%);
-      /* Ensure buttons don't overflow */
       flex-shrink: 0;
     }
-    
-    /* Make sure post content area doesn't overflow */
     .post-content {
       max-width: 100%;
       overflow: hidden;
     }
-    
-    /* Ensure category tags wrap properly on mobile */
     .post-content .flex {
       flex-wrap: wrap;
     }
-    
-    /* Fix title overflow on mobile */
     .post-content h3 {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      max-width: calc(100% - 120px); /* Account for action buttons */
+      max-width: calc(100% - 120px);
     }
   }
 
-  /* RTL specific styles */
   :global([dir="rtl"]) .flex {
     flex-direction: row-reverse;
   }
-
-  :global([dir="rtl"]) .space-x-2 > * + * {
-    margin-right: 0.5rem;
-    margin-left: 0;
-  }
-
-
   :global([dir="rtl"]) .text-left {
     text-align: right;
   }
-
-
 </style>
