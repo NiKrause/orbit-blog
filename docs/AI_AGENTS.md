@@ -104,6 +104,7 @@ Seed phrase lifecycle is managed in `src/lib/components/LeSpaceBlog.svelte`.
 Behaviors:
 - If no `encryptedSeedPhrase` exists in `localStorage`, a new mnemonic is generated (`bip39`).
 - The user sets a password; the mnemonic is encrypted and stored to `localStorage`.
+- The same seed phrase is used to derive a deterministic OrbitDB identity (writer key) so headless agents can recreate the same writer identity and write posts without driving the UI.
 
 Reference: `src/lib/components/LeSpaceBlog.svelte:83`-`148`
 ```ts
@@ -167,6 +168,22 @@ export async function generateAndSerializeKey(seed: Uint8Array) {
   return { keyPair, hex: Buffer.from(marshalledPrivateKey).toString('hex') }
 }
 ```
+
+## Deterministic OrbitDB Identity (Writer) From Seed Phrase
+
+Posts/settings/media DBs are created with single-writer access (`write: [$identity.id]`). To allow headless agents to write posts without Playwright, the app derives the OrbitDB identity deterministically from the same seed phrase.
+
+Reference: [`src/lib/components/LeSpaceBlog.svelte`](../src/lib/components/LeSpaceBlog.svelte)
+```ts
+const masterSeed = generateMasterSeed($seedPhrase, "password", false) as Buffer
+const identitySeed = convertTo32BitSeed(masterSeed)
+const idProvider = await createIdentityProvider('ed25519', identitySeed, $helia)
+$identities = idProvider.identities
+$identity = idProvider.identity
+```
+
+Identity provider implementation:
+- [`src/lib/identityProvider.ts`](../src/lib/identityProvider.ts) (DID/ed25519 via `key-did-provider-ed25519` + `@orbitdb/identity-provider-did`)
 
 ## Helia (IPFS) Setup
 

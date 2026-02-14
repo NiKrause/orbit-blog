@@ -9,7 +9,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   import { createHelia } from 'helia';
   import { createLibp2p } from 'libp2p';
   import { createOrbitDB, IPFSAccessController } from '@orbitdb/core';
-  import { Identities } from '@orbitdb/core';
   
   import { LevelDatastore } from 'datastore-level';
   import { LevelBlockstore } from 'blockstore-level';
@@ -37,7 +36,8 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 
   import { libp2pOptions, multiaddrs } from '$lib/config.js';
   import { encryptSeedPhrase } from '$lib/cryptoUtils.js';
-  import { generateMasterSeed, generateAndSerializeKey } from '$lib/utils.js';
+  import { convertTo32BitSeed, generateMasterSeed, generateAndSerializeKey } from '$lib/utils.js';
+  import createIdentityProvider from '$lib/identityProvider.js';
   import { initHashRouter, isLoadingRemoteBlog } from '$lib/router.js';
   import { setupPeerEventListeners } from '$lib/peerConnections.js';
   import { switchToRemoteDB } from '$lib/dbUtils.js';
@@ -147,18 +147,18 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     initializeApp();
   }
 
-  async function initializeApp() {
-    if (!$seedPhrase) return;
-    
-    info('initializeApp')
-    
-    const masterSeed = generateMasterSeed($seedPhrase, "password", false) as Buffer;
-    const { hex } = await generateAndSerializeKey(masterSeed.subarray(0, 32))
-    const privKeyBuffer = uint8ArrayFromString(hex, 'hex');
-    const _keyPair = await privateKeyFromProtobuf(privKeyBuffer);
-    const _libp2p = await createLibp2p({ privateKey: _keyPair, ...libp2pOptions })
-    $libp2p = _libp2p
-    ;(window as any).libp2p=_libp2p
+	  async function initializeApp() {
+	    if (!$seedPhrase) return;
+	    
+	    info('initializeApp')
+	    
+	    const masterSeed = generateMasterSeed($seedPhrase, "password", false) as Buffer;
+	    const { hex } = await generateAndSerializeKey(masterSeed.subarray(0, 32))
+	    const privKeyBuffer = uint8ArrayFromString(hex, 'hex');
+	    const _keyPair = await privateKeyFromProtobuf(privKeyBuffer);
+	    const _libp2p = await createLibp2p({ privateKey: _keyPair, ...libp2pOptions })
+	    $libp2p = _libp2p
+	    ;(window as any).libp2p=_libp2p
     // for (const multiaddr of multiaddrs) { 
     //   try {
     //     info('dialing', multiaddr)
@@ -168,21 +168,26 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     //     warn('error dialing', err)
     //   }
     // }
-    $helia = await createHelia({ libp2p: $libp2p, datastore, blockstore }) as any
-    //     const { valid, invalid, dialable, undialable } = await validateMultiaddrs(multiaddrs, $libp2p)
-    // info('valid', valid)
-    // info('invalid', invalid)
-    // info('dialable', dialable)
-    // info('undialable', undialable)
-    $identities = await Identities({ ipfs: $helia });
-    $identity = await $identities.createIdentity({ id: 'me' });
-    
-    $orbitdb = await createOrbitDB({
-      ipfs: $helia,
-      identity: $identity,
-      storage: blockstore,
-      directory: './orbitdb',
-    })
+	    $helia = await createHelia({ libp2p: $libp2p, datastore, blockstore }) as any
+	    //     const { valid, invalid, dialable, undialable } = await validateMultiaddrs(multiaddrs, $libp2p)
+	    // info('valid', valid)
+	    // info('invalid', invalid)
+	    // info('dialable', dialable)
+	    // info('undialable', undialable)
+	    // Deterministic OrbitDB identity from the seed phrase.
+	    // This is critical for headless agents: with the same seed phrase they can recreate the same writer identity.
+	    const identitySeed = convertTo32BitSeed(masterSeed)
+	    const idProvider = await createIdentityProvider('ed25519', identitySeed, $helia)
+	    $identities = idProvider.identities
+	    $identity = idProvider.identity
+	    
+	    $orbitdb = await createOrbitDB({
+	      ipfs: $helia,
+	      identity: $identity,
+	      identities: $identities,
+	      storage: blockstore,
+	      directory: './orbitdb',
+	    })
     routerUnsubscribe = await initHashRouter();
 
     setupPeerEventListeners($libp2p);

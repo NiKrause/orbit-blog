@@ -11,7 +11,12 @@ import { createOrbitDB } from "@orbitdb/core";
  *
  * @returns {Promise<{import('@orbitdb/core').OrbitDB}>}
  */
-export const getIdentityAndCreateOrbitDB = async (type='ed25519', masterseed, helia) => {
+export const getIdentityAndCreateOrbitDB = async (
+  type = 'ed25519',
+  masterseed,
+  helia,
+  opts: { directory?: string } = {}
+) => {
     const identitySeed = convertTo32BitSeed(masterseed)
     const idProvider = await createIdentityProvider(type, identitySeed, helia)
     const _ourIdentity = idProvider.identity
@@ -20,6 +25,6 @@ export const getIdentityAndCreateOrbitDB = async (type='ed25519', masterseed, he
         ipfs: helia,
         identity: _ourIdentity,
         identities: _identities,
-        directory: './deContact' })
+        directory: opts.directory || './orbitdb' })
     return orbitdb
 }
