@@ -1,4 +1,6 @@
-import { createOrbitDB } from '@orbitdb/core'
+import { createOrbitDB, useIdentityProvider } from '@orbitdb/core'
+import OrbitDBIdentityProviderDID from '@orbitdb/identity-provider-did'
+import * as KeyDIDResolver from 'key-did-resolver'
 import { MetricsServer } from './metrics.js'
 import { log, syncLog, logSyncStats } from '../utils/logger.js'
 import { loggingConfig } from '../config/logging.js'
@@ -14,6 +16,10 @@ export class DatabaseService {
   }
 
   async initialize(ipfs) {
+    // OrbitDB relay needs to be able to verify identities from connected peers.
+    // If we don't register the 'did' provider here, access control will reject entries.
+    OrbitDBIdentityProviderDID.setDIDResolver(KeyDIDResolver.getResolver())
+    useIdentityProvider(OrbitDBIdentityProviderDID)
     this.orbitdb = await createOrbitDB({ ipfs })
   }
 

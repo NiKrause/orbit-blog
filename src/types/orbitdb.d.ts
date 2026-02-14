@@ -22,8 +22,18 @@ declare module '@orbitdb/identity-provider-ethereum' {
 }
 
 declare module '@orbitdb/identity-provider-did' {
-  export default class OrbitDBIdentityProviderDID {
-    constructor(options?: any);
-    static type: string;
+  type DIDIdentityProviderFactory = (options: { didProvider: any }) => () => Promise<{
+    type: string;
+    getId: () => Promise<string>;
+    signIdentity: (data: string) => Promise<string>;
+  }>;
+
+  interface OrbitDBIdentityProviderDIDModule extends DIDIdentityProviderFactory {
+    type: string;
+    verifyIdentity: (identity: any) => Promise<boolean>;
+    setDIDResolver: (resolver: any) => void;
   }
+
+  const OrbitDBIdentityProviderDID: OrbitDBIdentityProviderDIDModule;
+  export default OrbitDBIdentityProviderDID;
 }

@@ -25,6 +25,8 @@ export async function createIdentityProvider(type='ed25519', seed, ipfs) {
         case 'ed25519':
             const keyDidResolver = KeyDIDResolver.getResolver()
             useIdentityProvider(OrbitDBIdentityProviderDID)
+            // Required by @orbitdb/identity-provider-did for signing/verifying identities.
+            OrbitDBIdentityProviderDID.setDIDResolver(keyDidResolver)
 
             try { //TODO if masterSeed array is encrypted open decryption dialog
                 identityProvider = new Ed25519Provider(seed)
@@ -33,7 +35,8 @@ export async function createIdentityProvider(type='ed25519', seed, ipfs) {
                 // notify(`DID error ${e}`)
                 return
             }
-            identity = await identities.createIdentity({ provider: new OrbitDBIdentityProviderDID({ didProvider: identityProvider }) })
+            // OrbitDBIdentityProviderDID is a factory function (not a class constructor).
+            identity = await identities.createIdentity({ provider: OrbitDBIdentityProviderDID({ didProvider: identityProvider }) })
             break;
         case 'ethereum':
             //TODO Implementing an Ethereum Provider
