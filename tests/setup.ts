@@ -12,6 +12,7 @@ let relayProcess: ChildProcess | null = null;
 const RELAY_TCP_PORT = 19091
 const RELAY_WS_PORT = 19092
 const RELAY_WEBRTC_PORT = 19093
+const RELAY_CLI_PATH = 'packages/orbitdb-relay-pinner/dist/cli.js'
 
 function pipeChildOutput(child: ChildProcess, prefix: string) {
     const write = (stream: NodeJS.WriteStream, data: Buffer) => {
@@ -77,17 +78,17 @@ async function waitForRelay(timeoutMs = 10000): Promise<boolean> {
 
 async function ensureRelayBuilt() {
     try {
-        await access('dist/relay/index.js', constants.F_OK);
+        await access(RELAY_CLI_PATH, constants.F_OK);
         return;
     } catch {
         // fall through
     }
 
-    console.log('Relay build output missing (dist/relay/index.js). Building relay...');
+    console.log(`Relay build output missing (${RELAY_CLI_PATH}). Building orbitdb-relay-pinner...`);
     const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 
     await new Promise<void>((resolve, reject) => {
-        const child = spawn(npmCmd, ['run', 'build:relay'], {
+        const child = spawn(npmCmd, ['--prefix', 'packages/orbitdb-relay-pinner', 'run', 'build'], {
             stdio: 'inherit',
             env: process.env
         });
@@ -110,8 +111,8 @@ export async function setupTestEnvironment() {
         // Start relay server with ES modules support
         console.log('Starting relay server...');
         await ensureRelayBuilt();
-        // Run the compiled relay (src uses TS modules that Node can't import directly).
-        relayProcess = spawn('node', ['dist/relay/index.js', '--test'], {
+        // Run the packaged relay CLI (used by other projects/agents, and by e2e here).
+        relayProcess = spawn('node', [RELAY_CLI_PATH, '--test'], {
             stdio: ['inherit', 'pipe', 'pipe'],
             env: {
                 ...process.env,
