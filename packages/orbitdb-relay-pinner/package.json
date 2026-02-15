@@ -20,10 +20,11 @@
     }
   },
   "bin": {
-    "orbitdb-relay-pinner": "./dist/cli.js"
+    "orbitdb-relay-pinner": "dist/cli.js"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json && node scripts/add-shebang.mjs",
+    "prepack": "npm run build"
   },
   "dependencies": {
     "@chainsafe/libp2p-gossipsub": "^14.1.1",

@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import 'dotenv/config'
 import { startRelay } from './relay.js'
 
@@ -27,4 +28,3 @@ main().catch((err) => {
   console.error(err)
   process.exit(1)
 })
-
