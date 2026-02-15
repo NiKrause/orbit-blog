@@ -1,7 +1,7 @@
 {
   "name": "orbitdb-relay-pinner",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "type": "module",
   "description": "OrbitDB relay + pinning/sync service for Helia/libp2p stacks.",
   "license": "MIT",
@@ -9,7 +9,8 @@
     "node": ">=22"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "main": "./dist/index.js",
   "exports": {
@@ -57,4 +58,3 @@
     "typescript": "^5.8.3"
   }
 }
-
