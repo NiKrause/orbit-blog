@@ -12,7 +12,11 @@ let relayProcess: ChildProcess | null = null;
 const RELAY_TCP_PORT = 19091
 const RELAY_WS_PORT = 19092
 const RELAY_WEBRTC_PORT = 19093
-const RELAY_CLI_PATH = 'packages/orbitdb-relay-pinner/dist/cli.js'
+
+function getRelayBinPath() {
+    const binName = process.platform === 'win32' ? 'orbitdb-relay-pinner.cmd' : 'orbitdb-relay-pinner'
+    return join(process.cwd(), 'node_modules', '.bin', binName)
+}
 
 function pipeChildOutput(child: ChildProcess, prefix: string) {
     const write = (stream: NodeJS.WriteStream, data: Buffer) => {
@@ -77,27 +81,8 @@ async function waitForRelay(timeoutMs = 10000): Promise<boolean> {
 }
 
 async function ensureRelayBuilt() {
-    try {
-        await access(RELAY_CLI_PATH, constants.F_OK);
-        return;
-    } catch {
-        // fall through
-    }
-
-    console.log(`Relay build output missing (${RELAY_CLI_PATH}). Building orbitdb-relay-pinner...`);
-    const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-
-    await new Promise<void>((resolve, reject) => {
-        const child = spawn(npmCmd, ['--prefix', 'packages/orbitdb-relay-pinner', 'run', 'build'], {
-            stdio: 'inherit',
-            env: process.env
-        });
-        child.on('error', reject);
-        child.on('exit', (code) => {
-            if (code === 0) resolve();
-            else reject(new Error(`Failed to build relay (exit code ${code})`));
-        });
-    });
+    const binPath = getRelayBinPath()
+    await access(binPath, constants.F_OK)
 }
 
 export async function setupTestEnvironment() {
@@ -111,8 +96,9 @@ export async function setupTestEnvironment() {
         // Start relay server with ES modules support
         console.log('Starting relay server...');
         await ensureRelayBuilt();
-        // Run the packaged relay CLI (used by other projects/agents, and by e2e here).
-        relayProcess = spawn('node', [RELAY_CLI_PATH, '--test'], {
+        const relayBinPath = getRelayBinPath()
+        // Run the published relay CLI from node_modules (source lives in NiKrause/orbitdb-relay-pinner).
+        relayProcess = spawn(relayBinPath, ['--test'], {
             stdio: ['inherit', 'pipe', 'pipe'],
             env: {
                 ...process.env,
