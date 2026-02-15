@@ -14,10 +14,7 @@ This document maps the core features of this repo to the actual source code so a
 | Settings DB schema (pointers to sub-DBs) | [`src/lib/components/LeSpaceBlog.svelte`](../src/lib/components/LeSpaceBlog.svelte) | [`src/lib/components/DBManager.svelte`](../src/lib/components/DBManager.svelte) |
 | Replication events and reactive UI updates | [`src/lib/components/LeSpaceBlog.svelte`](../src/lib/components/LeSpaceBlog.svelte) | [`src/lib/dbUtils.ts`](../src/lib/dbUtils.ts) |
 | Peer UI (transports, WebRTC detection, dial/disconnect) | [`src/lib/components/ConnectedPeers.svelte`](../src/lib/components/ConnectedPeers.svelte) | [`src/lib/components/PeersList.svelte`](../src/lib/components/PeersList.svelte) |
-| Relay / pinning service (node) | [`src/relay/index.js`](../src/relay/index.js) | [`src/relay/services/storage.ts`](../src/relay/services/storage.ts) |
-| Relay libp2p config (TCP/WS/WebRTC-direct, relay server, pubsub discovery) | [`src/relay/config/libp2p.ts`](../src/relay/config/libp2p.ts) | [`src/relay/events/handlers.js`](../src/relay/events/handlers.js) |
-| Relay OrbitDB “sync + log pointers” service | [`src/relay/services/database.js`](../src/relay/services/database.js) | [`src/relay/utils/logger.js`](../src/relay/utils/logger.js) |
-| Relay metrics server (safe to disable, port collision handling) | [`src/relay/services/metrics.js`](../src/relay/services/metrics.js) | [`src/relay/config/logging.js`](../src/relay/config/logging.js) |
+| Relay / pinning service (node; external npm package) | [`package.json`](../package.json) | [`tests/setup.ts`](../tests/setup.ts) |
 
 ## Architecture (High Level)
 
@@ -350,155 +347,18 @@ function getTransportFromMultiaddr(conn: Connection): string {
 }
 ```
 
-## Relay / Pinning Service (Node)
+## Relay / Pinning Service (Node; via npm)
 
-Relay entry point: `src/relay/index.js`.
+This repo does not ship the relay implementation anymore. Dev, CI, and e2e tests run the relay via the external npm package `orbitdb-relay-pinner`.
 
-Key behaviors:
-- Initializes persistent storage under `./orbitdb/pinning-service/...`
-- Uses deterministic key in `--test` mode via `TEST_PRIVATE_KEY`.
-- Starts libp2p + Helia + OrbitDB service and subscribes to OrbitDB pubsub.
+Where it is started:
+- Local dev: `package.json` scripts (`relay`, `relay:test`, `relay:verbose`, etc).
+- Playwright e2e: `tests/setup.ts` spawns `node_modules/.bin/orbitdb-relay-pinner` with `--test`.
+- CI: `.github/workflows/test.yml` starts `npm run relay:test` before Mocha.
 
-Reference: `src/relay/index.js:19`-`47`
-```js
-const storage = await initializeStorage('./orbitdb/pinning-service')
-const datastore = storage.datastore
-const blockstore = storage.blockstore
-
-if (isTestMode) {
-  privateKey = privateKeyFromProtobuf(uint8ArrayFromString(TEST_PRIVATE_KEY, 'hex'))
-} else {
-  privateKey = storage.privateKey
-}
-
-const libp2p = await createLibp2p(createLibp2pConfig(privateKey, datastore))
-const ipfs = await createHelia({ libp2p, datastore, blockstore })
-```
-
-### What The Relay Actually “Pins”
-
-In this repo, “pinning service” means the relay runs a long-lived Helia node with a persistent LevelDB-backed datastore/blockstore. Any blocks it fetches during normal operation remain on disk under the storage directory.
-
-Reference: `src/relay/services/storage.ts:26`-`35`
-- Datastore path: `./orbitdb/pinning-service/ipfs/data`
-- Blockstore path: `./orbitdb/pinning-service/ipfs/blocks`
-
-This is enough to persist OrbitDB replication data (log/heads/entries) that the relay observes and opens via OrbitDB topics.
-
-### Media (IPFS CID) Pinning Status
-
-The relay currently:
-- Replicates the **media metadata** database (`media` OrbitDB) the same way it replicates posts/comments (it can open it if it learns its address via `mediaDBAddress` in settings).
-- Logs whether `mediaDBAddress` exists in the settings DB.
-
-Reference: `src/relay/services/database.js:324`-`364` (settings pointer logging)
-
-The relay does **not** currently:
-- Traverse the media DB records, extract each `cid`, and proactively fetch the corresponding UnixFS blocks (true “media pinning” behavior).
-
-Media upload and retrieval in the browser works like this:
-- Upload: add bytes to IPFS via UnixFS, then store the resulting CID in the `media` OrbitDB DB.
-  - Reference: `src/lib/components/MediaUploader.svelte:134`-`146`
-  - `const cid = await fs.addBytes(fileBytes)`
-  - `await $mediaDB.put({ ..., cid: cid.toString() })`
-- View: fetch bytes via `fs.cat(cid)` (which pulls blocks into the local Helia blockstore of that peer).
-  - Reference: `src/lib/components/MediaUploader.svelte:36`-`62`
-  - Reference: `src/lib/components/MediaManager.svelte:45`-`65`
-
-If you want the relay to pin media content (not just replicate metadata), you need an additional relay job that:
-1. Opens the media DB address from settings (`mediaDBAddress`).
-2. Reads all media records, extracts their `cid`s.
-3. Fetches each CID via UnixFS (e.g. `unixfs(ipfs).cat(cid)`), so blocks are pulled into `./orbitdb/pinning-service/ipfs/blocks`.
-
-### Relay Key Persistence
-
-The relay stores an ed25519 private key inside its Level datastore at `/le-space/relay/private-key`.
-
-Reference: `src/relay/services/storage.ts:8`-`24`
-```ts
-const key = new Key('/le-space/relay/private-key')
-const bytes = await datastore.get(key)
-return privateKeyFromProtobuf(bytes)
-// else generate and datastore.put(key, privateKeyToProtobuf(privateKey))
-```
-
-### Relay libp2p Config
-
-The relay listens on TCP + WS + WebRTC-direct and runs a circuit relay server.
-
-Reference: `src/relay/config/libp2p.ts:40`-`129`
-```ts
-export const createLibp2pConfig = (privateKey, datastore) => ({
-  privateKey,
-  datastore,
-  addresses: { listen: [`/ip4/0.0.0.0/tcp/${RELAY_TCP_PORT}`, `/ip4/0.0.0.0/tcp/${RELAY_WS_PORT}/ws`, `/ip4/0.0.0.0/udp/${RELAY_WEBRTC_PORT}/webrtc-direct`] },
-  transports: [circuitRelayTransport(), tcp(), webRTC(), webRTCDirect(), webSockets()],
-  services: {
-    relay: circuitRelayServer({ reservations: { maxReservations: 1000 } }),
-    pubsub: gossipsub({ allowPublishToZeroTopicPeers: true })
-  }
-})
-```
-
-### Relay “OrbitDB Topic -> Open DB -> Log Counts + Pointers”
-
-The relay watches pubsub traffic and reacts when topics start with `/orbitdb/`.
-
-Reference: `src/relay/events/handlers.js:74`-`85`
-```js
-const pubsubMessageHandler = (event) => {
-  const msg = event.detail
-  if (msg.topic && msg.topic.startsWith('/orbitdb/')) {
-    syncQueue.add(() => databaseService.syncAllOrbitDBRecords(msg.topic))
-  }
-}
-libp2p.services.pubsub.addEventListener('message', pubsubMessageHandler)
-```
-
-The core “pinning” behavior is `DatabaseService.syncAllOrbitDBRecords()` which opens the DB and inspects records.
-
-Reference: `src/relay/services/database.js:59`-`171`
-```js
-db = await this.orbitdb.open(dbAddress)
-const records = await db.all()
-if (dbType === 'settings') {
-  await this.handleSettingsDatabase(db, records)
-}
-```
-
-Settings pointer verification and logging is in `handleSettingsDatabase()`:
-
-Reference: `src/relay/services/database.js:324`-`364`
-```js
-const postsDBRecord = records.find(record => record.key === 'postsDBAddress')
-if (postsDBRecord?.value?.value) {
-  const postsDB = await this.orbitdb.open(postsDBRecord.value.value)
-  const postsRecords = await postsDB.all()
-  await postsDB.close()
-} else {
-  syncLog('postsDBAddress missing in settings DB')
-}
-```
-
-If you need to confirm pointer storage, the relay logs:
-- `settings keys present: [...]`
-- `postsDBAddress (from settings): ...`
-
-### Relay Metrics Server
-
-The relay exposes `/metrics` and is designed to never crash the process on port collisions.
-
-Reference: `src/relay/services/metrics.js:38`-`81`
-```js
-if (err?.code === 'EADDRINUSE' && p !== 0) {
-  listen(0).then(resolve) // fallback to ephemeral port
-  return
-}
-```
-
-Disable metrics for headless environments:
-- `METRICS_DISABLED=true`
-- Or set `METRICS_PORT=0` to bind an ephemeral port.
+Operational notes:
+- The relay still needs the blog settings pointers to exist: `postsDBAddress`, `commentsDBAddress`, `mediaDBAddress`. Those pointers are created by the app in `src/lib/components/LeSpaceBlog.svelte`.
+- CI disables metrics port collisions via `METRICS_PORT=0` (see `.github/workflows/test.yml` and `tests/setup.ts`).
 
 ## “Copy This” Checklist For Agents
 
@@ -508,7 +368,7 @@ If you are porting this system, the minimum set of moving parts that must remain
 `src/lib/components/LeSpaceBlog.svelte` derives libp2p private key from mnemonic seed. If you change this derivation, peer IDs change and sharing/debugging becomes harder.
 
 2. Settings DB pointers.
-Other peers and the relay depend on `postsDBAddress`, `commentsDBAddress`, `mediaDBAddress` being present in settings. See `src/lib/components/LeSpaceBlog.svelte` and `src/relay/services/database.js`.
+Other peers and the relay depend on `postsDBAddress`, `commentsDBAddress`, `mediaDBAddress` being present in settings. See `src/lib/components/LeSpaceBlog.svelte`.
 
 3. libp2p discovery alignment.
 Browser and relay need to agree on seed nodes and pubsub discovery topics (`VITE_SEED_NODES*`, `VITE_P2P_PUPSUB*`).

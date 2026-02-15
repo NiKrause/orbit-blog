@@ -37,7 +37,6 @@ jobs:
         VITE_P2P_PUPSUB_DEV: todo._peer-discovery._p2p._pubsub
         VITE_P2P_PUPSUB: todo._peer-discovery._p2p._pubsub
       run: |
-       npm run build:relay
        npm run relay:test &
        RELAY_PID=$!
        trap "kill $RELAY_PID" EXIT
@@ -46,6 +45,5 @@ jobs:
 
     - name: Run e2e tests
       run: |
-        npm run build:relay
         # Playwright config starts the Vite dev server, and globalSetup starts the relay.
         DEBUG=playwright:* npm run test:e2e

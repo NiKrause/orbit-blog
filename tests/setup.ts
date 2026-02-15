@@ -33,7 +33,7 @@ async function waitForRelay(timeoutMs = 10000): Promise<boolean> {
     const readyMarkers = [
         // Might be logged via debug-style logger (can be disabled)
         'Starting relay server',
-        // Always printed via console.log in dist/relay/index.js after libp2p starts
+        // Always printed by the relay CLI after libp2p starts
         'p2p addr:'
     ];
     
