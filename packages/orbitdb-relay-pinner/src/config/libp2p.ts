@@ -35,6 +35,11 @@ const RELAY_DISABLE_IPV6 = process.env.RELAY_DISABLE_IPV6 === 'true' || process.
 const RELAY_DISABLE_WEBRTC =
   process.env.RELAY_DISABLE_WEBRTC === 'true' || process.env.RELAY_DISABLE_WEBRTC === '1'
 
+const PUBSUB_TOPICS = (process.env.PUBSUB_TOPICS || process.env.VITE_PUBSUB_TOPICS || 'todo._peer-discovery._p2p._pubsub')
+  .split(',')
+  .map((t) => t.trim())
+  .filter(Boolean)
+
 export const createLibp2pConfig = (privateKey: PrivateKey, datastore: Datastore) =>
   ({
   privateKey,
@@ -59,7 +64,7 @@ export const createLibp2pConfig = (privateKey: PrivateKey, datastore: Datastore)
   peerDiscovery: [
     pubsubPeerDiscovery({
       interval: 5000,
-      topics: ['todo._peer-discovery._p2p._pubsub'],
+      topics: PUBSUB_TOPICS,
       listenOnly: false,
     }),
   ],

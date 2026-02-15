@@ -20,16 +20,18 @@ export type RelayRuntime = {
 
 export async function startRelay(opts: RelayOptions = {}): Promise<RelayRuntime> {
   const isTestMode = Boolean(opts.testMode)
-  const storageDir = opts.storageDir || './orbitdb/pinning-service'
+  const storageDir =
+    opts.storageDir || process.env.DATASTORE_PATH || process.env.RELAY_DATASTORE_PATH || './orbitdb/pinning-service'
 
   const storage = await initializeStorage(storageDir)
   const { blockstore, datastore } = storage
 
   let privateKey = storage.privateKey
   if (isTestMode) {
-    const hex = process.env.TEST_PRIVATE_KEY
-    if (!hex) throw new Error('Missing TEST_PRIVATE_KEY in --test mode')
-    privateKey = privateKeyFromProtobuf(uint8ArrayFromString(hex, 'hex'))
+    const hex = process.env.TEST_PRIVATE_KEY || process.env.RELAY_PRIV_KEY
+    if (hex) {
+      privateKey = privateKeyFromProtobuf(uint8ArrayFromString(hex, 'hex'))
+    }
   }
 
   const libp2p = await createLibp2p(createLibp2pConfig(privateKey, datastore))
@@ -44,6 +46,8 @@ export async function startRelay(opts: RelayOptions = {}): Promise<RelayRuntime>
   metricsServer.start()
 
   // Important: Playwright setup waits for this marker.
+  // eslint-disable-next-line no-console
+  console.log(`Relay PeerId: ${libp2p.peerId.toString()}`)
   // eslint-disable-next-line no-console
   console.log('p2p addr: ', libp2p.getMultiaddrs().map((ma) => ma.toString()))
 
@@ -79,4 +83,3 @@ export async function startRelay(opts: RelayOptions = {}): Promise<RelayRuntime>
     },
   }
 }
-
