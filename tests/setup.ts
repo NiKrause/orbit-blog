@@ -108,10 +108,8 @@ export async function setupTestEnvironment() {
                 RELAY_TCP_PORT: String(RELAY_TCP_PORT),
                 RELAY_WS_PORT: String(RELAY_WS_PORT),
                 RELAY_WEBRTC_PORT: String(RELAY_WEBRTC_PORT),
-                // The Node relay's WebRTC stack binds UDP sockets. In some environments (local sandboxing,
-                // CI runners, parallel jobs) this can flake or be disallowed. The webapp connects to the
-                // relay over WebSockets for tests, so keep the relay WS-only here.
-                RELAY_DISABLE_WEBRTC: 'true',
+                // Keep WebRTC enabled so browser peers can establish direct connections in e2e.
+                RELAY_DISABLE_WEBRTC: 'false',
                 // Prevent CI flakes from port collisions (e.g. 9090 already bound on runners).
                 METRICS_PORT: '0',
 

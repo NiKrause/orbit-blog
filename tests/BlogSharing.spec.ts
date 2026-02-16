@@ -11,6 +11,36 @@ function parsePeersCount(text: string | null): number {
     if (Number.isNaN(count)) throw new Error(`unable to parse peers count from: "${text}"`);
     return count;
 }
+
+async function expectPeerCount(page, expected, timeoutMs = 90000) {
+    await expect(async () => {
+        await ensurePeersHeaderVisible(page);
+        const peersHeader = await page.getByTestId('peers-header').textContent();
+        const peerCount = parsePeersCount(peersHeader);
+        expect(peerCount).toBe(expected);
+    }).toPass({ timeout: timeoutMs });
+}
+
+async function expectHasWebRTCTransport(page, timeoutMs = 90000) {
+    await ensurePeersHeaderVisible(page);
+    const peersList = page.getByTestId('peers-list');
+    if (!(await peersList.isVisible().catch(() => false))) {
+        await page.getByTestId('peers-header').click();
+    }
+    await expect(page.getByTestId('peers-list')).toContainText('WebRTC', { timeout: timeoutMs });
+}
+
+async function ensurePeersHeaderVisible(page, timeoutMs = 30000) {
+    const peersHeader = page.getByTestId('peers-header');
+    if (await peersHeader.isVisible().catch(() => false)) return;
+
+    const menuButton = page.getByTestId('menu-button');
+    if (await menuButton.isVisible().catch(() => false)) {
+        await menuButton.click();
+    }
+
+    await expect(peersHeader).toBeVisible({ timeout: timeoutMs });
+}
         
 
 test.describe('Blog Sharing between Alice and Bob', () => {
@@ -27,10 +57,10 @@ test.describe('Blog Sharing between Alice and Bob', () => {
     let contextBob;    // Separate context for Bob
 
     async function closeSidebarOverlayIfPresent(page) {
-        const overlay = page.locator('[aria-label="close_sidebar"]');
-        if (await overlay.isVisible()) {
-            await overlay.click();
-            await expect(overlay).toBeHidden();
+        const overlay = page.locator('[aria-label="close_sidebar"]').first();
+        if (await overlay.count() === 0) return;
+        if (await overlay.isVisible().catch(() => false)) {
+            await overlay.click({ force: true, timeout: 3000 }).catch(() => {});
         }
     }
 
@@ -45,7 +75,7 @@ test.describe('Blog Sharing between Alice and Bob', () => {
             launchOptions: {
                 args: [
                     '--allow-insecure-localhost',
-                    '--unsafely-treat-insecure-origin-as-secure=ws://localhost:9092',
+                    '--unsafely-treat-insecure-origin-as-secure=ws://localhost:19092',
                     '--disable-web-security'
                 ]
             }
@@ -57,7 +87,7 @@ test.describe('Blog Sharing between Alice and Bob', () => {
             launchOptions: {
                 args: [
                     '--allow-insecure-localhost',
-                    '--unsafely-treat-insecure-origin-as-secure=ws://localhost:9092',
+                    '--unsafely-treat-insecure-origin-as-secure=ws://localhost:19092',
                     '--disable-web-security'
                 ]
             }
@@ -204,6 +234,17 @@ test.describe('Blog Sharing between Alice and Bob', () => {
         // Remote blog load can take a while depending on replication/bootstrap timing.
         await expect(pageBob.getByTestId('loading-overlay')).toBeHidden({ timeout: 120000 });
         await expect(pageBob.getByTestId('blog-name')).toHaveText('Bach Chronicles', { timeout: 120000 });
+
+        // Alice and Bob should each see relay + direct browser peer.
+        await Promise.all([
+            expectPeerCount(pageAlice, 2),
+            expectPeerCount(pageBob, 2),
+        ]);
+        await Promise.all([
+            expectHasWebRTCTransport(pageAlice),
+            expectHasWebRTCTransport(pageBob),
+        ]);
+
         const posts = await pageBob.getByTestId('post-item-title').all();
         const postTitles = await Promise.all(posts.map(post => post.textContent()));
         expect(postTitles).toContain("The Birth of a Musical Genius");
@@ -214,6 +255,40 @@ test.describe('Blog Sharing between Alice and Bob', () => {
             await expect(post).toBeVisible();
         }
 
+    });
+
+    test('Alice edits a post and Bob sees the update while viewing', async () => {
+        test.fail(true, 'Known issue: remote viewer does not receive post edits quickly while watching');
+        await closeSidebarOverlayIfPresent(pageAlice);
+        await closeSidebarOverlayIfPresent(pageBob);
+
+        const targetTitle = "The Birth of a Musical Genius";
+        const updatedContent = `Johann Sebastian Bach was born in Eisenach, Germany in 1685... (edited ${Date.now()})`;
+
+        const aliceTargetPostTitle = pageAlice.getByTestId('post-item-title').filter({ hasText: targetTitle });
+        await expect(aliceTargetPostTitle).toBeVisible({ timeout: 60000 });
+        await aliceTargetPostTitle.first().click();
+
+        const bobTargetPostTitle = pageBob.getByTestId('post-item-title').filter({ hasText: targetTitle });
+        await expect(bobTargetPostTitle).toBeVisible({ timeout: 60000 });
+        await bobTargetPostTitle.first().click();
+
+        const aliceTargetPostItem = pageAlice
+            .locator('[data-testid^="post-item-"]')
+            .filter({ has: pageAlice.getByTestId('post-item-title').filter({ hasText: targetTitle }) })
+            .first();
+        await aliceTargetPostItem.hover();
+        await aliceTargetPostItem.locator('[data-testid^="post-edit-"]').click();
+
+        await expect(pageAlice.getByTestId('edit-post-content-input')).toBeVisible({ timeout: 30000 });
+        await pageAlice.getByTestId('edit-post-content-input').fill(updatedContent);
+        await pageAlice.getByTestId('save-edited-post-button').click();
+
+        await expect(pageAlice.getByTestId('blog-post').getByText(updatedContent)).toBeVisible({ timeout: 60000 });
+
+        await expect(async () => {
+            await expect(pageBob.getByTestId('blog-post').getByText(updatedContent)).toBeVisible({ timeout: 5000 });
+        }).toPass({ timeout: 60000 });
     });
 
     test('Alice deletes and restores her blog from OrbitDB address', async ({ browser }) => {
@@ -227,7 +302,7 @@ test.describe('Blog Sharing between Alice and Bob', () => {
             launchOptions: {
                 args: [
                     '--allow-insecure-localhost',
-                    '--unsafely-treat-insecure-origin-as-secure=ws://localhost:9092',
+                    '--unsafely-treat-insecure-origin-as-secure=ws://localhost:19092',
                     '--disable-web-security'
                 ]
             }

@@ -24,7 +24,7 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
   import LanguageStatusLED from './LanguageStatusLED.svelte';
   import { encryptPost } from '$lib/cryptoUtils.js';
   import PostPasswordPrompt from './PostPasswordPrompt.svelte';
-  import { info, error } from '../utils/logger.js'
+  import { info, error as logError } from '../utils/logger.js'
   import MultiSelect from './MultiSelect.svelte';
   import { MarkdownImportResolver } from '$lib/services/MarkdownImportResolver.js';
   import MarkdownHelp from './MarkdownHelp.svelte';
@@ -255,16 +255,27 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
         
         // Support both single category (backward compatibility) and multiple categories
         const categoryData = editedCategories.length > 0 ? editedCategories : [];
+
+        const createdAtInputTs = new Date(editedCreatedAt).getTime();
+        const updatedAtInputTs = new Date(editedUpdatedAt).getTime();
+        const createdAtTs = Number.isFinite(createdAtInputTs)
+          ? createdAtInputTs
+          : (selectedPost.createdAt ?? selectedPost.date ?? Date.now());
+        const updatedAtTs = Number.isFinite(updatedAtInputTs)
+          ? updatedAtInputTs
+          : Date.now();
         
-        let updatedPost: Partial<Post> = {
-          _id: $selectedPostId,
+        let updatedPost: Post = {
+          ...selectedPost,
+          _id: selectedPost._id,
           title: editedTitle,
           content: editedContent,
-          language: $locale,
-          category: categoryData.length === 1 ? categoryData[0] : categoryData[0] || '', // Keep single category for backward compatibility
-          categories: categoryData, // New field for multiple categories
-          createdAt: new Date(editedCreatedAt).getTime(),
-          updatedAt: new Date(editedUpdatedAt).getTime(),
+          language: selectedPost.language || $locale,
+          category: categoryData.length === 1 ? categoryData[0] : categoryData[0] || '',
+          categories: categoryData,
+          createdAt: createdAtTs,
+          updatedAt: updatedAtTs,
+          date: selectedPost.date ?? createdAtTs,
           identity: $identity.id,
           mediaIds: selectedMedia,
           published: editedPublished
@@ -292,8 +303,9 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
         isEncrypting = false;
         encryptionPassword = '';
         $selectedPostId = updatedPost._id;
-      } catch (_error) {
-        error('Error updating post:', error);
+      } catch (err) {
+        logError('Error updating post:', err);
+        console.error('Error updating post:', err);
       }
     }
   }
@@ -341,8 +353,9 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
       showDeleteConfirm = false;
       postToDelete = null;
       deleteAllTranslations = false; // Reset the choice
-    } catch (error) {
-      error('Error deleting posts:', error);
+    } catch (err) {
+      logError('Error deleting posts:', err);
+      console.error('Error deleting posts:', err);
     }
   }
 
@@ -843,6 +856,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
                   type="text"
                   bind:value={editedTitle}
                   class="input"
+                  data-testid="edit-post-title-input"
                   required
                 />
               </div>
@@ -936,6 +950,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
                     rows="10"
                     class="input"
                     style="min-height: 200px;"
+                    data-testid="edit-post-content-input"
                     required
                     placeholder={$_('markdown_placeholder')}
                   ></textarea>
@@ -1042,6 +1057,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
                 <button
                   type="button"
                   onclick={saveEditedPost}
+                  data-testid="save-edited-post-button"
                   class="btn-primary"
                 >
                   {$_('save_changes')}

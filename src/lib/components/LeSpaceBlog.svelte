@@ -574,15 +574,16 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     // Create new event listener
     postsDBUpdateListener = async (entry) => {
       info('Posts database update:', entry);
-      if (entry?.payload?.op === 'PUT') {
-        // Add or update the post in the store
-        $posts = [...$posts.filter(p => p._id !== entry.payload.value._id), {
-          ...entry.payload.value,
-          identity: entry.payload.value.identity || entry.identity?.id
-        }];
-      } else if (entry?.payload?.op === 'DEL') {
-        // Remove the post from the store
-        $posts = $posts.filter(p => p._id !== entry.payload.key);
+      try {
+        // Re-read the full documents set to reliably reflect both local writes
+        // and replicated remote writes.
+        const allPosts = await $postsDB.all();
+        $posts = allPosts.map(doc => ({
+          ...doc.value,
+          identity: doc.value.identity || doc.identity?.id
+        }));
+      } catch (err) {
+        warn('Error refreshing posts after update event:', err);
       }
     };
     
