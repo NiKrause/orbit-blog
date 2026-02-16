@@ -106,6 +106,7 @@ export default defineConfig(({ command, mode }) => {
         path: 'path-browserify',
         'node:path': 'path-browserify',
         buffer: 'buffer/',
+        'unenv/node/buffer': 'buffer/',
         'safe-buffer': 'safe-buffer',
         // Avoid esbuild "direct-eval" warning from protobufjs optional dependency resolver.
         // In the browser bundle we don't need Node-style runtime requires for optional deps.
