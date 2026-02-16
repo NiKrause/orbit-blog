@@ -153,12 +153,14 @@ function updateRenderedContent(): void {
    */
   async function loadComments(): Promise<void> {
     if (!$commentsDB) return;
+    const activePostId = post?._id || $selectedPostId;
+    if (!activePostId) return;
     
     try {
       const allComments = await $commentsDB.all();
       comments = allComments
         .map(entry => entry.value)
-        .filter(comment => comment.postId === post._id);
+        .filter(comment => comment.postId === activePostId);
     } catch (_error) {
       error('Error loading comments:', _error);
     }
@@ -169,12 +171,14 @@ function updateRenderedContent(): void {
    */
   async function addComment(): Promise<void> {
     if (!newComment.trim() || !commentAuthor.trim() || !$commentsDB) return;
+    const activePostId = post?._id || $selectedPostId;
+    if (!activePostId) return;
     
     try {
       const _id = crypto.randomUUID();
       await $commentsDB.put({
         _id,
-        postId: post._id,
+        postId: activePostId,
         content: newComment,
         author: commentAuthor,
         createdAt: new Date().toISOString()
@@ -201,43 +205,60 @@ function updateRenderedContent(): void {
   // updateRenderedContent is already called in onMount and the selectedPostId effect
 
   $effect(() => {
-    if ($selectedPostId) {
-      // Async operations should be wrapped in an IIFE
-      (async () => {
-        const post = await $postsDB.get($selectedPostId);
-        info('post', post);
-        if (post) {
-          title = post.value.title;
-          content = post.value.content;
-          category = post.value.category;
-          selectedMedia = post.value.mediaIds || [];
-          info('post', post);
-          isEncrypted = post.value.isEncrypted || isEncryptedPost({ title, content });
-          info('isEncryptedPost function', isEncryptedPost({ title, content }));
-          info('isEncrypted', isEncrypted);
-          if (isEncrypted) {
-            showPasswordPrompt = true;
-          } else {
-            // Update rendered content when not encrypted
-            updateRenderedContent();
+    if (!$selectedPostId) return;
+
+    let isDisposed = false;
+    let commentsUpdateHandler: ((entry: any) => Promise<void>) | null = null;
+
+    // Async operations should be wrapped in an IIFE
+    (async () => {
+      const postEntry = await $postsDB.get($selectedPostId);
+      info('post', postEntry);
+      if (!postEntry || isDisposed) return;
+
+      const activePostId = postEntry.value?._id || postEntry.key || $selectedPostId;
+
+      title = postEntry.value.title;
+      content = postEntry.value.content;
+      category = postEntry.value.category;
+      selectedMedia = postEntry.value.mediaIds || [];
+      info('post', postEntry);
+      isEncrypted = postEntry.value.isEncrypted || isEncryptedPost({ title, content });
+      info('isEncryptedPost function', isEncryptedPost({ title, content }));
+      info('isEncrypted', isEncrypted);
+      if (isEncrypted) {
+        showPasswordPrompt = true;
+      } else {
+        // Update rendered content when not encrypted
+        updateRenderedContent();
+      }
+
+      if ($commentsDB) {
+        await loadComments();
+
+        commentsUpdateHandler = async (entry) => {
+          if (isDisposed) return;
+
+          if (entry?.payload?.op === 'PUT') {
+            const comment = entry.payload.value;
+            if (comment?.postId === activePostId) {
+              await loadComments();
+            }
+          } else if (entry?.payload?.op === 'DEL') {
+            await loadComments();
           }
-          if ($commentsDB) {
-            loadComments();
-            
-            $commentsDB.events.on('update', async (entry) => {
-              if (entry?.payload?.op === 'PUT') {
-                const comment = entry.payload.value;
-                if (comment.postId === post._id) {
-                  await loadComments();
-                }
-              } else if (entry?.payload?.op === 'DEL') {
-                await loadComments();
-              }
-            });
-          }
-        }
-      })();
-    }
+        };
+
+        $commentsDB.events.on('update', commentsUpdateHandler);
+      }
+    })();
+
+    return () => {
+      isDisposed = true;
+      if (commentsUpdateHandler && $commentsDB) {
+        $commentsDB.events.removeListener('update', commentsUpdateHandler);
+      }
+    };
   });
 
 
