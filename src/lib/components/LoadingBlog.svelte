@@ -44,8 +44,8 @@
     {#if loadingState.detail}
       <p class="loading-detail">{loadingState.detail}</p>
     {/if}
-    <div class="progress-container">
-      <div class="progress-bar" style="width: {loadingState.progress}%" data-testid="progress-bar"></div>
+    <div class="progress-track">
+      <div class="progress-fill" style="width: {loadingState.progress}%" data-testid="progress-bar"></div>
     </div>
     <p class="version-text">{$reactiveVersionString}</p>
   </div>
@@ -58,96 +58,63 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.7);
+    background-color: rgba(0, 0, 0, 0.6);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
-    backdrop-filter: blur(5px);
+    backdrop-filter: blur(8px);
   }
 
   .loading-container {
-    background-color: #fff;
+    background-color: var(--bg);
+    border: 1px solid var(--border);
     border-radius: 8px;
     padding: 2rem;
     width: 90%;
-    max-width: 500px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    max-width: 420px;
+    box-shadow: var(--shadow-lg);
     text-align: center;
   }
 
   .loading-title {
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
-    color: #333;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--text);
   }
 
   .loading-message {
-    margin-bottom: 2rem;
-    color: #666;
+    font-size: 0.8rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-secondary);
   }
 
-  .progress-container {
-    height: 8px;
-    background-color: #eee;
-    border-radius: 4px;
+  .progress-track {
+    height: 3px;
+    background-color: var(--bg-tertiary);
+    border-radius: 2px;
     overflow: hidden;
     margin-bottom: 1rem;
   }
 
-  .progress-bar {
+  .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #4f46e5, #818cf8);
+    background-color: var(--accent);
     transition: width 0.3s ease-in-out;
-    border-radius: 4px;
+    border-radius: 2px;
   }
 
   .version-text {
     font-size: 0.6rem;
-    color: #999;
+    color: var(--text-muted);
     margin-top: 0.5rem;
   }
 
   .loading-detail {
-    font-size: 0.8rem;
-    color: #666;
+    font-size: 0.75rem;
+    color: var(--text-muted);
     margin-bottom: 1rem;
     font-style: italic;
-  }
-
-  :global(.dark) .loading-container {
-    background-color: #1f2937;
-  }
-
-  :global(.dark) .loading-title {
-    color: #f3f4f6;
-  }
-
-  :global(.dark) .loading-message {
-    color: #d1d5db;
-  }
-
-  :global(.dark) .progress-container {
-    background-color: #374151;
-  }
-
-  :global(.dark) .version-text {
-    color: #6b7280;
-  }
-
-  :global(.dark) .loading-detail {
-    color: #9ca3af;
-  }
-
-  @keyframes loading {
-    0% {
-      width: 0%;
-    }
-    50% {
-      width: 70%;
-    }
-    100% {
-      width: 100%;
-    }
   }
 </style> 

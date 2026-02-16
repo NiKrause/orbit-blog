@@ -782,11 +782,13 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     on:seedPhraseDecrypted={handleSeedPhraseDecrypted}
   />
 {:else}
-  <div class="flex min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors" role="main">
+  <div class="flex min-h-screen transition-colors" style="background-color: var(--bg); color: var(--text);" role="main">
     
     {#if sidebarVisible}
+      <!-- Backdrop -->
       <div 
-        class="fixed inset-0 bg-black bg-opacity-50 z-30"
+        class="fixed inset-0 z-30"
+        style="background-color: rgba(0, 0, 0, 0.4); backdrop-filter: blur(2px);"
         role="button"
         tabindex="0"
         onclick={() => sidebarVisible = false}
@@ -802,16 +804,17 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       ></div>
       
       <div 
-        in:fly={{ x: $isRTL ? 400 : -400, duration: 400, easing: cubicOut }} 
-        out:fly={{ x: $isRTL ? 400 : -400, duration: 400, easing: cubicOut }}
-        class="fixed top-0 {sidebarPosition}-0 h-full z-40 max-w-[80vw]"
+        in:fly={{ x: $isRTL ? 280 : -280, duration: 250, easing: cubicOut }} 
+        out:fly={{ x: $isRTL ? 280 : -280, duration: 200, easing: cubicOut }}
+        class="fixed top-0 {sidebarPosition}-0 h-full z-40 max-w-[85vw]"
       >
         <Sidebar />
       </div>
       
-      <!-- Close button positioned outside sidebar container to avoid event conflicts -->
+      <!-- Close button -->
       <button
-        class="fixed top-2 {sidebarButtonPosition}-1 z-50 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-full p-2 shadow-lg transition-all duration-300 focus:outline-none"
+        class="fixed top-3 z-50 btn-icon"
+        style="{sidebarButtonPosition}: 0.75rem;"
         onclick={(e) => {e.stopPropagation(); sidebarVisible = false;}}
         ontouchstart={(e) => {e.stopPropagation();}}
         ontouchend={(e) => {e.stopPropagation(); e.preventDefault(); sidebarVisible = false;}}
@@ -819,26 +822,28 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         onmouseup={(e) => {e.stopPropagation(); sidebarVisible = false;}}
         aria-label={$_('close')}
         data-testid="close-sidebar-button">
-        <div class="w-4 h-4 text-gray-800 dark:text-gray-200">
+        <div class="w-4 h-4" style="color: var(--text-secondary);">
           <FaTimes />
         </div>
       </button>
     {:else}
       <!-- Sidebar toggle button -->
       <button
-        class="fixed top-4 {sidebarButtonPosition}-4 z-50 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-full p-1 shadow-sm transition-all duration-300 focus:outline-none"
+        class="fixed top-4 z-50 btn-icon"
+        style="{sidebarButtonPosition}: 1rem; background-color: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem; box-shadow: var(--shadow-sm);"
         onclick={() => sidebarVisible = true}
         ontouchend={(e) => {sidebarVisible = true; e.stopPropagation()}}
         aria-label={$_('show_editor')}
         data-testid="menu-button">
-        <div class="w-4 h-4 text-gray-800 dark:text-gray-200">
+        <div class="w-4 h-4" style="color: var(--text-secondary);">
           <FaBars />
         </div>
       </button>
       
       <!-- Sidebar trigger area -->
       <div 
-        class="w-8 h-full fixed top-0 {sidebarTriggerPosition}-0 z-10 cursor-pointer" 
+        class="w-6 h-full fixed top-0 z-10 cursor-pointer"
+        style="{sidebarTriggerPosition}: 0;"
         role="button"
         tabindex="0"
         onclick={() => sidebarVisible = true}
@@ -860,14 +865,13 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       {#if $isLoadingRemoteBlog}
         <LoadingBlog loadingState={$loadingState} />
       {:else}
-        <div class="max-w-7xl mx-auto py-8 px-4">
-          <div class="flex items-center justify-center mb-8 gap-4">
-            <div class="w-24 h-24 overflow-hidden bg-gray-200 dark:bg-gray-700 relative flex-shrink-0">
+        <div class="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+          <!-- Masthead -->
+          <header class="flex items-center gap-4 mb-10">
+            <div class="w-12 h-12 rounded-full overflow-hidden flex-shrink-0" style="background-color: var(--bg-tertiary);">
               {#if $profilePictureCid}
                 {#await getImageUrlFromHelia($profilePictureCid, fs)}
-                  <div class="w-full h-full flex items-center justify-center">
-                    <!-- <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-400"></div> -->
-                  </div>
+                  <div class="w-full h-full flex items-center justify-center"></div>
                 {:then imageUrl}
                   {#if imageUrl}
                     <img 
@@ -880,34 +884,36 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
                     />
                   {:else}
                     <div class="w-full h-full flex items-center justify-center">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" style="color: var(--text-muted);" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
                       </svg>
                     </div>
                   {/if}
                 {:catch error}
-                  <div class="w-full h-full flex items-center justify-center text-red-500">
-                    <span class="text-sm">Error</span>
+                  <div class="w-full h-full flex items-center justify-center" style="color: var(--danger);">
+                    <span class="text-xs">Error</span>
                   </div>
                 {/await}
               {:else}
                 <div class="w-full h-full flex items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" style="color: var(--text-muted);" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
                   </svg>
                 </div>
               {/if}
             </div>
-            <div class="text-center">
-              <h1 class="text-4xl font-bold text-gray-900 dark:text-white" data-testid="blog-name">
+            <div>
+              <h1 class="text-xl font-semibold leading-tight" style="color: var(--text);" data-testid="blog-name">
                 {$blogName}
               </h1>
-              <h6 class="text-sm text-gray-900 dark:text-white" data-testid="blog-description">
+              <p class="text-sm leading-snug mt-0.5" style="color: var(--text-secondary);" data-testid="blog-description">
                 {$blogDescription}
-              </h6>
-              <h6 class="text-xs text-gray-500 dark:text-gray-400">{$reactiveVersionString}</h6>
+              </p>
+              <p class="text-xs mt-0.5" style="color: var(--text-muted);">{$reactiveVersionString}</p>
             </div>
-          </div>
+          </header>
+
+          <div class="divider mb-8"></div>
 
           {#if $showDBManager}
             <DBManager />
@@ -937,32 +943,33 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       {/if}
     </div>
   </div>
-    <!-- Add GitHub link, Language Selector, ThemeToggle, and PWA Eject -->
-    <div class="fixed-controls">
-          <a
-            href="https://github.com/Le-Space/le-space-blog"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="control-button"
-            aria-label={$_('view_source_on_github')}>
-            <svg class="w-6 h-6 text-gray-800 dark:text-gray-200" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-            </svg>
-          </a>
-          <LanguageSelector />
-          <ThemeToggle />
-          {#if canEjectPWA}
-            <button
-              class="control-button eject-button"
-              onclick={openEjectModal}
-              title={$_('eject_pwa_title')}
-              aria-label={$_('eject_pwa_title')}>
-              <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"/>
-              </svg>
-            </button>
-          {/if}
-    </div>
+
+  <!-- Fixed controls toolbar -->
+  <div class="fixed-controls">
+    <a
+      href="https://github.com/Le-Space/le-space-blog"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="control-button"
+      aria-label={$_('view_source_on_github')}>
+      <svg class="w-4 h-4" style="color: var(--text-secondary);" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+      </svg>
+    </a>
+    <LanguageSelector />
+    <ThemeToggle />
+    {#if canEjectPWA}
+      <button
+        class="control-button eject-button"
+        onclick={openEjectModal}
+        title={$_('eject_pwa_title')}
+        aria-label={$_('eject_pwa_title')}>
+        <svg class="w-4 h-4" style="color: var(--danger);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"/>
+        </svg>
+      </button>
+    {/if}
+  </div>
 {/if}
 
 {#if showEjectModal}
@@ -970,124 +977,72 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 {/if}
 
 <style>
-  :global(body) {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
-      Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  }
-
+  /* Scoped button overrides for this component */
   button {
-    /* background-color: inherit;  ensure buttons inherit the background color */
-    color: inherit; /* ensure buttons inherit the text color */
-    border: none; /* remove default button border */
-    cursor: pointer; /* change cursor to pointer on hover */
-  }
-
-  button:hover {
-    opacity: 0.9; /* Slightly reduce opacity on hover for visual feedback */
-  }
-
-  /* Add styles for sidebar interaction */
-  .w-4 {
-    width: 1rem;
-  }
-  
-  .h-full {
-    height: 100%;
-  }
-  
-  .fixed {
-    position: fixed;
-  }
-  
-  .top-0 {
-    top: 0;
-  }
-  
-  .left-0 {
-    left: 0;
-  }
-  
-  .z-10 {
-    z-index: 10;
-  }
-  
-  .cursor-pointer {
+    color: inherit;
+    border: none;
     cursor: pointer;
   }
 
-  /* Make sure the sidebar takes appropriate space */
-  :global(.sidebar) {
-    padding-top: 3.5rem; /* Add space at the top of the sidebar for the toggle button */
+  button:hover {
+    opacity: 0.9;
   }
 
-  /* Ensure consistent button positioning */
+  /* Sidebar padding for toggle button clearance */
+  :global(.sidebar) {
+    padding-top: 3rem;
+  }
+
+  /* Fixed button positioning */
   button.fixed {
     position: fixed !important;
-    transform: translateZ(0); /* Force hardware acceleration */
-  }
-  
-  @media (max-width: 768px) {
-    button.fixed {
-      /* Ensure button stays on right side on mobile */
-      left: auto !important;
-      right: 4rem !important;
-    }
+    transform: translateZ(0);
   }
 
-  /* Add a more specific selector for the share button */
+  /* Share button override */
   .share-button {
     left: auto !important;
     right: 20px !important;
   }
 
-  /* Add new styles for the fixed controls and GitHub link */
+  /* Fixed controls toolbar */
   :global(.fixed-controls) {
     position: fixed;
     top: 1rem;
-    right: 4rem;
+    right: 1rem;
     display: flex;
-    gap: 1rem;
+    gap: 0.25rem;
     align-items: center;
     z-index: 50;
   }
-
 
   :global(.control-button) {
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0.5rem;
-    background-color: rgb(229 231 235 / var(--tw-bg-opacity));
-    border-radius: 0.5rem;
-    transition-property: all;
-    transition-duration: 300ms;
+    background-color: transparent;
+    border: none;
+    border-radius: 6px;
+    transition: background-color 0.15s ease;
+    cursor: pointer;
+  }
+
+  :global(.control-button:hover) {
+    background-color: var(--bg-hover);
   }
 
   :global(.eject-button) {
-    background-color: rgba(248, 113, 113, 0.1) !important;
-    border: 1px solid rgba(220, 38, 38, 0.2);
+    background-color: transparent !important;
   }
 
   :global(.eject-button:hover) {
-    background-color: rgba(248, 113, 113, 0.2) !important;
-    border-color: rgba(220, 38, 38, 0.4);
-    color: rgb(55 65 81 / var(--tw-text-opacity));
-  }
-
-  :global(.dark) .control-button {
-    background-color: rgb(55 65 81 / var(--tw-bg-opacity));
-    color: rgb(229 231 235 / var(--tw-text-opacity));
-  }
-
-  .control-button:hover {
-    opacity: 0.9;
-    transform: scale(1.05);
+    background-color: rgba(220, 38, 38, 0.1) !important;
   }
 
   @media (max-width: 768px) {
-    .fixed-controls {
-      gap: 0.5rem;
+    :global(.fixed-controls) {
+      gap: 0.125rem;
     }
   }
 </style>

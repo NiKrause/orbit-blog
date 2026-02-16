@@ -295,6 +295,32 @@ async function waitForDatabaseData(db: any, timeout: number = 20000): Promise<an
   }
 }
 
+async function waitForSettingValue(
+  db: any,
+  key: string,
+  timeout: number = 15000
+): Promise<string | null> {
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < timeout) {
+    try {
+      const byKey = await db.get(key);
+      const keyValue = byKey?.value?.value;
+      if (typeof keyValue === 'string' && keyValue.length > 0) return keyValue;
+
+      const all = await db.all();
+      const allValue = all.find((content: any) => content.key === key)?.value?.value;
+      if (typeof allValue === 'string' && allValue.length > 0) return allValue;
+    } catch {
+      // keep polling while remote settings propagate
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+
+  return null;
+}
+
 interface DBConfig {
   name: string;
   directory: string;
@@ -496,8 +522,10 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       const peers = await heliaInstance?.libp2p?.getPeers();
       updateLoadingState('connecting_peers', `Connected to ${peers?.length || 0} peers`, 20);
       
-      // First clear the posts store to prevent stale data display
+      // First clear stores to prevent stale data display/writes during remote switch.
       posts.set([]);
+      commentsDB.set(null);
+      mediaDB.set(null);
       
       updateLoadingState('identifying_db', `Opening database: ${address}`, 30);
       
@@ -535,7 +563,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       info('blogDescriptionValue', blogDescriptionValue);
       const postsDBAddressValue = dbContents.find(content => content.key === 'postsDBAddress')?.value?.value;
       info('postsDBAddressValue', postsDBAddressValue);
-      const commentsDBAddressValue = dbContents.find(content => content.key === 'commentsDBAddress')?.value?.value;
+      let commentsDBAddressValue = dbContents.find(content => content.key === 'commentsDBAddress')?.value?.value;
       info('commentsDBAddressValue', commentsDBAddressValue);
       const mediaDBAddressValue = dbContents.find(content => content.key === 'mediaDBAddress')?.value?.value;
       info('mediaDBAddressValue', mediaDBAddressValue);
@@ -571,6 +599,17 @@ export async function switchToRemoteDB(address: string, showModal = false) {
 
       // Check if all required data is available
       if (blogNameValue && postsDBAddressValue)  {
+        if (!commentsDBAddressValue) {
+          updateLoadingState('loading_settings', 'Waiting for comments database address...', 55);
+          const syncedCommentsAddress = await waitForSettingValue(db, 'commentsDBAddress', 20000);
+          if (syncedCommentsAddress) {
+            commentsDBAddressValue = syncedCommentsAddress;
+            commentsDBAddress.set(syncedCommentsAddress);
+          } else {
+            warn('commentsDBAddress missing after timeout; comments remain unavailable for this remote session.');
+          }
+        }
+
         info('blogNameValue', blogNameValue);
         info('blogDescriptionValue', blogDescriptionValue);
         info('postsDBAddressValue', postsDBAddressValue);

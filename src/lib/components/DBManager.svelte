@@ -705,99 +705,69 @@
   }
 </script>
 
-<div class="space-y-4 {$isRTL ? 'rtl' : 'ltr'}">
-  <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-6" data-testid="db-manager-container">
+<div class="{$isRTL ? 'rtl' : 'ltr'}">
+  <div class="card p-5 mb-6" data-testid="db-manager-container">
+    <!-- Current Database -->
     <div class="mb-4">
-      <h3 class="text-lg font-semibold mb-2 text-gray-900 dark:text-white" data-testid="our-blog-db-title">{$_('our_blog_db')}</h3>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="space-y-2">
-          <div class="flex items-center space-x-2">
-            <span class="text-gray-600 dark:text-gray-400">{$_('db_address')}:</span>
-            <input
-              type="text"
-              size={70}
-              value={$settingsDB?.address}
-              class="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm"
-              data-testid="db-address-input"
-            />
-            <button 
-              title={$_('copy_to_clipboard')}
-              ontouchstart={() => copyToClipboard($settingsDB?.address.toString() || '')} 
-              onclick={() => copyToClipboard($settingsDB?.address.toString() || '')}
-              class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-              data-testid="copy-db-address-button"
-            >
-              📋
-            </button>
-            {#if $settingsDB}
-            <button 
-              title="Drop current database and all sub-databases"
-              onclick={() => dropCurrentDatabase()} 
-              class="text-red-500 hover:text-red-700 dark:hover:text-red-300"
-              data-testid="drop-current-db-button"
-            >
-              🗑️
-            </button>
-            {/if}
-          </div>
-          <div class="flex flex-col md:flex-row justify-center items-center gap-4">
-            <!-- QR code display section removed -->
-            <!-- <button
-              on:click={dropAndSync}
-              class="bg-purple-600 dark:bg-purple-500 text-white py-2 px-4 rounded-md hover:bg-purple-700 dark:hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors flex items-center gap-2"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
-              </svg>
-              Drop Posts & Sync from Network
-            </button> -->
-          </div>
-        </div>
+      <h3 class="text-sm font-semibold mb-2" style="color: var(--text);" data-testid="our-blog-db-title">{$_('our_blog_db')}</h3>
+      <div class="flex items-center gap-2">
+        <input
+          type="text"
+          size={70}
+          value={$settingsDB?.address}
+          class="input flex-1 font-mono text-xs"
+          data-testid="db-address-input"
+        />
+        <button 
+          title={$_('copy_to_clipboard')}
+          ontouchstart={() => copyToClipboard($settingsDB?.address.toString() || '')} 
+          onclick={() => copyToClipboard($settingsDB?.address.toString() || '')}
+          class="btn-icon"
+          data-testid="copy-db-address-button"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+        </button>
+        {#if $settingsDB}
+        <button 
+          title="Drop current database and all sub-databases"
+          onclick={() => dropCurrentDatabase()} 
+          class="btn-icon" style="color: var(--danger);"
+          data-testid="drop-current-db-button"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+        </button>
+        {/if}
       </div>
     </div>
 
-    <div class="border-t dark:border-gray-700 pt-4">
-      <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+    <div class="divider mb-4"></div>
+
+    <!-- Add Database -->
+    <div class="mb-4">
+      <h3 class="text-sm font-semibold mb-3" style="color: var(--text);">
         {isLocalDB ? $_('add_local_database') : $_('add_remote_database')}
       </h3>
       
-      <div class="mb-4">
+      <div class="mb-3">
         <label class="relative inline-flex items-center cursor-pointer">
           <input type="checkbox" bind:checked={isLocalDB} class="sr-only peer">
-          <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-          <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">
+          <div class="toggle-track peer-checked:bg-current"><div class="toggle-thumb peer-checked:translate-x-5"></div></div>
+          <span class="ml-3 text-xs font-medium" style="color: var(--text-secondary);">
             {isLocalDB ? $_('local_database') : $_('remote_database')}
           </span>
         </label>
       </div>
 
-      <div class="space-y-4">
+      <div class="space-y-3">
         {#if isLocalDB}
           <div>
-            <label for="dbName" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{$_('database_name')}</label>
-            <input
-              id="dbName"
-              type="text"
-              bind:value={dbName}
-              placeholder={$_('my_new_blog')}
-              class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              data-testid="new-db-name-input"
-            />
+            <label for="dbName" class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">{$_('database_name')}</label>
+            <input id="dbName" type="text" bind:value={dbName} placeholder={$_('my_new_blog')} class="input" data-testid="new-db-name-input" />
           </div>
         {:else}
           <div>
-            <label for="dbAddress" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{$_('blog_orbitdb_address')}</label>
-            <div class="flex space-x-2">
-              <input
-                id="dbAddress"
-                type="text"
-                bind:value={dbAddress}
-                placeholder={$_('paste_database_address_here')}
-                class="flex-1 mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                data-testid="remote-db-address-input"
-              />
-              <!-- QR scan button removed -->
-            </div>
+            <label for="dbAddress" class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">{$_('blog_orbitdb_address')}</label>
+            <input id="dbAddress" type="text" bind:value={dbAddress} placeholder={$_('paste_database_address_here')} class="input" data-testid="remote-db-address-input" />
           </div>
         {/if}
 
@@ -805,7 +775,7 @@
           title={isLocalDB ? $_('add_local_database') : $_('add_remote_database')}
           ontouchstart={addRemoteDB}
           onclick={addRemoteDB}
-          class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors"
+          class="btn-primary w-full"
           data-testid="add-db-button"
         >
           {isLocalDB ? $_('add_local_database') : $_('add_remote_database')}
@@ -813,190 +783,100 @@
       </div>
     </div>
 
-    <!-- QR scanner modal removed -->
-
     {#if $remoteDBs.length > 0}
-      <div class="text-gray-900 dark:text-white">{$_('number_of_databases')}: {$remoteDBs.length}</div>
-      <div class="border-t dark:border-gray-700 mt-6 pt-4">
-        <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">{$_('available_databases')}</h3>
-        <div class="space-y-2">
-          {#each $remoteDBs as db}
-            <div class="flex items-center space-x-2">
-              <button
-                data-testid="remote-db-item"
-                class="flex-1 text-left p-3 rounded-md transition-all duration-300 ease-in-out transform hover:scale-105 {$selectedDBAddress === db.address ? 'bg-gradient-to-r from-indigo-500 to-indigo-300 dark:from-indigo-800 dark:to-indigo-600 border-2 border-indigo-500' : db.access?.write?.includes($identity?.id) ? 'bg-gradient-to-r from-green-200 to-green-100 dark:from-green-800 dark:to-green-700 border border-green-300 dark:border-green-600' : 'bg-gradient-to-r from-gray-200 to-gray-100 dark:from-gray-700 dark:to-gray-600 hover:bg-gradient-to-r from-gray-300 to-gray-200 dark:from-gray-600 dark:to-gray-500 border border-gray-200 dark:border-gray-600'}"
-                onclick={() => handleSwitchToRemoteDB(db.address)}
-              >
-                <div class="flex justify-between items-center">
-                  <div class="flex items-center space-x-2">
-                    <!-- Pin Status Indicator -->
-                    {#if db.pinnedToVoyager !== undefined}
-                      <span 
-                        class="inline-block w-3 h-3 rounded-full {db.pinnedToVoyager ? 'bg-green-500' : 'bg-orange-500'}"
-                        title={db.pinnedToVoyager ? $_("pinned_to_voyager") : $_("not_pinned_to_voyager")}
-                      ></span>
-                    {/if}
-                    
-                    <!-- Write Access Icon -->
-                    {#if db.access?.write?.includes($identity?.id)}
-                      <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                      </svg>
-                    {:else}
-                      <svg class="w-5 h-5 text-red-500 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                      </svg>
-                    {/if}
-                    
-                    <div>
-                      <div class="font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                        <span 
-                          title={`
-Database Name: ${db.name}
-Database ID: ${db.id}
-Main Address: ${db.address}
-Posts DB Address: ${db.postsAddress || 'Not available'}
-Comments DB Address: ${db.commentsAddress || 'Not available'}
-Media DB Address: ${db.mediaAddress || 'Not available'}
-Posts Count: ${db.postsCount !== undefined ? db.postsCount : 'Unknown'}
-Comments Count: ${db.commentsCount !== undefined ? db.commentsCount : 'Unknown'}
-Media Count: ${db.mediaCount !== undefined ? db.mediaCount : 'Unknown'}
-Write Access: ${db.access?.write?.includes($identity?.id) ? 'Yes' : 'No'}
-Pinned to Voyager: ${db.pinnedToVoyager ? 'Yes' : 'No'}
-Last Processed: ${db.lastProcessed || 'Never'}
-Last Attempt: ${db.lastAttempt || 'Never'}
-Fetch Later: ${db.fetchLater ? 'Yes' : 'No'}
-`.trim()}>
-                          {db.name}
-                        </span>
-                        
-                        <!-- Database Counts -->
-                        <div class="flex gap-2">
-                          {#if db.postsCount !== undefined}
-                            <span class="px-2 py-0.5 bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-100 rounded-full text-xs font-medium" 
-                                  title={`${$_('posts_db_address')}: ${db.postsAddress || $_('address_not_available')}`}>
-                              {db.postsCount} {$_('posts')}
-                            </span>
-                          {/if}
-                          
-                          {#if db.commentsCount !== undefined}
-                            <span class="px-2 py-0.5 bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-100 rounded-full text-xs font-medium" 
-                                  title={`${$_('comments_db_address')}: ${db.commentsAddress || $_('address_not_available')}`}>
-                              {db.commentsCount} {$_('comments')}
-                            </span>
-                          {/if}
-                          
-                          {#if db.mediaCount !== undefined}
-                            <span class="px-2 py-0.5 bg-purple-100 dark:bg-purple-800 text-purple-800 dark:text-purple-100 rounded-full text-xs font-medium" 
-                                  title={`${$_('media_db_address')}: ${db.mediaAddress || $_('address_not_available')}`}>
-                              {db.mediaCount} {$_('media')}
-                            </span>
-                          {/if}
-                        </div>
-                      </div>
-                      <div class="text-sm text-gray-500 dark:text-gray-400 truncate">{db.address}</div>
-                    </div>
-                  </div>
-                  
-                  {#if $selectedDBAddress === db.address}
-                    <span class="text-indigo-600 dark:text-indigo-400 text-sm font-medium">{$_('current')}</span>
+      <div class="divider mb-4"></div>
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-semibold" style="color: var(--text);">{$_('available_databases')}</h3>
+        <span class="badge">{$remoteDBs.length}</span>
+      </div>
+      <div class="space-y-1.5">
+        {#each $remoteDBs as db}
+          <div class="flex items-center gap-1.5">
+            <button
+              data-testid="remote-db-item"
+              class="flex-1 text-left p-3 rounded-md transition-all cursor-pointer"
+              style="{$selectedDBAddress === db.address ? 'background-color: var(--bg-active); border-left: 2px solid var(--accent);' : 'border-left: 2px solid transparent; background-color: var(--bg-tertiary);'}"
+              onclick={() => handleSwitchToRemoteDB(db.address)}
+            >
+              <div class="flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                  {#if db.pinnedToVoyager !== undefined}
+                    <span class="inline-block w-2 h-2 rounded-full flex-shrink-0" style="background-color: {db.pinnedToVoyager ? 'var(--success)' : 'var(--warning)'};" title={db.pinnedToVoyager ? $_("pinned_to_voyager") : $_("not_pinned_to_voyager")}></span>
                   {/if}
+                  
+                  {#if db.access?.write?.includes($identity?.id)}
+                    <svg class="w-3.5 h-3.5 flex-shrink-0" style="color: var(--success);" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
+                  {:else}
+                    <svg class="w-3.5 h-3.5 flex-shrink-0" style="color: var(--danger);" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                  {/if}
+                  
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="text-sm font-medium" style="color: var(--text);" title={`Database: ${db.name}\nID: ${db.id}\nAddress: ${db.address}\nPosts: ${db.postsCount ?? 'Unknown'}\nComments: ${db.commentsCount ?? 'Unknown'}\nMedia: ${db.mediaCount ?? 'Unknown'}`}>{db.name}</span>
+                      {#if db.postsCount !== undefined}<span class="badge">{db.postsCount} {$_('posts')}</span>{/if}
+                      {#if db.commentsCount !== undefined}<span class="badge">{db.commentsCount} {$_('comments')}</span>{/if}
+                      {#if db.mediaCount !== undefined}<span class="badge">{db.mediaCount} {$_('media')}</span>{/if}
+                    </div>
+                    <div class="text-xs truncate mt-0.5 font-mono" style="color: var(--text-muted);">{db.address}</div>
+                  </div>
                 </div>
-              </button>
-              
-              <!-- Add Clone Button -->
-              <button
-                class="p-2 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400"
-                onclick={() => cloneDatabase(db)}
-                aria-label={$_('clone_database')}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M7 9a2 2 0 012-2h6a2 2 0 012 2v6a2 2 0 01-2 2H9a2 2 0 01-2-2V9z" />
-                  <path d="M5 3a2 2 0 00-2 2v6a2 2 0 002 2V5h8a2 2 0 00-2-2H5z" />
-                </svg>
-              </button>
-              
-              <!-- Existing Delete Button -->
-              <button
-                class="p-2 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400"
-                onclick={() => removeRemoteDB(db.id)}
-                aria-label={$_('remove_database')}
-                data-testid="delete-db-button"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-                </svg>
-              </button>
-            </div>
-          {/each}
-        </div>
+                
+                {#if $selectedDBAddress === db.address}
+                  <span class="text-xs font-medium flex-shrink-0" style="color: var(--accent);">{$_('current')}</span>
+                {/if}
+              </div>
+            </button>
+            
+            <button class="btn-icon" onclick={() => cloneDatabase(db)} aria-label={$_('clone_database')}>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M7 9a2 2 0 012-2h6a2 2 0 012 2v6a2 2 0 01-2 2H9a2 2 0 01-2-2V9z" /><path d="M5 3a2 2 0 00-2 2v6a2 2 0 002 2V5h8a2 2 0 00-2-2H5z" /></svg>
+            </button>
+            
+            <button class="btn-icon" style="color: var(--danger);" onclick={() => removeRemoteDB(db.id)} aria-label={$_('remove_database')} data-testid="delete-db-button">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+            </button>
+          </div>
+        {/each}
       </div>
     {/if}
 
     <Modal isOpen={isModalOpen} onClose={closeModal} message={modalMessage}>
-      <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">{$_('database_operation')}</h2>
-      <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-4">
-        <div class="bg-blue-600 dark:bg-blue-500 h-2.5 rounded-full animate-pulse"></div>
+      <h2 class="text-lg font-semibold mb-3" style="color: var(--text);">{$_('database_operation')}</h2>
+      <div class="w-full rounded-full h-1.5 mb-4" style="background-color: var(--bg-tertiary);">
+        <div class="h-1.5 rounded-full animate-pulse" style="background-color: var(--accent);"></div>
       </div>
-      <button
-        onclick={closeModal}
-        class="px-4 py-2 bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 text-white rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-        data-testid="confirm-delete-button"
-      >
-        {$_('cancel')}
-      </button>
+      <button onclick={closeModal} class="btn-danger" data-testid="confirm-delete-button">{$_('cancel')}</button>
     </Modal>
 
-    <!-- New Confirmation Modal -->
-    <ConfirmModal
-      isOpen={showConfirmModal}
-      onConfirm={(options) => handleConfirmRemove(options)}
-      onCancel={() => showConfirmModal = false}
-      title={$_('remove_database')}
-      showOptions={true}
-    >
-      {#snippet children()}
-        <p class="text-gray-700 dark:text-gray-300">
-          {$_('remove_database_confirm')}
-        </p>
-      {/snippet}
+    <ConfirmModal isOpen={showConfirmModal} onConfirm={(options) => handleConfirmRemove(options)} onCancel={() => showConfirmModal = false} title={$_('remove_database')} showOptions={true}>
+      {#snippet children()}<p class="text-sm" style="color: var(--text-secondary);">{$_('remove_database_confirm')}</p>{/snippet}
     </ConfirmModal>
     
-    <!-- Drop Current Database Confirmation Modal -->
-    <ConfirmModal
-      isOpen={showConfirmDropCurrentModal}
-      onConfirm={(options) => handleConfirmDropCurrent(options)}
-      onCancel={() => showConfirmDropCurrentModal = false}
-      title="Drop Current Database"
-      showOptions={true}
-    >
-      {#snippet children()}
-        <p class="text-gray-700 dark:text-gray-300">
-          {dropCurrentModalMessage}
-        </p>
-      {/snippet}
+    <ConfirmModal isOpen={showConfirmDropCurrentModal} onConfirm={(options) => handleConfirmDropCurrent(options)} onCancel={() => showConfirmDropCurrentModal = false} title="Drop Current Database" showOptions={true}>
+      {#snippet children()}<p class="text-sm" style="color: var(--text-secondary);">{dropCurrentModalMessage}</p>{/snippet}
     </ConfirmModal>
   </div>
 </div>
 
 <style>
-  /* RTL specific styles */
-  :global([dir="rtl"]) .flex {
-    flex-direction: row-reverse;
+  .toggle-track {
+    width: 2.5rem;
+    height: 1.25rem;
+    background-color: var(--bg-tertiary);
+    border-radius: 9999px;
+    position: relative;
+    transition: background-color 0.2s;
+    border: 1px solid var(--border);
   }
-
-  :global([dir="rtl"]) .space-x-2 > * + * {
-    margin-right: 0.5rem;
-    margin-left: 0;
+  .toggle-thumb {
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 1rem;
+    height: 1rem;
+    background-color: var(--text-muted);
+    border-radius: 9999px;
+    transition: transform 0.2s;
   }
-
-  :global([dir="rtl"]) .gap-2 > * + * {
-    margin-right: 0.5rem;
-    margin-left: 0;
-  }
-
-  :global([dir="rtl"]) .text-left {
-    text-align: right;
-  }
-
+  :global([dir="rtl"]) .flex { flex-direction: row-reverse; }
+  :global([dir="rtl"]) .text-left { text-align: right; }
 </style>

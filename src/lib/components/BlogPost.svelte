@@ -153,12 +153,14 @@ function updateRenderedContent(): void {
    */
   async function loadComments(): Promise<void> {
     if (!$commentsDB) return;
+    const activePostId = post?._id || $selectedPostId;
+    if (!activePostId) return;
     
     try {
       const allComments = await $commentsDB.all();
       comments = allComments
         .map(entry => entry.value)
-        .filter(comment => comment.postId === post._id);
+        .filter(comment => comment.postId === activePostId);
     } catch (_error) {
       error('Error loading comments:', _error);
     }
@@ -169,12 +171,14 @@ function updateRenderedContent(): void {
    */
   async function addComment(): Promise<void> {
     if (!newComment.trim() || !commentAuthor.trim() || !$commentsDB) return;
+    const activePostId = post?._id || $selectedPostId;
+    if (!activePostId) return;
     
     try {
       const _id = crypto.randomUUID();
       await $commentsDB.put({
         _id,
-        postId: post._id,
+        postId: activePostId,
         content: newComment,
         author: commentAuthor,
         createdAt: new Date().toISOString()
@@ -201,43 +205,60 @@ function updateRenderedContent(): void {
   // updateRenderedContent is already called in onMount and the selectedPostId effect
 
   $effect(() => {
-    if ($selectedPostId) {
-      // Async operations should be wrapped in an IIFE
-      (async () => {
-        const post = await $postsDB.get($selectedPostId);
-        info('post', post);
-        if (post) {
-          title = post.value.title;
-          content = post.value.content;
-          category = post.value.category;
-          selectedMedia = post.value.mediaIds || [];
-          info('post', post);
-          isEncrypted = post.value.isEncrypted || isEncryptedPost({ title, content });
-          info('isEncryptedPost function', isEncryptedPost({ title, content }));
-          info('isEncrypted', isEncrypted);
-          if (isEncrypted) {
-            showPasswordPrompt = true;
-          } else {
-            // Update rendered content when not encrypted
-            updateRenderedContent();
+    if (!$selectedPostId) return;
+
+    let isDisposed = false;
+    let commentsUpdateHandler: ((entry: any) => Promise<void>) | null = null;
+
+    // Async operations should be wrapped in an IIFE
+    (async () => {
+      const postEntry = await $postsDB.get($selectedPostId);
+      info('post', postEntry);
+      if (!postEntry || isDisposed) return;
+
+      const activePostId = postEntry.value?._id || postEntry.key || $selectedPostId;
+
+      title = postEntry.value.title;
+      content = postEntry.value.content;
+      category = postEntry.value.category;
+      selectedMedia = postEntry.value.mediaIds || [];
+      info('post', postEntry);
+      isEncrypted = postEntry.value.isEncrypted || isEncryptedPost({ title, content });
+      info('isEncryptedPost function', isEncryptedPost({ title, content }));
+      info('isEncrypted', isEncrypted);
+      if (isEncrypted) {
+        showPasswordPrompt = true;
+      } else {
+        // Update rendered content when not encrypted
+        updateRenderedContent();
+      }
+
+      if ($commentsDB) {
+        await loadComments();
+
+        commentsUpdateHandler = async (entry) => {
+          if (isDisposed) return;
+
+          if (entry?.payload?.op === 'PUT') {
+            const comment = entry.payload.value;
+            if (comment?.postId === activePostId) {
+              await loadComments();
+            }
+          } else if (entry?.payload?.op === 'DEL') {
+            await loadComments();
           }
-          if ($commentsDB) {
-            loadComments();
-            
-            $commentsDB.events.on('update', async (entry) => {
-              if (entry?.payload?.op === 'PUT') {
-                const comment = entry.payload.value;
-                if (comment.postId === post._id) {
-                  await loadComments();
-                }
-              } else if (entry?.payload?.op === 'DEL') {
-                await loadComments();
-              }
-            });
-          }
-        }
-      })();
-    }
+        };
+
+        $commentsDB.events.on('update', commentsUpdateHandler);
+      }
+    })();
+
+    return () => {
+      isDisposed = true;
+      if (commentsUpdateHandler && $commentsDB) {
+        $commentsDB.events.removeListener('update', commentsUpdateHandler);
+      }
+    };
   });
 
 
@@ -327,75 +348,51 @@ function updateRenderedContent(): void {
 </script>
 
 <style>
-
-  /* Add accordion styles */
   :global(.accordion-wrapper) {
     margin: 1rem 0;
   }
-
   :global(.accordion) {
-    border: 1px solid #e5e7eb;
-    border-radius: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
     overflow: hidden;
   }
-
   :global(.accordion-header) {
-    padding: 1rem;
-    background-color: #f9fafb;
+    padding: 0.75rem 1rem;
+    background-color: var(--bg-tertiary);
     cursor: pointer;
     font-weight: 600;
+    font-size: 0.875rem;
     display: block;
     user-select: none;
+    color: var(--text);
   }
-
-  /* Dark mode support */
-  :global(.dark .accordion) {
-    border-color: #4b5563;
-  }
-
-  :global(.dark .accordion-header) {
-    background-color: #374151;
-  }
-
   :global(.accordion-header:hover) {
-    background-color: #f3f4f6;
+    background-color: var(--bg-hover);
   }
-
-  :global(.dark .accordion-header:hover) {
-    background-color: #4b5563;
-  }
-
   :global(.accordion-content) {
     padding: 1rem;
   }
-
-  /* Add arrow indicator */
   :global(.accordion-header::after) {
-    content: '▼';
+    content: '\25BC';
     float: right;
     transform: rotate(0);
     transition: transform 0.2s ease;
+    font-size: 0.625rem;
+    color: var(--text-muted);
   }
-
   :global(details[open] .accordion-header::after) {
     transform: rotate(180deg);
   }
-
-  /* Add to your existing styles */
   :global(.mermaid) {
     margin: 1rem 0;
-    background-color: white;
+    background-color: var(--bg-secondary);
     padding: 1rem;
-    border-radius: 0.5rem;
-  }
-
-  /* Dark mode support */
-  :global(.dark .mermaid) {
-    background-color: #1f2937;
+    border-radius: 6px;
+    border: 1px solid var(--border);
   }
 </style>
 
-<article data-testid="blog-post" class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+<article data-testid="blog-post" class="p-6">
   {#if isEncrypted && showPasswordPrompt}
     <PostPasswordPrompt 
       mode={isEncrypted ? 'decrypt' : 'encrypt'}
@@ -408,8 +405,8 @@ function updateRenderedContent(): void {
       on:passwordSubmitted={passwordSubmitted}
     />
   {:else}
-    <h1 data-testid="post-title" class="text-4xl font-bold mb-2 text-gray-900 dark:text-white">{title}</h1>
-    <div class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+    <h1 data-testid="post-title" class="text-2xl font-semibold mb-2" style="color: var(--text);">{title}</h1>
+    <div class="text-sm mb-4" style="color: var(--text-muted);">
       <div class="flex flex-wrap gap-2 mb-2">
         <span title={post.identity || 'Unknown'}>
           {$_('by')} {post.identity ? `...${post.identity.slice(-5)}` : $_('unknown')}
@@ -420,55 +417,52 @@ function updateRenderedContent(): void {
         {/if}
       </div>
       {#if post.categories && post.categories.length > 0}
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap gap-1.5">
           {#each post.categories as categoryItem}
-            <span class="px-2 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full whitespace-nowrap flex-shrink-0">
-              {categoryItem}
-            </span>
+            <span class="badge">{categoryItem}</span>
           {/each}
         </div>
       {:else if post.category}
         <div class="mt-1">
-          <span class="px-2 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full whitespace-nowrap flex-shrink-0">
-            {post.category}
-          </span>
+          <span class="badge">{post.category}</span>
         </div>
       {/if}
     </div>
     
-    <div data-testid="post-content" class="prose dark:prose-invert max-w-none mb-6">
+    <div data-testid="post-content" class="prose dark:prose-invert max-w-none mb-8">
       {@html renderedContent}
     </div>
 
-    <section class="mt-8">
-      <h3 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">{$_('comments')} ({comments.length})</h3>
+    <div class="divider"></div>
+
+    <section class="mt-6">
+      <h3 class="text-sm font-semibold mb-4" style="color: var(--text);">{$_('comments')} ({comments.length})</h3>
       {#each comments as comment}
-        <div class="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-          <div class="flex items-center mb-2">
-            <strong class="text-gray-900 dark:text-white">{comment.author}</strong>
-            <span class="ml-2 text-sm text-gray-500 dark:text-gray-400">
+        <div class="mb-3 p-3 rounded-md" style="border: 1px solid var(--border-subtle); background-color: var(--bg-tertiary);">
+          <div class="flex items-center mb-1.5">
+            <strong class="text-sm" style="color: var(--text);">{comment.author}</strong>
+            <span class="ml-2 text-xs" style="color: var(--text-muted);">
               {$reactiveDateFormatter(comment.createdAt)}
             </span>
           </div>
-          <p class="text-gray-700 dark:text-gray-300">{comment.content}</p>
+          <p class="text-sm" style="color: var(--text-secondary);">{comment.content}</p>
         </div>
       {/each}
 
-       <!-- Display attached media gallery if there are media items -->
       {#if postMedia.length > 0}
-      <div class="mt-4 mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-        <h3 class="text-lg font-medium mb-2 text-gray-900 dark:text-white">{$_('media')}</h3>
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+      <div class="mt-4 mb-6 p-4 rounded-md" style="border: 1px solid var(--border); background-color: var(--bg-tertiary);">
+        <h3 class="text-sm font-medium mb-2" style="color: var(--text);">{$_('media')}</h3>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {#each postMedia as media}
             {#if media.type.startsWith('image/')}
               <a href={media.url || `https://ipfs.io/ipfs/${media.cid}`} target="_blank" rel="noopener noreferrer" 
                  ontouchend={(e) => {e.preventDefault(); window.open(media.url || `https://ipfs.io/ipfs/${media.cid}`, '_blank')}}
-                 class="block overflow-hidden rounded-lg">
+                 class="block overflow-hidden rounded-md">
                 <img src={media.url || `https://ipfs.io/ipfs/${media.cid}`} alt={media.name}
                      class="w-full h-auto object-cover" />
               </a>
             {:else if media.type.startsWith('video/')}
-              <video controls class="w-full rounded-lg">
+              <video controls class="w-full rounded-md">
                 <source src={media.url || `https://ipfs.io/ipfs/${media.cid}`} type={media.type}>
                 <track kind="captions" src="" label="No captions available" default>
                 {$_('browser_no_video_support')}
@@ -483,8 +477,9 @@ function updateRenderedContent(): void {
                  target="_blank" 
                  rel="noopener noreferrer"
                  ontouchend={(e) => {e.preventDefault(); window.open(media.url || `https://ipfs.io/ipfs/${media.cid}`, '_blank')}}
-                 class="flex items-center p-3 bg-gray-100 dark:bg-gray-600 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-500 transition">
-                <span class="truncate">{media.name} ({(media.size / 1024).toFixed(2)} KB)</span>
+                 class="flex items-center p-3 rounded-md transition-colors"
+                 style="background-color: var(--bg-tertiary); border: 1px solid var(--border);">
+                <span class="truncate text-sm" style="color: var(--text-secondary);">{media.name} ({(media.size / 1024).toFixed(2)} KB)</span>
               </a>
             {/if}
           {/each}
@@ -493,26 +488,27 @@ function updateRenderedContent(): void {
     {/if}
 
       <form onsubmit={preventDefault(addComment)} class="mt-6">
-        <div class="mb-4">
+        <div class="mb-3">
           <input
             type="text"
             bind:value={commentAuthor}
             placeholder={$_('your_name')}
             required
-            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            class="input"
           />
         </div>
-        <div class="mb-4">
+        <div class="mb-3">
           <textarea
             bind:value={newComment}
             placeholder={$_('write_a_comment')}
             required
-            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white min-h-[100px]"
+            class="input"
+            style="min-height: 80px;"
           ></textarea>
         </div>
         <button 
           type="submit"
-          class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition"
+          class="btn-primary"
         >
           {$_('add_comment')}
         </button>

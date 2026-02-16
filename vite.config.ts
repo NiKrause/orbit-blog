@@ -133,7 +133,7 @@ export default defineConfig(({ command, mode }) => {
         format: 'esm',
         plugins: [],
       },
-      include: ['path-browserify']
+      include: ['path-browserify', 'bip39']
     },
     esbuild: {
       logOverride: {
@@ -207,31 +207,40 @@ export default defineConfig(({ command, mode }) => {
           'os'
         ],
         output: {
-          manualChunks: {
-            'vendor': [
-              '@orbitdb/core',
-              'helia',
-              'libp2p',
-              '@libp2p/tcp',
-              '@libp2p/webrtc',
-              '@libp2p/websockets',
-              '@libp2p/webtransport',
-              '@chainsafe/libp2p-gossipsub',
-              '@chainsafe/libp2p-noise',
-              '@chainsafe/libp2p-yamux',
-              '@helia/unixfs'
-            ],
-            'ui': [
-              'svelte',
-              'carbon-icons-svelte',
-              'marked',
-              'dompurify'
-            ]
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return undefined
+
+            if (
+              id.includes('/@orbitdb/') ||
+              id.includes('/orbitdb/') ||
+              id.includes('/helia/') ||
+              id.includes('/libp2p/') ||
+              id.includes('/multiformats/')
+            ) return 'p2p'
+
+            if (id.includes('/mermaid/')) return 'mermaid'
+            if (id.includes('/katex/')) return 'katex'
+            if (id.includes('/cytoscape/') || id.includes('/cose-bilkent/')) return 'cytoscape'
+
+            if (
+              id.includes('/svelte/') ||
+              id.includes('/svelte-') ||
+              id.includes('/carbon-icons-svelte/')
+            ) return 'ui'
+
+            if (
+              id.includes('/marked/') ||
+              id.includes('/dompurify/') ||
+              id.includes('/date-fns/') ||
+              id.includes('/luxon/')
+            ) return 'content'
+
+            return undefined
           },
           assetFileNames: 'assets/[name].[ext]'
         }
       },
-      chunkSizeWarningLimit: 1000
+      chunkSizeWarningLimit: 2000
     }
   }
 })

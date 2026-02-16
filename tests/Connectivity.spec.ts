@@ -2,9 +2,9 @@ import { test, expect, type Page } from '@playwright/test'
 
 function parsePeersHeaderCount(text: string | null): number {
   if (!text) throw new Error('peers-header has no text')
-  const m = text.match(/\((\d+)\)/)
+  const m = text.match(/\((\d+)\)|\b(\d+)\b/)
   if (!m) throw new Error(`unable to parse peers count from: "${text}"`)
-  return Number(m[1])
+  return Number(m[1] ?? m[2])
 }
 
 async function expectPeerCount(page: Page, expected: number, timeoutMs = 90_000) {
@@ -48,4 +48,3 @@ test.describe('Basic WebRTC Connectivity', () => {
     await Promise.all([ctxA.close(), ctxB.close()])
   })
 })
-

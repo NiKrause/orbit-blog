@@ -159,144 +159,94 @@
 }); 
 </script>
 
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 {$isRTL ? 'rtl' : 'ltr'}">
-  <div class="mb-4 text-sm">
-    <div class="flex items-center space-x-2">
-      <span class="text-gray-600 dark:text-gray-400">{$_('peer_id')}:</span>
-      <input
-        type="text"
-        size={60}
-        readonly
-        value={peerId}
-        class="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm text-gray-900 dark:text-white"
-      />
-      <button onclick={() => copyToClipboard(peerId)} class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
-        📋
+<div class="card p-5 {$isRTL ? 'rtl' : 'ltr'}">
+  <!-- Peer ID -->
+  <div class="mb-4">
+    <div class="flex items-center gap-2">
+      <span class="text-xs flex-shrink-0" style="color: var(--text-muted);">{$_('peer_id')}:</span>
+      <input type="text" size={60} readonly value={peerId} class="input flex-1 font-mono text-xs" />
+      <button class="btn-icon" onclick={() => copyToClipboard(peerId)} aria-label="Copy peer ID">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
       </button>
     </div>
-      <!-- Add multiaddrs display -->
-  <div class="mt-2">
-    <div class="flex items-center space-x-2">
-      <span class="text-gray-600 dark:text-gray-400">{$_('multiaddrs')}:</span>
-      <button 
-        class="text-sm text-blue-500 hover:text-blue-700 dark:hover:text-blue-300"
-        onclick={() => showMultiaddrs = !showMultiaddrs}
-      >
-        {showMultiaddrs ? $_('hide') : $_('show')}
-      </button>
-    </div>
-    {#if showMultiaddrs}
-      <div class="space-y-1 mt-1">
-        {#each multiaddrs as addr}
-          <div class="flex items-center space-x-2">
-            <input
-              type="text"
-              readonly
-              value={addr}
-              class="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 text-sm text-gray-900 dark:text-white font-mono"
-            />
-            <button onclick={() => copyToClipboard(addr)} class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
-              📋
-            </button>
-          </div>
-        {/each}
-      </div>
-    {/if}
-  </div>
-  </div>
-  <div class="flex justify-between items-center mb-4">
-    <h2 class="text-xl font-bold text-gray-900 dark:text-white">{$_('connected_peers')}</h2>
-    <div class="flex gap-2">
-      <button 
-        class="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded"
-        onclick={() => {
-          showWebRTCTester = true;
-          info('Button clicked, showWebRTCTester:', showWebRTCTester);
-        }}
-      >
-        {$_('test_webrtc')}
-      </button>
-      {#if (peers)}
-        <button 
-          class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-700"
-          onclick={disconnectNonWebRTC}
-        >
-          {$_('disconnect_non_webrtc')}
+    <div class="mt-2">
+      <div class="flex items-center gap-2">
+        <span class="text-xs flex-shrink-0" style="color: var(--text-muted);">{$_('multiaddrs')}:</span>
+        <button class="btn-ghost btn-sm" onclick={() => showMultiaddrs = !showMultiaddrs}>
+          {showMultiaddrs ? $_('hide') : $_('show')}
         </button>
+      </div>
+      {#if showMultiaddrs}
+        <div class="space-y-1 mt-1.5">
+          {#each multiaddrs as addr}
+            <div class="flex items-center gap-2">
+              <input type="text" readonly value={addr} class="input flex-1 font-mono text-xs" />
+              <button class="btn-icon" onclick={() => copyToClipboard(addr)} aria-label="Copy multiaddress">
+                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+              </button>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </div>
+  </div>
+
+  <div class="divider mb-4"></div>
+
+  <div class="flex justify-between items-center mb-3">
+    <h2 class="text-sm font-semibold" style="color: var(--text);">{$_('connected_peers')}</h2>
+    <div class="flex gap-2">
+      <button class="btn-outline btn-sm" onclick={() => { showWebRTCTester = true; info('Button clicked, showWebRTCTester:', showWebRTCTester); }}>{$_('test_webrtc')}</button>
+      {#if (peers)}
+        <button class="btn-danger btn-sm" onclick={disconnectNonWebRTC}>{$_('disconnect_non_webrtc')}</button>
       {/if}
     </div>
   </div>
   
+  <!-- Dial -->
   <div class="mb-4 flex items-center gap-2">
-    <input
-      type="text"
-      class="border rounded px-2 py-1 text-xs flex-1"
-      placeholder="Enter peer ID to dial (e.g. 12D3KooW...)"
-      bind:value={dialPeerId}
-      onkeydown={(e) => { if (e.key === 'Enter') dialPeer(); }}
-    />
-    <button
-      class="bg-blue-500 hover:bg-blue-600 text-white text-xs px-3 py-1 rounded"
-      onclick={dialPeer}
-    >
-      {$_('dial')}
-    </button>
+    <input type="text" class="input flex-1 text-xs" placeholder="Enter peer ID to dial (e.g. 12D3KooW...)" bind:value={dialPeerId} onkeydown={(e) => { if (e.key === 'Enter') dialPeer(); }} />
+    <button class="btn-primary btn-sm" onclick={dialPeer}>{$_('dial')}</button>
   </div>
   {#if dialStatus}
-    <div class="text-xs mt-1" class:text-green-600={dialStatus === 'Dial successful!'} class:text-red-600={dialStatus && dialStatus !== 'Dial successful!'}>
-      {dialStatus}
-    </div>
+    <div class="text-xs mt-1" style="color: {dialStatus === 'Dial successful!' ? 'var(--success)' : 'var(--danger)'};">{dialStatus}</div>
   {/if}
   
   {#if peers.length === 0}
-    <p class="text-gray-600 dark:text-gray-400 text-center">{$_('no_peers_connected')}</p>
+    <p class="text-center text-sm py-4" style="color: var(--text-muted);">{$_('no_peers_connected')}</p>
   {:else}
     <div class="overflow-x-auto">
       <table class="min-w-full">
         <thead>
-          <tr class="border-b dark:border-gray-700">
-            <th class="px-4 py-2 text-left text-gray-900 dark:text-white">{$_('peer_id')}</th>
-            <th class="px-4 py-2 text-left text-gray-900 dark:text-white">{$_('status')}</th>
-            <th class="px-4 py-2 text-left text-gray-900 dark:text-white">{$_('transport')}</th>
-            <th class="px-4 py-2 text-left text-gray-900 dark:text-white">{$_('streams')}</th>
-            <th class="px-4 py-2 text-left text-gray-900 dark:text-white">{$_('direction')}</th>
-            <th class="px-4 py-2 text-left text-gray-900 dark:text-white">{$_('actions')}</th>
+          <tr style="border-bottom: 1px solid var(--border);">
+            <th class="px-3 py-2 text-left text-xs font-medium" style="color: var(--text-muted);">{$_('peer_id')}</th>
+            <th class="px-3 py-2 text-left text-xs font-medium" style="color: var(--text-muted);">{$_('status')}</th>
+            <th class="px-3 py-2 text-left text-xs font-medium" style="color: var(--text-muted);">{$_('transport')}</th>
+            <th class="px-3 py-2 text-left text-xs font-medium" style="color: var(--text-muted);">{$_('streams')}</th>
+            <th class="px-3 py-2 text-left text-xs font-medium" style="color: var(--text-muted);">{$_('direction')}</th>
+            <th class="px-3 py-2 text-left text-xs font-medium" style="color: var(--text-muted);">{$_('actions')}</th>
           </tr>
         </thead>
         <tbody>
           {#each peers as peer (peer.id + peer.multiaddr)}
-            <tr class="border-b dark:border-gray-700">
-              <td 
-                class="px-4 py-2 text-gray-900 dark:text-white font-mono text-sm relative group cursor-help"
-                title={peer.multiaddr}
-              >
-                <span>{peer.id}</span>
-                <!-- Tooltip -->
-                <div class="invisible group-hover:visible absolute {$isRTL ? 'right-0' : 'left-0'} bottom-full mb-2 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-50 whitespace-nowrap">
+            <tr style="border-bottom: 1px solid var(--border-subtle);">
+              <td class="px-3 py-2 font-mono text-xs relative group cursor-help" style="color: var(--text);" title={peer.multiaddr}>
+                <span>{peer.id.slice(0, 12)}...{peer.id.slice(-6)}</span>
+                <div class="invisible group-hover:visible absolute {$isRTL ? 'right-0' : 'left-0'} bottom-full mb-2 p-2 text-xs rounded-md z-50 whitespace-nowrap" style="background-color: var(--bg); color: var(--text); border: 1px solid var(--border); box-shadow: var(--shadow-lg);">
                   {peer.multiaddr}
                 </div>
               </td>
-              <td class="px-4 py-2">
-                <span class={`inline-block px-2 py-1 rounded-full text-xs ${peer.connected ? 'bg-green-500' : 'bg-red-500'} text-white`}>
+              <td class="px-3 py-2">
+                <span class="badge" style="background-color: {peer.connected ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)'}; color: {peer.connected ? 'var(--success)' : 'var(--danger)'};">
                   {peer.connected ? $_('connected') : $_('disconnected')}
                 </span>
               </td>
-              <td class="px-4 py-2 text-gray-900 dark:text-white">
-                <span class="inline-block px-2 py-1 rounded-full text-xs bg-blue-500 text-white">
-                  {peer.transport}
-                </span>
-              </td>
-              <td class="px-4 py-2 text-gray-900 dark:text-white">{peer.streams}</td>
-              <td class="px-4 py-2 text-gray-900 dark:text-white">{peer.direction}</td>
-              <td class="px-4 py-2">
-                <button 
-                  class="text-red-500 hover:text-red-700"
-                  onclick={() => disconnectPeer(peer.id)}
-                  aria-label={$_('disconnect')}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+              <td class="px-3 py-2"><span class="badge">{peer.transport}</span></td>
+              <td class="px-3 py-2 text-xs" style="color: var(--text-secondary);">{peer.streams}</td>
+              <td class="px-3 py-2 text-xs" style="color: var(--text-secondary);">{peer.direction}</td>
+              <td class="px-3 py-2">
+                <button class="btn-icon" style="color: var(--danger);" onclick={() => disconnectPeer(peer.id)} aria-label={$_('disconnect')}>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
               </td>
             </tr>
@@ -307,7 +257,6 @@
   {/if}
 </div>
 
-<!-- Add debug text -->
 {#if showWebRTCTester}
   <WebRTCTester on:close={() => {
     info('Close event received');
@@ -316,33 +265,7 @@
 {/if}
 
 <style>
-  /* Ensure tooltips don't get cut off */
-  .relative {
-    overflow: visible;
-  }
-  
-  /* Add toggle switch styles */
-  .dot {
-    transition: transform 0.3s ease-in-out;
-  }
-  
-
-  /* RTL specific styles */
-  :global([dir="rtl"]) .flex {
-    flex-direction: row-reverse;
-  }
-
-  :global([dir="rtl"]) .space-x-2 > * + * {
-    margin-right: 0.5rem;
-    margin-left: 0;
-  }
-
-  :global([dir="rtl"]) .gap-2 > * + * {
-    margin-right: 0.5rem;
-    margin-left: 0;
-  }
-
-  :global([dir="rtl"]) .text-left {
-    text-align: right;
-  }
+  .relative { overflow: visible; }
+  :global([dir="rtl"]) .flex { flex-direction: row-reverse; }
+  :global([dir="rtl"]) .text-left { text-align: right; }
 </style>
