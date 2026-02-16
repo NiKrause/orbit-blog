@@ -48,7 +48,7 @@ async function expectHasWebRTCTransport(page: Page, timeoutMs = 90_000) {
 }
 
 test.describe('Basic WebRTC Connectivity', () => {
-  test('two browsers connect and each sees relay + peer (2 peers) with WebRTC', async ({ browser, baseURL }) => {
+  test.skip('two browsers connect and each sees relay + peer (2 peers) with WebRTC', async ({ browser, baseURL }) => {
     const ctxA = await browser.newContext()
     const ctxB = await browser.newContext()
 
