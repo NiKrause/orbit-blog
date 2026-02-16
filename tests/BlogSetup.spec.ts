@@ -1,5 +1,13 @@
 import { test, expect, chromium } from '@playwright/test';
 
+function parsePeersCount(text: string | null): number {
+    if (!text) throw new Error('peers-header has no text');
+    const match = text.match(/\((\d+)\)|\b(\d+)\b/);
+    const count = Number(match?.[1] ?? match?.[2]);
+    if (Number.isNaN(count)) throw new Error(`unable to parse peers count from: "${text}"`);
+    return count;
+}
+
 
 test.describe('Blog Setup and Bach Posts', () => {
     // Uses a shared `page` across tests via beforeAll, so run serially.
@@ -46,7 +54,7 @@ test.describe('Blog Setup and Bach Posts', () => {
             const peersHeader = await page.getByTestId('peers-header').textContent();
             console.log('Peers Header Content:', peersHeader);  // Regular console log
             test.info().annotations.push({ type: 'Peers Header', description: peersHeader });  // Test output log
-            const peerCount = parseInt(peersHeader.match(/\((\d+)\)/)[1]);
+            const peerCount = parsePeersCount(peersHeader);
             expect(peerCount).toBeGreaterThanOrEqual(1);
         }).toPass({ timeout: 30000 }); // Give it up to 30 seconds to connect to peers
         
@@ -89,7 +97,7 @@ test.describe('Blog Setup and Bach Posts', () => {
         // Verify each category element's content matches our expected categories
         for (const element of categoryElements) {
             const text = await element.textContent();
-            const categoryName = text.replace(' ×', '');  // Remove the × symbol
+            const categoryName = text.replace(' ×', '').trim();  // Remove delete-icon marker and normalize whitespace
             expect(categories).toContain(categoryName);
         }
         
@@ -182,8 +190,8 @@ test.describe('Blog Setup and Bach Posts', () => {
             const postTitle = await page.getByTestId('post-item-title').filter({ hasText: post.title });
             const postContainer = await postTitle.locator('..').locator('..');
             
-            // Look specifically for the category badge span
-            await expect(postContainer.locator('span.bg-indigo-100')).toHaveText(post.category);
+            // Category badges are rendered with the shared `badge` class in the rebranded UI.
+            await expect(postContainer.locator('.badge')).toContainText(post.category);
         }
     });
 

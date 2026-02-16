@@ -3,6 +3,14 @@ import { test, expect, chromium } from '@playwright/test';
 const config = {
     seedNodes: process.env.VITE_P2P_PUPSUB_DEV || ''
 };
+
+function parsePeersCount(text: string | null): number {
+    if (!text) throw new Error('peers-header has no text');
+    const match = text.match(/\((\d+)\)|\b(\d+)\b/);
+    const count = Number(match?.[1] ?? match?.[2]);
+    if (Number.isNaN(count)) throw new Error(`unable to parse peers count from: "${text}"`);
+    return count;
+}
         
 
 test.describe('Blog Sharing between Alice and Bob', () => {
@@ -72,7 +80,7 @@ test.describe('Blog Sharing between Alice and Bob', () => {
 
         await expect(async () => {
             const peersHeader = await pageAlice.getByTestId('peers-header').textContent();
-            const peerCount = parseInt(peersHeader.match(/\((\d+)\)/)[1]);
+            const peerCount = parsePeersCount(peersHeader);
             console.log('peerCount', peerCount);
             expect(peerCount).toBeGreaterThanOrEqual(1);
         }).toPass({ timeout: 60000 }); // Give it up to 30 seconds to connect to peers

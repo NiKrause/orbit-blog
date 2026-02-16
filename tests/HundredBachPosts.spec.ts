@@ -1,7 +1,15 @@
 import { test, expect, chromium } from '@playwright/test';
 
-test.describe.skip('Blog Setup and Bach Posts', () => {
+test.describe('Blog Setup and Bach Posts', () => {
     let page;
+
+    async function closeSidebarOverlayIfPresent() {
+        const overlay = page.locator('[aria-label="close_sidebar"]');
+        if (await overlay.isVisible()) {
+            await overlay.click();
+            await expect(overlay).toBeHidden();
+        }
+    }
 
     test.beforeAll(async ({ browser }) => {
         page = await browser.newPage();
@@ -10,8 +18,11 @@ test.describe.skip('Blog Setup and Bach Posts', () => {
 
     test.describe('Bach Blog with 100 Posts', () => {
         test('Create comprehensive Bach blog with 100 posts', async () => {
+            test.setTimeout(15 * 60 * 1000);
+
             // Configure blog settings
             await page.getByTestId('settings-header').click();
+            await closeSidebarOverlayIfPresent();
             await page.getByTestId('blog-settings-accordion').click();
             await page.getByTestId('blog-name-input').fill('The Complete Bach Chronicle');
             await page.getByTestId('blog-description-input').fill('A comprehensive exploration of J.S. Bach\'s life, works, and lasting influence');
@@ -304,7 +315,10 @@ test.describe.skip('Blog Setup and Bach Posts', () => {
             for (const post of bachPosts) {
                 await page.getByTestId('post-title-input').fill(post.title);
                 await page.getByTestId('post-content-input').fill(post.content);
-                await page.getByTestId('category-select').selectOption(post.category);
+                // Category selection uses custom MultiSelect in current UI.
+                await page.locator('#categories [role="button"]').click();
+                await page.locator('#categories').getByRole('button', { name: post.category, exact: true }).click();
+                await page.locator('#categories [role="button"]').click();
                 
                 await expect(page.getByTestId('publish-post-button')).toBeEnabled();
                 await page.getByTestId('publish-post-button').click();
@@ -315,16 +329,20 @@ test.describe.skip('Blog Setup and Bach Posts', () => {
                 // Verify post creation
                 await expect(async () => {
                     const titles = await page.getByTestId('post-item-title').allTextContents();
-                    console.log(titles);
-                    console.log(post.title);
-                    // Check if any title starts with the expected title
-                    expect(titles.some(title => post.title.startsWith(title.replace('...', '')))).toBeTruthy();
+                    // Title can be visually truncated in the list; match full title or shared prefix.
+                    expect(
+                        titles.some(title =>
+                            title === post.title ||
+                            post.title.startsWith(title.replace('...', '')) ||
+                            title.startsWith(post.title.slice(0, 24))
+                        )
+                    ).toBeTruthy();
                 }).toPass({ timeout: 100000 });
             }
 
             // Verify total post count
             const postElements = await page.getByTestId('post-item-title').all();
-            expect(postElements.length).toBe(49);
+            expect(postElements.length).toBe(bachPosts.length);
         });
 
         test.afterAll(async () => {
