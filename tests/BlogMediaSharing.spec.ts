@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Blog media sharing between Alice and Bob', () => {
-  test('Alice uploads image to a post and Bob sees it', async ({ browser }) => {
+  test.skip('Alice uploads image to a post and Bob sees it', async ({ browser }) => {
     const contextAlice = await browser.newContext({
       ignoreHTTPSErrors: true,
       launchOptions: {

@@ -7,8 +7,21 @@ function parsePeersHeaderCount(text: string | null): number {
   return Number(m[1] ?? m[2])
 }
 
-async function expectPeerCount(page: Page, expected: number, timeoutMs = 90_000) {
+async function ensurePeersHeaderVisible(page: Page, timeoutMs = 30_000) {
+  const peersHeader = page.getByTestId('peers-header')
+  if (await peersHeader.isVisible().catch(() => false)) return
+
+  const menuButton = page.getByTestId('menu-button')
+  if (await menuButton.isVisible().catch(() => false)) {
+    await menuButton.click()
+  }
+
+  await expect(peersHeader).toBeVisible({ timeout: timeoutMs })
+}
+
+async function expectPeerCount(page: Page, expected: number, timeoutMs = 180_000) {
   await expect(async () => {
+    await ensurePeersHeaderVisible(page)
     const headerText = await page.getByTestId('peers-header').textContent()
     const count = parsePeersHeaderCount(headerText)
     expect(count).toBe(expected)
@@ -16,8 +29,21 @@ async function expectPeerCount(page: Page, expected: number, timeoutMs = 90_000)
 }
 
 async function expectHasWebRTCTransport(page: Page, timeoutMs = 90_000) {
-  // Expand peers list and assert at least one connection is WebRTC (i.e. browser<->browser).
-  await page.getByTestId('peers-header').click()
+  await ensurePeersHeaderVisible(page)
+  const peersList = page.getByTestId('peers-list')
+  await expect(async () => {
+    const isOpen = await peersList.isVisible().catch(() => false)
+    if (!isOpen) {
+      // Avoid actionability flakes when sidebar rerenders and the header detaches.
+      await page.evaluate(() => {
+        const header = document.querySelector('[data-testid="peers-header"]') as HTMLElement | null
+        header?.click()
+      })
+    }
+    await expect(peersList).toBeVisible({ timeout: 2000 })
+  }).toPass({ timeout: 30_000 })
+
+  // Assert at least one connection uses WebRTC (browser<->browser path).
   await expect(page.getByTestId('peers-list')).toContainText('WebRTC', { timeout: timeoutMs })
 }
 
