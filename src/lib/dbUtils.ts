@@ -618,9 +618,9 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         let postsCount = 0;
         let commentsCount = 0;
         let mediaCount = 0;
-        let postsDBAddress = '';
-        let commentsDBAddress = '';
-        let mediaDBAddress = '';
+        let postsDBAddr = '';
+        let commentsDBAddr = '';
+        let mediaDBAddr = '';
 
         updateLoadingState('loading_posts', 'Opening posts database...', 60);
         // Create promises for all DB operations
@@ -634,20 +634,21 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         .then(async postsInstance => {
           if (postsInstance) {
             info('postsInstance', postsInstance)
-            postsDBAddress = postsInstance.address.toString()
+            postsDBAddr = postsInstance.address.toString()
             // Only attempt to write if we have permissions
             try {
               if (canWriteToSettings && hasWriteAccess(postsInstance, get(identity).id)) {
-                await get(settingsDB).put({ _id: 'postsDBAddress', value: postsDBAddress });
+                await get(settingsDB).put({ _id: 'postsDBAddress', value: postsDBAddr });
               }
             } catch (writeError) {
               console.warn('Could not update postsDBAddress in settings:', writeError.message);
             }
             const allPosts = (await postsInstance.all()).map(post => {
           const { _id, ...rest } = post.value;
+          const resolvedId = _id ?? post.key;
           const mappedPost = { 
             ...rest,
-            _id: _id,
+            _id: resolvedId,
             content: rest.content || rest.value?.content,
             title: rest.title || rest.value?.title,
             date: rest.date || rest.value?.date,
@@ -673,10 +674,10 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         .then(async commentsInstance => {
           if (commentsInstance) {
             info('commentsInstance loaded asynchronously:', commentsInstance)
-            commentsDBAddress = commentsInstance.address.toString()
+            commentsDBAddr = commentsInstance.address.toString()
             try {
               if (canWriteToSettings && hasWriteAccess(commentsInstance, get(identity).id)) {
-                await get(settingsDB).put({ _id: 'commentsDBAddress', value: commentsDBAddress });
+                await get(settingsDB).put({ _id: 'commentsDBAddress', value: commentsDBAddr });
               }
             } catch (writeError) {
               console.warn('Could not update commentsDBAddress in settings:', writeError.message);
@@ -701,10 +702,10 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         .then(async mediaInstance => {
           if (mediaInstance) {
             info('mediaInstance loaded asynchronously:', mediaInstance)
-            mediaDBAddress = mediaInstance.address.toString()
+            mediaDBAddr = mediaInstance.address.toString()
             try {
               if (canWriteToSettings && hasWriteAccess(mediaInstance, get(identity).id)) {
-                await get(settingsDB).put({ _id: 'mediaDBAddress', value: mediaDBAddress });
+                await get(settingsDB).put({ _id: 'mediaDBAddress', value: mediaDBAddr });
               }
             } catch (writeError) {
               console.warn('Could not update mediaDBAddress in settings:', writeError.message);
@@ -729,9 +730,9 @@ export async function switchToRemoteDB(address: string, showModal = false) {
           postsCount,
           commentsCount,
           mediaCount,
-          postsDBAddress,
-          commentsDBAddress,
-          mediaDBAddress,
+          postsDBAddress: postsDBAddr,
+          commentsDBAddress: commentsDBAddr,
+          mediaDBAddress: mediaDBAddr,
           access: postsResult?.access
         });
 

@@ -24,9 +24,17 @@ async function expectPeerCount(page, expected, timeoutMs = 90000) {
 async function expectHasWebRTCTransport(page, timeoutMs = 90000) {
     await ensurePeersHeaderVisible(page);
     const peersList = page.getByTestId('peers-list');
-    if (!(await peersList.isVisible().catch(() => false))) {
-        await page.getByTestId('peers-header').click();
-    }
+    await expect(async () => {
+        const isOpen = await peersList.isVisible().catch(() => false);
+        if (!isOpen) {
+            // Avoid Playwright actionability flake when sidebar rerenders and the header detaches.
+            await page.evaluate(() => {
+                const header = document.querySelector('[data-testid="peers-header"]') as HTMLElement | null;
+                header?.click();
+            });
+        }
+        await expect(peersList).toBeVisible({ timeout: 2000 });
+    }).toPass({ timeout: 30000 });
     await expect(page.getByTestId('peers-list')).toContainText('WebRTC', { timeout: timeoutMs });
 }
 

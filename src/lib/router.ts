@@ -75,6 +75,8 @@ export async function initHashRouter() {
     if (_initialAddressRouter || _initialAddressDNS) {
         const _initialAddress = _initialAddressRouter || _initialAddressDNS;
         info('initialAddress', _initialAddress);
+        // Prevent immediate duplicate switch when orbitDBAddress store emits current hash.
+        previousAddress = _initialAddress;
         
         await switchToRemoteDB(_initialAddress, true)
         initialAddress.set(_initialAddress);
