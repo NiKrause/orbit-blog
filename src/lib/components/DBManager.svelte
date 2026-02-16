@@ -720,6 +720,7 @@
         />
         <button 
           title={$_('copy_to_clipboard')}
+          aria-label={$_('copy_to_clipboard')}
           ontouchstart={() => copyToClipboard($settingsDB?.address.toString() || '')} 
           onclick={() => copyToClipboard($settingsDB?.address.toString() || '')}
           class="btn-icon"
@@ -730,6 +731,7 @@
         {#if $settingsDB}
         <button 
           title="Drop current database and all sub-databases"
+          aria-label="Drop current database and all sub-databases"
           onclick={() => dropCurrentDatabase()} 
           class="btn-icon" style="color: var(--danger);"
           data-testid="drop-current-db-button"

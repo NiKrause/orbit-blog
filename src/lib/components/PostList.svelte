@@ -1013,6 +1013,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
                     onclick={() => handleTranslate(true)}
                     disabled={isTranslating}
                     title={$_('force_retranslate_tooltip')}
+                    aria-label={$_('force_retranslate_tooltip')}
                     class="btn-outline rounded-l-none px-2 disabled:opacity-50"
                     style="border-left: none;"
                   >
