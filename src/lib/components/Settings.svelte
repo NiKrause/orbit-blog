@@ -285,7 +285,7 @@
           {#each $categories as category}
             <div class="badge flex items-center gap-1" data-testid="category-item">
               <span>{category}</span>
-              <button class="btn-icon p-0" style="color: var(--danger); min-width: auto; min-height: auto;" onclick={() => removeCategory(category)} data-testid="remove-category-button-{category}">
+              <button class="btn-icon p-0" style="color: var(--danger); min-width: auto; min-height: auto;" onclick={() => removeCategory(category)} data-testid="remove-category-button-{category}" aria-label={`Remove category ${category}`}>
                 <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
@@ -306,7 +306,7 @@
         <div class="flex items-center gap-2">
           <span class="text-xs" style="color: var(--text-muted);">{$_('did')}:</span>
           <input type="text" size={60} readonly value={did} class="input flex-1 font-mono text-xs" />
-          <button class="btn-icon" onclick={() => copyToClipboard(did)}>
+          <button class="btn-icon" onclick={() => copyToClipboard(did)} aria-label="Copy DID">
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
           </button>
         </div>
@@ -407,5 +407,4 @@
   }
 
   :global([dir="rtl"]) .flex { flex-direction: row-reverse; }
-  :global([dir="rtl"]) .text-left { text-align: right; }
 </style> 
