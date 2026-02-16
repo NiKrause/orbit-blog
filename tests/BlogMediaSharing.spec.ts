@@ -1,13 +1,15 @@
 import { test, expect } from '@playwright/test';
 
+const RELAY_WS_ORIGIN = 'ws://localhost:19092';
+
 test.describe('Blog media sharing between Alice and Bob', () => {
-  test.skip('Alice uploads image to a post and Bob sees it', async ({ browser }) => {
+  test('Alice uploads image to a post and Bob sees it', async ({ browser }) => {
     const contextAlice = await browser.newContext({
       ignoreHTTPSErrors: true,
       launchOptions: {
         args: [
           '--allow-insecure-localhost',
-          '--unsafely-treat-insecure-origin-as-secure=ws://localhost:9092',
+          `--unsafely-treat-insecure-origin-as-secure=${RELAY_WS_ORIGIN}`,
           '--disable-web-security'
         ]
       }
@@ -18,7 +20,7 @@ test.describe('Blog media sharing between Alice and Bob', () => {
       launchOptions: {
         args: [
           '--allow-insecure-localhost',
-          '--unsafely-treat-insecure-origin-as-secure=ws://localhost:9092',
+          `--unsafely-treat-insecure-origin-as-secure=${RELAY_WS_ORIGIN}`,
           '--disable-web-security'
         ]
       }
