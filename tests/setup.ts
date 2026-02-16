@@ -1,8 +1,9 @@
-import { rm } from 'fs/promises'
+import { rm, access } from 'fs/promises'
 import { join } from 'path'
 import { spawn, type ChildProcess } from 'child_process'
 import { dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { constants } from 'fs'
 
 let relayProcess: ChildProcess | null = null;
 
@@ -11,6 +12,11 @@ let relayProcess: ChildProcess | null = null;
 const RELAY_TCP_PORT = 19091
 const RELAY_WS_PORT = 19092
 const RELAY_WEBRTC_PORT = 19093
+
+function getRelayBinPath() {
+    const binName = process.platform === 'win32' ? 'orbitdb-relay-pinner.cmd' : 'orbitdb-relay-pinner'
+    return join(process.cwd(), 'node_modules', '.bin', binName)
+}
 
 function pipeChildOutput(child: ChildProcess, prefix: string) {
     const write = (stream: NodeJS.WriteStream, data: Buffer) => {
@@ -27,7 +33,7 @@ async function waitForRelay(timeoutMs = 10000): Promise<boolean> {
     const readyMarkers = [
         // Might be logged via debug-style logger (can be disabled)
         'Starting relay server',
-        // Always printed via console.log in dist/relay/index.js after libp2p starts
+        // Always printed by the relay CLI after libp2p starts
         'p2p addr:'
     ];
     
@@ -74,6 +80,11 @@ async function waitForRelay(timeoutMs = 10000): Promise<boolean> {
     });
 }
 
+async function ensureRelayBuilt() {
+    const binPath = getRelayBinPath()
+    await access(binPath, constants.F_OK)
+}
+
 export async function setupTestEnvironment() {
     console.log('Setting up test environment...');
     
@@ -84,8 +95,10 @@ export async function setupTestEnvironment() {
 
         // Start relay server with ES modules support
         console.log('Starting relay server...');
-        // Run the compiled relay (src uses TS modules that Node can't import directly).
-        relayProcess = spawn('node', ['dist/relay/index.js', '--test'], {
+        await ensureRelayBuilt();
+        const relayBinPath = getRelayBinPath()
+        // Run the published relay CLI from node_modules (source lives in NiKrause/orbitdb-relay-pinner).
+        relayProcess = spawn(relayBinPath, ['--test'], {
             stdio: ['inherit', 'pipe', 'pipe'],
             env: {
                 ...process.env,
@@ -95,6 +108,10 @@ export async function setupTestEnvironment() {
                 RELAY_TCP_PORT: String(RELAY_TCP_PORT),
                 RELAY_WS_PORT: String(RELAY_WS_PORT),
                 RELAY_WEBRTC_PORT: String(RELAY_WEBRTC_PORT),
+                // The Node relay's WebRTC stack binds UDP sockets. In some environments (local sandboxing,
+                // CI runners, parallel jobs) this can flake or be disallowed. The webapp connects to the
+                // relay over WebSockets for tests, so keep the relay WS-only here.
+                RELAY_DISABLE_WEBRTC: 'true',
                 // Prevent CI flakes from port collisions (e.g. 9090 already bound on runners).
                 METRICS_PORT: '0',
 

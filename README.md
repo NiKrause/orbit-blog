@@ -11,6 +11,10 @@ IPNS: `ipns://k51qzi5uqu5dixys1k2prgbng4z9uxgvc4kj8l1xww1v5irt5cn3j5q402a0yb`
 
 Gateway: `https://k51qzi5uqu5dixys1k2prgbng4z9uxgvc4kj8l1xww1v5irt5cn3j5q402a0yb.ipns.dweb.link/`
 
+Latest IPFS CID: QmSpkcwan6D1yR4P324BstRhR47S8P4STdJ2LLnfhJ1MWW
+
+Latest IPFS Gateway: https://QmSpkcwan6D1yR4P324BstRhR47S8P4STdJ2LLnfhJ1MWW.ipfs.dweb.link/
+
 ## What It Does
 - Create a personal blog in the browser.
 - Replicate posts, comments, and media directly between peers.
@@ -18,8 +22,9 @@ Gateway: `https://k51qzi5uqu5dixys1k2prgbng4z9uxgvc4kj8l1xww1v5irt5cn3j5q402a0yb
 - Share a blog address and subscribe from another peer.
 
 ## Docs
-- Markdown extensions: `MARKDOWN_GUIDE.md`
-- Remote Markdown imports: `REMOTE_MARKDOWN_IMPORT.md`
+- Markdown extensions: `docs/MARKDOWN_GUIDE.md`
+- Remote Markdown imports: `docs/REMOTE_MARKDOWN_IMPORT.md`
+- AI agent codebase map: `docs/AI_AGENTS.md`
 
 ## Development
 ```bash

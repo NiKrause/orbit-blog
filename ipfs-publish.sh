@@ -35,6 +35,72 @@ output=$(ipfs add -r $BUILD_DIR/)
 cid=$(echo "$output" | tail -n 1 | awk '{print $2}')
 echo "latest IPFS CID $cid"
 
+# Update README with the latest CID so humans (and agents) can find the current build.
+export NEW_IPFS_CID="$cid"
+node - <<'NODE'
+const fs = require('fs');
+
+const cid = process.env.NEW_IPFS_CID;
+if (!cid) {
+  console.error('Missing NEW_IPFS_CID');
+  process.exit(1);
+}
+
+const readmePath = 'README.md';
+let s = fs.readFileSync(readmePath, 'utf8');
+
+const cidLine = `Latest IPFS CID: ${cid}`;
+const gwLine = `Latest IPFS Gateway: https://${cid}.ipfs.dweb.link/`;
+
+const hasCidLine = /^Latest IPFS CID: .*$/m.test(s);
+const hasGwLine = /^Latest IPFS Gateway: .*$/m.test(s);
+
+if (hasCidLine) {
+  s = s.replace(/^Latest IPFS CID: .*$/m, cidLine);
+}
+if (hasGwLine) {
+  s = s.replace(/^Latest IPFS Gateway: .*$/m, gwLine);
+}
+
+if (!hasCidLine && !hasGwLine) {
+  // Insert directly after the IPNS gateway line if present, otherwise append.
+  const marker = /^Gateway: .*$/m;
+  if (marker.test(s)) {
+    s = s.replace(marker, (m) => `${m}\n\n${cidLine}\n\n${gwLine}`);
+  } else {
+    s = `${s.trimEnd()}\n\n${cidLine}\n\n${gwLine}\n`;
+  }
+}
+
+fs.writeFileSync(readmePath, s);
+console.log(`Updated README.md with CID ${cid}`);
+NODE
+
+# Update GitHub repository "Website" (homepage) to point at the immutable build.
+# Best-effort: if `gh` isn't installed or authenticated, we just warn.
+if command -v gh >/dev/null 2>&1; then
+  origin_url="$(git remote get-url origin 2>/dev/null || true)"
+  repo_path=""
+
+  # Support both SSH and HTTPS remotes.
+  # - git@github.com:OWNER/REPO.git
+  # - https://github.com/OWNER/REPO.git
+  if [[ "$origin_url" =~ github\.com[:/]{1}([^/]+/[^/.]+)(\.git)?$ ]]; then
+    repo_path="${BASH_REMATCH[1]}"
+  fi
+
+  if [[ -n "$repo_path" ]]; then
+    homepage="https://${cid}.ipfs.dweb.link/"
+    echo "Updating GitHub repo homepage for $repo_path to $homepage"
+    gh api -X PATCH "repos/${repo_path}" -f "homepage=${homepage}" >/dev/null 2>&1 || \
+      echo "WARN: failed to update GitHub repo homepage (is gh authenticated and does it have repo scope?)"
+  else
+    echo "WARN: could not infer GitHub repo from origin remote; skipping homepage update"
+  fi
+else
+  echo "WARN: gh not found; skipping GitHub repo homepage update"
+fi
+
 # Run the ipfs name publish command with the extracted CID
 ipfs name publish --key=$IPNS_NAME /ipfs/$cid
 echo "IPFS name $IPNS_NAME updated with CID $cid"
@@ -63,6 +129,7 @@ fi
 
 # Git commands
 # git add vercel.json
+git add README.md package.json package-lock.json
 git commit -m "Update IPFS CID to $cid for version $version"
 git tag -a "v$version" -m "Version $version"
 git push origin main

@@ -1,6 +1,6 @@
 {
   "name": "le-space-blog",
-  "version": "0.2.110",
+  "version": "0.3.3",
   "type": "module",
   "files": [
     "dist",
@@ -28,15 +28,14 @@
     "build": "vite build",
     "build:lib": "vite build --mode lib",
     "preview": "vite preview",
-    "build:relay": "tsc --project tsconfig.json",
-    "relay": "npm run build:relay && node dist/relay/index.js",
-    "relay:test": "npm run build:relay && DEBUG=libp2p:gossipsub,libp2p:relay:*,le-space:*,-le-space:relay:error node dist/relay/index.js --test",
-    "relay:log": "npm run build:relay && DEBUG=libp2p:relay:* node dist/relay/index.js --test",
-    "relay:sync-only": "npm run build:relay && ENABLE_GENERAL_LOGS=false ENABLE_SYNC_LOGS=true ENABLE_SYNC_STATS=true node dist/relay/index.js",
-    "relay:quiet": "npm run build:relay && ENABLE_GENERAL_LOGS=false ENABLE_SYNC_LOGS=false ENABLE_SYNC_STATS=false node dist/relay/index.js",
-    "relay:verbose": "npm run build:relay && ENABLE_GENERAL_LOGS=true ENABLE_SYNC_LOGS=true ENABLE_SYNC_STATS=true LOG_LEVEL_CONNECTION=true LOG_LEVEL_PEER=true LOG_LEVEL_DATABASE=true node dist/relay/index.js",
+    "relay": "DEBUG=le-space:*,libp2p:* orbitdb-relay-pinner",
+    "relay:test": "DEBUG=libp2p:gossipsub,libp2p:relay:*,le-space:*,-le-space:relay:error orbitdb-relay-pinner --test",
+    "relay:log": "DEBUG=libp2p:relay:* orbitdb-relay-pinner --test",
+    "relay:sync-only": "ENABLE_GENERAL_LOGS=false ENABLE_SYNC_LOGS=true ENABLE_SYNC_STATS=true orbitdb-relay-pinner",
+    "relay:quiet": "ENABLE_GENERAL_LOGS=false ENABLE_SYNC_LOGS=false ENABLE_SYNC_STATS=false orbitdb-relay-pinner",
+    "relay:verbose": "ENABLE_GENERAL_LOGS=true ENABLE_SYNC_LOGS=true ENABLE_SYNC_STATS=true LOG_LEVEL_CONNECTION=true LOG_LEVEL_PEER=true LOG_LEVEL_DATABASE=true orbitdb-relay-pinner",
     "test": "mocha --config .mocharc.cjs test/orbitdb*.test.js",
-    "test:e2e": "playwright test tests/Connectivity.spec.ts tests/BlogSetup.spec.ts tests/BlogSharing.spec.ts tests/BlogSharing-Close-A.spec.ts",
+    "test:e2e": "playwright test tests",
     "test:e2e:ui": "playwright test --ui",
     "test:watch": "mocha --config .mocharc.cjs --watch",
     "ipfs-publish": "npm version patch && npm run build && ./ipfs-publish.sh",
@@ -67,7 +66,7 @@
     "tslib": "^2.8.1",
     "typescript": "^5.8.3",
     "vite": "^5.4.18",
-    "vite-plugin-pwa": "^0.21.2"
+    "vite-plugin-pwa": "^1.0.3"
   },
   "dependencies": {
     "@chainsafe/libp2p-gossipsub": "^14.1.1",
@@ -136,6 +135,7 @@
     "mermaid": "^11.6.0",
     "multiformats": "^13.3.2",
     "openai": "^4.96.0",
+    "orbitdb-relay-pinner": "^0.1.2",
     "p-queue": "^8.1.0",
     "prom-client": "^15.1.3",
     "svelte-i18n": "^4.0.1",

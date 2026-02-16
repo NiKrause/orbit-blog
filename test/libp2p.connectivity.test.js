@@ -15,6 +15,7 @@ describe('Libp2p Connectivity Tests', function() {
   this.timeout(30000);
   
   let node;
+  let webrtcPeer;
   const seedNodesDev = process.env.VITE_SEED_NODES_DEV?.split(',') || [];
   const seedNodes = process.env.VITE_SEED_NODES?.split(',') || [];
   const pubsubTopic = process.env.VITE_P2P_PUPSUB || 'le-space._peer-discovery._p2p._pubsub';
@@ -24,9 +25,14 @@ describe('Libp2p Connectivity Tests', function() {
   before(async () => {
     node = await createLibp2p({
       addresses: {
-        listen: ['/ip4/0.0.0.0/tcp/0', '/ip4/0.0.0.0/tcp/0/ws']
+        // Keep loopback for reliability across CI/dev. Include WebRTC-direct so we can test WebRTC connectivity.
+        listen: [
+          '/ip4/127.0.0.1/tcp/0',
+          '/ip4/127.0.0.1/tcp/0/ws',
+          '/ip4/127.0.0.1/udp/0/webrtc-direct'
+        ]
       },
-      transports: [tcp(),webSockets(),webRTC(),webRTCDirect(),circuitRelayTransport()],
+      transports: [tcp(), webSockets(), webRTC(), webRTCDirect(), circuitRelayTransport()],
       streamMuxers: [yamux()],
       connectionEncrypters: [noise()],
       services: {
@@ -44,11 +50,34 @@ describe('Libp2p Connectivity Tests', function() {
     console.log('node: ', node.peerId.toString());
     console.log('multiaddrs: ', node.getMultiaddrs().map((ma) => ma.toString()));
     await node.start();
+
+    // A second peer to validate WebRTC-direct connectivity locally (no external relay needed).
+    webrtcPeer = await createLibp2p({
+      addresses: {
+        listen: [
+          '/ip4/127.0.0.1/tcp/0',
+          '/ip4/127.0.0.1/tcp/0/ws',
+          '/ip4/127.0.0.1/udp/0/webrtc-direct'
+        ]
+      },
+      transports: [tcp(), webSockets(), webRTC(), webRTCDirect(), circuitRelayTransport()],
+      streamMuxers: [yamux()],
+      connectionEncrypters: [noise()],
+      services: {
+        pubsub: gossipsub(),
+        identify: identify(),
+        identifyPush: identifyPush()
+      }
+    });
+    await webrtcPeer.start();
   })
 
   after(async () => {
     if (node) {
       await node.stop();
+    }
+    if (webrtcPeer) {
+      await webrtcPeer.stop();
     }
   });
 
@@ -135,6 +164,25 @@ describe('Libp2p Connectivity Tests', function() {
           done(new Error('No peers discovered within timeout'));
         }
       }, 55000);
+    });
+  });
+
+  describe('WebRTC Direct Connectivity', () => {
+    it('should connect to a local peer via webrtc-direct', async () => {
+      const addrs = webrtcPeer.getMultiaddrs().map((ma) => ma.toString());
+      const webrtcDirectAddr = addrs.find((a) => a.includes('/webrtc-direct/'));
+      expect(webrtcDirectAddr, `Expected a /webrtc-direct/ multiaddr, got: ${addrs.join(', ')}`).to.be.a('string');
+
+      const ma = multiaddr(webrtcDirectAddr);
+      await node.dial(ma);
+
+      const peerId = ma.getPeerId();
+      expect(peerId).to.be.a('string');
+
+      const conns = node.getConnections(peerId);
+      expect(conns.length).to.be.greaterThan(0);
+      const usedWebrtcDirect = conns.some((c) => c.remoteAddr?.toString?.().includes('/webrtc-direct/'));
+      expect(usedWebrtcDirect, `Expected at least one connection to use /webrtc-direct/, got: ${conns.map((c) => c.remoteAddr?.toString?.()).join(', ')}`).to.equal(true);
     });
   });
 }); 

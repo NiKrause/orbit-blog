@@ -41,63 +41,68 @@ export default defineConfig(({ command, mode }) => {
       }),
       !isLib && VitePWA({
         registerType: 'autoUpdate',
-        devOptions: {
-          enabled: true
-        },
-        manifest: {
-          name: 'Le Space Blog',
-          short_name: 'Le Space Blog',
-          description: 'A local-first and peer-to-peer blogging application that leverages OrbitDB for peer-to-peer data replication and IPFS for content storage.',
-          theme_color: '#ffffff',
-          icons: [
-            {
-              src: '/orbit192.png',
-              sizes: '192x192',
-              type: 'image/png'
-            },
-            {
-              src: '/orbit512.png',
-              sizes: '512x512',
-              type: 'image/png'
-            }
-          ]
-        },
+        injectRegister: 'auto',
+        // Use a checked-in manifest file for stability (and to match simple-todo).
+        manifest: false,
         workbox: {
-          maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
+          // Keep offline support while avoiding caching large/local OrbitDB/IPFS directories.
+          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
+          globIgnores: ['**/orbitdb/**', '**/ipfs/**', '**/node_modules/**'],
+          additionalManifestEntries: [{ url: 'index.html', revision: null }],
           runtimeCaching: [
             {
-              urlPattern: /^https:\/\/.*$/,
-              handler: 'NetworkFirst',
+              // Cache navigation for instant offline loading, but don't interfere with IPFS/OrbitDB URLs.
+              urlPattern: ({ request }) =>
+                request.mode === 'navigate' &&
+                !request.url.includes('/ipfs/') &&
+                !request.url.includes('/orbitdb/'),
+              handler: 'CacheFirst',
               options: {
-                cacheName: 'api-cache',
-                networkTimeoutSeconds: 10,
+                cacheName: 'navigation-cache',
                 expiration: {
                   maxEntries: 50,
-                  maxAgeSeconds: 60
+                  maxAgeSeconds: 30 * 24 * 60 * 60 // 30 days
                 },
-                cacheableResponse: {
-                  statuses: [0, 200]
-                }
-              }
+                cacheableResponse: { statuses: [0, 200] }
+              },
             },
             {
-              urlPattern: /\/api\//,
-              handler: 'NetworkOnly'
-            },
-            {
-              urlPattern: /\/(.*)/,
-              handler: 'NetworkFirst',
+              // Static assets (JS/CSS/fonts) should be cache-first.
+              urlPattern: ({ request }) =>
+                request.destination === 'style' ||
+                request.destination === 'script' ||
+                request.destination === 'font',
+              handler: 'CacheFirst',
               options: {
-                cacheName: 'pages-cache',
+                cacheName: 'assets-cache',
                 expiration: {
-                  maxEntries: 10,
-                  maxAgeSeconds: 300
+                  maxEntries: 100,
+                  maxAgeSeconds: 30 * 24 * 60 * 60 // 30 days
+                }
+              },
+            },
+            {
+              // Images can be cached longer; keep counts bounded.
+              urlPattern: ({ request }) => request.destination === 'image',
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'images-cache',
+                expiration: {
+                  maxEntries: 60,
+                  maxAgeSeconds: 60 * 24 * 60 * 60 // 60 days
                 }
               }
             }
           ],
           skipWaiting: true,
-          clientsClaim: true
+          clientsClaim: true,
+          cleanupOutdatedCaches: true
+        },
+        devOptions: {
+          // Avoid SW/cache interference in normal dev and e2e; enable explicitly when needed.
+          enabled: process.env.PWA_DEV === 'true',
+          type: 'module'
         }
       })
     ].filter(Boolean),
