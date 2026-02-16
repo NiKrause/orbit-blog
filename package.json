@@ -143,8 +143,7 @@
     "tiny-secp256k1": "^2.2.3",
     "uint8arrays": "^5.1.0",
     "version": "^0.1.2",
-    "unenv": "^2.0.0-rc.15",
-    "vite-plugin-node-polyfills": "^0.23.0",
+    "vite-plugin-node-polyfills": "0.22.0",
     "vite-plugin-wasm": "^3.4.1"
   }
 }
