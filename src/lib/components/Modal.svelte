@@ -11,22 +11,17 @@
 </script>
 
 {#if isOpen}
-  <div class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-lg w-full">
-      <button class="absolute top-2 right-2 text-gray-500 hover:text-gray-700" onclick={onClose}>
-        {$_('close')}
+  <div class="fixed inset-0 flex justify-center items-center z-50" style="background-color: rgba(0,0,0,0.5); backdrop-filter: blur(4px);">
+    <div class="card p-5 max-w-lg w-full mx-4 relative">
+      <button class="btn-icon absolute top-3 right-3" onclick={onClose} aria-label={$_('close')}>
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
       </button>
       {#if message}
-        <p class="text-gray-700 dark:text-gray-300 mb-4">{@html message}</p>
+        <p class="text-sm mb-4" style="color: var(--text-secondary);">{@html message}</p>
       {/if}
       {#if children}
         {@render children()}
       {/if}
     </div>
   </div>
-{/if}
-
-<style>
-
-
-</style> 
+{/if} 

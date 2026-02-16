@@ -63,57 +63,36 @@
   }
 </script>
 
-<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-  <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-md w-full">
-    <span class="relative top-0 right-0 text-xs text-gray-500">Le SpaceDB Blog v{__APP_VERSION__}</span>
-    <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white relative">
+<div class="fixed inset-0 flex items-center justify-center z-50" style="background-color: rgba(0,0,0,0.6); backdrop-filter: blur(8px);">
+  <div class="card p-6 max-w-md w-full mx-4">
+    <span class="text-xs" style="color: var(--text-muted);">Le SpaceDB Blog v{__APP_VERSION__}</span>
+    <h2 class="text-lg font-semibold mt-2 mb-2" style="color: var(--text);">
       {isNewUser ? $_('create_password_generate_seed_phrase') : $_('enter_password_decrypt_seed')}
- 
     </h2>
     
-    <p class="mb-4 text-gray-700 dark:text-gray-300">
-      {isNewUser
-        ? $_('create_password_explanation')
-        : $_('enter_password_explanation')}
+    <p class="text-sm mb-4" style="color: var(--text-secondary);">
+      {isNewUser ? $_('create_password_explanation') : $_('enter_password_explanation')}
     </p>
     
     <form onsubmit={preventDefault(handleSubmit)} class="space-y-4">
       <div>
-        <label for="password-input" class="block text-gray-700 dark:text-gray-300 mb-1">{$_('password')}</label>
-        <input 
-          id="password-input"
-          type="password" 
-          bind:value={password}
-          class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-          placeholder={$_('enter_your_password')}
-          autocomplete="current-password"
-        />
+        <label for="password-input" class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">{$_('password')}</label>
+        <input id="password-input" type="password" bind:value={password} class="input" placeholder={$_('enter_your_password')} autocomplete="current-password" />
       </div>
       
       {#if isNewUser}
         <div>
-          <label for="confirm-password-input" class="block text-gray-700 dark:text-gray-300 mb-1">{$_('confirm_password')}</label>
-          <input 
-            id="confirm-password-input"
-            type="password" 
-            bind:value={confirmPassword}
-            class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            placeholder={$_('confirm_your_password')}
-            autocomplete="new-password"
-          />
+          <label for="confirm-password-input" class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">{$_('confirm_password')}</label>
+          <input id="confirm-password-input" type="password" bind:value={confirmPassword} class="input" placeholder={$_('confirm_your_password')} autocomplete="new-password" />
         </div>
       {/if}
       
       {#if errorMessage}
-        <div class="text-red-500">{errorMessage}</div>
+        <div class="text-xs" style="color: var(--danger);">{errorMessage}</div>
       {/if}
       
       <div class="flex justify-end">
-        <button 
-          type="submit"
-          class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
-          disabled={isProcessing}
-        >
+        <button type="submit" class="btn-primary" disabled={isProcessing}>
           {isProcessing ? $_('processing') : isNewUser ? $_('create') : $_('unlock')}
         </button>
       </div>
