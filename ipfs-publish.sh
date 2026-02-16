@@ -78,28 +78,28 @@ NODE
 
 # Update GitHub repository "Website" (homepage) to point at the immutable build.
 # Best-effort: if `gh` isn't installed or authenticated, we just warn.
-if command -v gh >/dev/null 2>&1; then
-  origin_url="$(git remote get-url origin 2>/dev/null || true)"
-  repo_path=""
+# if command -v gh >/dev/null 2>&1; then
+#   origin_url="$(git remote get-url origin 2>/dev/null || true)"
+#   repo_path=""
 
-  # Support both SSH and HTTPS remotes.
-  # - git@github.com:OWNER/REPO.git
-  # - https://github.com/OWNER/REPO.git
-  if [[ "$origin_url" =~ github\.com[:/]{1}([^/]+/[^/.]+)(\.git)?$ ]]; then
-    repo_path="${BASH_REMATCH[1]}"
-  fi
+#   # Support both SSH and HTTPS remotes.
+#   # - git@github.com:OWNER/REPO.git
+#   # - https://github.com/OWNER/REPO.git
+#   if [[ "$origin_url" =~ github\.com[:/]{1}([^/]+/[^/.]+)(\.git)?$ ]]; then
+#     repo_path="${BASH_REMATCH[1]}"
+#   fi
 
-  if [[ -n "$repo_path" ]]; then
-    homepage="https://${cid}.ipfs.dweb.link/"
-    echo "Updating GitHub repo homepage for $repo_path to $homepage"
-    gh api -X PATCH "repos/${repo_path}" -f "homepage=${homepage}" >/dev/null 2>&1 || \
-      echo "WARN: failed to update GitHub repo homepage (is gh authenticated and does it have repo scope?)"
-  else
-    echo "WARN: could not infer GitHub repo from origin remote; skipping homepage update"
-  fi
-else
-  echo "WARN: gh not found; skipping GitHub repo homepage update"
-fi
+#   if [[ -n "$repo_path" ]]; then
+#     homepage="https://${cid}.ipfs.dweb.link/"
+#     echo "Updating GitHub repo homepage for $repo_path to $homepage"
+#     gh api -X PATCH "repos/${repo_path}" -f "homepage=${homepage}" >/dev/null 2>&1 || \
+#       echo "WARN: failed to update GitHub repo homepage (is gh authenticated and does it have repo scope?)"
+#   else
+#     echo "WARN: could not infer GitHub repo from origin remote; skipping homepage update"
+#   fi
+# else
+#   echo "WARN: gh not found; skipping GitHub repo homepage update"
+# fi
 
 # Run the ipfs name publish command with the extracted CID
 ipfs name publish --key=$IPNS_NAME /ipfs/$cid
