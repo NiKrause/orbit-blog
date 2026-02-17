@@ -12,6 +12,9 @@ import { ping } from '@libp2p/ping'
 import { pubsubPeerDiscovery } from '@libp2p/pubsub-peer-discovery'
 import { multiaddr } from '@multiformats/multiaddr'
 import { bootstrap } from '@libp2p/bootstrap'
+import { createLogger } from './utils/logger.js'
+
+const log = createLogger('p2p')
 
 let VITE_SEED_NODES = (import.meta.env.VITE_SEED_NODES || '').replace('\n','').split(',').filter(Boolean)
 let VITE_SEED_NODES_DEV = (import.meta.env.VITE_SEED_NODES_DEV || '').replace('\n','').split(',').filter(Boolean)
@@ -36,19 +39,19 @@ if (import.meta.env.DEV) {
     MODE = 'development'
 }
 export let multiaddrs = MODE === 'development'?VITE_SEED_NODES_DEV:VITE_SEED_NODES
-console.log('MODE === development', MODE === 'development')
-console.log('VITE_SEED_NODES_DEV', VITE_SEED_NODES_DEV)
-console.log('VITE_SEED_NODES', VITE_SEED_NODES)
+log.debug('MODE === development', MODE === 'development')
+log.debug('VITE_SEED_NODES_DEV', VITE_SEED_NODES_DEV)
+log.debug('VITE_SEED_NODES', VITE_SEED_NODES)
 let pubSubPeerDiscoveryTopics = MODE === 'development'?VITE_P2P_PUPSUB_DEV:VITE_P2P_PUPSUB
-console.log('pubSubPeerDiscoveryTopics', pubSubPeerDiscoveryTopics)
-console.log('seed nodes multiaddrs', multiaddrs)
+log.debug('pubSubPeerDiscoveryTopics', pubSubPeerDiscoveryTopics)
+log.debug('seed nodes multiaddrs', multiaddrs)
 export const bootstrapConfig = { 
     list: multiaddrs.filter(addr => {
         try {
             multiaddr(addr);
             return true;
         } catch (e) {
-            console.warn(`Invalid multiaddr filtered out: ${addr}`);
+            log.warn(`Invalid multiaddr filtered out: ${addr}`);
             return false;
         }
     })
@@ -150,12 +153,12 @@ export async function validateMultiaddrs(
                     dialable.push(addr);
                 } catch (error) {
                     undialable.push(addr);
-                    console.error(`Failed to dial ${addr}:`, error);
+                    log.error(`Failed to dial ${addr}:`, error);
                 }
             }
         } catch (error) {
             invalid.push(addr);
-            console.error(`Invalid multiaddr ${addr}:`, error);
+            log.error(`Invalid multiaddr ${addr}:`, error);
         }
     }
     
@@ -168,6 +171,6 @@ export async function validateMultiaddrs(
 // Test your multiaddrs
 (async () => {
     const result = await validateMultiaddrs(multiaddrs);
-    console.log('Valid multiaddrs:', result.valid);
-    console.log('Invalid multiaddrs:', result.invalid);
+    log.debug('Valid multiaddrs:', result.valid);
+    log.debug('Invalid multiaddrs:', result.invalid);
 })();

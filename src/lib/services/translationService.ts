@@ -3,8 +3,10 @@ import { aiApiKey, aiApiUrl, enabledLanguages } from '../store.js';
 import type { BlogPost } from '../types.js';
 import OpenAI from 'openai';
 import { encryptPost } from '$lib/cryptoUtils.js';
-import { info, error } from '../utils/logger.js'
+import { createLogger } from '../utils/logger.js'
 import { setLanguage } from '../i18n/index.js';
+
+const log = createLogger('translation');
 
 interface TranslationRequest {
   text: string;
@@ -55,15 +57,15 @@ export class TranslationService {
 
   private static async translate(request: TranslationRequest): Promise<TranslationResponse> {
     try {
-      console.log(`🤖 AI TRANSLATOR BOT ACTIVATED! 🤖`);
-      console.log(`🌍 Translating from ${request.sourceLanguage || 'auto-detect'} ➡️ ${request.targetLanguage}`);
-      console.log(`💬 Text length: ${request.text.length} characters`);
-      console.log('🗣️ Preview:', request.text.substring(0, 50) + (request.text.length > 50 ? '...' : ''));
+      log.debug(`🤖 AI TRANSLATOR BOT ACTIVATED! 🤖`);
+      log.debug(`🌍 Translating from ${request.sourceLanguage || 'auto-detect'} ➡️ ${request.targetLanguage}`);
+      log.debug(`💬 Text length: ${request.text.length} characters`);
+      log.debug('🗣️ Preview:', request.text.substring(0, 50) + (request.text.length > 50 ? '...' : ''));
       
-      info(`Starting translation from ${request.sourceLanguage || 'auto'} to ${request.targetLanguage}`);
+      log.info(`Starting translation from ${request.sourceLanguage || 'auto'} to ${request.targetLanguage}`);
       const client = this.getClient();
       
-      console.log('🧠 Preparing the AI brain for linguistic gymnastics...');
+      log.debug('🧠 Preparing the AI brain for linguistic gymnastics...');
       
       const systemPrompt = `You are a professional translator. Translate the given text from ${request.sourceLanguage || 'the source language'} to ${request.targetLanguage}. 
 Maintain the original meaning, tone, and formatting.
@@ -71,8 +73,8 @@ Preserve any technical terms, proper nouns, or specialized vocabulary.
 Preserve any markdown formatting in the translation.
 Only respond with the translated text, without any additional commentary.`;
 
-      console.log('📞 Calling the AI overlords at OpenAI/DeepSeek...');
-      console.log('⏳ *elevator music plays while AI thinks*');
+      log.debug('📞 Calling the AI overlords at OpenAI/DeepSeek...');
+      log.debug('⏳ *elevator music plays while AI thinks*');
       
       const completion = await client.chat.completions.create({
         messages: [
@@ -82,35 +84,35 @@ Only respond with the translated text, without any additional commentary.`;
         model: "deepseek-chat",
       });
 
-      console.log('✨ MAGICAL TRANSLATION COMPLETE! ✨');
-      console.log('🎉 AI has worked its magic!');
-      console.log('💬 Translated text preview:', (completion.choices[0].message.content || '').substring(0, 50) + '...');
+      log.debug('✨ MAGICAL TRANSLATION COMPLETE! ✨');
+      log.debug('🎉 AI has worked its magic!');
+      log.debug('💬 Translated text preview:', (completion.choices[0].message.content || '').substring(0, 50) + '...');
       
-      info(`Successfully translated text to ${request.targetLanguage}`);
+      log.info(`Successfully translated text to ${request.targetLanguage}`);
       return {
         translatedText: completion.choices[0].message.content || '',
       };
     } catch (_error) {
-      console.log('💥 TRANSLATION EXPLOSION! 💥');
-      console.log('😵 AI translator has fainted!');
-      console.log('🔧 Error details:', _error);
-      error('Translation error:', _error);
+      log.debug('💥 TRANSLATION EXPLOSION! 💥');
+      log.debug('😵 AI translator has fainted!');
+      log.debug('🔧 Error details:', _error);
+      log.error('Translation error:', _error);
       throw _error;
     }
   }
 
   private static async getExistingTranslations(originalPostId: string, postsDB: any): Promise<Set<string>> {
     try {
-      info(`Fetching existing translations for post ${originalPostId}`);
+      log.info(`Fetching existing translations for post ${originalPostId}`);
       const allPosts = await postsDB.all();
       const translations = allPosts
         .filter(entry => entry.value.originalPostId === originalPostId)
         .map(entry => entry.value.language);
       
-      info(`Found ${translations.length} existing translations for post ${originalPostId}`);
+      log.info(`Found ${translations.length} existing translations for post ${originalPostId}`);
       return new Set(translations);
     } catch (_error) {
-      error('Error getting existing translations:', _error);
+      log.error('Error getting existing translations:', _error);
       return new Set();
     }
   }
@@ -120,7 +122,7 @@ Only respond with the translated text, without any additional commentary.`;
     targetLang: string, 
     sourceLang: string
   ): Promise<BlogPost> {
-    info(`Translating post fields to ${targetLang}`);
+    log.info(`Translating post fields to ${targetLang}`);
     
     // Translate title
     const titleTranslation = await this.translate({
@@ -155,7 +157,7 @@ Only respond with the translated text, without any additional commentary.`;
 
     // Validate that all required fields are present
     if (!translatedPost.title || !translatedPost.content || !translatedPost.category) {
-      error(`Translation validation failed for ${targetLang}`, {
+      log.error(`Translation validation failed for ${targetLang}`, {
         hasTitle: !!translatedPost.title,
         hasContent: !!translatedPost.content,
         hasCategory: !!translatedPost.category
@@ -163,7 +165,7 @@ Only respond with the translated text, without any additional commentary.`;
       throw new Error(`Translation failed: missing required fields for ${targetLang}`);
     }
 
-    info(`Successfully translated all fields to ${targetLang}`);
+    log.info(`Successfully translated all fields to ${targetLang}`);
     return translatedPost as BlogPost;
   }
 
@@ -179,23 +181,23 @@ Only respond with the translated text, without any additional commentary.`;
       forceRetranslate = false
     } = options;
 
-    console.log('🎪 WELCOME TO THE TRANSLATION CIRCUS! 🎪');
-    console.log('🎭 Ladies and gentlemen, step right up!');
-    console.log('🎟️ Translation Service has been summoned!');
-    info(`Starting translation process for post ${post._id || 'new post'}`);
-    console.log('📋 Translation request details:');
-    console.log('   📝 Post ID:', post._id);
-    console.log('   🎪 Title:', post.title);
-    console.log('   🌍 Source Language:', post.language);
-    console.log('   📏 Content Length:', post.content?.length || 0, 'characters');
-    console.log('   🔐 Encrypted:', post.isEncrypted);
+    log.debug('🎪 WELCOME TO THE TRANSLATION CIRCUS! 🎪');
+    log.debug('🎭 Ladies and gentlemen, step right up!');
+    log.debug('🎟️ Translation Service has been summoned!');
+    log.info(`Starting translation process for post ${post._id || 'new post'}`);
+    log.debug('📋 Translation request details:');
+    log.debug('   📝 Post ID:', post._id);
+    log.debug('   🎪 Title:', post.title);
+    log.debug('   🌍 Source Language:', post.language);
+    log.debug('   📏 Content Length:', post.content?.length || 0, 'characters');
+    log.debug('   🔐 Encrypted:', post.isEncrypted);
 
-    console.log('🔑 Checking API credentials...');
+    log.debug('🔑 Checking API credentials...');
     if (!get(aiApiKey) || !get(aiApiUrl)) {
-      console.log('🚨 ALERT! ALERT! API credentials are missing! 🚨');
-      console.log('😱 No API key or URL found! Translation impossible!');
-      console.log('💔 The circus cannot perform without its magic keys!');
-      error('Translation configuration missing - API key or URL not set');
+      log.debug('🚨 ALERT! ALERT! API credentials are missing! 🚨');
+      log.debug('😱 No API key or URL found! Translation impossible!');
+      log.debug('💔 The circus cannot perform without its magic keys!');
+      log.error('Translation configuration missing - API key or URL not set');
       return {
         success: false,
         error: 'translation_config_missing',
@@ -203,64 +205,64 @@ Only respond with the translated text, without any additional commentary.`;
       };
     }
     
-    console.log('✅ API credentials found! The show can go on!');
-    console.log('🎪 Setting up the translation big top...');
+    log.debug('✅ API credentials found! The show can go on!');
+    log.debug('🎪 Setting up the translation big top...');
 
     const translationStatuses = {};
     const enabledLangs = get(enabledLanguages);
     const sourceLanguage = post.language || 'en';
     
-    info(`Source language: ${sourceLanguage}, Target languages: ${Array.from(enabledLangs).join(', ')}`);
+    log.info(`Source language: ${sourceLanguage}, Target languages: ${Array.from(enabledLangs).join(', ')}`);
     
     try {
-      console.log('🔍 Detective mode: Looking for existing translations...');
+      log.debug('🔍 Detective mode: Looking for existing translations...');
       const existingTranslations = await this.getExistingTranslations(post._id, postsDB);
-      console.log('🕵️ Found existing translations for:', Array.from(existingTranslations));
+      log.debug('🕵️ Found existing translations for:', Array.from(existingTranslations));
       
       if (forceRetranslate) {
-        console.log('🔥 FORCE RE-TRANSLATE MODE ACTIVATED! 🔥');
-        console.log('💪 Ignoring existing translations - full re-translation requested!');
-        console.log('🗑️ Existing translations will be overwritten!');
+        log.debug('🔥 FORCE RE-TRANSLATE MODE ACTIVATED! 🔥');
+        log.debug('💪 Ignoring existing translations - full re-translation requested!');
+        log.debug('🗑️ Existing translations will be overwritten!');
       }
       
-      console.log('🎯 Target languages locked and loaded:', Array.from(enabledLangs));
-      console.log('🚀 Starting the translation marathon!');
+      log.debug('🎯 Target languages locked and loaded:', Array.from(enabledLangs));
+      log.debug('🚀 Starting the translation marathon!');
       
       for (const lang of enabledLangs) {
-        console.log(`\n🎪 === ROUND ${Array.from(enabledLangs).indexOf(lang) + 1}: ${lang.toUpperCase()} TRANSLATION ARENA === 🎪`);
+        log.debug(`\n🎪 === ROUND ${Array.from(enabledLangs).indexOf(lang) + 1}: ${lang.toUpperCase()} TRANSLATION ARENA === 🎪`);
         
         if (lang === sourceLanguage) {
-          console.log(`😴 Skipping ${lang} - this is the source language`);
-          console.log('💤 Moving on to next language...');
-          info(`Skipping translation for ${lang} - source language`);
+          log.debug(`😴 Skipping ${lang} - this is the source language`);
+          log.debug('💤 Moving on to next language...');
+          log.info(`Skipping translation for ${lang} - source language`);
           translationStatuses[lang] = 'exists';
           if (onStatusUpdate) onStatusUpdate(lang, 'exists');
           continue;
         }
         
         if (!forceRetranslate && existingTranslations.has(lang)) {
-          console.log(`😴 Skipping ${lang} - translation already exists (use force re-translate to override)`);
-          console.log('💤 Moving on to next language...');
-          info(`Skipping translation for ${lang} - already exists`);
+          log.debug(`😴 Skipping ${lang} - translation already exists (use force re-translate to override)`);
+          log.debug('💤 Moving on to next language...');
+          log.info(`Skipping translation for ${lang} - already exists`);
           translationStatuses[lang] = 'exists';
           if (onStatusUpdate) onStatusUpdate(lang, 'exists');
           continue;
         }
 
         try {
-          console.log(`🎬 ACTION! Starting ${lang} translation sequence!`);
-          console.log('🎯 Target acquired! Preparing translation weapons...');
-          info(`Starting translation to ${lang}`);
+          log.debug(`🎬 ACTION! Starting ${lang} translation sequence!`);
+          log.debug('🎯 Target acquired! Preparing translation weapons...');
+          log.info(`Starting translation to ${lang}`);
           if (onStatusUpdate) onStatusUpdate(lang, 'processing');
 
-          console.log('🤖 Deploying AI translation squad...');
+          log.debug('🤖 Deploying AI translation squad...');
           const translatedPost = await this.translateSingleLanguage(post, lang, sourceLanguage);
-          console.log('✨ Translation magic complete! Creating post record...');
+          log.debug('✨ Translation magic complete! Creating post record...');
           
-          info(`Successfully translated post to ${lang}, saving to database`);
+          log.info(`Successfully translated post to ${lang}, saving to database`);
           
           const _id = crypto.randomUUID();
-          console.log('🎲 Generated new post ID:', _id);
+          log.debug('🎲 Generated new post ID:', _id);
           
           let postData = {
             _id,
@@ -278,8 +280,8 @@ Only respond with the translated text, without any additional commentary.`;
           };
 
           if (post.isEncrypted && encryptionPassword) {
-            console.log('🔐 ENCRYPTION MODE: Scrambling the translation!');
-            info(`Encrypting translated post for ${lang}`);
+            log.debug('🔐 ENCRYPTION MODE: Scrambling the translation!');
+            log.info(`Encrypting translated post for ${lang}`);
             const encryptedData = await encryptPost(
               { title: translatedPost.title, content: translatedPost.content }, 
               encryptionPassword
@@ -290,41 +292,41 @@ Only respond with the translated text, without any additional commentary.`;
               content: encryptedData.encryptedContent,
               isEncrypted: true
             };
-            console.log('🔒 Post encrypted and secured!');
+            log.debug('🔒 Post encrypted and secured!');
           }
 
-          console.log('💾 Saving to OrbitDB database...');
+          log.debug('💾 Saving to OrbitDB database...');
           await postsDB.put(postData);
-          console.log('🎯 BULLSEYE! Post saved successfully!');
-          info(`Successfully saved ${lang} translation with ID: ${_id}`);
+          log.debug('🎯 BULLSEYE! Post saved successfully!');
+          log.info(`Successfully saved ${lang} translation with ID: ${_id}`);
           translationStatuses[lang] = 'success';
           
           // Switch to the newly translated language immediately
-          console.log(`🌐 Switching to ${lang} language interface...`);
+          log.debug(`🌐 Switching to ${lang} language interface...`);
           setLanguage(lang);
-          console.log('✅ Language switched! Welcome to the new world!');
+          log.debug('✅ Language switched! Welcome to the new world!');
           
           if (onStatusUpdate) onStatusUpdate(lang, 'success');
         } catch (_error) {
-          console.log(`💥 BOOM! ${lang} translation crashed and burned!`);
-          console.log('🚑 Emergency protocols activated!');
-          console.log('⚠️ Error details:', _error);
-          error(`Error processing translation for ${lang}:`, _error);
+          log.debug(`💥 BOOM! ${lang} translation crashed and burned!`);
+          log.debug('🚑 Emergency protocols activated!');
+          log.debug('⚠️ Error details:', _error);
+          log.error(`Error processing translation for ${lang}:`, _error);
           translationStatuses[lang] = 'error';
           if (onStatusUpdate) onStatusUpdate(lang, 'error');
         }
       }
       
-      console.log('\n🏁 TRANSLATION MARATHON COMPLETE! 🏁');
-      console.log('📊 Final scores:', translationStatuses);
+      log.debug('\n🏁 TRANSLATION MARATHON COMPLETE! 🏁');
+      log.debug('📊 Final scores:', translationStatuses);
 
-      info(`Translation process completed. Results: ${JSON.stringify(translationStatuses)}`);
+      log.info(`Translation process completed. Results: ${JSON.stringify(translationStatuses)}`);
       return {
         success: true,
         translationStatuses
       };
     } catch (_error) {
-      error('Translation process failed:', _error);
+      log.error('Translation process failed:', _error);
       return {
         success: false,
         error: 'translation_failed',

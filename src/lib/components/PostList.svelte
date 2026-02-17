@@ -24,10 +24,12 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
   import LanguageStatusLED from './LanguageStatusLED.svelte';
   import { encryptPost } from '$lib/cryptoUtils.js';
   import PostPasswordPrompt from './PostPasswordPrompt.svelte';
-  import { info, error as logError } from '../utils/logger.js'
+  import { createLogger } from '../utils/logger.js'
   import MultiSelect from './MultiSelect.svelte';
   import { MarkdownImportResolver } from '$lib/services/MarkdownImportResolver.js';
   import MarkdownHelp from './MarkdownHelp.svelte';
+
+  const log = createLogger('posts');
 
   let searchTerm = $state('');
   let selectedCategory: Category | 'All' = $state('All');
@@ -171,13 +173,13 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
     return ownerIdentityId === $identity.id;
   }
   // $effect(() => {
-  //   info('displayedPosts', displayedPosts);
+  //   log.info('displayedPosts', displayedPosts);
   // });
 
   let selectedPost = $derived($selectedPostId ? displayedPosts.find(post => post._id === $selectedPostId) : null);
 
   onMount(() => {
-    info('PostList component mounted');
+    log.info('PostList component mounted');
   });
 
   $effect(() => {
@@ -197,12 +199,12 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
     if (!selectedPost) return;
     
     // Log the original post
-    info(`Selected post: ${selectedPost.title} (${selectedPost.language || 'no language'})`);
-    info('posts', $posts) 
+    log.info(`Selected post: ${selectedPost.title} (${selectedPost.language || 'no language'})`);
+    log.info('posts', $posts) 
     
     // Get available languages for this post using the language service
     const availableLanguages = getAvailableLanguagesForPost($posts as any[], postId);
-    info(`Available languages for post: [${availableLanguages.join(', ')}]`);
+    log.info(`Available languages for post: [${availableLanguages.join(', ')}]`);
     
     // Find all related translations
     const allTranslations = $posts.filter(p => 
@@ -217,12 +219,12 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
     
     // Log all translations
     if (allTranslations.length > 0) {
-      info('Related translations:');
+      log.info('Related translations:');
       allTranslations.forEach(translation => {
-        info(`- ${translation.title} (${translation.language})`);
+        log.info(`- ${translation.title} (${translation.language})`);
       });
     } else {
-      info('No translations found for this post');
+      log.info('No translations found for this post');
     }
   }
 
@@ -243,12 +245,12 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
   async function saveEditedPost() {
     if (selectedPost && editedTitle && editedContent) {
       try {
-        console.log('Updating post with identity:', $identity);
-        console.log('Identity ID:', $identity?.id);
+        log.debug('Updating post with identity:', $identity);
+        log.debug('Identity ID:', $identity?.id);
         
         // Ensure identity is available before updating post
         if (!$identity || !$identity.id) {
-          console.error('Identity not available when updating post');
+          log.error('Identity not available when updating post');
           alert('Identity not initialized. Please wait for the app to fully load.');
           return;
         }
@@ -281,7 +283,7 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
           published: editedPublished
         };
         
-        console.log('Updated post data with identity:', {...updatedPost, identity: updatedPost.identity });
+        log.debug('Updated post data with identity:', {...updatedPost, identity: updatedPost.identity });
 
         // If post is being encrypted or was previously encrypted
         if (isEncrypting || selectedPost.isEncrypted) {
@@ -298,14 +300,13 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
         }
 
         await $postsDB.put(updatedPost);
-        info('Post updated successfully', updatedPost);
+        log.info('Post updated successfully', updatedPost);
         editMode = false;
         isEncrypting = false;
         encryptionPassword = '';
         $selectedPostId = updatedPost._id;
       } catch (err) {
-        logError('Error updating post:', err);
-        console.error('Error updating post:', err);
+        log.error('Error updating post:', err);
       }
     }
   }
@@ -346,7 +347,7 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
         await $postsDB.del(post._id);
       }
 
-      info(`Posts deleted successfully: ${deleteAllTranslations ? 'all translations' : 'current language only'}`);
+      log.info(`Posts deleted successfully: ${deleteAllTranslations ? 'all translations' : 'current language only'}`);
       if ($selectedPostId === postToDelete._id && displayedPosts.length > 1) {
         $selectedPostId = displayedPosts[0]._id;
       }
@@ -354,8 +355,7 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
       postToDelete = null;
       deleteAllTranslations = false; // Reset the choice
     } catch (err) {
-      logError('Error deleting posts:', err);
-      console.error('Error deleting posts:', err);
+      log.error('Error deleting posts:', err);
     }
   }
 
@@ -552,25 +552,25 @@ ${convertMarkdownToLatex(selectedPost.content)}
 
   // Modify the handleTranslate function similarly to the PostForm version
   async function handleTranslate(forceRetranslate = false) {
-    console.log('🎯 TRANSLATE BUTTON CLICKED! 🎯');
-    console.log('🚀 Houston, we have a translation request! Starting countdown...');
-    console.log('3... 2... 1... BLAST OFF! 🚀');
+    log.debug('🎯 TRANSLATE BUTTON CLICKED! 🎯');
+    log.debug('🚀 Houston, we have a translation request! Starting countdown...');
+    log.debug('3... 2... 1... BLAST OFF! 🚀');
     
     isTranslating = true;
     translationError = '';
     translationStatuses = Object.fromEntries([...$enabledLanguages].map(lang => [lang, 'default']));
     
-    console.log('🔧 Setting up the translation machinery...');
-    console.log('⚡ isTranslating =', isTranslating);
-    console.log('🌍 Enabled languages:', [...$enabledLanguages]);
-    console.log('📝 Current post title:', editedTitle);
-    console.log('📄 Content length:', editedContent?.length, 'characters');
+    log.debug('🔧 Setting up the translation machinery...');
+    log.debug('⚡ isTranslating =', isTranslating);
+    log.debug('🌍 Enabled languages:', [...$enabledLanguages]);
+    log.debug('📝 Current post title:', editedTitle);
+    log.debug('📄 Content length:', editedContent?.length, 'characters');
 
     try {
       // Support both single category (backward compatibility) and multiple categories
         const categoryData = editedCategories.length > 0 ? editedCategories : [];
         
-        console.log('🏷️ Categories collected:', categoryData);
+        log.debug('🏷️ Categories collected:', categoryData);
 
       const post = {
         _id:  $selectedPostId,
@@ -582,12 +582,12 @@ ${convertMarkdownToLatex(selectedPost.content)}
         isEncrypted: isEncrypting 
       };
       
-      console.log('📦 Post package prepared for translation:');
-      console.log('   🆔 ID:', post._id);
-      console.log('   🏷️ Title:', post.title);
-      console.log('   🌐 Language:', post.language);
-      console.log('   🔒 Encrypted:', post.isEncrypted);
-      console.log('🎪 Time to call the Translation Circus! 🎪');
+      log.debug('📦 Post package prepared for translation:');
+      log.debug('   🆔 ID:', post._id);
+      log.debug('   🏷️ Title:', post.title);
+      log.debug('   🌐 Language:', post.language);
+      log.debug('   🔒 Encrypted:', post.isEncrypted);
+      log.debug('🎪 Time to call the Translation Circus! 🎪');
 
       const result = await TranslationService.translateAndSavePost({
         post,
@@ -603,31 +603,31 @@ ${convertMarkdownToLatex(selectedPost.content)}
         forceRetranslate: forceRetranslate
       })
       
-      console.log('🎭 Translation Circus has returned! Results:', result);
+      log.debug('🎭 Translation Circus has returned! Results:', result);
 
       if (result.success) {
-        console.log('🎉 SUCCESS! Translation party time! 🎉');
-        console.log('🏆 Translation statuses:', result.translationStatuses);
-        console.log('🚪 Exiting edit mode like a boss!');
+        log.debug('🎉 SUCCESS! Translation party time! 🎉');
+        log.debug('🏆 Translation statuses:', result.translationStatuses);
+        log.debug('🚪 Exiting edit mode like a boss!');
         translationStatuses = result.translationStatuses;
         editMode = false;
       } else {
-        console.log('😱 OH NO! Translation failed! 😱');
-        console.log('💥 Error:', result.error);
-        console.log('📊 Status report:', result.translationStatuses);
+        log.debug('😱 OH NO! Translation failed! 😱');
+        log.debug('💥 Error:', result.error);
+        log.debug('📊 Status report:', result.translationStatuses);
         translationError = result.error;
         translationStatuses = result.translationStatuses;
       }
     } catch (error) {
-      console.log('🔥 CATASTROPHIC FAILURE! 🔥');
-      console.log('💀 The translation gods are angry:', error);
-      console.log('🆘 Emergency protocols activated!');
+      log.debug('🔥 CATASTROPHIC FAILURE! 🔥');
+      log.debug('💀 The translation gods are angry:', error);
+      log.debug('🆘 Emergency protocols activated!');
       translationError = $_('translation_failed');
     } finally {
-      console.log('🏁 Translation marathon complete!');
-      console.log('😴 Setting isTranslating to false... zzz');
+      log.debug('🏁 Translation marathon complete!');
+      log.debug('😴 Setting isTranslating to false... zzz');
       isTranslating = false;
-      console.log('✅ All done! Thanks for using the Le Space Blog Translation Extravaganza! ✨');
+      log.debug('✅ All done! Thanks for using the Le Space Blog Translation Extravaganza! ✨');
     }
   }
 
@@ -642,7 +642,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
   }
 
   function passwordSubmitted(event: CustomEvent) {
-    info('passwordSubmitted', event.detail.password);
+    log.info('passwordSubmitted', event.detail.password);
     encryptionPassword = event.detail.password;
     isEncrypting = true;
     showPasswordPrompt = false;
@@ -686,19 +686,19 @@ ${convertMarkdownToLatex(selectedPost.content)}
     importResolutionResult = null;
     
     try {
-      info('Resolving physical imports in edited content...');
+      log.info('Resolving physical imports in edited content...');
       const result = await MarkdownImportResolver.resolvePhysicalImports(editedContent);
       
       if (result.success) {
         editedContent = result.resolvedContent;
         importResolutionResult = result;
-        info(`Successfully resolved ${result.resolvedImports.length} physical imports`);
+        log.info(`Successfully resolved ${result.resolvedImports.length} physical imports`);
       } else {
         importResolutionError = `Failed to resolve some imports: ${result.errors.map(e => e.error).join(', ')}`;
         importResolutionResult = result;
       }
     } catch (error) {
-      console.error('Error resolving imports:', error);
+      log.error('Error resolving imports:', error);
       importResolutionError = error instanceof Error ? error.message : 'Unknown error occurred';
     } finally {
       isResolvingImports = false;
@@ -1210,7 +1210,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
     on:passwordSubmitted={passwordSubmitted}
     on:postDecrypted={handlePostDecrypted}
     on:cancel={() => {
-      info('cancel');
+      log.info('cancel');
       showPasswordPrompt = false;
       isEncrypting = false;
     }}

@@ -46,8 +46,8 @@ npm run test:e2e
 ## Debugging
 Browser console examples:
 ```js
-localStorage.setItem('debug', 'le-space:*')
-localStorage.setItem('debug', 'libp2p:circuit-relay:*,libp2p:discovery:*,libp2p:dcutr:*')
+localStorage.setItem('debug', 'le-space:blog:*')
+localStorage.setItem('debug', 'le-space:blog:p2p,le-space:blog:db,le-space:blog:posts')
 localStorage.setItem('debug', 'libp2p:*,helia:*,le-space:blog:*')
 ```
 
