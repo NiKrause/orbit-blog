@@ -1,10 +1,10 @@
 import { writable, derived } from 'svelte/store';
-import type { Post, Category, RemoteDB, Media, Comment, Helia, OrbitDB, Voyager } from './types.js';
+import type { Post, Category, RemoteDB, Media, Comment, Helia, OrbitDB, Voyager, Identity } from './types.js';
 import { localStorageStore } from './utils.js';
 import { LANGUAGES } from './i18n/index.js';
 
 // Create writable stores
-export const identity = writable<{ id: string } | null>(null);
+export const identity = writable<Identity | null>(null);
 export const identities = writable<any>(null);
 export const settingsDB = writable<OrbitDB | null>(null);
 export const postsDB = writable<OrbitDB | null>(null);
@@ -64,5 +64,4 @@ export const allMedia = writable<Media[]>([]);
 
 // Store for tracking the current language direction
 export const isRTL = writable(false);
-
 

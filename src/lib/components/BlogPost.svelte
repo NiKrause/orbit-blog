@@ -46,6 +46,28 @@
   let isEncrypted = $state(false);
   let showPasswordPrompt = $state(false);
   let decryptionError = $state('');
+  const canComment = $derived(
+    Boolean(
+      $postsDB?.access?.write?.includes?.($identity?.id) ||
+      $postsDB?.access?.write?.includes?.('*')
+    )
+  );
+  const canWriteComments = $derived(
+    Boolean(
+      $commentsDB?.access?.write?.includes?.($identity?.id) ||
+      $commentsDB?.access?.write?.includes?.('*')
+    )
+  );
+
+  function canDeleteComment(comment: Comment): boolean {
+    if (!$identity) return false;
+    const isBlogOwner = Boolean($postsDB?.access?.write?.includes?.($identity.id));
+    const authorDid = comment.authorDid || comment.identity || '';
+    const isOwnComment =
+      authorDid === $identity.id ||
+      comment.author === $identity.id;
+    return Boolean(canWriteComments && (isBlogOwner || isOwnComment));
+  }
 
   // Create a reactive date formatter that updates when locale changes
   const reactiveDateFormatter = derived(locale, ($locale) => {
@@ -159,7 +181,10 @@ function updateRenderedContent(): void {
     try {
       const allComments = await $commentsDB.all();
       comments = allComments
-        .map(entry => entry.value)
+        .map(entry => ({
+          ...entry.value,
+          authorDid: entry.value?.authorDid || entry.value?.identity || entry.identity?.id || entry.identity || undefined
+        }))
         .filter(comment => comment.postId === activePostId);
     } catch (_error) {
       error('Error loading comments:', _error);
@@ -181,6 +206,8 @@ function updateRenderedContent(): void {
         postId: activePostId,
         content: newComment,
         author: commentAuthor,
+        authorDid: $identity?.id || '',
+        identity: $identity?.id || '',
         createdAt: new Date().toISOString()
       });
       
@@ -189,6 +216,16 @@ function updateRenderedContent(): void {
       await loadComments();
     } catch (_error) {
       error('Error adding comment:', _error);
+    }
+  }
+
+  async function deleteComment(commentId: string): Promise<void> {
+    if (!$commentsDB) return;
+    try {
+      await $commentsDB.del(commentId);
+      await loadComments();
+    } catch (_error) {
+      error('Error deleting comment:', _error);
     }
   }
 
@@ -439,11 +476,27 @@ function updateRenderedContent(): void {
       <h3 class="text-sm font-semibold mb-4" style="color: var(--text);">{$_('comments')} ({comments.length})</h3>
       {#each comments as comment}
         <div class="mb-3 p-3 rounded-md" style="border: 1px solid var(--border-subtle); background-color: var(--bg-tertiary);">
-          <div class="flex items-center mb-1.5">
-            <strong class="text-sm" style="color: var(--text);">{comment.author}</strong>
-            <span class="ml-2 text-xs" style="color: var(--text-muted);">
-              {$reactiveDateFormatter(comment.createdAt)}
-            </span>
+          <div class="flex items-center justify-between mb-1.5">
+            <div class="flex items-center">
+              <strong class="text-sm" style="color: var(--text);">{comment.author}</strong>
+              <span class="ml-2 text-xs" style="color: var(--text-muted);">
+                {$reactiveDateFormatter(comment.createdAt)}
+              </span>
+            </div>
+            {#if canDeleteComment(comment)}
+              <button
+                type="button"
+                class="btn-icon"
+                onclick={() => deleteComment(comment._id)}
+                title={$_('delete_comment')}
+                aria-label={$_('delete_comment')}
+                style="color: var(--danger);"
+              >
+                <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+              </button>
+            {/if}
           </div>
           <p class="text-sm" style="color: var(--text-secondary);">{comment.content}</p>
         </div>
@@ -487,32 +540,38 @@ function updateRenderedContent(): void {
       </div>
     {/if}
 
-      <form onsubmit={preventDefault(addComment)} class="mt-6">
-        <div class="mb-3">
-          <input
-            type="text"
-            bind:value={commentAuthor}
-            placeholder={$_('your_name')}
-            required
-            class="input"
-          />
-        </div>
-        <div class="mb-3">
-          <textarea
-            bind:value={newComment}
-            placeholder={$_('write_a_comment')}
-            required
-            class="input"
-            style="min-height: 80px;"
-          ></textarea>
-        </div>
-        <button 
-          type="submit"
-          class="btn-primary"
-        >
-          {$_('add_comment')}
-        </button>
-      </form>
+      {#if canComment}
+        <form onsubmit={preventDefault(addComment)} class="mt-6">
+          <div class="mb-3">
+            <input
+              type="text"
+              bind:value={commentAuthor}
+              placeholder={$_('your_name')}
+              required
+              class="input"
+            />
+          </div>
+          <div class="mb-3">
+            <textarea
+              bind:value={newComment}
+              placeholder={$_('write_a_comment')}
+              required
+              class="input"
+              style="min-height: 80px;"
+            ></textarea>
+          </div>
+          <button 
+            type="submit"
+            class="btn-primary"
+          >
+            {$_('add_comment')}
+          </button>
+        </form>
+      {:else}
+        <p class="text-xs mt-3" style="color: var(--text-muted);">
+          Comments are disabled in read-only session mode. Authenticate with passkey to write.
+        </p>
+      {/if}
     </section>
   {/if}
 </article>

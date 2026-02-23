@@ -15,6 +15,7 @@ import MultiSelect from './MultiSelect.svelte';
 import { MarkdownImportResolver } from '$lib/services/MarkdownImportResolver.js';
 import { info } from '$lib/utils/logger.js';
 import MarkdownHelp from './MarkdownHelp.svelte';
+import { loadWebAuthnVarsigCredential } from '@le-space/orbitdb-identity-provider-webauthn-did';
 
   let title = $state('');
   let content = $state('');
@@ -37,6 +38,32 @@ import MarkdownHelp from './MarkdownHelp.svelte';
   let importResolutionError = $state('');
   let importResolutionResult = $state<any>(null);
 
+  function shortIdentity(value?: string | null): string {
+    if (!value) return 'not available';
+    if (value.length <= 24) return value;
+    return `${value.slice(0, 12)}...${value.slice(-8)}`;
+  }
+
+  function buildPrePostIdentityNotice(): string {
+    const activeDid = $identity?.id || '';
+    const activeType = $identity?.type === 'webauthn-varsig' ? 'hardware-passkey' : 'session/software';
+    const sessionDid = typeof window !== 'undefined'
+      ? sessionStorage.getItem('sessionIdentityDid')
+      : null;
+    const storedPasskeyDid = loadWebAuthnVarsigCredential()?.did
+      || (typeof window !== 'undefined' ? sessionStorage.getItem('passkeyIdentityDid') : null);
+
+    return [
+      'Identity check before posting:',
+      `Active signer type: ${activeType}`,
+      `Active signer DID: ${shortIdentity(activeDid)}`,
+      `Session DID: ${shortIdentity(sessionDid)}`,
+      `Passkey DID: ${shortIdentity(storedPasskeyDid)}`,
+      '',
+      'Continue and publish this post?'
+    ].join('\n');
+  }
+
   async function handleSubmit() {
     
     if (title && content && selectedCategories.length > 0) {
@@ -50,6 +77,15 @@ import MarkdownHelp from './MarkdownHelp.svelte';
           alert('Identity not initialized. Please wait for the app to fully load.');
           return;
         }
+
+        const writerSessionActive = typeof window !== 'undefined' && sessionStorage.getItem('identityMode') === 'passkey';
+        if (!writerSessionActive) {
+          alert('Publishing is blocked in reader mode. Activate passkey writer mode first.');
+          return;
+        }
+
+        const proceed = window.confirm(buildPrePostIdentityNotice());
+        if (!proceed) return;
         
         // Support both single category (backward compatibility) and multiple categories
         const categoryData = selectedCategories.length > 0 ? selectedCategories : (category ? [category] : []);

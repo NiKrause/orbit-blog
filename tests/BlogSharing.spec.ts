@@ -111,7 +111,7 @@ test.describe('Blog Sharing between Alice and Bob', () => {
             console.error('PAGE ERROR:', err.message);
             if (err.stack) console.error(err.stack);
         });
-        await pageAlice.goto('http://localhost:5173');
+        await pageAlice.goto('http://localhost:5183');
         await pageAlice.evaluate(() => {
             localStorage.setItem('debug', 'libp2p:*,le-space:*');
         });
@@ -234,7 +234,7 @@ test.describe('Blog Sharing between Alice and Bob', () => {
             console.error('PAGE ERROR:', err.message);
             if (err.stack) console.error(err.stack);
         });
-        await pageBob.goto(`http://localhost:5173/#${aliceBlogAddress}`);
+        await pageBob.goto(`http://localhost:5183/#${aliceBlogAddress}`);
         await pageBob.evaluate(() => {
             localStorage.setItem('debug', 'libp2p:*,le-space:*');
         });
@@ -316,7 +316,7 @@ test.describe('Blog Sharing between Alice and Bob', () => {
             }
         });
         pageAlice = await contextAlice.newPage();
-        await pageAlice.goto('http://localhost:5173');
+        await pageAlice.goto('http://localhost:5183');
 
         // Open Sidebar and DBManager
         // await pageAlice.getByTestId('menu-button').click();  

@@ -8,13 +8,12 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 
   import { createHelia } from 'helia';
   import { createLibp2p } from 'libp2p';
-  import { createOrbitDB, IPFSAccessController } from '@orbitdb/core';
+  import { createOrbitDB } from '@orbitdb/core';
+  import OrbitDBAccessController from '@orbitdb/core/src/access-controllers/orbitdb.js';
+  import { CID } from 'multiformats/cid';
   
   import { LevelDatastore } from 'datastore-level';
   import { LevelBlockstore } from 'blockstore-level';
-  import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string';
-  import { privateKeyFromProtobuf } from '@libp2p/crypto/keys';
-  import { generateMnemonic } from 'bip39';
 
   import Sidebar from './Sidebar.svelte';
   import PostForm from './PostForm.svelte';
@@ -23,7 +22,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   import DBManager from './DBManager.svelte';
   import ConnectedPeers from './ConnectedPeers.svelte';
   import Settings from './Settings.svelte';
-  import PasswordModal from './PasswordModal.svelte';
   import LoadingBlog from './LoadingBlog.svelte';
   import LanguageSelector from './LanguageSelector.svelte';
   import PWAEjectModal from './PWAEjectModal.svelte';
@@ -35,12 +33,17 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   import { locale } from 'svelte-i18n';
 
   import { libp2pOptions, multiaddrs } from '$lib/config.js';
-  import { encryptSeedPhrase } from '$lib/cryptoUtils.js';
-  import { convertTo32BitSeed, generateMasterSeed, generateAndSerializeKey } from '$lib/utils.js';
   import createIdentityProvider from '$lib/identityProvider.js';
   import { initHashRouter, isLoadingRemoteBlog } from '$lib/router.js';
   import { setupPeerEventListeners } from '$lib/peerConnections.js';
   import { getImageUrlFromHelia } from '$lib/utils/mediaUtils.js';
+  import {
+    WebAuthnVarsigProvider,
+    createWebAuthnVarsigIdentity,
+    createWebAuthnVarsigIdentities,
+    storeWebAuthnVarsigCredential,
+    loadWebAuthnVarsigCredential
+  } from '@le-space/orbitdb-identity-provider-webauthn-did';
   import { unixfs } from '@helia/unixfs';
   import { 
     initialAddress,
@@ -65,7 +68,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     settingsDB, 
     blogDescription, 
     categories, 
-    seedPhrase, 
     commentsDB,
     commentsDBAddress,
     mediaDB,
@@ -78,13 +80,17 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 
   let blockstore = new LevelBlockstore('./helia-blocks');
   let datastore = new LevelDatastore('./helia-data');
+  const WRITER_SESSION_SEED_KEY = 'writerSessionSeedV1';
 
-  let encryptedSeedPhrase = localStorage.getItem('encryptedSeedPhrase');
-
-  let showPasswordModal = $state(encryptedSeedPhrase ? true : false);
-  let isNewUser = !encryptedSeedPhrase;
+  let identityMode = $state<'session' | 'passkey'>('session');
+  let isActivatingIdentity = $state(false);
+  let passkeyError = $state('');
+  let hasStoredPasskey = $state(false);
+  let canActivateWriterMode = $state(false);
   let canWrite = $state(false);
   let ownerIdentityId = $state<string | null>(null);
+  let activeSignerDid = $state('not available');
+  let passkeySignerDid = $state('not available');
   let showEjectModal = $state(false);
   let canEjectPWA = $state(false);
 
@@ -122,41 +128,309 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 
   let fs = $state();
 
-  if(!encryptedSeedPhrase) {
-      info('no seed phrase, generating new one')
-      $seedPhrase = generateMnemonic();
-      initializeApp();
+  // Default behavior: use temporary session identity so readers don't need passkeys.
+  // Writer mode can be explicitly enabled with passkey auth.
+  if (typeof window !== 'undefined' && sessionStorage.getItem('identityMode') === 'passkey') {
+    identityMode = 'passkey';
   }
+
+  const bytesToBase64 = (bytes: Uint8Array) =>
+    btoa(String.fromCharCode(...bytes));
+  const base64ToBytes = (value: string) =>
+    Uint8Array.from(atob(value), (c) => c.charCodeAt(0));
+  const shortDid = (value?: string | null) => {
+    if (!value) return 'not available';
+    if (value.length <= 24) return value;
+    return `${value.slice(0, 12)}...${value.slice(-8)}`;
+  };
 
   function toggleSidebar() {
     sidebarVisible = !sidebarVisible;
   }
 
-  async function handleSeedPhraseCreated(event: CustomEvent) {
-    const newSeedPhrase = generateMnemonic();
-    const encryptedPhrase = await encryptSeedPhrase(newSeedPhrase, event.detail.password);
-    localStorage.setItem('encryptedSeedPhrase', encryptedPhrase);
-    $seedPhrase = newSeedPhrase;
-    showPasswordModal = false; 
-    initializeApp();
+  async function activatePasskeyIdentity() {
+    console.log('[LeSpaceBlog] activatePasskeyIdentity start', {
+      identityMode,
+      currentIdentityId: $identity?.id,
+      currentIdentityType: $identity?.type,
+      ownerIdentityId
+    });
+    passkeyError = '';
+    isActivatingIdentity = true;
+    try {
+      let credential = loadWebAuthnVarsigCredential();
+      console.log('[LeSpaceBlog] loaded stored credential', {
+        hasCredential: !!credential,
+        did: credential?.did
+      });
+      if (!credential) {
+        console.log('[LeSpaceBlog] creating new credential');
+        credential = await WebAuthnVarsigProvider.createCredential({
+          userId: `le-space-${Date.now()}`,
+          displayName: 'Le Space Blog Writer'
+        });
+        console.log('[LeSpaceBlog] created credential', { did: credential?.did });
+        storeWebAuthnVarsigCredential(credential);
+        hasStoredPasskey = true;
+      }
+
+      // Re-verify passkey once when unlocking writer mode.
+      await createWebAuthnVarsigIdentity({
+        credential,
+        userVerification: 'required',
+        mediation: 'required'
+      });
+
+      // Always rotate delegated writer-session credentials when unlocking writer mode.
+      const writerSessionSeed = crypto.getRandomValues(new Uint8Array(32));
+      const writerSessionIdProvider = await createIdentityProvider('ed25519', writerSessionSeed, $helia);
+      const writerSessionDid = writerSessionIdProvider.identity.id;
+
+      if (ownerIdentityId && credential.did !== ownerIdentityId) {
+        // Local session-owner promotion path:
+        // grant passkey DID on all current blog DBs, then revoke session DID.
+        const isLocalOwnerSession = Boolean(
+          identityMode === 'session' &&
+          $identity?.id &&
+          ownerIdentityId === $identity.id &&
+          $settingsDB &&
+          $postsDB &&
+          $commentsDB &&
+          $mediaDB
+        );
+
+        if (!isLocalOwnerSession) {
+          throw new Error('This passkey is not authorized as writer for the current blog.');
+        }
+
+        const dbs = [
+          { name: 'settings', db: $settingsDB },
+          { name: 'posts', db: $postsDB },
+          { name: 'comments', db: $commentsDB },
+          { name: 'media', db: $mediaDB }
+        ];
+        const currentSessionDid = $identity.id;
+        const passkeyDid = credential.did;
+
+        for (const { name, db } of dbs) {
+          if (typeof db?.access?.grant !== 'function' || typeof db?.access?.revoke !== 'function') {
+            throw new Error('Current blog uses a static access controller. Cannot promote writer with grant/revoke.');
+          }
+        }
+
+        const withTimeout = async (promise: Promise<any>, label: string, ms = 7000) => {
+          let timer: any;
+          const timeout = new Promise((_, reject) => {
+            timer = setTimeout(() => reject(new Error(`Timed out: ${label}`)), ms);
+          });
+          try {
+            return await Promise.race([promise, timeout]);
+          } finally {
+            clearTimeout(timer);
+          }
+        };
+
+        const reopenDbByName = async (name: string, addr: string) => {
+          const reopened = await $orbitdb.open(addr, { create: false });
+          if (name === 'settings') $settingsDB = reopened as any;
+          if (name === 'posts') $postsDB = reopened as any;
+          if (name === 'comments') $commentsDB = reopened as any;
+          if (name === 'media') $mediaDB = reopened as any;
+          return reopened;
+        };
+
+        for (const entry of dbs) {
+          const { name } = entry;
+          let db = entry.db;
+          const addr = db?.address?.toString?.() || `unknown-${name}`;
+          const writeList = db?.access?.write || [];
+          if (writeList.includes('*') || writeList.includes(writerSessionDid)) {
+            console.log('[LeSpaceBlog] skipped grant write', { name, db: addr, reason: 'already writable (wildcard or passkey DID present)' });
+            continue;
+          }
+          try {
+            console.log('[LeSpaceBlog] granting write', { name, db: addr, writerSessionDid });
+            await withTimeout(db.access.grant('write', writerSessionDid), `grant write ${name}`);
+            console.log('[LeSpaceBlog] granted write', { name, db: addr, writerSessionDid });
+          } catch (grantErr) {
+            if (String((grantErr as any)?.message || '').includes('Database is not open')) {
+              try {
+                console.warn('[LeSpaceBlog] db closed during grant, reopening and retrying', { name, db: addr });
+                db = await reopenDbByName(name, addr);
+                entry.db = db;
+                await withTimeout(db.access.grant('write', writerSessionDid), `grant write retry ${name}`);
+                console.log('[LeSpaceBlog] granted write after reopen', { name, db: addr, writerSessionDid });
+                continue;
+              } catch (retryErr) {
+                console.error('[LeSpaceBlog] grant retry failed', { name, db: addr, writerSessionDid, retryErr });
+                throw retryErr;
+              }
+            }
+            console.error('[LeSpaceBlog] grant write failed', { name, db: addr, writerSessionDid, grantErr });
+            throw grantErr;
+          }
+        }
+
+        await $settingsDB.put({ _id: 'ownerIdentity', value: passkeyDid });
+        ownerIdentityId = passkeyDid;
+
+        for (const { name, db } of dbs) {
+          const addr = db?.address?.toString?.() || `unknown-${name}`;
+          const writeList = db?.access?.write || [];
+          if (writeList.includes('*')) {
+            console.log('[LeSpaceBlog] skipped revoke on wildcard db', { name, db: addr });
+            continue;
+          }
+          try {
+            await withTimeout(db.access.revoke('write', currentSessionDid), `revoke write ${name}`);
+            console.log('[LeSpaceBlog] revoked previous session write', { name, db: addr, currentSessionDid });
+          } catch (revokeErr) {
+            console.warn('[LeSpaceBlog] revoke session write failed (non-fatal)', { name, db: addr, currentSessionDid, revokeErr });
+          }
+        }
+
+        try {
+          await $settingsDB.put({ _id: 'activeSessionDid', value: writerSessionDid });
+        } catch {}
+      }
+
+      sessionStorage.setItem(WRITER_SESSION_SEED_KEY, bytesToBase64(writerSessionSeed));
+
+      // Switch to delegated writer-session identity in-place (no full page reload) by creating a
+      // fresh OrbitDB instance and reopening databases with the new identity.
+      const writerSeedB64 = sessionStorage.getItem(WRITER_SESSION_SEED_KEY);
+      if (!writerSeedB64) throw new Error('No delegated writer session seed available.');
+      const writerSeed = base64ToBytes(writerSeedB64);
+      const writerIdentityProvider = await createIdentityProvider('ed25519', writerSeed, $helia);
+      const writerIdentity = writerIdentityProvider.identity;
+      const writerIdentities = writerIdentityProvider.identities;
+
+      const previousOrbitdb = $orbitdb;
+      const previousDbs = {
+        settings: $settingsDB,
+        posts: $postsDB,
+        comments: $commentsDB,
+        media: $mediaDB,
+        remote: $remoteDBsDatabases
+      };
+
+      const settingsAddr = $settingsDB?.address?.toString?.();
+      const postsAddr = $postsDB?.address?.toString?.();
+      const commentsAddr = $commentsDB?.address?.toString?.();
+      const mediaAddr = $mediaDB?.address?.toString?.();
+      const remoteAddr = $remoteDBsDatabases?.address?.toString?.();
+
+      // Stop previous handles first to avoid duplicate libp2p protocol handlers.
+      try { await previousDbs.settings?.close?.(); } catch {}
+      try { await previousDbs.posts?.close?.(); } catch {}
+      try { await previousDbs.comments?.close?.(); } catch {}
+      try { await previousDbs.media?.close?.(); } catch {}
+      try { await previousDbs.remote?.close?.(); } catch {}
+      try { await previousOrbitdb?.stop?.(); } catch {}
+
+      // Let protocol unregistrations settle before creating a new OrbitDB instance.
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      const newOrbitdb = await createOrbitDB({
+        ipfs: $helia,
+        identity: writerIdentity,
+        identities: writerIdentities as any,
+        storage: blockstore,
+        directory: './orbitdb',
+      });
+
+      const newSettings = await newOrbitdb.open(settingsAddr || 'settings', {
+        type: 'documents',
+        create: true,
+        overwrite: false,
+        directory: './orbitdb/settings',
+        identity: writerIdentity,
+        identities: writerIdentities as any,
+        AccessController: OrbitDBAccessController({ write: [writerIdentity.id] }),
+      });
+      const newPosts = await newOrbitdb.open(postsAddr || 'posts', {
+        type: 'documents',
+        create: true,
+        overwrite: false,
+        directory: './orbitdb/posts',
+        identity: writerIdentity,
+        identities: writerIdentities as any,
+        AccessController: OrbitDBAccessController({ write: [writerIdentity.id] }),
+      });
+      const newComments = await newOrbitdb.open(commentsAddr || 'comments', {
+        type: 'documents',
+        create: true,
+        overwrite: false,
+        directory: './orbitdb/comments',
+        identity: writerIdentity,
+        identities: writerIdentities as any,
+        AccessController: OrbitDBAccessController({ write: ['*'] }),
+      });
+      const newMedia = await newOrbitdb.open(mediaAddr || 'media', {
+        type: 'documents',
+        create: true,
+        overwrite: false,
+        directory: './orbitdb/media',
+        identity: writerIdentity,
+        identities: writerIdentities as any,
+        AccessController: OrbitDBAccessController({ write: [writerIdentity.id] }),
+      });
+      const newRemoteDbs = await newOrbitdb.open(remoteAddr || 'remote-dbs', {
+        type: 'documents',
+        create: true,
+        overwrite: false,
+        identity: writerIdentity,
+        identities: writerIdentities as any,
+        AccessController: OrbitDBAccessController({ write: [writerIdentity.id] }),
+      });
+
+      $orbitdb = newOrbitdb as any;
+      $identities = writerIdentities as any;
+      $identity = writerIdentity as any;
+      $settingsDB = newSettings as any;
+      $postsDB = newPosts as any;
+      $commentsDB = newComments as any;
+      $mediaDB = newMedia as any;
+      $remoteDBsDatabases = newRemoteDbs as any;
+      $postsDBAddress = newPosts.address?.toString?.() || $postsDBAddress;
+      $commentsDBAddress = newComments.address?.toString?.() || $commentsDBAddress;
+      $mediaDBAddress = newMedia.address?.toString?.() || $mediaDBAddress;
+
+      ;(window as any).settingsDB = newSettings;
+      ;(window as any).postsDB = newPosts;
+      ;(window as any).commentsDB = newComments;
+      ;(window as any).mediaDB = newMedia;
+      ;(window as any).remoteDBsDatabases = newRemoteDbs;
+
+      // owner identity remains passkey DID; active runtime writer is delegated session DID.
+
+      // Invalidate session identity traces once passkey writer mode is activated.
+      sessionStorage.removeItem('sessionIdentityDid');
+      sessionStorage.setItem('identityMode', 'passkey');
+      sessionStorage.setItem('activeIdentityDid', writerIdentity.id);
+      sessionStorage.setItem('activeIdentityType', writerIdentity.type || 'delegated-session');
+      sessionStorage.setItem('passkeyIdentityDid', credential.did);
+      identityMode = 'passkey';
+      console.log('[LeSpaceBlog] activation success, switched to delegated writer-session mode in-place');
+    } catch (err: any) {
+      console.error('[LeSpaceBlog] activatePasskeyIdentity failed', err);
+      error('Passkey identity activation failed', err);
+      passkeyError = err?.message || 'Failed to activate passkey identity';
+    } finally {
+      isActivatingIdentity = false;
+    }
   }
 
-  async function handleSeedPhraseDecrypted(event: CustomEvent) {
-    $seedPhrase = event.detail.seedPhrase;
-    showPasswordModal = false; 
-    initializeApp();
+  function handleActivatePasskeyWriterFromSettings() {
+    console.log('[LeSpaceBlog] received Settings activatePasskeyWriter event');
+    activatePasskeyIdentity();
   }
 
 	  async function initializeApp() {
-	    if (!$seedPhrase) return;
 	    
 	    info('initializeApp')
 	    
-	    const masterSeed = generateMasterSeed($seedPhrase, "password", false) as Buffer;
-	    const { hex } = await generateAndSerializeKey(masterSeed.subarray(0, 32))
-	    const privKeyBuffer = uint8ArrayFromString(hex, 'hex');
-	    const _keyPair = await privateKeyFromProtobuf(privKeyBuffer);
-	    const _libp2p = await createLibp2p({ privateKey: _keyPair, ...libp2pOptions })
+	    const _libp2p = await createLibp2p({ ...libp2pOptions })
 	    $libp2p = _libp2p
 	    ;(window as any).libp2p=_libp2p
     // for (const multiaddr of multiaddrs) { 
@@ -174,12 +448,32 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 	    // info('invalid', invalid)
 	    // info('dialable', dialable)
 	    // info('undialable', undialable)
-	    // Deterministic OrbitDB identity from the seed phrase.
-	    // This is critical for headless agents: with the same seed phrase they can recreate the same writer identity.
-	    const identitySeed = convertTo32BitSeed(masterSeed)
-	    const idProvider = await createIdentityProvider('ed25519', identitySeed, $helia)
-	    $identities = idProvider.identities
-	    $identity = idProvider.identity
+      if (identityMode === 'passkey') {
+        const writerSeedB64 = sessionStorage.getItem(WRITER_SESSION_SEED_KEY);
+        if (!writerSeedB64) {
+          sessionStorage.removeItem('identityMode');
+          identityMode = 'session';
+          throw new Error('Writer session requested, but no delegated session seed was found. Unlock writer mode again.');
+        }
+        const writerSeed = base64ToBytes(writerSeedB64);
+        const idProvider = await createIdentityProvider('ed25519', writerSeed, $helia);
+        $identities = idProvider.identities;
+        $identity = idProvider.identity;
+        if (typeof window !== 'undefined' && idProvider?.identity?.id) {
+          sessionStorage.setItem('activeIdentityDid', idProvider.identity.id);
+          sessionStorage.setItem('activeIdentityType', 'delegated-session');
+        }
+      } else {
+        const sessionSeed = crypto.getRandomValues(new Uint8Array(32));
+        const idProvider = await createIdentityProvider('ed25519', sessionSeed, $helia);
+        $identities = idProvider.identities;
+        $identity = idProvider.identity;
+        if (typeof window !== 'undefined' && idProvider?.identity?.id) {
+          sessionStorage.setItem('activeIdentityDid', idProvider.identity.id);
+          sessionStorage.setItem('activeIdentityType', idProvider.identity.type || 'ed25519');
+          sessionStorage.setItem('sessionIdentityDid', idProvider.identity.id);
+        }
+      }
 	    
 	    $orbitdb = await createOrbitDB({
 	      ipfs: $helia,
@@ -195,27 +489,67 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       info('UnixFS initialized');
     }
 
-    // Always create local databases first so they cannot overwrite a remote switch later.
-    await createDefaultDatabases();
-
-    // Initialize hash router after local DB setup to avoid duplicate/racy remote switches.
+    // Initialize hash router first so remote-read mode can skip local DB creation.
     routerUnsubscribe = await initHashRouter();
+    if (!$initialAddress) {
+      await createDefaultDatabases();
+    }
   }
 
   // Move the default database creation to a separate function
   async function createDefaultDatabases() {
+    const LOCAL_DB_ADDRS_KEY = 'localBlogDbAddressesV1';
+    const loadLocalDbAddrs = () => {
+      if (typeof window === 'undefined') return {};
+      try {
+        return JSON.parse(localStorage.getItem(LOCAL_DB_ADDRS_KEY) || '{}') || {};
+      } catch {
+        return {};
+      }
+    };
+    const saveLocalDbAddrs = (value: any) => {
+      if (typeof window === 'undefined') return;
+      try {
+        localStorage.setItem(LOCAL_DB_ADDRS_KEY, JSON.stringify(value));
+      } catch {}
+    };
+    const persistedAddrs = loadLocalDbAddrs();
+    const openWithFallback = async (
+      target: string,
+      name: string,
+      options: any,
+      targetWasPersisted = false
+    ) => {
+      try {
+        return await $orbitdb.open(target, {
+          ...options,
+          create: !targetWasPersisted
+        });
+      } catch (err) {
+        if (target !== name) {
+          warn(`Failed opening persisted ${name} address, trying name fallback`, { target, err });
+          try {
+            return await $orbitdb.open(name, { ...options, create: false });
+          } catch {
+            return await $orbitdb.open(name, { ...options, create: true });
+          }
+        }
+        throw err;
+      }
+    };
+
     // IMPORTANT: This must await all opens. Otherwise, the `.then(...)` handlers can
     // run *after* `switchToRemoteDB()` and overwrite the global stores back to local DBs.
     try {
-      const _db = await $orbitdb.open('settings', {
+      const settingsTarget = persistedAddrs.settings || 'settings';
+      const _db = await openWithFallback(settingsTarget, 'settings', {
         type: 'documents',
-        create: true,
         overwrite: false,
         directory: './orbitdb/settings',
         identity: $identity,
         identities: $identities,
-        AccessController: IPFSAccessController({ write: [$identity.id] }),
-      })
+        AccessController: OrbitDBAccessController({ write: [$identity.id] }),
+      }, Boolean(persistedAddrs.settings))
       $settingsDB = _db
       ;(window as any).settingsDB = _db
 
@@ -232,16 +566,27 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       warn('Error opening settings DB:', err)
     }
 
+    // Read linked db addresses from settings if available.
+    let linkedPostsAddr = '';
+    let linkedCommentsAddr = '';
+    let linkedMediaAddr = '';
     try {
-      const _db = await $orbitdb.open('posts', {
+      const settingsDocs = await $settingsDB?.all?.();
+      linkedPostsAddr = settingsDocs?.find((e: any) => e?.value?._id === 'postsDBAddress')?.value?.value || '';
+      linkedCommentsAddr = settingsDocs?.find((e: any) => e?.value?._id === 'commentsDBAddress')?.value?.value || '';
+      linkedMediaAddr = settingsDocs?.find((e: any) => e?.value?._id === 'mediaDBAddress')?.value?.value || '';
+    } catch {}
+
+    try {
+      const postsTarget = linkedPostsAddr || persistedAddrs.posts || 'posts';
+      const _db = await openWithFallback(postsTarget, 'posts', {
         type: 'documents',
-        create: true,
         overwrite: false,
         directory: './orbitdb/posts',
         identity: $identity,
         identities: $identities,
-        AccessController: IPFSAccessController({ write: [$identity.id] }),
-      })
+        AccessController: OrbitDBAccessController({ write: [$identity.id] }),
+      }, Boolean(linkedPostsAddr || persistedAddrs.posts))
       $postsDB = _db
       ;(window as any).postsDB = _db
       info('postsDB', _db.address.toString())
@@ -257,7 +602,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         overwrite: false,
         identities: $identities,
         identity: $identity,
-        AccessController: IPFSAccessController({ write: [$identity.id] }),
+        AccessController: OrbitDBAccessController({ write: [$identity.id] }),
       })
       $remoteDBsDatabases = _db
       ;(window as any).remoteDBsDatabases = _db
@@ -266,15 +611,15 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     }
 
     try {
-      const _db = await $orbitdb.open('comments', {
+      const commentsTarget = linkedCommentsAddr || persistedAddrs.comments || 'comments';
+      const _db = await openWithFallback(commentsTarget, 'comments', {
         type: 'documents',
-        create: true,
         overwrite: false,
         directory: './orbitdb/comments',
         identity: $identity,
         identities: $identities,
-        AccessController: IPFSAccessController({ write: ['*'] }),
-      })
+        AccessController: OrbitDBAccessController({ write: ['*'] }),
+      }, Boolean(linkedCommentsAddr || persistedAddrs.comments))
       $commentsDB = _db
       $commentsDBAddress = _db.address.toString()
       ;(window as any).commentsDB = _db
@@ -283,22 +628,51 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     }
 
     try {
-      const _db = await $orbitdb.open('media', {
+      const mediaTarget = linkedMediaAddr || persistedAddrs.media || 'media';
+      const _db = await openWithFallback(mediaTarget, 'media', {
         type: 'documents',
-        create: true,
         overwrite: false,
         directory: './orbitdb/media',
         identity: $identity,
         identities: $identities,
-        AccessController: IPFSAccessController({ write: [$identity.id] }),
-      })
+        AccessController: OrbitDBAccessController({ write: [$identity.id] }),
+      }, Boolean(linkedMediaAddr || persistedAddrs.media))
       $mediaDB = _db
       $mediaDBAddress = _db.address.toString()
       ;(window as any).mediaDB = _db
     } catch (err) {
       warn('Error opening media DB:', err)
     }
+
+    // Persist actual addresses so reloads reopen the same local blog DB set.
+    saveLocalDbAddrs({
+      settings: $settingsDB?.address?.toString?.() || persistedAddrs.settings || '',
+      posts: $postsDB?.address?.toString?.() || persistedAddrs.posts || '',
+      comments: $commentsDB?.address?.toString?.() || persistedAddrs.comments || '',
+      media: $mediaDB?.address?.toString?.() || persistedAddrs.media || ''
+    });
   }
+
+  $effect(() => {
+    const credential = loadWebAuthnVarsigCredential();
+    hasStoredPasskey = !!credential;
+    canActivateWriterMode = Boolean(
+      credential?.did &&
+      ownerIdentityId &&
+      credential.did === ownerIdentityId &&
+      identityMode !== 'passkey'
+    );
+  });
+
+  $effect(() => {
+    if (typeof window === 'undefined') return;
+    const credential = loadWebAuthnVarsigCredential();
+    activeSignerDid = $identity?.id || sessionStorage.getItem('activeIdentityDid') || 'not available';
+    passkeySignerDid =
+      sessionStorage.getItem('passkeyIdentityDid') ||
+      credential?.did ||
+      'not available';
+  });
 
   $effect(() => {
     if($initialAddress) {
@@ -313,7 +687,8 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   $effect(() => {
     if ($orbitdb && $postsDB && $identity) {
       const postsAddr = $postsDB.address?.toString?.() || String($postsDB.address || '');
-      canWrite = Boolean(ownerIdentityId && ownerIdentityId === $identity.id) && (postsAddr === $postsDBAddress)
+      const writeAccess = $postsDB?.access?.write || [];
+      canWrite = Boolean((writeAccess.includes($identity.id) || writeAccess.includes('*')) && (postsAddr === $postsDBAddress));
     }
   });
 
@@ -650,20 +1025,17 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   });
 
   function handleTouchStart(e) {
-    if (showPasswordModal) return;
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     touchStartX = clientX;
     info('Touch/Mouse start:', touchStartX);
   }
 
   function handleTouchMove(e) {
-    if (showPasswordModal) return;
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     touchEndX = clientX;
   }
 
   function handleTouchEnd(e) {
-    if (showPasswordModal) return;
     info('Touch/Mouse end:', 'startX:', touchStartX, 'endX:', touchEndX);
     const deltaX = touchStartX - touchEndX;
     const swipeDistance = Math.abs(deltaX);
@@ -724,6 +1096,14 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       info('LeSpaceBlog - UnixFS initialized');
     }
   });
+
+  initializeApp().catch((err) => {
+    error('App initialization failed', err);
+    if (identityMode === 'passkey') {
+      sessionStorage.removeItem('identityMode');
+      window.location.reload();
+    }
+  });
 </script>
 <svelte:head>
   <title>{$blogName} {__APP_VERSION__}</title>
@@ -768,14 +1148,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   onmouseup={handleTouchEnd}
 />
 
-{#if showPasswordModal}
-  <PasswordModal 
-    {isNewUser} 
-    encryptedSeedPhrase={encryptedSeedPhrase}
-    on:seedPhraseCreated={handleSeedPhraseCreated}
-    on:seedPhraseDecrypted={handleSeedPhraseDecrypted}
-  />
-{:else}
   <div class="flex min-h-screen transition-colors" style="background-color: var(--bg); color: var(--text);" role="main">
     
     {#if sidebarVisible}
@@ -864,7 +1236,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
           <header class="flex items-center gap-4 mb-10">
             <div class="w-12 h-12 rounded-full overflow-hidden flex-shrink-0" style="background-color: var(--bg-tertiary);">
               {#if $profilePictureCid}
-                {#await getImageUrlFromHelia($profilePictureCid, fs)}
+                {#await getImageUrlFromHelia($profilePictureCid, fs as any)}
                   <div class="w-full h-full flex items-center justify-center"></div>
                 {:then imageUrl}
                   {#if imageUrl}
@@ -909,7 +1281,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 
           <div class="divider mb-8"></div>
 
-          {#if $showDBManager}
+          {#if $showDBManager && canWrite}
             <DBManager />
           {/if}
           
@@ -918,7 +1290,21 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
           {/if}
 
           {#if $showSettings}
-            <Settings />
+            <Settings on:activatePasskeyWriter={handleActivatePasskeyWriterFromSettings} />
+          {/if}
+
+          {#if !canWrite && canActivateWriterMode}
+            <div class="card p-4 mb-5">
+              <p class="text-sm mb-2" style="color: var(--text-secondary);">
+                You can unlock writer mode for this blog with your passkey.
+              </p>
+              <button class="btn-primary btn-sm" onclick={activatePasskeyIdentity} disabled={isActivatingIdentity}>
+                {isActivatingIdentity ? 'Authenticating…' : 'Authenticate With Passkey'}
+              </button>
+              {#if passkeyError}
+                <p class="text-xs mt-2" style="color: var(--danger);">{passkeyError}</p>
+              {/if}
+            </div>
           {/if}
           
           <div class="grid gap-8">
@@ -940,6 +1326,38 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 
   <!-- Fixed controls toolbar -->
   <div class="fixed-controls">
+    <div class="passkey-tooltip-wrap">
+      <button
+        class="control-button passkey-button"
+        class:passkey-active={identityMode === 'passkey'}
+        class:passkey-available={identityMode !== 'passkey' && hasStoredPasskey}
+        class:passkey-session={identityMode !== 'passkey'}
+        onclick={activatePasskeyIdentity}
+        disabled={isActivatingIdentity || identityMode === 'passkey'}
+        aria-label={identityMode === 'passkey' ? 'Passkey identity active' : 'Session identity active'}>
+        <svg class="w-5 h-5" style="color: {identityMode === 'passkey' ? 'var(--success)' : (hasStoredPasskey ? '#2563eb' : '#d97706')};" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l7 3v6c0 5-3.5 8-7 9-3.5-1-7-4-7-9V6l7-3z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.5 12.5a2.5 2.5 0 114.2 1.8l-1.1 1.1h2.4l1.1-1.1h1.7v-1.7h1.7v-1.7h-1.2a2.5 2.5 0 00-4.9-.7 2.5 2.5 0 00-4 2.3z"/>
+        </svg>
+      </button>
+      <div class="passkey-tooltip" role="status" aria-live="polite">
+        <div class="passkey-tooltip-title">
+          {identityMode === 'passkey' ? 'Passkey writer session active' : (hasStoredPasskey ? 'Session identity active' : 'No passkey yet')}
+        </div>
+        <div class="passkey-tooltip-row">
+          <span class="passkey-tooltip-label">Passkey DID</span>
+          <div class="marquee-track">
+            <span class="marquee-content">{shortDid(passkeySignerDid)} • {shortDid(passkeySignerDid)}</span>
+          </div>
+        </div>
+        <div class="passkey-tooltip-row">
+          <span class="passkey-tooltip-label">Session DID</span>
+          <div class="marquee-track">
+            <span class="marquee-content">{shortDid(activeSignerDid)} • {shortDid(activeSignerDid)}</span>
+          </div>
+        </div>
+      </div>
+    </div>
     <a
       href="https://github.com/Le-Space/le-space-blog"
       target="_blank"
@@ -964,7 +1382,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       </button>
     {/if}
   </div>
-{/if}
 
 {#if showEjectModal}
   <PWAEjectModal on:close={closeEjectModal} />
@@ -1034,9 +1451,113 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     background-color: rgba(220, 38, 38, 0.1) !important;
   }
 
+  :global(.passkey-button) {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-subtle);
+  }
+
+  :global(.passkey-button:hover) {
+    background-color: var(--bg-hover);
+  }
+
+  :global(.passkey-button.passkey-active) {
+    background-color: color-mix(in srgb, var(--success) 18%, var(--bg-secondary));
+    border-color: color-mix(in srgb, var(--success) 45%, var(--border-subtle));
+  }
+
+  :global(.passkey-button.passkey-available) {
+    background-color: color-mix(in srgb, #3b82f6 14%, var(--bg-secondary));
+    border-color: color-mix(in srgb, #3b82f6 40%, var(--border-subtle));
+  }
+
+  :global(.passkey-button.passkey-session) {
+    background-color: color-mix(in srgb, #f59e0b 14%, var(--bg-secondary));
+    border-color: color-mix(in srgb, #f59e0b 40%, var(--border-subtle));
+  }
+
+  :global(.passkey-tooltip-wrap) {
+    position: relative;
+    display: flex;
+  }
+
+  :global(.passkey-tooltip) {
+    position: absolute;
+    top: calc(100% + 0.45rem);
+    right: 0;
+    width: 21rem;
+    padding: 0.6rem 0.7rem;
+    border-radius: 10px;
+    border: 1px solid var(--border-subtle);
+    background: color-mix(in srgb, var(--bg-secondary) 92%, black 8%);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-3px);
+    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
+    pointer-events: none;
+    z-index: 60;
+  }
+
+  :global(.passkey-tooltip-wrap:hover .passkey-tooltip),
+  :global(.passkey-tooltip-wrap:focus-within .passkey-tooltip) {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  :global(.passkey-tooltip-title) {
+    color: var(--text);
+    font-size: 0.72rem;
+    font-weight: 650;
+    margin-bottom: 0.45rem;
+  }
+
+  :global(.passkey-tooltip-row) {
+    display: grid;
+    grid-template-columns: 5.9rem 1fr;
+    gap: 0.4rem;
+    align-items: center;
+    margin-top: 0.2rem;
+  }
+
+  :global(.passkey-tooltip-label) {
+    color: var(--text-secondary);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  :global(.marquee-track) {
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  :global(.marquee-content) {
+    display: inline-block;
+    min-width: 200%;
+    color: var(--text-muted);
+    font-size: 0.68rem;
+    animation: passkeyMarquee 9s linear infinite;
+  }
+
+  @keyframes passkeyMarquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
   @media (max-width: 768px) {
     :global(.fixed-controls) {
       gap: 0.125rem;
+    }
+
+    :global(.passkey-button svg) {
+      width: 1.35rem;
+      height: 1.35rem;
+    }
+
+    :global(.passkey-tooltip) {
+      right: -2.3rem;
+      width: 17rem;
     }
   }
 </style>

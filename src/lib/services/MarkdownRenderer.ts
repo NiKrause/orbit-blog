@@ -375,30 +375,43 @@ function initUnixFs() {
   }
 }
 
+async function waitForUnixFs(maxAttempts = 20, delayMs = 500): Promise<boolean> {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    initUnixFs();
+    if (fs) return true;
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+  return false;
+}
+
 /**
- * Retrieves a blob URL for an IPFS CID.
+ * Retrieves a blob URL for an IPFS CID from local Helia only.
  *
  * @param cid - The IPFS content identifier
- * @returns The blob URL or gateway URL
+ * @returns The blob URL or null when unavailable in the connected Helia network
  */
 async function getBlobUrl(cid: string): Promise<string | null> {
-  if (!fs) initUnixFs();
   if (mediaCache.has(cid)) return mediaCache.get(cid) || null;
 
+  const hasFs = await waitForUnixFs();
+  if (!hasFs || !fs) {
+    info(`Helia UnixFS is not ready yet; cannot load CID ${cid}`);
+    return null;
+  }
+
   try {
-    const chunks = [];
+    const chunks: Uint8Array[] = [];
     for await (const chunk of fs.cat(cid as any)) {
       chunks.push(chunk);
     }
 
-    const fileData = new Uint8Array(chunks.reduce((acc, val) => [...acc, ...val], []));
-    const blob = new Blob([fileData]);
+    const blob = new Blob(chunks as BlobPart[]);
     const url = URL.createObjectURL(blob);
     mediaCache.set(cid, url);
     return url;
   } catch (_error) {
-    error('Error fetching from IPFS:', _error);
-    return `https://dweb.link/ipfs/${cid}`;
+    error(`Error fetching CID ${cid} from local Helia:`, _error);
+    return null;
   }
 }
 
@@ -521,21 +534,30 @@ function setupRenderer(): typeof marked.Renderer.prototype {
       // Schedule async loading of the IPFS content
       setTimeout(async () => {
         try {
-          const blobUrl = await getBlobUrl(cid);
+          let blobUrl: string | null = null;
+          for (let attempt = 0; attempt < 3; attempt++) {
+            blobUrl = await getBlobUrl(cid);
+            if (blobUrl) break;
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+          }
+
           const imgElement = document.getElementById(placeholderId);
           if (imgElement && blobUrl) {
             imgElement.setAttribute('src', blobUrl);
             imgElement.classList.remove('ipfs-loading');
             imgElement.classList.add('ipfs-loaded');
+          } else if (imgElement) {
+            imgElement.classList.remove('ipfs-loading');
+            imgElement.classList.add('ipfs-error');
+            imgElement.setAttribute('title', 'Unable to load from local IPFS/Helia');
           }
         } catch (error) {
           console.error('Failed to load IPFS image:', error);
           const imgElement = document.getElementById(placeholderId);
           if (imgElement) {
-            // Fallback to gateway URL
-            imgElement.setAttribute('src', `https://dweb.link/ipfs/${cid}`);
             imgElement.classList.remove('ipfs-loading');
             imgElement.classList.add('ipfs-error');
+            imgElement.setAttribute('title', 'Unable to load from local IPFS/Helia');
           }
         }
       }, 0);
@@ -741,4 +763,3 @@ export function renderContent(content: string): string {
     ALLOW_DATA_ATTR: true
   });
 }
-

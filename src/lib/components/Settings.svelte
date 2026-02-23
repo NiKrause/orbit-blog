@@ -1,20 +1,34 @@
 <script lang="ts">
   import { _ } from 'svelte-i18n';
-  import { preventDefault } from 'svelte/legacy';
-  import { settingsDB, profilePictureCid, blogName, blogDescription, categories, seedPhrase, libp2p, orbitdb, enabledLanguages, aiApiKey, aiApiUrl, identity, isRTL, mediaDB, helia } from '../store.js';
-  import { encryptSeedPhrase } from '../cryptoUtils.js';
+  import { settingsDB, profilePictureCid, blogName, blogDescription, categories, libp2p, orbitdb, enabledLanguages, aiApiKey, aiApiUrl, identity, isRTL, mediaDB, helia, postsDB, commentsDB } from '../store.js';
   import { LANGUAGES } from '../i18n/index.js';
   import { unixfs, type UnixFS } from '@helia/unixfs';
+  import { createEventDispatcher } from 'svelte';
   import { onMount, onDestroy } from 'svelte';
+  import {
+    clearWebAuthnVarsigCredential,
+    loadWebAuthnVarsigCredential
+  } from '@le-space/orbitdb-identity-provider-webauthn-did';
   import { getImageUrlFromHelia, revokeImageUrl } from '../utils/mediaUtils.js';
   import { info, debug, error } from '../utils/logger.js'
-  let persistentSeedPhrase = false; // Default to true since we're always encrypting now
-  let showChangePasswordModal = $state(false);
-  let newPassword = $state('');
-  let confirmNewPassword = $state('');
+  const dispatch = createEventDispatcher();
   let errorMessage = $state('');
-  let successMessage = $state('');
-  let showSeedPhrase = $state(false); // State to toggle visibility
+  let hasPasskeyCredential = $state(false);
+  let identityMode = $state('session');
+  let ownerIdentityId = $state<string | null>(null);
+  let storedPasskeyDid = $state<string | null>(null);
+  let canActivateWriterMode = $state(false);
+  let passkeyStatusReason = $state('');
+  let writeAclRows = $state<Array<{ did: string; dbs: string[]; revokable: boolean }>>([]);
+  let revokingDid = $state<string | null>(null);
+  let newWriteDid = $state('');
+  let grantingDid = $state(false);
+  let blogNameDraft = $state('');
+  let blogDescriptionDraft = $state('');
+  let isEditingBlogName = $state(false);
+  let isEditingBlogDescription = $state(false);
+  let isSavingBlogName = $state(false);
+  let isSavingBlogDescription = $state(false);
   let newCategory = $state(''); // For adding new categories
   let peerId = $libp2p?.peerId?.toString();
   let did = $orbitdb?.identity?.id;
@@ -52,7 +66,221 @@
     } else {
       info('Helia not initialized during mount');
     }
+
+    hasPasskeyCredential = !!loadWebAuthnVarsigCredential();
+    identityMode = sessionStorage.getItem('identityMode') === 'passkey' ? 'writer-session' : 'session';
+    blogNameDraft = $blogName || '';
+    blogDescriptionDraft = $blogDescription || '';
+    await refreshWriterModeState();
   });
+
+  $effect(() => {
+    identityMode = sessionStorage.getItem('identityMode') === 'passkey' ? 'writer-session' : 'session';
+    refreshWriterModeState();
+  });
+
+  $effect(() => {
+    refreshWriteAclRows();
+  });
+
+  $effect(() => {
+    if (!isEditingBlogName && !isSavingBlogName && blogNameDraft !== ($blogName || '')) {
+      blogNameDraft = $blogName || '';
+    }
+    if (!isEditingBlogDescription && !isSavingBlogDescription && blogDescriptionDraft !== ($blogDescription || '')) {
+      blogDescriptionDraft = $blogDescription || '';
+    }
+  });
+
+  function shortIdentity(value?: string | null): string {
+    if (!value) return 'not available';
+    if (value.length <= 24) return value;
+    return `${value.slice(0, 12)}...${value.slice(-8)}`;
+  }
+
+  async function refreshWriterModeState() {
+    const credential = loadWebAuthnVarsigCredential();
+    hasPasskeyCredential = !!credential;
+    storedPasskeyDid = credential?.did || null;
+
+    let ownerDid: string | null = null;
+    try {
+      const entry = await $settingsDB?.get?.('ownerIdentity');
+      ownerDid = entry?.value?.value || null;
+    } catch {}
+
+    if (!ownerDid && $settingsDB?.access?.write?.includes?.($identity?.id)) {
+      ownerDid = $identity?.id || null;
+    }
+    ownerIdentityId = ownerDid;
+
+    if (identityMode === 'writer-session') {
+      canActivateWriterMode = false;
+      passkeyStatusReason = 'Passkey writer mode is already active.';
+      return;
+    }
+
+    canActivateWriterMode = true;
+
+    if (!hasPasskeyCredential) {
+      passkeyStatusReason = 'No passkey credential stored yet. Activate will create one.';
+      return;
+    }
+
+    if (!storedPasskeyDid) {
+      passkeyStatusReason = 'Stored passkey has no DID; activation will recreate it.';
+      return;
+    }
+
+    if (!ownerIdentityId) {
+      passkeyStatusReason = 'Owner identity is not loaded yet. Activation may fail until settings syncs.';
+      return;
+    }
+
+    if (storedPasskeyDid !== ownerIdentityId) {
+      passkeyStatusReason = 'Stored passkey DID differs from blog owner. Activation will try to promote/re-authorize.';
+      return;
+    }
+
+    passkeyStatusReason = 'Stored passkey matches owner DID. You can activate writer mode.';
+  }
+
+  async function refreshWriteAclRows() {
+    const dbEntries = [
+      { name: 'settings', db: $settingsDB },
+      { name: 'posts', db: $postsDB },
+      { name: 'comments', db: $commentsDB },
+      { name: 'media', db: $mediaDB }
+    ];
+    const didToDbs = new Map<string, Set<string>>();
+    for (const { name, db } of dbEntries) {
+      const writeList = db?.access?.write || [];
+      for (const didValue of writeList) {
+        if (!didToDbs.has(didValue)) didToDbs.set(didValue, new Set());
+        didToDbs.get(didValue)?.add(name);
+      }
+    }
+    writeAclRows = Array.from(didToDbs.entries())
+      .map(([didValue, dbs]) => ({
+        did: didValue,
+        dbs: Array.from(dbs),
+        revokable: didValue !== '*' && Boolean(didValue) && didValue !== storedPasskeyDid
+      }))
+      .sort((a, b) => a.did.localeCompare(b.did));
+  }
+
+  async function revokeWriteDid(didValue: string) {
+    if (!didValue || didValue === '*' || didValue === storedPasskeyDid) return;
+    revokingDid = didValue;
+    errorMessage = '';
+    try {
+      const dbEntries = [
+        { db: $settingsDB },
+        { db: $postsDB },
+        { db: $commentsDB },
+        { db: $mediaDB }
+      ];
+      for (const { db } of dbEntries) {
+        const writeList = db?.access?.write || [];
+        if (typeof db?.access?.revoke !== 'function' || !writeList.includes(didValue)) continue;
+        await db.access.revoke('write', didValue);
+      }
+      await refreshWriteAclRows();
+    } catch (err: any) {
+      errorMessage = err?.message || 'Failed to revoke write permission';
+    } finally {
+      revokingDid = null;
+    }
+  }
+
+  async function grantWriteDid() {
+    const didValue = (newWriteDid || '').trim();
+    if (!didValue) return;
+    if (!didValue.startsWith('did:')) {
+      errorMessage = 'Please provide a valid DID (did:...)';
+      return;
+    }
+    grantingDid = true;
+    errorMessage = '';
+    try {
+      const dbEntries = [
+        { db: $settingsDB },
+        { db: $postsDB },
+        { db: $commentsDB },
+        { db: $mediaDB }
+      ];
+      for (const { db } of dbEntries) {
+        const writeList = db?.access?.write || [];
+        if (typeof db?.access?.grant !== 'function' || writeList.includes(didValue)) continue;
+        await db.access.grant('write', didValue);
+      }
+      newWriteDid = '';
+      await refreshWriteAclRows();
+    } catch (err: any) {
+      errorMessage = err?.message || 'Failed to grant write permission';
+    } finally {
+      grantingDid = false;
+    }
+  }
+
+  function activatePasskeyWriterMode() {
+    console.log('[Settings] activatePasskeyWriterMode click', {
+      canActivateWriterMode,
+      identityMode,
+      ownerIdentityId,
+      storedPasskeyDid,
+      activeDid: $identity?.id
+    });
+    const dispatched = dispatch('activatePasskeyWriter');
+    console.log('[Settings] activatePasskeyWriter dispatched', { dispatched });
+  }
+
+  async function confirmPasskeyForSettingsWrite(_action: string) {
+    // Delegated writer session signs normal settings writes; no per-write biometric prompt.
+    return;
+  }
+
+  async function persistBlogName() {
+    if (isSavingBlogName) return;
+    const next = (blogNameDraft || '').trim();
+    if (!next || next === $blogName) {
+      blogNameDraft = $blogName || '';
+      return;
+    }
+    isSavingBlogName = true;
+    try {
+      await confirmPasskeyForSettingsWrite('blog name update');
+      $blogName = next; // reactive immediate update
+      await $settingsDB?.put({ _id: 'blogName', value: next });
+    } catch (err: any) {
+      console.error('Failed to update blog name:', err);
+      blogNameDraft = $blogName || '';
+      errorMessage = err?.message || 'Failed to update blog name';
+    } finally {
+      isSavingBlogName = false;
+    }
+  }
+
+  async function persistBlogDescription() {
+    if (isSavingBlogDescription) return;
+    const next = (blogDescriptionDraft || '').trim();
+    if (!next || next === $blogDescription) {
+      blogDescriptionDraft = $blogDescription || '';
+      return;
+    }
+    isSavingBlogDescription = true;
+    try {
+      await confirmPasskeyForSettingsWrite('blog description update');
+      $blogDescription = next; // reactive immediate update
+      await $settingsDB?.put({ _id: 'blogDescription', value: next });
+    } catch (err: any) {
+      console.error('Failed to update blog description:', err);
+      blogDescriptionDraft = $blogDescription || '';
+      errorMessage = err?.message || 'Failed to update blog description';
+    } finally {
+      isSavingBlogDescription = false;
+    }
+  }
 
   function toggleSection(section: keyof typeof openSections) {
     openSections[section] = !openSections[section];
@@ -67,41 +295,14 @@
     }
   }
 
-  async function changePassword() {
-    errorMessage = '';
-    successMessage = '';
-    
-    if (!$seedPhrase) {
-      errorMessage = $_('no_seed_phrase_available');
-      return;
-    }
-    
-    if (newPassword.length < 8) {
-      errorMessage = $_('password_min_length');
-      return;
-    }
-    
-    if (newPassword !== confirmNewPassword) {
-      errorMessage = $_('passwords_do_not_match');
-      return;
-    }
-    
-    try {
-      const encryptedPhrase = await encryptSeedPhrase($seedPhrase, newPassword);
-      localStorage.setItem('encryptedSeedPhrase', encryptedPhrase);
-      successMessage = $_('password_changed_successfully');
-      setTimeout(() => {
-        showChangePasswordModal = false;
-        successMessage = '';
-      }, 2000);
-    } catch (error) {
-      error('Error changing password:', error);
-      errorMessage = $_('failed_to_change_password');
-    }
-  }
-
-  function toggleSeedVisibility() {
-    showSeedPhrase = !showSeedPhrase;
+  function resetPasskeyCredential() {
+    clearWebAuthnVarsigCredential();
+    sessionStorage.removeItem('identityMode');
+    sessionStorage.removeItem('passkeyIdentityDid');
+    hasPasskeyCredential = false;
+    storedPasskeyDid = null;
+    canActivateWriterMode = false;
+    passkeyStatusReason = 'No passkey credential stored.';
   }
 
   function addCategory() {
@@ -237,11 +438,41 @@
           <div class="flex-1 space-y-3">
             <div>
               <label for="blog-name-input" class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">{$_('blog_name')}</label>
-              <input id="blog-name-input" type="text" class="input" value={$blogName} data-testid="blog-name-input" onchange={(event: Event) => { const target = event.target as HTMLInputElement; $settingsDB?.put({ _id: 'blogName', value: target.value }) }} />
+              <input
+                id="blog-name-input"
+                type="text"
+                class="input"
+                bind:value={blogNameDraft}
+                data-testid="blog-name-input"
+                onfocus={() => { isEditingBlogName = true; }}
+                onblur={async () => { isEditingBlogName = false; await persistBlogName(); }}
+                onkeydown={async (event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    isEditingBlogName = false;
+                    await persistBlogName();
+                  }
+                }}
+              />
             </div>
             <div>
               <label for="blog-description-input" class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">{$_('blog_description')}</label>
-              <input id="blog-description-input" type="text" class="input" value={$blogDescription} data-testid="blog-description-input" onchange={(event: Event) => { const target = event.target as HTMLInputElement; $settingsDB?.put({ _id: 'blogDescription', value: target.value }) }} />
+              <input
+                id="blog-description-input"
+                type="text"
+                class="input"
+                bind:value={blogDescriptionDraft}
+                data-testid="blog-description-input"
+                onfocus={() => { isEditingBlogDescription = true; }}
+                onblur={async () => { isEditingBlogDescription = false; await persistBlogDescription(); }}
+                onkeydown={async (event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    isEditingBlogDescription = false;
+                    await persistBlogDescription();
+                  }
+                }}
+              />
             </div>
           </div>
         </div>
@@ -322,13 +553,90 @@
     </button>
     {#if openSections.security}
       <div class="settings-content">
-        <label for="seed-phrase-input" class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">{$_('seed_phrase')}</label>
-        <div class="flex items-center gap-2">
-          <input id="seed-phrase-input" type="{showSeedPhrase ? 'text' : 'password'}" class="input flex-1 font-mono text-xs" value={$seedPhrase || ''} />
-          <button class="btn-icon" onclick={toggleSeedVisibility} aria-label={showSeedPhrase ? $_('hide_seed_phrase') : $_('show_seed_phrase')}>
-            <svg viewBox="0 0 24 24" class="w-4 h-4" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
-          </button>
-          <button class="btn-outline btn-sm" onclick={() => showChangePasswordModal = true}>{$_('change_password')}</button>
+        <p class="text-xs mb-2" style="color: var(--text-secondary);">
+          Reader mode uses a temporary in-browser session identity. Passkey identity is only used when unlocking writer mode.
+        </p>
+        <div class="flex items-center justify-between">
+          <span class="text-xs" style="color: var(--text-muted); line-height: 1.45;">
+            <span>Mode: {identityMode} | Stored passkey credential: {hasPasskeyCredential ? 'yes' : 'no'}</span>
+            <br />
+            <span>Owner DID: {shortIdentity(ownerIdentityId)}</span>
+            <br />
+            <span>Passkey DID: {shortIdentity(storedPasskeyDid)}</span>
+            <br />
+            <span
+              style="color: {identityMode === 'writer-session' ? 'var(--success)' : 'var(--text-muted)'}; font-weight: {identityMode === 'writer-session' ? '600' : '400'};"
+            >
+              Active DID: {shortIdentity($identity?.id)}
+            </span>
+          </span>
+          <div class="flex flex-col gap-2 items-end">
+            {#if identityMode !== 'writer-session'}
+              <button class="btn-primary btn-sm" onclick={activatePasskeyWriterMode} disabled={!canActivateWriterMode}>
+                Activate passkey writer mode
+              </button>
+            {/if}
+            <button class="btn-outline btn-sm" onclick={resetPasskeyCredential}>
+              Reset local passkey
+            </button>
+          </div>
+        </div>
+        {#if passkeyStatusReason}
+          <p class="text-xs mt-2" style="color: var(--text-muted);">{passkeyStatusReason}</p>
+        {/if}
+        <div class="mt-3 pt-3" style="border-top: 1px solid var(--border-subtle);">
+          <p class="text-xs mb-2" style="color: var(--text-secondary);">Write permissions (all blog DBs)</p>
+          <div class="flex items-center gap-2 mb-2">
+            <input
+              class="input text-xs font-mono"
+              placeholder="did:key:..."
+              bind:value={newWriteDid}
+              onkeydown={(e: KeyboardEvent) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  grantWriteDid();
+                }
+              }}
+            />
+            <button
+              class="btn-primary btn-sm"
+              onclick={grantWriteDid}
+              disabled={grantingDid || !newWriteDid.trim()}
+            >
+              {grantingDid ? 'Granting...' : 'Grant'}
+            </button>
+          </div>
+          {#if writeAclRows.length === 0}
+            <p class="text-xs" style="color: var(--text-muted);">No write entries found.</p>
+          {:else}
+            <div class="space-y-2">
+              {#each writeAclRows as row}
+                <div class="flex items-center justify-between gap-3 p-2 rounded-md" style="background-color: var(--bg-tertiary); border: 1px solid var(--border-subtle);">
+                  <div class="min-w-0">
+                    <p class="text-xs font-mono truncate" style="color: var(--text);">{row.did}</p>
+                    <p class="text-[11px]" style="color: var(--text-muted);">DBs: {row.dbs.join(', ')}</p>
+                  </div>
+                  {#if row.did === storedPasskeyDid}
+                    <span class="text-[11px] px-2 py-1 rounded" style="background-color: color-mix(in srgb, var(--success) 20%, var(--bg-secondary)); color: var(--success); border: 1px solid color-mix(in srgb, var(--success) 35%, var(--border-subtle));">
+                      passkey protected
+                    </span>
+                  {:else if row.did === '*'}
+                    <span class="text-[11px] px-2 py-1 rounded" style="color: var(--text-muted); border: 1px solid var(--border-subtle);">
+                      wildcard
+                    </span>
+                  {:else}
+                    <button
+                      class="btn-outline btn-sm"
+                      onclick={() => revokeWriteDid(row.did)}
+                      disabled={revokingDid === row.did || !row.revokable}
+                      style="color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, var(--border-subtle));">
+                      {revokingDid === row.did ? 'Revoking...' : 'Revoke'}
+                    </button>
+                  {/if}
+                </div>
+              {/each}
+            </div>
+          {/if}
         </div>
       </div>
     {/if}
@@ -354,31 +662,6 @@
     {/if}
   </div>
 </div>
-
-{#if showChangePasswordModal}
-  <div class="fixed inset-0 flex items-center justify-center z-50" style="background-color: rgba(0, 0, 0, 0.4); backdrop-filter: blur(2px);">
-    <div class="card p-6 max-w-md w-full mx-4" style="box-shadow: var(--shadow-lg);">
-      <h2 class="text-lg font-semibold mb-4" style="color: var(--text);">{$_('change_password')}</h2>
-      
-      <form onsubmit={preventDefault(changePassword)} class="space-y-4">
-        <div>
-          <label for="new-password-input" class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">{$_('new_password')}</label>
-          <input id="new-password-input" type="password" bind:value={newPassword} class="input" placeholder={$_('enter_new_password')} />
-        </div>
-        <div>
-          <label for="confirm-password-input" class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">{$_('confirm_new_password')}</label>
-          <input id="confirm-password-input" type="password" bind:value={confirmNewPassword} class="input" placeholder={$_('confirm_new_password_placeholder')} />
-        </div>
-        {#if errorMessage}<div class="text-sm" style="color: var(--danger);">{errorMessage}</div>{/if}
-        {#if successMessage}<div class="text-sm" style="color: var(--success);">{successMessage}</div>{/if}
-        <div class="flex justify-end gap-2">
-          <button type="button" class="btn-outline" onclick={() => showChangePasswordModal = false}>{$_('cancel')}</button>
-          <button type="submit" class="btn-primary">{$_('change_password')}</button>
-        </div>
-      </form>
-    </div>
-  </div>
-{/if}
 
 <style>
   .rotate-180 { transform: rotate(180deg); }

@@ -13,7 +13,7 @@ test.describe('Blog Setup and Bach Posts', () => {
 
     test.beforeAll(async ({ browser }) => {
         page = await browser.newPage();
-        await page.goto('http://localhost:5173'); 
+        await page.goto('http://localhost:5183'); 
     });
 
     test.describe('Bach Blog with 100 Posts', () => {

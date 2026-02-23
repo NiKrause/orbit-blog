@@ -32,7 +32,7 @@ test.describe('Realtime comments between Alice and Bob', () => {
     pageAlice.on('pageerror', (err) => console.error('[alice] PAGE ERROR:', err.message));
     pageBob.on('pageerror', (err) => console.error('[bob] PAGE ERROR:', err.message));
 
-    await pageAlice.goto('http://localhost:5173');
+    await pageAlice.goto('http://localhost:5183');
     await expect(pageAlice.getByTestId('loading-overlay')).toBeHidden({ timeout: 120000 });
     await expect(pageAlice.getByTestId('blog-name')).toBeVisible({ timeout: 120000 });
 
@@ -91,7 +91,7 @@ test.describe('Realtime comments between Alice and Bob', () => {
     const aliceBlogAddress = await pageAlice.getByTestId('db-address-input').inputValue();
     expect(aliceBlogAddress).toMatch(/^\/orbitdb\/[a-zA-Z0-9]+$/);
 
-    await pageBob.goto(`http://localhost:5173/#${aliceBlogAddress}`);
+    await pageBob.goto(`http://localhost:5183/#${aliceBlogAddress}`);
     await expect(pageBob.getByTestId('loading-overlay')).toBeVisible({ timeout: 30000 });
     await expect(pageBob.getByTestId('loading-overlay')).toBeHidden({ timeout: 120000 });
     await expect(pageBob.getByTestId('blog-name')).toHaveText('Realtime Comments Blog', { timeout: 120000 });

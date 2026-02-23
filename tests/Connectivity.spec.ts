@@ -59,8 +59,8 @@ test.describe('Basic WebRTC Connectivity', () => {
     pageB.on('pageerror', (err) => console.error('[B] PAGE ERROR:', err))
 
     await Promise.all([
-      pageA.goto(baseURL || 'http://localhost:5173'),
-      pageB.goto(baseURL || 'http://localhost:5173'),
+      pageA.goto(baseURL || 'http://localhost:5183'),
+      pageB.goto(baseURL || 'http://localhost:5183'),
     ])
 
     // Both should converge to exactly 2 connected peers:

@@ -23,6 +23,8 @@ export interface Comment {
   postId: string;
   content: string;
   author: string;
+  authorDid?: string;
+  identity?: string;
   createdAt: string;
 }
 
@@ -138,6 +140,8 @@ export interface OrbitDB {
   };
   access?: {
     write?: string[];
+    grant?: (capability: string, key: string) => Promise<void>;
+    revoke?: (capability: string, key: string) => Promise<void>;
   };
   put: (entry: any) => Promise<void>;
   get: (key: string) => Promise<any>;
@@ -145,6 +149,7 @@ export interface OrbitDB {
   del: (key: string) => Promise<void>;
   drop: () => Promise<void>;
   close: () => Promise<void>;
+  stop?: () => Promise<void>;
   log: {
     iterator: (options?: { reverse?: boolean }) => AsyncIterable<any>;
   };
@@ -174,6 +179,7 @@ export interface GossipsubOptions {
 
 export interface Identity {
   id: string;
+  type?: string;
   identities: any;
 }
 

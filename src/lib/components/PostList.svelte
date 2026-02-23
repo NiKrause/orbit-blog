@@ -1001,7 +1001,7 @@ ${convertMarkdownToLatex(selectedPost.content)}
                 <div class="relative inline-flex">
                   <button
                     type="button"
-                    onclick={handleTranslate}
+                    onclick={() => handleTranslate()}
                     disabled={isTranslating}
                     class="btn-outline inline-flex items-center gap-2 rounded-r-none disabled:opacity-50"
                   >

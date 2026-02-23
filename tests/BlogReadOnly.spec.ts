@@ -32,7 +32,7 @@ test.describe('Blog Sharing: Bob is read-only on Alice blog', () => {
     pageAlice.on('pageerror', (err) => console.error('[alice] PAGE ERROR:', err.message));
     pageBob.on('pageerror', (err) => console.error('[bob] PAGE ERROR:', err.message));
 
-    await pageAlice.goto('http://localhost:5173');
+    await pageAlice.goto('http://localhost:5183');
     await pageAlice.evaluate(() => {
       localStorage.setItem('debug', 'libp2p:*,le-space:*');
     });
@@ -86,7 +86,7 @@ test.describe('Blog Sharing: Bob is read-only on Alice blog', () => {
     expect(aliceBlogAddress).toMatch(/^\/orbitdb\/[a-zA-Z0-9]+$/);
 
     // Bob opens Alice blog via hash route and waits for replication.
-    await pageBob.goto(`http://localhost:5173/#${aliceBlogAddress}`);
+    await pageBob.goto(`http://localhost:5183/#${aliceBlogAddress}`);
     await pageBob.evaluate(() => {
       localStorage.setItem('debug', 'libp2p:*,le-space:*');
     });

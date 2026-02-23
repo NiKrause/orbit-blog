@@ -23,19 +23,21 @@ export default defineConfig({
   globalTeardown: './tests/global-teardown.ts',
 
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:5183',
     navigationTimeout: 60_000,
     actionTimeout: 30_000,
     trace: 'on-first-retry',
   },
 
   // Start the app server for the tests. The specs currently hardcode
-  // http://localhost:5173, so keep that stable.
+  // http://localhost:5183, so keep that stable.
   webServer: {
     // Use a dedicated Vite mode so env is deterministic for e2e (see `.env.test`).
-    command: 'npm run dev -- --mode test --host 127.0.0.1 --port 5173 --strictPort',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
+    command: 'npm run dev -- --mode test --host 127.0.0.1 --port 5183 --strictPort',
+    url: 'http://localhost:5183',
+    // Always spawn this project's server to avoid accidentally attaching
+    // to another app already running on the same port.
+    reuseExistingServer: false,
     timeout: 120_000,
     env: {
       ...process.env,

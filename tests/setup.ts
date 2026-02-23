@@ -121,6 +121,7 @@ export async function setupTestEnvironment() {
                 LOG_LEVEL_PEER: 'true',
                 LOG_LEVEL_DATABASE: 'true',
                 LOG_LEVEL_SYNC: 'true',
+                ENABLE_CID_REQUEST_LOGS: 'true',
             }
         });
 

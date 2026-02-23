@@ -28,7 +28,7 @@
 
 <button
   onclick={toggleTheme}
-  class="btn-icon fixed top-4 right-4"
+  class="control-button btn-icon"
   aria-label="Toggle theme"
 >
   {#if darkMode}

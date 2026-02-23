@@ -24,7 +24,7 @@ test.describe('Blog Setup and Bach Posts', () => {
             console.error('PAGE ERROR:', err.message);
             if (err.stack) console.error(err.stack);
         });
-        await page.goto('http://localhost:5173'); 
+        await page.goto('http://localhost:5183'); 
     });
 
     test('Check initial blog state', async () => {

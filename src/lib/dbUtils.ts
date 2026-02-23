@@ -1,7 +1,7 @@
 import { get } from 'svelte/store';
 import { helia, orbitdb, blogName, categories, blogDescription, postsDBAddress, profilePictureCid, postsDB, posts, settingsDB, remoteDBs, commentsDB, mediaDB, remoteDBsDatabases, commentsDBAddress, mediaDBAddress, identity, identities, loadingState } from './store.js';
 import type { RemoteDB } from './types.js';
-import { IPFSAccessController } from '@orbitdb/core';
+import OrbitDBAccessController from '@orbitdb/core/src/access-controllers/orbitdb.js';
 import { createLogger } from './utils/logger.js'
 
 const log = createLogger('db')
@@ -392,7 +392,7 @@ async function openOrCreateDB(
         directory: config.directory,
         identity: get(identity),
         identities: get(identities),
-        AccessController: IPFSAccessController({ write: config.writeAccess })
+        AccessController: OrbitDBAccessController({ write: config.writeAccess })
       });
       config.store.set(dbInstance);
       const dbAddress = dbInstance.address.toString();
@@ -548,6 +548,9 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       
       // Set the settings DB store
       settingsDB.set(db);
+      if (typeof window !== 'undefined') {
+        (window as any).settingsDB = db;
+      }
       
       // Get all settings data with enhanced retry mechanism
       updateLoadingState('loading_settings', 'Loading blog configuration...', 40);
@@ -723,6 +726,11 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         // Only wait for posts database (critical)
         updateLoadingState('loading_posts', 'Finalizing posts database...', 90);
         const [postsResult] = await Promise.all([postsPromise]);
+        if (typeof window !== 'undefined') {
+          (window as any).postsDB = get(postsDB);
+          (window as any).commentsDB = get(commentsDB);
+          (window as any).mediaDB = get(mediaDB);
+        }
         
         // Immediately mark as complete after posts
         updateLoadingState('complete', 'Blog loaded successfully!', 100);
@@ -793,7 +801,7 @@ export async function createDatabaseSet(orbitdbInstance: any, identity: any, ide
     directory: './orbitdb/settings',
     identity: identity,
     identities: identities,
-    AccessController: IPFSAccessController({write: [identity.id]})
+    AccessController: OrbitDBAccessController({write: [identity.id]})
   });
 
   // Create posts database
@@ -804,7 +812,7 @@ export async function createDatabaseSet(orbitdbInstance: any, identity: any, ide
     directory: './orbitdb/posts',
     identity: identity,
     identities: identities,
-    AccessController: IPFSAccessController({write: [identity.id]})
+    AccessController: OrbitDBAccessController({write: [identity.id]})
   });
 
   // Create comments database
@@ -815,7 +823,7 @@ export async function createDatabaseSet(orbitdbInstance: any, identity: any, ide
     directory: './orbitdb/comments',
     identity: identity,
     identities: identities,
-    AccessController: IPFSAccessController({write: ["*"]})
+    AccessController: OrbitDBAccessController({write: ["*"]})
   });
 
   // Create media database
@@ -826,7 +834,7 @@ export async function createDatabaseSet(orbitdbInstance: any, identity: any, ide
     directory: './orbitdb/media',
     identity: identity,
     identities: identities,
-    AccessController: IPFSAccessController({write: [identity.id]})
+    AccessController: OrbitDBAccessController({write: [identity.id]})
   });
 
   // Store addresses in settings DB

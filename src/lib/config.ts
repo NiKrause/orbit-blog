@@ -97,15 +97,6 @@ export const libp2pOptions: Libp2pOptions = {
         denyDialMultiaddr: () => false
     },
     peerDiscovery: [
-        // bootstrap({
-        //     list: [
-        //         '/ip4/157.180.21.20/tcp/9092/tls/sni/157-180-21-20.k51qzi5uqu5dk1lwtlmq5a5qzq7gpzbb5985azlkjop6atkbc03v3bwpqc7v5v.libp2p.direct/ws/p2p/12D3KooWLFBBsPa2eZEVV5T7cJH9kAQCFqArgA8yVCSkHoc5reJn',
-        //       // a list of bootstrap peer multiaddrs to connect to on node startup
-        //     //   '/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ',
-        //     //   '/dnsaddr/bootstrap.libp2p.io/ipfs/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN',
-        //     //   '/dnsaddr/bootstrap.libp2p.io/ipfs/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa'
-        //     ]
-        //   }),
         bootstrap(bootstrapConfig),
         pubsubPeerDiscovery({
             interval: 10000,
