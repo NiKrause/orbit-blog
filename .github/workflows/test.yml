@@ -2,9 +2,9 @@ name: Tests
 
 on:
   push:
-    branches: [ main, master, e2e-relay-pinner ]
+    branches: ['**']
   pull_request:
-    branches: [ main, master, e2e-relay-pinner ]
+    branches: ['**']
 
 jobs:
   test:
