@@ -1,5 +1,29 @@
 import { test, expect } from '@playwright/test';
 
+function postItemByTitle(page, title: string) {
+  return page
+    .locator('button')
+    .filter({ has: page.getByRole('heading', { level: 3, name: title, exact: true }) })
+    .first();
+}
+
+async function activatePasskeyWriterMode(page) {
+  const passkeyButton = page.getByTestId('passkey-toolbar-button');
+  await expect(passkeyButton).toBeVisible({ timeout: 60000 });
+  page.once('dialog', async (dialog) => {
+    if (dialog.type() === 'confirm') {
+      await dialog.accept();
+      return;
+    }
+    await dialog.dismiss();
+  });
+  await passkeyButton.click();
+  await expect(async () => {
+    const debug = ((await page.getByTestId('can-write-debug').textContent()) || '').trim();
+    expect(debug.startsWith('1|')).toBeTruthy();
+  }).toPass({ timeout: 120000 });
+}
+
 test.describe('Realtime comments between Alice and Bob', () => {
   test('Bob comments on Alice post and Alice replies without reload', async ({ browser }) => {
     const contextAlice = await browser.newContext({
@@ -11,6 +35,9 @@ test.describe('Realtime comments between Alice and Bob', () => {
           '--disable-web-security'
         ]
       }
+    });
+    await contextAlice.addInitScript(() => {
+      (window as any).__PLAYWRIGHT__ = true;
     });
 
     const contextBob = await browser.newContext({
@@ -45,6 +72,7 @@ test.describe('Realtime comments between Alice and Bob', () => {
     await pageAlice.getByTestId('blog-settings-accordion').click();
     await pageAlice.getByTestId('blog-name-input').fill('Realtime Comments Blog');
     await pageAlice.getByTestId('blog-description-input').fill('E2E realtime comments test');
+    await activatePasskeyWriterMode(pageAlice);
 
     await pageAlice.getByTestId('categories').click();
     while (await pageAlice.getByTestId(/^remove-category-button-/).count() > 0) {
@@ -63,7 +91,7 @@ test.describe('Realtime comments between Alice and Bob', () => {
     await pageAlice.locator('#publish').check();
     await pageAlice.getByTestId('publish-post-button').click();
 
-    const alicePostTitle = pageAlice.getByTestId('post-item-title').filter({ hasText: 'Realtime comments post' });
+    const alicePostTitle = postItemByTitle(pageAlice, 'Realtime comments post');
     await expect(alicePostTitle).toBeVisible({ timeout: 60000 });
     await alicePostTitle.first().click();
     await expect(pageAlice.getByTestId('post-title')).toContainText('Realtime comments post');
@@ -96,7 +124,7 @@ test.describe('Realtime comments between Alice and Bob', () => {
     await expect(pageBob.getByTestId('loading-overlay')).toBeHidden({ timeout: 120000 });
     await expect(pageBob.getByTestId('blog-name')).toHaveText('Realtime Comments Blog', { timeout: 120000 });
 
-    const bobPostTitle = pageBob.getByTestId('post-item-title').filter({ hasText: 'Realtime comments post' });
+    const bobPostTitle = postItemByTitle(pageBob, 'Realtime comments post');
     await expect(bobPostTitle).toBeVisible({ timeout: 120000 });
     await bobPostTitle.first().click();
     await expect(pageBob.getByTestId('post-title')).toContainText('Realtime comments post');

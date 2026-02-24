@@ -13,8 +13,33 @@ test.describe('Blog Setup and Bach Posts', () => {
 
     test.beforeAll(async ({ browser }) => {
         page = await browser.newPage();
+        await page.addInitScript(() => {
+            (window as any).__PLAYWRIGHT__ = true;
+        });
         await page.goto('http://localhost:5183'); 
     });
+
+    async function activatePasskeyWriterMode() {
+        const passkeyButton = page.getByTestId('passkey-toolbar-button');
+        await expect(passkeyButton).toBeVisible({ timeout: 60000 });
+        page.once('dialog', async (dialog) => {
+            if (dialog.type() === 'confirm') {
+                await dialog.accept();
+                return;
+            }
+            await dialog.dismiss();
+        });
+        await passkeyButton.click();
+        await expect(async () => {
+            const debug = ((await page.getByTestId('can-write-debug').textContent()) || '').trim();
+            expect(debug.startsWith('1|')).toBeTruthy();
+        }).toPass({ timeout: 120000 });
+    }
+
+    async function getPostTitles(): Promise<string[]> {
+        const headings = await page.getByRole('heading', { level: 3 }).allTextContents();
+        return headings.map((t) => t.trim()).filter(Boolean);
+    }
 
     test.describe('Bach Blog with 100 Posts', () => {
         test('Create comprehensive Bach blog with 100 posts', async () => {
@@ -26,6 +51,7 @@ test.describe('Blog Setup and Bach Posts', () => {
             await page.getByTestId('blog-settings-accordion').click();
             await page.getByTestId('blog-name-input').fill('The Complete Bach Chronicle');
             await page.getByTestId('blog-description-input').fill('A comprehensive exploration of J.S. Bach\'s life, works, and lasting influence');
+            await activatePasskeyWriterMode();
 
             // Add categories
             await page.getByTestId('categories').click();
@@ -328,7 +354,7 @@ test.describe('Blog Setup and Bach Posts', () => {
                 
                 // Verify post creation
                 await expect(async () => {
-                    const titles = await page.getByTestId('post-item-title').allTextContents();
+                    const titles = await getPostTitles();
                     // Title can be visually truncated in the list; match full title or shared prefix.
                     expect(
                         titles.some(title =>
@@ -341,7 +367,7 @@ test.describe('Blog Setup and Bach Posts', () => {
             }
 
             // Verify total post count
-            const postElements = await page.getByTestId('post-item-title').all();
+            const postElements = await page.getByRole('heading', { level: 3 }).all();
             expect(postElements.length).toBe(bachPosts.length);
         });
 

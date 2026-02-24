@@ -11,6 +11,30 @@ const LOGO_FILE_PATH = 'media/le-space-blog-blog-global.jpg';
 const POST_IMAGE_FILE_NAME = 'le-space-blog.jpg';
 const POST_IMAGE_FILE_PATH = 'media/le-space-blog.jpg';
 
+function postItemByTitle(page, title: string) {
+  return page
+    .locator('button')
+    .filter({ has: page.getByRole('heading', { level: 3, name: title, exact: true }) })
+    .first();
+}
+
+async function activatePasskeyWriterMode(page) {
+  const passkeyButton = page.getByTestId('passkey-toolbar-button');
+  await expect(passkeyButton).toBeVisible({ timeout: 60000 });
+  page.once('dialog', async (dialog) => {
+    if (dialog.type() === 'confirm') {
+      await dialog.accept();
+      return;
+    }
+    await dialog.dismiss();
+  });
+  await passkeyButton.click();
+  await expect(async () => {
+    const debug = ((await page.getByTestId('can-write-debug').textContent()) || '').trim();
+    expect(debug.startsWith('1|')).toBeTruthy();
+  }).toPass({ timeout: 120000 });
+}
+
 test.describe('Blog media sharing between Alice and Bob', () => {
   test('Offline source: Bob still loads logo and post media via relay pinning', async ({ browser }) => {
     test.setTimeout(240000);
@@ -27,6 +51,9 @@ test.describe('Blog media sharing between Alice and Bob', () => {
           '--disable-web-security'
         ]
       }
+    });
+    await contextAlice.addInitScript(() => {
+      (window as any).__PLAYWRIGHT__ = true;
     });
 
     const pageAlice = await contextAlice.newPage();
@@ -59,6 +86,7 @@ test.describe('Blog media sharing between Alice and Bob', () => {
         });
       }, { timeout: 60000 })
       .toEqual({ name: offlineBlogName, description: offlineBlogDescription });
+    await activatePasskeyWriterMode(pageAlice);
 
     const profilePictureInput = pageAlice.locator('input#profile-picture');
     await profilePictureInput.setInputFiles(LOGO_FILE_PATH);
@@ -106,7 +134,7 @@ test.describe('Blog media sharing between Alice and Bob', () => {
 
     await pageAlice.locator('#publish').check();
     await pageAlice.getByTestId('publish-post-button').click();
-    const alicePostTitle = pageAlice.getByTestId('post-item-title').filter({ hasText: postTitle });
+    const alicePostTitle = postItemByTitle(pageAlice, postTitle);
     await expect(alicePostTitle).toBeVisible({ timeout: 60000 });
 
     await pageAlice.getByTestId('menu-button').click();
@@ -198,7 +226,7 @@ test.describe('Blog media sharing between Alice and Bob', () => {
 
     // OrbitDB metadata is visible (relay has DB/log data).
     await expect(pageBob.getByTestId('blog-name')).toHaveText(offlineBlogName, { timeout: 120000 });
-    const bobPostTitle = pageBob.getByTestId('post-item-title').filter({ hasText: postTitle });
+    const bobPostTitle = postItemByTitle(pageBob, postTitle);
     await expect(bobPostTitle).toBeVisible({ timeout: 120000 });
     await bobPostTitle.first().click();
 
@@ -251,6 +279,9 @@ test.describe('Blog media sharing between Alice and Bob', () => {
         ]
       }
     });
+    await contextAlice.addInitScript(() => {
+      (window as any).__PLAYWRIGHT__ = true;
+    });
 
     const pageAlice = await contextAlice.newPage();
 
@@ -267,6 +298,7 @@ test.describe('Blog media sharing between Alice and Bob', () => {
     await pageAlice.getByTestId('blog-settings-accordion').click();
     await pageAlice.getByTestId('blog-name-input').fill('Alice Local Media Validation Blog');
     await pageAlice.getByTestId('blog-description-input').fill('Validate local media persistence on Alice side');
+    await activatePasskeyWriterMode(pageAlice);
 
     await pageAlice.getByTestId('categories').click();
     while (await pageAlice.getByTestId(/^remove-category-button-/).count() > 0) {
@@ -307,7 +339,7 @@ test.describe('Blog media sharing between Alice and Bob', () => {
     await pageAlice.locator('#publish').check();
     await pageAlice.getByTestId('publish-post-button').click();
 
-    const alicePostTitle = pageAlice.getByTestId('post-item-title').filter({ hasText: postTitle });
+    const alicePostTitle = postItemByTitle(pageAlice, postTitle);
     await expect(alicePostTitle).toBeVisible({ timeout: 60000 });
     await alicePostTitle.first().click();
 
@@ -323,7 +355,7 @@ test.describe('Blog media sharing between Alice and Bob', () => {
 
     await pageAlice.goto(`http://localhost:5183/#${aliceBlogAddress}`);
     await expect(pageAlice.getByTestId('loading-overlay')).toBeHidden({ timeout: 120000 });
-    const alicePostTitleAfterReload = pageAlice.getByTestId('post-item-title').filter({ hasText: postTitle });
+    const alicePostTitleAfterReload = postItemByTitle(pageAlice, postTitle);
     await expect(alicePostTitleAfterReload).toBeVisible({ timeout: 120000 });
     await alicePostTitleAfterReload.first().click();
     await expect(pageAlice.getByTestId('blog-post').locator('img[alt="Media"]')).toBeVisible({ timeout: 120000 });
@@ -345,6 +377,9 @@ test.describe('Blog media sharing between Alice and Bob', () => {
           '--disable-web-security'
         ]
       }
+    });
+    await contextAlice.addInitScript(() => {
+      (window as any).__PLAYWRIGHT__ = true;
     });
 
     const contextBob = await browser.newContext({
@@ -374,6 +409,7 @@ test.describe('Blog media sharing between Alice and Bob', () => {
     await pageAlice.getByTestId('blog-settings-accordion').click();
     await pageAlice.getByTestId('blog-name-input').fill(BLOG_NAME);
     await pageAlice.getByTestId('blog-description-input').fill(BLOG_DESCRIPTION);
+    await activatePasskeyWriterMode(pageAlice);
 
     const profilePictureInput = pageAlice.locator('input#profile-picture');
     await profilePictureInput.setInputFiles(LOGO_FILE_PATH);
@@ -443,7 +479,7 @@ test.describe('Blog media sharing between Alice and Bob', () => {
     await pageAlice.locator('#publish').check();
     await pageAlice.getByTestId('publish-post-button').click();
 
-    const alicePostTitle = pageAlice.getByTestId('post-item-title').filter({ hasText: 'Alice image post' });
+    const alicePostTitle = postItemByTitle(pageAlice, 'Alice image post');
     await expect(alicePostTitle).toBeVisible({ timeout: 60000 });
     await alicePostTitle.first().click();
     await expect(pageAlice.getByTestId('blog-post').locator('img[alt="Media"]')).toBeVisible({ timeout: 120000 });
@@ -489,7 +525,7 @@ test.describe('Blog media sharing between Alice and Bob', () => {
     });
     expect(bobProfileImageSha256).toBe(expectedLogoSha256);
 
-    const bobPostTitle = pageBob.getByTestId('post-item-title').filter({ hasText: 'Alice image post' });
+    const bobPostTitle = postItemByTitle(pageBob, 'Alice image post');
     await expect(bobPostTitle).toBeVisible({ timeout: 120000 });
     await bobPostTitle.first().click();
 

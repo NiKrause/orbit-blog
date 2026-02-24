@@ -8,6 +8,27 @@ function parsePeersCount(text: string | null): number {
     return count;
 }
 
+async function getPostTitles(page): Promise<string[]> {
+    const headings = await page.getByRole('heading', { level: 3 }).allTextContents();
+    return headings.map((t) => t.trim()).filter(Boolean);
+}
+
+async function activatePasskeyWriterMode(page) {
+    const passkeyButton = page.getByTestId('passkey-toolbar-button');
+    await expect(passkeyButton).toBeVisible({ timeout: 60000 });
+    page.once('dialog', async (dialog) => {
+        if (dialog.type() === 'confirm') {
+            await dialog.accept();
+            return;
+        }
+        await dialog.dismiss();
+    });
+    await passkeyButton.click();
+    await expect(async () => {
+        const debug = ((await page.getByTestId('can-write-debug').textContent()) || '').trim();
+        expect(debug.startsWith('1|')).toBeTruthy();
+    }).toPass({ timeout: 120000 });
+}
 
 test.describe('Blog Setup and Bach Posts', () => {
     // Uses a shared `page` across tests via beforeAll, so run serially.
@@ -17,6 +38,9 @@ test.describe('Blog Setup and Bach Posts', () => {
     test.beforeAll(async ({ browser }) => {
 
         page = await browser.newPage();
+        await page.addInitScript(() => {
+            (window as any).__PLAYWRIGHT__ = true;
+        });
         page.on('console', msg => {
             console.log('BROWSER LOG:', msg.text());
         });
@@ -73,6 +97,7 @@ test.describe('Blog Setup and Bach Posts', () => {
         await page.getByTestId('blog-settings-accordion').click(); // Open the accordion first
         await page.getByTestId('blog-name-input').fill('Bach Chronicles');
         await page.getByTestId('blog-description-input').fill('Exploring the life and works of Johann Sebastian Bach');
+        await activatePasskeyWriterMode(page);
 
         // Add categories
         await page.getByTestId('categories').click(); // Open the categories accordion
@@ -176,18 +201,21 @@ test.describe('Blog Setup and Bach Posts', () => {
             
             // Wait for and verify the specific post title
             await expect(async () => {
-                const titles = await page.getByTestId('post-item-title').allTextContents();
+                const titles = await getPostTitles(page);
                 expect(titles).toContain(post.title);
             }).toPass({ timeout: 10000 });
         }
 
         for (const post of bachPosts) {
             // Verify post title exists
-            const titles = await page.getByTestId('post-item-title').allTextContents();
+            const titles = await getPostTitles(page);
             await expect(titles).toContain(post.title);
             
             // Find the specific post by its title
-            const postTitle = await page.getByTestId('post-item-title').filter({ hasText: post.title });
+            const postTitle = page
+                .locator('button')
+                .filter({ has: page.getByRole('heading', { level: 3, name: post.title, exact: true }) })
+                .first();
             const postContainer = await postTitle.locator('..').locator('..');
             
             // Category badges are rendered with the shared `badge` class in the rebranded UI.

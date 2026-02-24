@@ -1,5 +1,29 @@
 import { test, expect } from '@playwright/test';
 
+function postItemByTitle(page, title: string) {
+  return page
+    .locator('button')
+    .filter({ has: page.getByRole('heading', { level: 3, name: title, exact: true }) })
+    .first();
+}
+
+async function activatePasskeyWriterMode(page) {
+  const passkeyButton = page.getByTestId('passkey-toolbar-button');
+  await expect(passkeyButton).toBeVisible({ timeout: 60000 });
+  page.once('dialog', async (dialog) => {
+    if (dialog.type() === 'confirm') {
+      await dialog.accept();
+      return;
+    }
+    await dialog.dismiss();
+  });
+  await passkeyButton.click();
+  await expect(async () => {
+    const debug = ((await page.getByTestId('can-write-debug').textContent()) || '').trim();
+    expect(debug.startsWith('1|')).toBeTruthy();
+  }).toPass({ timeout: 120000 });
+}
+
 test.describe('Blog Sharing: Bob is read-only on Alice blog', () => {
   test('Alice creates a blog + post, Bob opens it read-only', async ({ browser }) => {
     const contextAlice = await browser.newContext({
@@ -11,6 +35,9 @@ test.describe('Blog Sharing: Bob is read-only on Alice blog', () => {
           '--disable-web-security'
         ]
       }
+    });
+    await contextAlice.addInitScript(() => {
+      (window as any).__PLAYWRIGHT__ = true;
     });
 
     const contextBob = await browser.newContext({
@@ -47,6 +74,7 @@ test.describe('Blog Sharing: Bob is read-only on Alice blog', () => {
     await pageAlice.getByTestId('blog-settings-accordion').click();
     await pageAlice.getByTestId('blog-name-input').fill('Alice Blog');
     await pageAlice.getByTestId('blog-description-input').fill('A blog created in e2e');
+    await activatePasskeyWriterMode(pageAlice);
 
     // Ensure at least one category exists, otherwise the app won't allow publishing.
     await pageAlice.getByTestId('categories').click();
@@ -71,9 +99,7 @@ test.describe('Blog Sharing: Bob is read-only on Alice blog', () => {
 
     // Give the UI time to persist + render the new post.
     await pageAlice.waitForTimeout(2000);
-    await expect(
-      pageAlice.getByTestId('post-item-title').filter({ hasText: 'Hello from Alice' })
-    ).toBeVisible({ timeout: 60000 });
+    await expect(postItemByTitle(pageAlice, 'Hello from Alice')).toBeVisible({ timeout: 60000 });
 
     // Fetch the OrbitDB address to share with Bob.
     await pageAlice.getByTestId('menu-button').click();
@@ -94,9 +120,7 @@ test.describe('Blog Sharing: Bob is read-only on Alice blog', () => {
     await expect(pageBob.getByTestId('loading-overlay')).toBeHidden({ timeout: 120000 });
 
     await expect(pageBob.getByTestId('blog-name')).toHaveText('Alice Blog', { timeout: 120000 });
-    await expect(pageBob.getByTestId('post-item-title').filter({ hasText: 'Hello from Alice' })).toBeVisible({
-      timeout: 120000
-    });
+    await expect(postItemByTitle(pageBob, 'Hello from Alice')).toBeVisible({ timeout: 120000 });
 
     // Debug write gating in CI logs if this test ever flakes.
     const bobCanWriteDebug = await pageBob.getByTestId('can-write-debug').textContent();
