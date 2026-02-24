@@ -1329,13 +1329,14 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     <div class="passkey-tooltip-wrap">
       <button
         class="control-button passkey-button"
+        data-testid="passkey-toolbar-button"
         class:passkey-active={identityMode === 'passkey'}
         class:passkey-available={identityMode !== 'passkey' && hasStoredPasskey}
         class:passkey-session={identityMode !== 'passkey'}
         onclick={activatePasskeyIdentity}
         disabled={isActivatingIdentity || identityMode === 'passkey'}
         aria-label={identityMode === 'passkey' ? 'Passkey identity active' : 'Session identity active'}>
-        <svg class="w-5 h-5" style="color: {identityMode === 'passkey' ? 'var(--success)' : (hasStoredPasskey ? '#2563eb' : '#d97706')};" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <svg data-testid="passkey-toolbar-icon" class="w-5 h-5" style="color: {identityMode === 'passkey' ? 'var(--success)' : (hasStoredPasskey ? '#2563eb' : '#d97706')};" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l7 3v6c0 5-3.5 8-7 9-3.5-1-7-4-7-9V6l7-3z"/>
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.5 12.5a2.5 2.5 0 114.2 1.8l-1.1 1.1h2.4l1.1-1.1h1.7v-1.7h1.7v-1.7h-1.2a2.5 2.5 0 00-4.9-.7 2.5 2.5 0 00-4 2.3z"/>
         </svg>

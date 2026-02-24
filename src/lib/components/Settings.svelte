@@ -546,8 +546,8 @@
   </div>
 
   <!-- Security -->
-  <div class="settings-section">
-    <button class="settings-header" onclick={() => toggleSection('security')}>
+  <div class="settings-section" data-testid="security-settings-section">
+    <button class="settings-header" data-testid="security-settings-accordion" onclick={() => toggleSection('security')}>
       <span class="text-sm font-medium" style="color: var(--text);">{$_('security')}</span>
       <svg class="w-3 h-3 transition-transform" style="color: var(--text-muted);" class:rotate-180={openSections.security} fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
     </button>
@@ -557,7 +557,7 @@
           Reader mode uses a temporary in-browser session identity. Passkey identity is only used when unlocking writer mode.
         </p>
         <div class="flex items-center justify-between">
-          <span class="text-xs" style="color: var(--text-muted); line-height: 1.45;">
+          <span class="text-xs" data-testid="security-identity-summary" style="color: var(--text-muted); line-height: 1.45;">
             <span>Mode: {identityMode} | Stored passkey credential: {hasPasskeyCredential ? 'yes' : 'no'}</span>
             <br />
             <span>Owner DID: {shortIdentity(ownerIdentityId)}</span>
@@ -572,17 +572,17 @@
           </span>
           <div class="flex flex-col gap-2 items-end">
             {#if identityMode !== 'writer-session'}
-              <button class="btn-primary btn-sm" onclick={activatePasskeyWriterMode} disabled={!canActivateWriterMode}>
+              <button class="btn-primary btn-sm" data-testid="activate-passkey-writer-mode" onclick={activatePasskeyWriterMode} disabled={!canActivateWriterMode}>
                 Activate passkey writer mode
               </button>
             {/if}
-            <button class="btn-outline btn-sm" onclick={resetPasskeyCredential}>
+            <button class="btn-outline btn-sm" data-testid="reset-local-passkey" onclick={resetPasskeyCredential}>
               Reset local passkey
             </button>
           </div>
         </div>
         {#if passkeyStatusReason}
-          <p class="text-xs mt-2" style="color: var(--text-muted);">{passkeyStatusReason}</p>
+          <p class="text-xs mt-2" data-testid="passkey-status-reason" style="color: var(--text-muted);">{passkeyStatusReason}</p>
         {/if}
         <div class="mt-3 pt-3" style="border-top: 1px solid var(--border-subtle);">
           <p class="text-xs mb-2" style="color: var(--text-secondary);">Write permissions (all blog DBs)</p>
