@@ -255,7 +255,7 @@ describe('Relay OrbitDB replication (Alice offline, Bob later)', function () {
     }, 30_000)
     await waitFor(async () => {
       const logs = relayLogs.join('\n')
-      return logs.includes(`Pinned data CID for ${dbAddress}`)
+      return logs.includes(`Read records from database: ${dbAddress}`)
     }, 60_000)
 
     await aliceDb.close()

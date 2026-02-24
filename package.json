@@ -1,6 +1,6 @@
 {
   "name": "le-space-blog",
-  "version": "0.3.11",
+  "version": "0.3.12",
   "packageManager": "pnpm@10.29.3",
   "type": "module",
   "files": [
@@ -41,9 +41,9 @@
     "test:integration:relay-media": "mocha --no-config --timeout 180000 test/relay-media-pinning.integration.test.js",
     "test:watch": "mocha --config .mocharc.cjs --watch",
     "ipfs-publish": "npm version patch && npm run build && ./ipfs-publish.sh",
-    "check": "svelte-check --tsconfig ./tsconfig.json"
-    ,"lint": "eslint \"src/**/*.{ts,svelte}\""
-    ,"lint:fix": "eslint \"src/**/*.{ts,svelte}\" --fix"
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "lint": "eslint \"src/**/*.{ts,svelte}\"",
+    "lint:fix": "eslint \"src/**/*.{ts,svelte}\" --fix"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -143,7 +143,7 @@
     "mermaid": "^11.6.0",
     "multiformats": "^13.3.2",
     "openai": "^4.96.0",
-    "orbitdb-relay-pinner": "file:../../../../../../private/tmp/orbitdb-relay-pinner/orbitdb-relay-pinner-0.1.5.tgz",
+    "orbitdb-relay-pinner": "^0.1.4",
     "p-queue": "^8.1.0",
     "prom-client": "^15.1.3",
     "svelte-i18n": "^4.0.1",
