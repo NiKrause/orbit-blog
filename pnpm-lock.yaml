@@ -24,8 +24,8 @@ importers:
         specifier: ^0.26.5
         version: 0.26.6
       '@le-space/orbitdb-identity-provider-webauthn-did':
-        specifier: file:../../../../orbitdb-identity-provider-webauthn-did/le-space-orbitdb-identity-provider-webauthn-did-0.2.6.tgz
-        version: file:../../../../orbitdb-identity-provider-webauthn-did/le-space-orbitdb-identity-provider-webauthn-did-0.2.6.tgz(@orbitdb/core@3.0.2)(rollup@2.79.2)(vite@5.4.21(@types/node@25.2.3)(terser@5.46.0))
+        specifier: ^0.2.5
+        version: 0.2.5(@orbitdb/core@3.0.2)(rollup@2.79.2)(vite@5.4.21(@types/node@25.2.3)(terser@5.46.0))
       '@libp2p/autonat':
         specifier: ^2.0.38
         version: 2.0.38
@@ -1588,9 +1588,8 @@ packages:
   '@le-space/iso-webauthn-varsig@0.1.0':
     resolution: {integrity: sha512-8gAM+pGZCnt/14IbjEpklFhCoy2WhPuoCI4En9fD85tRuG+s83ILR7XVb/FQk86vX/yFl5/fMlB3qjFkL9Dpag==}
 
-  '@le-space/orbitdb-identity-provider-webauthn-did@file:../../../../orbitdb-identity-provider-webauthn-did/le-space-orbitdb-identity-provider-webauthn-did-0.2.6.tgz':
-    resolution: {integrity: sha512-S2kMmNtx4IYo2A8iL3R1xzYwOUwaNGkSuxUKrJ7i9mNEczMYSLOUsXGAVkLf7g4uU4BLcIQE4VRg+FKp9QG56g==, tarball: file:../../../../orbitdb-identity-provider-webauthn-did/le-space-orbitdb-identity-provider-webauthn-did-0.2.6.tgz}
-    version: 0.2.6
+  '@le-space/orbitdb-identity-provider-webauthn-did@0.2.5':
+    resolution: {integrity: sha512-+ij/vIRe+jpagj+H8M3kG1txl9p1G/0FYD+3KLANrJI+wzxDysnVQ9r741YQxuE9QBuOxFVwZZEDagNuyIJO6Q==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       '@orbitdb/core': ^3.0.0
@@ -4944,10 +4943,6 @@ packages:
 
   minimalistic-crypto-utils@1.0.1:
     resolution: {integrity: sha512-JIYlbt6g8i5jKfJ3xz7rF0LXmv2TkDxBLUkiBeZ7bAx4GnnNMr8xFpGnOxn6GhTEHx3SjRrZEoU+j04prX1ktg==}
-
-  minimatch@10.2.0:
-    resolution: {integrity: sha512-ugkC31VaVg9cF0DFVoADH12k6061zNZkZON+aX8AWsR9GhPcErkcMBceb6znR8wLERM2AkkOxy2nWRLpT9Jq5w==}
-    engines: {node: 20 || >=22}
 
   minimatch@10.2.2:
     resolution: {integrity: sha512-+G4CpNBxa5MprY+04MbgOw1v7So6n5JY166pFi9KfYwT78fxScCeSNQSNzp6dpPSW2rONOps6Ocam1wFhCgoVw==}
@@ -8407,7 +8402,7 @@ snapshots:
     dependencies:
       iso-base: '@le-space/iso-base@4.3.0'
 
-  '@le-space/orbitdb-identity-provider-webauthn-did@file:../../../../orbitdb-identity-provider-webauthn-did/le-space-orbitdb-identity-provider-webauthn-did-0.2.6.tgz(@orbitdb/core@3.0.2)(rollup@2.79.2)(vite@5.4.21(@types/node@25.2.3)(terser@5.46.0))':
+  '@le-space/orbitdb-identity-provider-webauthn-did@0.2.5(@orbitdb/core@3.0.2)(rollup@2.79.2)(vite@5.4.21(@types/node@25.2.3)(terser@5.46.0))':
     dependencies:
       '@ipld/dag-cbor': 9.2.5
       '@ipld/dag-ucan': 3.4.5
@@ -11710,7 +11705,7 @@ snapshots:
     dependencies:
       foreground-child: 3.3.1
       jackspeak: 4.2.3
-      minimatch: 10.2.0
+      minimatch: 10.2.2
       minipass: 7.1.2
       package-json-from-dist: 1.0.1
       path-scurry: 2.0.1
@@ -12999,10 +12994,6 @@ snapshots:
   minimalistic-assert@1.0.1: {}
 
   minimalistic-crypto-utils@1.0.1: {}
-
-  minimatch@10.2.0:
-    dependencies:
-      brace-expansion: 5.0.2
 
   minimatch@10.2.2:
     dependencies:
@@ -14371,7 +14362,7 @@ snapshots:
   terser@5.46.0:
     dependencies:
       '@jridgewell/source-map': 0.3.11
-      acorn: 8.15.0
+      acorn: 8.16.0
       commander: 2.20.3
       source-map-support: 0.5.21
 
