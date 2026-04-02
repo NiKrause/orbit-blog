@@ -1,0 +1,15 @@
+---
+description: Use BMad Method workflows when the user invokes bmad-* or asks for planning/implementation process
+alwaysApply: true
+---
+
+# BMad Method in this project
+
+When the user names a BMad workflow (e.g. `bmad-help`, `bmad-create-prd`, `bmad-create-architecture`) or asks to follow BMad:
+
+1. **Load instructions from** `_bmad/` (workflows, agents, tasks). If `_bmad/` is missing, say they need `npx bmad-method install` in this repo root.
+2. **Write artifacts under** `_bmad-output/` (e.g. planning-artifacts, implementation-artifacts, `project-context.md` when relevant).
+3. **Prefer one workflow per conversation**; suggest a fresh chat for the next workflow when switching phases (planning vs implementation).
+4. For “what’s next?”, follow the same intent as **bmad-help**: inspect repo state under `_bmad-output/` and recommend the next BMad step.
+
+Do not invent BMad steps; follow the files in `_bmad/` when present.
