@@ -1,6 +1,14 @@
 import { get } from 'svelte/store';
 import { _ } from 'svelte-i18n';
 import { renderContent } from '../services/MarkdownRenderer.js';
+import { removeVideoEmbedFromContent } from './videoEmbedUtils.js';
+
+export {
+  addCidToSelectedMedia,
+  appendVideoEmbedToContent,
+  IPFS_VIDEO_GATEWAY,
+  removeVideoEmbedFromContent,
+} from './videoEmbedUtils.js';
 
 /**
  * Renders markdown content safely using the centralized MarkdownRenderer
@@ -36,7 +44,8 @@ export function removeMediaFromContent(
   content: string
 ): { updatedMedia: string[], updatedContent: string } {
   const updatedMedia = selectedMedia.filter(id => id !== mediaId);
-  const updatedContent = content.replace(`\n\n![Media](ipfs://${mediaId})`, '');
+  let updatedContent = content.replace(`\n\n![Media](ipfs://${mediaId})`, '');
+  updatedContent = removeVideoEmbedFromContent(mediaId, updatedContent);
   return { updatedMedia, updatedContent };
 }
 

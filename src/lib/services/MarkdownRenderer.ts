@@ -731,12 +731,24 @@ export function renderContent(content: string): string {
   
   const renderedContent = marked.parse(content, { renderer: setupRenderer() }) as string;
   return DOMPurify.sanitize(renderedContent, {
-    ADD_TAGS: ['details', 'summary', 'div', 'section', 'article', 'svg', 'path', 'iframe'],
+    ADD_TAGS: [
+      'details',
+      'summary',
+      'div',
+      'section',
+      'article',
+      'svg',
+      'path',
+      'iframe',
+      'video',
+      'source',
+    ],
     ADD_ATTR: [
-      'id', 'class', 'aria-controls', 'aria-expanded', 'aria-labelledby', 'role', 
-      'data-ipfs-cid', 'data-remote-url', 'src', 'alt', 'title', 'href', 'target', 
-      'rel', 'viewBox', 'fill', 'fill-rule', 'clip-rule', 'd', 'width', 'height', 
-      'frameborder', 'allowfullscreen', 'sandbox', 'loading', 'referrerpolicy'
+      'id', 'class', 'aria-controls', 'aria-expanded', 'aria-labelledby', 'role',
+      'data-ipfs-cid', 'data-remote-url', 'src', 'alt', 'title', 'href', 'target',
+      'rel', 'viewBox', 'fill', 'fill-rule', 'clip-rule', 'd', 'width', 'height',
+      'frameborder', 'allowfullscreen', 'sandbox', 'loading', 'referrerpolicy',
+      'controls', 'preload', 'playsinline', 'type',
     ],
     ALLOW_DATA_ATTR: true
   });

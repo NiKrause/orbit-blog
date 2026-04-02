@@ -33,6 +33,8 @@ export interface RemoteDB {
   postsAddress: string;
   commentsAddress: string;
   mediaAddress: string;
+  /** AI documents DB address when known (Epic 2). */
+  aiAddress?: string;
   fetchLater?: boolean;
   date?: string;
   pinnedToVoyager?: boolean;

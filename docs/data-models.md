@@ -6,13 +6,20 @@ This app does **not** use SQL or Prisma. Persistent structured data is stored in
 
 | Database | Role | Typical keys / documents |
 | --- | --- | --- |
-| **settings** | Blog metadata and pointers | `blogName`, `blogDescription`, `postsDBAddress`, `commentsDBAddress`, `mediaDBAddress`, categories, profile picture CID, etc. |
+| **settings** | Blog metadata and pointers | `blogName`, `blogDescription`, `postsDBAddress`, `commentsDBAddress`, `mediaDBAddress`, **`aiDBAddress`** (AI Manager jobs / config replica), categories, profile picture CID, etc. |
 | **posts** | Blog posts | One document per post (`Post` / `BlogPost` fields) |
 | **comments** | Comments | Documents keyed by convention used in app (`Comment`) |
 | **media** | Media metadata | CID, name, type, size (`Media`) |
+| **ai** | AI Manager (Epic 2+) | Jobs, manifests, and **per-model credential** rows (`credential:…` document ids). |
 | **remote-dbs** (subscription list) | Remote blogs to follow | Entries tracking addresses, fetch state (`RemoteDB`) |
 
 Replication uses libp2p pubsub under OrbitDB’s sync model (see `docs/AI_AGENTS.md` for file-level detail).
+
+### AI credential documents (Epic 2.2–2.3)
+
+The **ai** database is opened from Epic 2.1; **per-model credential rows, encryption, list, and delete** are implemented in `src/lib/ai/aiCredentialStore.ts` and `src/lib/ai/aiCredentialCrypto.ts`.
+
+Each provider/model credential is stored as a document in the **ai** database with a stable `_id` (`credential:` + encoded model id). Multiple models mean multiple documents; updating one does not overwrite another. Use **`listAiCredentialModelIds`** / **`deleteAiCredential`** to enumerate or remove rows. Fields include plaintext `baseUrl` and `modelId`, while the **API key is encrypted at rest** (AES-256-GCM with a key derived from the blog identity seed via HKDF). The translation feature’s `aiApiKey` / `aiApiUrl` in `store.ts` (localStorage) are **not** used for AI Manager credentials.
 
 ## Core TypeScript interfaces
 

@@ -49,6 +49,8 @@
 | [Video embedding examples](./VIDEO_EMBEDDING_EXAMPLES.md) | Media embedding |
 | [Issues / notes](./ISSUES.md) | Tracked issues and references |
 | [Pitch deck](./pitchdeck.md) | Product pitch material |
+| [AI API browser CORS spike checklist](./ai-api-browser-cors-spike-checklist.md) | Verify third-party AI HTTPS APIs from the **browser** (not only Node) before AI Manager implementation |
+| [AI API CORS spike outcome (2026-04-02)](./ai-api-cors-spike-outcome-2026-04-02.md) | Recorded FR-10 result for **Atlas Cloud** (`api.atlascloud.ai`): direct browser `fetch` viable for localhost dev/preview origins (re-validate for prod origin) |
 
 ---
 

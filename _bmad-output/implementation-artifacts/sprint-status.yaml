@@ -1,0 +1,85 @@
+# generated: 2026-04-02
+# last_updated: 2026-04-02
+# project: bolt-orbitdb-blog
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts/stories
+#
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: '2026-04-02'
+last_updated: '2026-04-02'
+project: bolt-orbitdb-blog
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts/stories
+
+development_status:
+  epic-1: done
+  1-1-browser-cors-spike: done
+  1-2-ai-http-transport: done
+  epic-1-retrospective: optional
+
+  epic-2: done
+  2-1-ai-orbitdb-settings: done
+  2-2-encrypt-per-model-credentials: done
+  2-3-credential-multi-model: done
+  epic-2-retrospective: optional
+
+  epic-3: done
+  3-1-ai-toggle-panel-postform: done
+  3-2-register-kling-manifests: done
+  3-3-per-model-url-key-form: done
+  epic-3-retrospective: optional
+
+  epic-4: done
+  4-1-json-schema-field-renderer: done
+  4-2-image-input-library-upload: done
+  epic-4-retrospective: optional
+
+  epic-5: in-progress
+  5-1-submit-job-lifecycle-status: done
+  5-2-ingest-output-video-media-draft: ready-for-dev
+  5-3-nfr-verification-and-documentation-touchpoint: backlog
+  epic-5-retrospective: optional
+
+  epic-6: in-progress
+  6-1-advertise-supported-models-to-peers: ready-for-dev
+  6-2-consumer-runs-remote-job-without-provider-api-secret: backlog
+  epic-6-retrospective: optional
+
+  epic-7: backlog
+  7-1-wallet-flow-for-preset-usdt-approvals: backlog
+  7-2-provider-payment-verification-gate: backlog
+  epic-7-retrospective: optional
+
+  epic-8: backlog
+  8-1-provider-agent-registration-and-consumer-feedback-hooks: backlog
+  epic-8-retrospective: optional

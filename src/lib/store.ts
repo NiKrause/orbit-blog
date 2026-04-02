@@ -62,6 +62,13 @@ export const mediaDB = writable<OrbitDB | null>(null);
 export const mediaDBAddress = writable<string | null>(null);
 export const allMedia = writable<Media[]>([]);
 
+// AI Manager / jobs — documents DB (Epic 2); address in settings as aiDBAddress
+export const aiDB = writable<OrbitDB | null>(null);
+export const aiDBAddress = writable<string | null>(null);
+
+/** Same 32-byte seed as OrbitDB identity (`convertTo32BitSeed`); set in LeSpaceBlog after unlock. */
+export const identitySeed32 = writable<Uint8Array | null>(null);
+
 // Store for tracking the current language direction
 export const isRTL = writable(false);
 

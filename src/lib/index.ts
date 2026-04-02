@@ -15,6 +15,7 @@ export { default as Sidebar } from './components/Sidebar.svelte';
 export { default as ThemeToggle } from './components/ThemeToggle.svelte';
 export { default as LeSpaceBlog } from './components/LeSpaceBlog.svelte';
 
+export * from './ai/index.js';
 export * from './config.js';
 export * from './cryptoUtils.js';
 export * from './dateUtils.js';
@@ -27,3 +28,8 @@ export * from './router.js';
 export * from './store.js';
 export * from './types.js';
 export * from './utils.js';
+export {
+  AI_INGEST_ERROR_KEYS,
+  AiIngestError,
+  ingestRemoteVideoToMedia,
+} from './mediaIngest.js';

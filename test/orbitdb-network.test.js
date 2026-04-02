@@ -21,7 +21,7 @@ import { expect } from 'chai';
 describe('OrbitDB Blog Data Access', function() {
     this.timeout(20000);
   
-    let helia, orbitdb, settingsDb, postsDb, commentsDb, mediaDb;
+    let helia, orbitdb, settingsDb, postsDb, commentsDb, mediaDb, aiDb;
   
     before(async () => {
       // Setup a fresh stack for this test
@@ -93,6 +93,15 @@ describe('OrbitDB Blog Data Access', function() {
         directory: join(tempPath, 'orbitdb/media')
       });
       await settingsDb.put({ _id: 'mediaDBAddress', value: mediaDb.address.toString() });
+
+      aiDb = await orbitdb.open('ai', {
+        type: 'documents',
+        create: true,
+        overwrite: true,
+        sync: false,
+        directory: join(tempPath, 'orbitdb/ai')
+      });
+      await settingsDb.put({ _id: 'aiDBAddress', value: aiDb.address.toString() });
     });
   
     after(async () => {
@@ -100,6 +109,7 @@ describe('OrbitDB Blog Data Access', function() {
       await postsDb?.close();
       await commentsDb?.close();
       await mediaDb?.close();
+      await aiDb?.close();
       await orbitdb?.stop();
       await helia?.libp2p?.stop();
     });
@@ -144,5 +154,11 @@ describe('OrbitDB Blog Data Access', function() {
       const mediaDb2 = await orbitdb.open(mediaAddressEntry.value.value, { sync: false });
       const allMedia = await mediaDb2.all();
       console.log('Media DB opened, count:', allMedia.length);
+
+      const aiAddressEntry = await settingsDb.get('aiDBAddress');
+      expect(aiAddressEntry?.value?.value).to.be.a('string');
+      const aiDb2 = await orbitdb.open(aiAddressEntry.value.value, { sync: false });
+      const allAi = await aiDb2.all();
+      console.log('AI DB opened, count:', allAi.length);
     });
   });

@@ -9,12 +9,19 @@
   import MediaManager from './MediaManager.svelte';
   import ContentEditor from './ContentEditor.svelte';
   import MediaUploader from './MediaUploader.svelte';
-import { handleMediaSelection, removeMediaFromContent, validateEncryptionFields } from '$lib/utils/postUtils.js';
+import {
+  addCidToSelectedMedia,
+  appendVideoEmbedToContent,
+  handleMediaSelection,
+  removeMediaFromContent,
+  validateEncryptionFields,
+} from '$lib/utils/postUtils.js';
 import { renderContent } from '$lib/services/MarkdownRenderer.js';
 import MultiSelect from './MultiSelect.svelte';
 import { MarkdownImportResolver } from '$lib/services/MarkdownImportResolver.js';
 import { info } from '$lib/utils/logger.js';
-import MarkdownHelp from './MarkdownHelp.svelte';
+  import MarkdownHelp from './MarkdownHelp.svelte';
+  import AiManager from './AiManager.svelte';
 
   let title = $state('');
   let content = $state('');
@@ -22,6 +29,7 @@ import MarkdownHelp from './MarkdownHelp.svelte';
   let selectedCategories = $state<string[]>([]);
   let showPreview = $state(false);
   let showMediaUploader = $state(false);
+  let showAiPanel = $state(false);
   let selectedMedia = $state<string[]>([]);
   let isTranslating = $state(false);
   let translationError = $state('');
@@ -109,6 +117,14 @@ import MarkdownHelp from './MarkdownHelp.svelte';
     selectedMedia = result.updatedMedia;
     content = result.updatedContent;
     showMediaUploader = false;
+  }
+
+  function handleInsertAiVideoEmbed(cid: string) {
+    content = appendVideoEmbedToContent(content, cid);
+  }
+
+  function handleAddAiVideoToSelectedMedia(cid: string) {
+    selectedMedia = addCidToSelectedMedia(cid, selectedMedia);
   }
 
   async function removeSelectedMedia(mediaId: string) {
@@ -262,6 +278,16 @@ import MarkdownHelp from './MarkdownHelp.svelte';
         >
           {showMediaUploader ? $_('hide_media_library') : $_('add_media')}
         </button>
+        <button
+          type="button"
+          data-testid="post-form-ai-toggle"
+          aria-expanded={showAiPanel}
+          aria-controls="post-form-ai-panel"
+          onclick={() => (showAiPanel = !showAiPanel)}
+          class="btn-ghost btn-sm"
+        >
+          {showAiPanel ? $_('ai_toggle_hide') : $_('ai_toggle_show')}
+        </button>
         {#if hasPhysicalImports}
         <button
           type="button"
@@ -286,6 +312,20 @@ import MarkdownHelp from './MarkdownHelp.svelte';
     {#if showMediaUploader}
       <MediaUploader onMediaSelected={handleMediaSelected} />
     {/if}
+
+    <div
+      id="post-form-ai-panel"
+      role="region"
+      aria-labelledby="post-form-ai-heading"
+      hidden={!showAiPanel}
+      data-testid="post-form-ai-panel"
+      class="mb-2"
+    >
+      <AiManager
+        onInsertVideoEmbed={handleInsertAiVideoEmbed}
+        onAddVideoToSelectedMedia={handleAddAiVideoToSelectedMedia}
+      />
+    </div>
 
     {#if showPreview}
       <div class="prose dark:prose-invert max-w-none min-h-[200px] p-4 rounded-md" style="background-color: var(--bg-tertiary); border: 1px solid var(--border);">

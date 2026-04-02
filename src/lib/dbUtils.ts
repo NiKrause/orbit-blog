@@ -1,5 +1,5 @@
 import { get } from 'svelte/store';
-import { helia, orbitdb, blogName, categories, blogDescription, postsDBAddress, profilePictureCid, postsDB, posts, settingsDB, remoteDBs, commentsDB, mediaDB, remoteDBsDatabases, commentsDBAddress, mediaDBAddress, identity, identities, loadingState } from './store.js';
+import { helia, orbitdb, blogName, categories, blogDescription, postsDBAddress, profilePictureCid, postsDB, posts, settingsDB, remoteDBs, commentsDB, mediaDB, aiDB, remoteDBsDatabases, commentsDBAddress, mediaDBAddress, aiDBAddress, identity, identities, loadingState } from './store.js';
 import type { RemoteDB } from './types.js';
 import { IPFSAccessController } from '@orbitdb/core';
 import { createLogger } from './utils/logger.js'
@@ -23,7 +23,8 @@ const createNewDB = (name: string): RemoteDB => {
         id: crypto.randomUUID(),
         postsAddress: '',
         commentsAddress: '',
-        mediaAddress: ''
+        mediaAddress: '',
+        aiAddress: ''
     };
 };
 
@@ -93,6 +94,7 @@ export async function addRemoteDBToStore(address: string, peerId: string, name?:
         postsAddress: databases.addresses.posts,
         commentsAddress: databases.addresses.comments,
         mediaAddress: databases.addresses.media,
+        aiAddress: databases.addresses.ai,
         fetchLater: false,
         date: new Date().toISOString().split('T')[0]
       };
@@ -110,6 +112,7 @@ export async function addRemoteDBToStore(address: string, peerId: string, name?:
         postsAddress: '',
         commentsAddress: '',
         mediaAddress: '',
+        aiAddress: '',
         fetchLater: true,
         date: new Date().toISOString().split('T')[0]
       };
@@ -427,6 +430,7 @@ function updateRemoteDBEntry(
     postsDBAddress?: string;
     commentsDBAddress?: string;
     mediaDBAddress?: string;
+    aiDBAddress?: string;
     access?: any;
   }
 ) {
@@ -528,6 +532,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       posts.set([]);
       commentsDB.set(null);
       mediaDB.set(null);
+      aiDB.set(null);
       
       updateLoadingState('identifying_db', `Opening database: ${address}`, 30);
       
@@ -569,6 +574,8 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       log.info('commentsDBAddressValue', commentsDBAddressValue);
       const mediaDBAddressValue = dbContents.find(content => content.key === 'mediaDBAddress')?.value?.value;
       log.info('mediaDBAddressValue', mediaDBAddressValue);
+      const aiDBAddressValue = dbContents.find(content => content.key === 'aiDBAddress')?.value?.value;
+      log.info('aiDBAddressValue', aiDBAddressValue);
       categoriesValue = dbContents.find(content => content.key === 'categories')?.value?.value || ['please add categories']; // Fetch categories
       log.info('categoriesValue', categoriesValue);
       const profilePictureValue = dbContents.find(content => content.key === 'profilePicture')?.value?.value;
@@ -581,6 +588,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       if (postsDBAddressValue) postsDBAddress.set(postsDBAddressValue);
       if (commentsDBAddressValue) commentsDBAddress.set(commentsDBAddressValue);
       if (mediaDBAddressValue) mediaDBAddress.set(mediaDBAddressValue);
+      if (aiDBAddressValue) aiDBAddress.set(aiDBAddressValue);
       if (categoriesValue) categories.set(categoriesValue);
       // Always update profile picture CID - set to null if new database doesn't have one
       profilePictureCid.set(profilePictureValue || null);
@@ -594,7 +602,8 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         updateRemoteDBEntry(address, {
           postsDBAddress: postsDBAddressValue,
           commentsDBAddress: commentsDBAddressValue,
-          mediaDBAddress: mediaDBAddressValue
+          mediaDBAddress: mediaDBAddressValue,
+          aiDBAddress: aiDBAddressValue
         });
       }
 
@@ -623,6 +632,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         let postsDBAddr = '';
         let commentsDBAddr = '';
         let mediaDBAddr = '';
+        let aiDBAddr = '';
 
         updateLoadingState('loading_posts', 'Opening posts database...', 60);
         // Create promises for all DB operations
@@ -719,6 +729,31 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         }).catch(err => {
           log.warn('Error loading media database (async):', err);
         });
+
+        // Load AI database asynchronously (non-blocking), same pattern as media
+        openOrCreateDB(orbitdbInstance, dbContents, 'aiDBAddress', {
+          name: 'ai',
+          directory: './orbitdb/ai',
+          writeAccess: [get(identity).id],
+          store: aiDB,
+          addressStore: aiDBAddress
+        }, canWriteToSettings, db, true, false)
+        .then(async aiInstance => {
+          if (aiInstance) {
+            log.info('aiInstance loaded asynchronously:', aiInstance);
+            aiDBAddr = aiInstance.address.toString();
+            try {
+              if (canWriteToSettings && hasWriteAccess(aiInstance, get(identity).id)) {
+                await get(settingsDB).put({ _id: 'aiDBAddress', value: aiDBAddr });
+              }
+            } catch (writeError: any) {
+              log.warn('Could not update aiDBAddress in settings:', writeError?.message);
+            }
+            log.info('AI database ready at', aiDBAddr);
+          }
+        }).catch(err => {
+          log.warn('Error loading AI database (async):', err);
+        });
         
         // Only wait for posts database (critical)
         updateLoadingState('loading_posts', 'Finalizing posts database...', 90);
@@ -735,6 +770,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
           postsDBAddress: postsDBAddr,
           commentsDBAddress: commentsDBAddr,
           mediaDBAddress: mediaDBAddr,
+          aiDBAddress: aiDBAddr,
           access: postsResult?.access
         });
 
@@ -829,23 +865,37 @@ export async function createDatabaseSet(orbitdbInstance: any, identity: any, ide
     AccessController: IPFSAccessController({write: [identity.id]})
   });
 
+  // Create AI documents database (same access model as media)
+  const aiDb = await orbitdbInstance.open(`${name}-ai`, {
+    type: 'documents',
+    create: true,
+    overwrite: false,
+    directory: './orbitdb/ai',
+    identity: identity,
+    identities: identities,
+    AccessController: IPFSAccessController({write: [identity.id]})
+  });
+
   // Store addresses in settings DB
   await settingsDb.put({ _id: 'blogName', value: name });
   await settingsDb.put({ _id: 'blogDescription', value: 'please change' });
   await settingsDb.put({ _id: 'postsDBAddress', value: postsDb.address.toString() });
   await settingsDb.put({ _id: 'commentsDBAddress', value: commentsDb.address.toString() });
   await settingsDb.put({ _id: 'mediaDBAddress', value: mediaDb.address.toString() });
+  await settingsDb.put({ _id: 'aiDBAddress', value: aiDb.address.toString() });
 
   return {
     settingsDb,
     postsDb,
     commentsDb,
     mediaDb,
+    aiDb,
     addresses: {
       settings: settingsDb.address.toString(),
       posts: postsDb.address.toString(),
       comments: commentsDb.address.toString(),
-      media: mediaDb.address.toString()
+      media: mediaDb.address.toString(),
+      ai: aiDb.address.toString()
     }
   };
 } 

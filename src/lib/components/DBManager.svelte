@@ -247,7 +247,7 @@
     const currentDB = $remoteDBs.find(db => db.address === $selectedDBAddress);
     const dbName = currentDB?.name || 'Current Database';
     
-    dropCurrentModalMessage = `Are you sure you want to drop the current database "${dbName}" and all its linked sub-databases (posts, comments, media)? This action cannot be undone.`;
+    dropCurrentModalMessage = `Are you sure you want to drop the current database "${dbName}" and all its linked sub-databases (posts, comments, media, AI)? This action cannot be undone.`;
     showConfirmDropCurrentModal = true;
   }
   
@@ -275,6 +275,7 @@
       const postsAddressValue = settingsData.find(content => content.key === 'postsDBAddress')?.value?.value;
       const commentsAddressValue = settingsData.find(content => content.key === 'commentsDBAddress')?.value?.value;
       const mediaAddressValue = settingsData.find(content => content.key === 'mediaDBAddress')?.value?.value;
+      const aiAddressValue = settingsData.find(content => content.key === 'aiDBAddress')?.value?.value;
       
       const dropPromises = [];
       
@@ -306,6 +307,15 @@
             })
           );
         }
+
+        if (aiAddressValue) {
+          dropPromises.push(
+            $orbitdb.open(aiAddressValue).then(async (database) => {
+              await database.drop();
+              debug(`Dropped AI database: ${aiAddressValue}`);
+            })
+          );
+        }
         
         // Drop main settings database last
         dropPromises.push($settingsDB.drop());
@@ -319,7 +329,8 @@
         currentAddress,
         postsAddressValue,
         commentsAddressValue,
-        mediaAddressValue
+        mediaAddressValue,
+        aiAddressValue
       ].filter(Boolean));
       
       // Remove from remoteDBs if it exists there (using stored address)
@@ -441,6 +452,7 @@
       let postsAddress = null;
       let commentsAddress = null;
       let mediaAddress = null;
+      let aiAddress = null;
       
       for (const entry of allSettings) {
         const setting = entry.value;
@@ -454,6 +466,9 @@
           case 'mediaDBAddress':
             if (setting.value !== undefined) mediaAddress = setting.value;
             break;
+          case 'aiDBAddress':
+            if (setting.value !== undefined) aiAddress = setting.value;
+            break;
         }
       }
       
@@ -461,7 +476,7 @@
       
       if (options.dropLocal) {
         // Drop sub-databases if they exist
-        for (const address of [postsAddress, commentsAddress, mediaAddress]) {
+        for (const address of [postsAddress, commentsAddress, mediaAddress, aiAddress]) {
           if (address) {
             dropPromises.push(
               $orbitdb.open(address).then(async (database) => {
@@ -570,12 +585,15 @@
       // Get comments and media DB addresses from source settings
       const commentsAddressEntry = await sourceSettingsDb.get('commentsDBAddress');
       const mediaAddressEntry = await sourceSettingsDb.get('mediaDBAddress');
+      const aiAddressEntry = await sourceSettingsDb.get('aiDBAddress');
       
       // Open source comments and media DBs if they exist
       const sourceCommentsDb = commentsAddressEntry?.value?.value ? 
         await $orbitdb.open(commentsAddressEntry.value.value) : null;
       const sourceMediaDb = mediaAddressEntry?.value?.value ? 
         await $orbitdb.open(mediaAddressEntry.value.value) : null;
+      const sourceAiDb = aiAddressEntry?.value?.value ?
+        await $orbitdb.open(aiAddressEntry.value.value) : null;
       
       // Step 3: Create new databases for posts, comments, and media
       modalMessage = $_('creating_new_databases');
@@ -606,6 +624,14 @@
         identities: $identities,
         AccessController: IPFSAccessController({write: [$identity.id]})
       });
+
+      const newAiDb = await $orbitdb.open(`ai_${sourceDb.name}_${identitySuffix}`, {
+        type: 'documents',
+        create: true,
+        identity: $identity,
+        identities: $identities,
+        AccessController: IPFSAccessController({write: [$identity.id]})
+      });
       
       // Step 4: Copy settings (excluding database addresses)
       modalMessage = $_('copying_settings');
@@ -615,7 +641,8 @@
         // Skip database address entries - we'll add these later
         if (entry.key === 'postsDBAddress' || 
             entry.key === 'commentsDBAddress' || 
-            entry.key === 'mediaDBAddress') {
+            entry.key === 'mediaDBAddress' ||
+            entry.key === 'aiDBAddress') {
           continue;
         }
         const cleanValue = JSON.parse(JSON.stringify(entry.value));
@@ -663,12 +690,25 @@
       } else {
         debug($_('no_media_to_copy'));
       }
+
+      if (sourceAiDb) {
+        modalMessage = $_('copying_ai');
+        debug('copying AI documents', sourceAiDb);
+        const aiDocs = await sourceAiDb.all();
+        for (const doc of aiDocs) {
+          const clean = JSON.parse(JSON.stringify(doc.value));
+          await newAiDb.put(clean);
+        }
+      } else {
+        debug('no AI database to copy');
+      }
       
       // After copying all content, update the settings with new database addresses
       modalMessage = $_('updating_database_references');
       await newSettingsDb.put({ _id: 'postsDBAddress', value: newPostsDb.address });
       await newSettingsDb.put({ _id: 'commentsDBAddress', value: newCommentsDb.address });
       await newSettingsDb.put({ _id: 'mediaDBAddress', value: newMediaDb.address });
+      await newSettingsDb.put({ _id: 'aiDBAddress', value: newAiDb.address });
       
       // Step 8: Pin to Voyager if available
       // if ($voyager) {

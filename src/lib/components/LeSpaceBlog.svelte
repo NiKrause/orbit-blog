@@ -41,7 +41,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   import { initHashRouter, isLoadingRemoteBlog } from '$lib/router.js';
   import { setupPeerEventListeners } from '$lib/peerConnections.js';
   import { getImageUrlFromHelia } from '$lib/utils/mediaUtils.js';
-  import { unixfs } from '@helia/unixfs';
+  import { unixfs, type UnixFS } from '@helia/unixfs';
   import { 
     initialAddress,
     loadingState,
@@ -70,6 +70,9 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     commentsDBAddress,
     mediaDB,
     mediaDBAddress,
+    aiDB,
+    aiDBAddress,
+    identitySeed32,
     isRTL
   } from '$lib/store';
 
@@ -120,7 +123,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     });
   });
 
-  let fs = $state();
+  let fs = $state<UnixFS | null>(null);
 
   if(!encryptedSeedPhrase) {
       info('no seed phrase, generating new one')
@@ -177,6 +180,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 	    // Deterministic OrbitDB identity from the seed phrase.
 	    // This is critical for headless agents: with the same seed phrase they can recreate the same writer identity.
 	    const identitySeed = convertTo32BitSeed(masterSeed)
+	    identitySeed32.set(new Uint8Array(identitySeed))
 	    const idProvider = await createIdentityProvider('ed25519', identitySeed, $helia)
 	    $identities = idProvider.identities
 	    $identity = idProvider.identity
@@ -298,6 +302,23 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     } catch (err) {
       warn('Error opening media DB:', err)
     }
+
+    try {
+      const _db = await $orbitdb.open('ai', {
+        type: 'documents',
+        create: true,
+        overwrite: false,
+        directory: './orbitdb/ai',
+        identity: $identity,
+        identities: $identities,
+        AccessController: IPFSAccessController({ write: [$identity.id] }),
+      })
+      $aiDB = _db
+      $aiDBAddress = _db.address.toString()
+      ;(window as any).aiDB = _db
+    } catch (err) {
+      warn('Error opening AI DB:', err)
+    }
   }
 
   $effect(() => {
@@ -336,6 +357,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       await $commentsDB?.close();
       await $postsDB?.close();
       await $mediaDB?.close();
+      await $aiDB?.close();
     } catch (_error) {
       error('Error closing OrbitDB connections:', _error);
     }
@@ -352,6 +374,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   let lastPersistedPostsAddr = '';
   let lastPersistedCommentsAddr = '';
   let lastPersistedMediaAddr = '';
+  let lastPersistedAiAddr = '';
 
   // Load ownerIdentity from the current settings DB (local or remote).
   $effect(() => {
@@ -419,6 +442,9 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
           case 'mediaDBAddress':
             // Currently not storing this in a variable, but could be used later
             break;
+          case 'aiDBAddress':
+            if (setting.value !== undefined) aiDBAddress.set(setting.value);
+            break;
           case 'profilePicture':
             if (setting.value !== undefined) {
               profilePictureCid.set(setting.value);
@@ -457,6 +483,15 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
           $settingsDB?.put({ _id: 'mediaDBAddress', value: mediaDBAddress});
         } catch (err) {
           console.error('Failed to write mediaDBAddress to DB:', err);
+        }
+      }
+
+      if (canWriteSettings && $aiDB?.address) {
+        const addr = $aiDB.address.toString();
+        try {
+          $settingsDB?.put({ _id: 'aiDBAddress', value: addr });
+        } catch (err) {
+          console.error('Failed to write aiDBAddress to DB:', err);
         }
       }
     }).catch(err => {
@@ -538,6 +573,15 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       lastPersistedMediaAddr = mediaAddr;
       $settingsDB.put({ _id: 'mediaDBAddress', value: mediaAddr }).catch((err) => {
         console.error('Failed to persist mediaDBAddress to settings:', err);
+      });
+    }
+
+    const aiAddr = $aiDB?.address?.toString?.() || '';
+    if (aiAddr && (settingsAddr !== lastPersistedSettingsAddr || aiAddr !== lastPersistedAiAddr)) {
+      lastPersistedSettingsAddr = settingsAddr;
+      lastPersistedAiAddr = aiAddr;
+      $settingsDB.put({ _id: 'aiDBAddress', value: aiAddr }).catch((err) => {
+        console.error('Failed to persist aiDBAddress to settings:', err);
       });
     }
   });
