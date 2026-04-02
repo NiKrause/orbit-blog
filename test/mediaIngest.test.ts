@@ -23,6 +23,30 @@ describe('ingestRemoteVideoToMedia', () => {
     );
   });
 
+  it('throws tooLarge when Content-Length exceeds maxBytes before buffering', async () => {
+    const fetchImpl = async () =>
+      new Response(null, {
+        status: 200,
+        headers: {
+          'Content-Type': 'video/mp4',
+          'Content-Length': String(11 * 1024 * 1024),
+        },
+      });
+    await assert.rejects(
+      () =>
+        ingestRemoteVideoToMedia({
+          assetUrl: 'https://x.test/big.mp4',
+          mediaDB: { put: async () => {} },
+          helia: {},
+          maxBytes: 1024,
+          fetchImpl,
+        }),
+      (e: unknown) =>
+        e instanceof AiIngestError &&
+        e.i18nKey === AI_INGEST_ERROR_KEYS.tooLarge,
+    );
+  });
+
   it('throws tooLarge when body exceeds maxBytes', async () => {
     const big = new Uint8Array(11 * 1024 * 1024);
     const fetchImpl = async () =>

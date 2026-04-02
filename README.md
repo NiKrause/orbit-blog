@@ -25,6 +25,12 @@ Latest IPFS Gateway: https://QmP76RHMzmGT234oY5PVkWPLeXnFU7RYGmVtbi8ZD8puYm.ipfs
 - Markdown extensions: `docs/MARKDOWN_GUIDE.md`
 - Remote Markdown imports: `docs/REMOTE_MARKDOWN_IMPORT.md`
 - AI agent codebase map: `docs/AI_AGENTS.md`
+- AI Manager NFR checklist (logging, crypto, bundle, external refs): `docs/ai-nfr-checklist.md`
+
+### External references (AI / roadmap)
+- **Atlas Cloud** — Kling image-to-video: [model API (tab)](https://www.atlascloud.ai/models/kwaivgi/kling-v3.0-pro/image-to-video?tab=api), [video / queue docs](https://www.atlascloud.ai/docs/models/video)
+- **EIP-8004** (ERC-8004 agent registry) — https://eips.ethereum.org/EIPS/eip-8004
+- **erc-8004-example** — https://github.com/vistara-apps/erc-8004-example
 
 ## Development
 ```bash

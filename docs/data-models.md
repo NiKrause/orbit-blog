@@ -19,7 +19,7 @@ Replication uses libp2p pubsub under OrbitDB’s sync model (see `docs/AI_AGENTS
 
 The **ai** database is opened from Epic 2.1; **per-model credential rows, encryption, list, and delete** are implemented in `src/lib/ai/aiCredentialStore.ts` and `src/lib/ai/aiCredentialCrypto.ts`.
 
-Each provider/model credential is stored as a document in the **ai** database with a stable `_id` (`credential:` + encoded model id). Multiple models mean multiple documents; updating one does not overwrite another. Use **`listAiCredentialModelIds`** / **`deleteAiCredential`** to enumerate or remove rows. Fields include plaintext `baseUrl` and `modelId`, while the **API key is encrypted at rest** (AES-256-GCM with a key derived from the blog identity seed via HKDF). The translation feature’s `aiApiKey` / `aiApiUrl` in `store.ts` (localStorage) are **not** used for AI Manager credentials.
+Each provider/model credential is stored as a document in the **ai** database with a stable `_id` (`credential:` + encoded model id). Multiple models mean multiple documents; updating one does not overwrite another. Use **`listAiCredentialModelIds`** / **`deleteAiCredential`** to enumerate or remove rows. Fields include plaintext `baseUrl` and `modelId`, while the **API key is encrypted at rest** (AES-256-GCM with a key derived from the blog identity seed via HKDF). The translation feature’s `aiApiKey` / `aiApiUrl` in `store.ts` (localStorage) are **not** used for AI Manager credentials. **NFR-2 verification:** see [`docs/ai-nfr-checklist.md`](./ai-nfr-checklist.md) and `src/lib/ai/aiCredentialCrypto.ts` — no parallel ad-hoc ciphers.
 
 ## Core TypeScript interfaces
 

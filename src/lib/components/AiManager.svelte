@@ -39,9 +39,9 @@
   import type { AiJobLifecycleStatus, AiModelManifest } from '$lib/ai/types.js';
 
   interface AiManagerProps {
-    /** Append HTML video embed for this CID into draft content (`postUtils.appendVideoEmbedToContent`). */
+    /** Append HTML video embed for this CID into draft content (`videoEmbedUtils.appendVideoEmbedToContent`). */
     onInsertVideoEmbed?: (cid: string) => void;
-    /** Add CID to `selectedMedia` without duplicating (`postUtils.addCidToSelectedMedia`). */
+    /** Add CID to `selectedMedia` without duplicating (`videoEmbedUtils.addCidToSelectedMedia`). */
     onAddVideoToSelectedMedia?: (cid: string) => void;
   }
 

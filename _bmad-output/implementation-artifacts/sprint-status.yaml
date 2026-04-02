@@ -64,10 +64,10 @@ development_status:
   4-2-image-input-library-upload: done
   epic-4-retrospective: optional
 
-  epic-5: in-progress
+  epic-5: done
   5-1-submit-job-lifecycle-status: done
-  5-2-ingest-output-video-media-draft: ready-for-dev
-  5-3-nfr-verification-and-documentation-touchpoint: backlog
+  5-2-ingest-output-video-media-draft: done
+  5-3-nfr-verification-and-documentation-touchpoint: done
   epic-5-retrospective: optional
 
   epic-6: in-progress

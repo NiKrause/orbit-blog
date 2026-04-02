@@ -1,5 +1,15 @@
 # Deferred work (from code reviews)
 
+## Deferred from: code review of 5-3-nfr-verification-and-documentation-touchpoint.md (2026-04-02)
+
+- **Optional NFR-1 manual smoke:** Run `pnpm build` + `pnpm preview` and exercise AI Manager with mock credentials; confirm console/network panels show no Bearer token, decrypted key, or full prompt text — checklist checkbox remains optional.
+
+## Deferred from: code review of 5-2-ingest-output-video-media-draft.md (2026-04-02)
+
+- **Repeated “Insert into post”:** Optional dedupe or disable-after-insert for AI-generated video embeds if users report duplicate blocks.
+
+- **Fragile removal if embed edited:** `removeVideoEmbedFromContent` regex may not match hand-edited `<video>` tags; acceptable for v1; tighten if support load appears.
+
 ## Deferred from: code review of 5-1-submit-job-lifecycle-status.md (2026-04-02)
 
 - **Sprint status hygiene:** `4-1-json-schema-field-renderer` is still `in-progress` in `sprint-status.yaml` alongside completed work; align statuses when closing Epic 4 / 5.1.

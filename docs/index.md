@@ -51,6 +51,16 @@
 | [Pitch deck](./pitchdeck.md) | Product pitch material |
 | [AI API browser CORS spike checklist](./ai-api-browser-cors-spike-checklist.md) | Verify third-party AI HTTPS APIs from the **browser** (not only Node) before AI Manager implementation |
 | [AI API CORS spike outcome (2026-04-02)](./ai-api-cors-spike-outcome-2026-04-02.md) | Recorded FR-10 result for **Atlas Cloud** (`api.atlascloud.ai`): direct browser `fetch` viable for localhost dev/preview origins (re-validate for prod origin) |
+| [AI Manager NFR checklist](./ai-nfr-checklist.md) | **NFR-1–NFR-3, NFR-5** — re-runnable grep/build notes for logging, crypto, bundles, doc links |
+
+### External references (NFR-5)
+
+| Resource | URL |
+| --- | --- |
+| Atlas Cloud — Kling v3.0 Pro I2V API | [atlascloud.ai (API tab)](https://www.atlascloud.ai/models/kwaivgi/kling-v3.0-pro/image-to-video?tab=api) |
+| Atlas — video / queue documentation | [atlascloud.ai/docs/models/video](https://www.atlascloud.ai/docs/models/video) |
+| EIP-8004 (ERC-8004) | [eips.ethereum.org/EIPS/eip-8004](https://eips.ethereum.org/EIPS/eip-8004) |
+| erc-8004-example | [github.com/vistara-apps/erc-8004-example](https://github.com/vistara-apps/erc-8004-example) |
 
 ---
 

@@ -45,6 +45,13 @@ export async function ingestRemoteVideoToMedia(
   if (!res.ok) {
     throw new AiIngestError(AI_INGEST_ERROR_KEYS.http);
   }
+  const cl = res.headers.get('Content-Length');
+  if (cl) {
+    const n = parseInt(cl, 10);
+    if (!Number.isNaN(n) && n > maxBytes) {
+      throw new AiIngestError(AI_INGEST_ERROR_KEYS.tooLarge);
+    }
+  }
   const buf = new Uint8Array(await res.arrayBuffer());
   if (buf.byteLength > maxBytes) {
     throw new AiIngestError(AI_INGEST_ERROR_KEYS.tooLarge);
