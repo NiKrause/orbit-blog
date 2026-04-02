@@ -211,6 +211,32 @@
     isModalOpen = false;
   }
 
+  function getWriteIdentities(db: RemoteDB): string[] {
+    const write = db?.access?.write;
+    if (!Array.isArray(write)) return [];
+
+    const out: string[] = [];
+    for (const entry of write) {
+      if (typeof entry === 'string') {
+        out.push(entry);
+        continue;
+      }
+      if (Array.isArray(entry)) {
+        for (const nested of entry) {
+          if (typeof nested === 'string') out.push(nested);
+        }
+        continue;
+      }
+      if (entry && typeof entry === 'object') {
+        for (const value of Object.values(entry)) {
+          if (typeof value === 'string') out.push(value);
+        }
+      }
+    }
+
+    return Array.from(new Set(out));
+  }
+
   async function removeRemoteDB(id: string) {
     dbToRemove = id;
     showConfirmModal = true;
@@ -812,16 +838,21 @@
                     <svg class="w-3.5 h-3.5 flex-shrink-0" style="color: var(--danger);" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                   {/if}
                   
-                  <div class="min-w-0">
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                      <span class="text-sm font-medium" style="color: var(--text);" title={`Database: ${db.name}\nID: ${db.id}\nAddress: ${db.address}\nPosts: ${db.postsCount ?? 'Unknown'}\nComments: ${db.commentsCount ?? 'Unknown'}\nMedia: ${db.mediaCount ?? 'Unknown'}`}>{db.name}</span>
-                      {#if db.postsCount !== undefined}<span class="badge">{db.postsCount} {$_('posts')}</span>{/if}
-                      {#if db.commentsCount !== undefined}<span class="badge">{db.commentsCount} {$_('comments')}</span>{/if}
-                      {#if db.mediaCount !== undefined}<span class="badge">{db.mediaCount} {$_('media')}</span>{/if}
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="text-sm font-medium" style="color: var(--text);" title={`Database: ${db.name}\nID: ${db.id}\nAddress: ${db.address}\nPosts: ${db.postsCount ?? 'Unknown'}\nComments: ${db.commentsCount ?? 'Unknown'}\nMedia: ${db.mediaCount ?? 'Unknown'}`}>{db.name}</span>
+                        {#if db.postsCount !== undefined}<span class="badge">{db.postsCount} {$_('posts')}</span>{/if}
+                        {#if db.commentsCount !== undefined}<span class="badge">{db.commentsCount} {$_('comments')}</span>{/if}
+                        {#if db.mediaCount !== undefined}<span class="badge">{db.mediaCount} {$_('media')}</span>{/if}
+                      </div>
+                      <div class="text-xs truncate mt-0.5 font-mono" style="color: var(--text-muted);">{db.address}</div>
+                      {#if getWriteIdentities(db).length > 0}
+                        <div class="text-xs mt-0.5 truncate" style="color: var(--text-muted);" title={getWriteIdentities(db).join('\n')}>
+                          Writers: {getWriteIdentities(db).join(', ')}
+                        </div>
+                      {/if}
                     </div>
-                    <div class="text-xs truncate mt-0.5 font-mono" style="color: var(--text-muted);">{db.address}</div>
                   </div>
-                </div>
                 
                 {#if $selectedDBAddress === db.address}
                   <span class="text-xs font-medium flex-shrink-0" style="color: var(--accent);">{$_('current')}</span>

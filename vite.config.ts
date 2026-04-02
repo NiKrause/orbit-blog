@@ -4,12 +4,16 @@ import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import wasm from 'vite-plugin-wasm';
 import { VitePWA } from 'vite-plugin-pwa'
 import { fileURLToPath } from 'url';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import path from 'path';
 
 const file = fileURLToPath(new URL('package.json', import.meta.url));
 const json = readFileSync(file, 'utf8');
 const pkg = JSON.parse(json);
+
+/** Compile shared UI from source so Svelte runtime matches the app (dist was built with a different Svelte patch). */
+const orbitdbUiSourceIndex = path.resolve(__dirname, '../orbitdb-ui/src/index.ts');
+const useOrbitdbUiFromSource = existsSync(orbitdbUiSourceIndex);
 
 export default defineConfig(({ command, mode }) => {
   const isLib = mode === 'lib'
@@ -49,7 +53,10 @@ export default defineConfig(({ command, mode }) => {
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
           globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
           globIgnores: ['**/orbitdb/**', '**/ipfs/**', '**/node_modules/**'],
-          additionalManifestEntries: [{ url: 'index.html', revision: null }],
+          // Avoid explicit index.html precache entry. In dev this can become a 404
+          // (`/index.html?__WB_REVISION__=...`) depending on active SW/base path.
+          additionalManifestEntries: [],
+          navigateFallback: 'index.html',
           runtimeCaching: [
             {
               // Cache navigation for instant offline loading, but don't interfere with IPFS/OrbitDB URLs.
@@ -60,6 +67,7 @@ export default defineConfig(({ command, mode }) => {
               handler: 'CacheFirst',
               options: {
                 cacheName: 'navigation-cache',
+                matchOptions: { ignoreVary: true },
                 expiration: {
                   maxEntries: 50,
                   maxAgeSeconds: 30 * 24 * 60 * 60 // 30 days
@@ -107,6 +115,7 @@ export default defineConfig(({ command, mode }) => {
       })
     ].filter(Boolean),
     resolve: {
+      dedupe: ['svelte'],
       alias: {
         path: 'path-browserify',
         'node:path': 'path-browserify',
@@ -117,10 +126,12 @@ export default defineConfig(({ command, mode }) => {
         ...(!isLib
           ? { '@protobufjs/inquire': path.resolve(__dirname, 'src/shims/protobufjs-inquire.ts') }
           : {}),
-        '$lib': path.resolve(__dirname, 'src/lib')
+        '$lib': path.resolve(__dirname, 'src/lib'),
+        ...(useOrbitdbUiFromSource ? { '@le-space/orbitdb-ui': orbitdbUiSourceIndex } : {})
       }
     },
     optimizeDeps: {
+      ...(useOrbitdbUiFromSource ? { exclude: ['@le-space/orbitdb-ui'] as string[] } : {}),
       esbuildOptions: {
         // Silence dependency warning from protobufjs ("Use of eval ... strongly discouraged").
         // This is a third-party dependency used in the browser bundle.
@@ -195,6 +206,15 @@ export default defineConfig(({ command, mode }) => {
   return {
     ...commonConfig,
     base: './',
+    ...(useOrbitdbUiFromSource
+      ? {
+          server: {
+            fs: {
+              allow: [path.resolve(__dirname, '..')]
+            }
+          }
+        }
+      : {}),
     build: {
       target: 'esnext',
       assetsDir: 'assets',

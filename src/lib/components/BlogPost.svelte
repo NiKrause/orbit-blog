@@ -569,7 +569,7 @@ function updateRenderedContent(): void {
         </form>
       {:else}
         <p class="text-xs mt-3" style="color: var(--text-muted);">
-          Comments are disabled in read-only session mode. Authenticate with passkey to write.
+          Comments are disabled in read-only mode. Authenticate with passkey to write.
         </p>
       {/if}
     </section>

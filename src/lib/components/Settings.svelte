@@ -11,10 +11,15 @@
   } from '@le-space/orbitdb-identity-provider-webauthn-did';
   import { getImageUrlFromHelia, revokeImageUrl } from '../utils/mediaUtils.js';
   import { info, debug, error } from '../utils/logger.js'
+  let {
+    aclAdminMutate = null
+  }: {
+    aclAdminMutate?: ((kind: 'grant' | 'revoke', didValue: string) => Promise<any>) | null;
+  } = $props();
   const dispatch = createEventDispatcher();
   let errorMessage = $state('');
   let hasPasskeyCredential = $state(false);
-  let identityMode = $state('session');
+  let identityMode = $state('passkey');
   let ownerIdentityId = $state<string | null>(null);
   let storedPasskeyDid = $state<string | null>(null);
   let canActivateWriterMode = $state(false);
@@ -68,14 +73,14 @@
     }
 
     hasPasskeyCredential = !!loadWebAuthnVarsigCredential();
-    identityMode = sessionStorage.getItem('identityMode') === 'passkey' ? 'writer-session' : 'session';
+    identityMode = 'passkey';
     blogNameDraft = $blogName || '';
     blogDescriptionDraft = $blogDescription || '';
     await refreshWriterModeState();
   });
 
   $effect(() => {
-    identityMode = sessionStorage.getItem('identityMode') === 'passkey' ? 'writer-session' : 'session';
+    identityMode = 'passkey';
     refreshWriterModeState();
   });
 
@@ -98,6 +103,34 @@
     return `${value.slice(0, 12)}...${value.slice(-8)}`;
   }
 
+  function getAccessDbEntries() {
+    const globalObj = typeof window !== 'undefined' ? (window as any) : null;
+    return [
+      { name: 'settings', db: globalObj?.settingsDB || $settingsDB },
+      { name: 'posts', db: globalObj?.postsDB || $postsDB },
+      { name: 'comments', db: globalObj?.commentsDB || $commentsDB },
+      { name: 'media', db: globalObj?.mediaDB || $mediaDB }
+    ];
+  }
+
+  function getAclAdminApi() {
+    const globalObj = typeof window !== 'undefined' ? (window as any) : null;
+    return globalObj?.__leSpaceAclAdmin || null;
+  }
+
+  async function ensureDbWithCurrentIdentity(db: any) {
+    if (!db || !$orbitdb || !$identity?.id) return db;
+    const currentId = db?.identity?.id;
+    if (!currentId || currentId === $identity.id) return db;
+    const address = db?.address?.toString?.();
+    if (!address) return db;
+    try {
+      return await $orbitdb.open(address, { create: false });
+    } catch {
+      return db;
+    }
+  }
+
   async function refreshWriterModeState() {
     const credential = loadWebAuthnVarsigCredential();
     hasPasskeyCredential = !!credential;
@@ -114,47 +147,40 @@
     }
     ownerIdentityId = ownerDid;
 
-    if (identityMode === 'writer-session') {
-      canActivateWriterMode = false;
-      passkeyStatusReason = 'Passkey writer mode is already active.';
-      return;
-    }
-
-    canActivateWriterMode = true;
+    canActivateWriterMode = false;
 
     if (!hasPasskeyCredential) {
-      passkeyStatusReason = 'No passkey credential stored yet. Activate will create one.';
+      passkeyStatusReason = 'No passkey credential stored yet.';
       return;
     }
 
     if (!storedPasskeyDid) {
-      passkeyStatusReason = 'Stored passkey has no DID; activation will recreate it.';
+      passkeyStatusReason = 'Stored passkey has no DID.';
       return;
     }
 
     if (!ownerIdentityId) {
-      passkeyStatusReason = 'Owner identity is not loaded yet. Activation may fail until settings syncs.';
+      passkeyStatusReason = 'Owner identity is not loaded yet.';
       return;
     }
 
     if (storedPasskeyDid !== ownerIdentityId) {
-      passkeyStatusReason = 'Stored passkey DID differs from blog owner. Activation will try to promote/re-authorize.';
+      passkeyStatusReason = 'Stored passkey DID differs from blog owner.';
       return;
     }
 
-    passkeyStatusReason = 'Stored passkey matches owner DID. You can activate writer mode.';
+    passkeyStatusReason = 'Stored passkey matches owner DID.';
   }
 
   async function refreshWriteAclRows() {
-    const dbEntries = [
-      { name: 'settings', db: $settingsDB },
-      { name: 'posts', db: $postsDB },
-      { name: 'comments', db: $commentsDB },
-      { name: 'media', db: $mediaDB }
-    ];
+    const dbEntries = getAccessDbEntries();
     const didToDbs = new Map<string, Set<string>>();
     for (const { name, db } of dbEntries) {
-      const writeList = db?.access?.write || [];
+      const activeDb = await ensureDbWithCurrentIdentity(db);
+      const writeSet = typeof activeDb?.access?.get === 'function'
+        ? await activeDb.access.get('write')
+        : new Set(activeDb?.access?.write || []);
+      const writeList = Array.from(writeSet || []);
       for (const didValue of writeList) {
         if (!didToDbs.has(didValue)) didToDbs.set(didValue, new Set());
         didToDbs.get(didValue)?.add(name);
@@ -174,16 +200,34 @@
     revokingDid = didValue;
     errorMessage = '';
     try {
-      const dbEntries = [
-        { db: $settingsDB },
-        { db: $postsDB },
-        { db: $commentsDB },
-        { db: $mediaDB }
-      ];
-      for (const { db } of dbEntries) {
-        const writeList = db?.access?.write || [];
-        if (typeof db?.access?.revoke !== 'function' || !writeList.includes(didValue)) continue;
-        await db.access.revoke('write', didValue);
+      const adminApi = getAclAdminApi();
+      if (typeof aclAdminMutate === 'function') {
+        const result = await aclAdminMutate('revoke', didValue);
+        console.log('[Settings] revoke via passed aclAdminMutate', {
+          didValue,
+          activeDid: $identity?.id,
+          identityMode,
+          result
+        });
+      } else if (typeof adminApi?.revokeWriteDid === 'function') {
+        const result = await adminApi.revokeWriteDid(didValue);
+        console.log('[Settings] revoke via passkey-admin API', {
+          didValue,
+          activeDid: $identity?.id,
+          identityMode,
+          result
+        });
+      } else {
+        const dbEntries = getAccessDbEntries();
+        for (const { db } of dbEntries) {
+          const activeDb = await ensureDbWithCurrentIdentity(db);
+          const writeSet = typeof activeDb?.access?.get === 'function'
+            ? await activeDb.access.get('write')
+            : new Set(activeDb?.access?.write || []);
+          const writeList = Array.from(writeSet || []);
+          if (typeof activeDb?.access?.revoke !== 'function' || !writeList.includes(didValue)) continue;
+          await activeDb.access.revoke('write', didValue);
+        }
       }
       await refreshWriteAclRows();
     } catch (err: any) {
@@ -203,16 +247,34 @@
     grantingDid = true;
     errorMessage = '';
     try {
-      const dbEntries = [
-        { db: $settingsDB },
-        { db: $postsDB },
-        { db: $commentsDB },
-        { db: $mediaDB }
-      ];
-      for (const { db } of dbEntries) {
-        const writeList = db?.access?.write || [];
-        if (typeof db?.access?.grant !== 'function' || writeList.includes(didValue)) continue;
-        await db.access.grant('write', didValue);
+      const adminApi = getAclAdminApi();
+      if (typeof aclAdminMutate === 'function') {
+        const result = await aclAdminMutate('grant', didValue);
+        console.log('[Settings] grant via passed aclAdminMutate', {
+          didValue,
+          activeDid: $identity?.id,
+          identityMode,
+          result
+        });
+      } else if (typeof adminApi?.grantWriteDid === 'function') {
+        const result = await adminApi.grantWriteDid(didValue);
+        console.log('[Settings] grant via passkey-admin API', {
+          didValue,
+          activeDid: $identity?.id,
+          identityMode,
+          result
+        });
+      } else {
+        const dbEntries = getAccessDbEntries();
+        for (const { db } of dbEntries) {
+          const activeDb = await ensureDbWithCurrentIdentity(db);
+          const writeSet = typeof activeDb?.access?.get === 'function'
+            ? await activeDb.access.get('write')
+            : new Set(activeDb?.access?.write || []);
+          const writeList = Array.from(writeSet || []);
+          if (typeof activeDb?.access?.grant !== 'function' || writeList.includes(didValue)) continue;
+          await activeDb.access.grant('write', didValue);
+        }
       }
       newWriteDid = '';
       await refreshWriteAclRows();
@@ -236,7 +298,7 @@
   }
 
   async function confirmPasskeyForSettingsWrite(_action: string) {
-    // Delegated writer session signs normal settings writes; no per-write biometric prompt.
+    // Writes use the active passkey DID identity.
     return;
   }
 
@@ -297,7 +359,6 @@
 
   function resetPasskeyCredential() {
     clearWebAuthnVarsigCredential();
-    sessionStorage.removeItem('identityMode');
     sessionStorage.removeItem('passkeyIdentityDid');
     hasPasskeyCredential = false;
     storedPasskeyDid = null;
@@ -554,7 +615,7 @@
     {#if openSections.security}
       <div class="settings-content">
         <p class="text-xs mb-2" style="color: var(--text-secondary);">
-          Reader mode uses a temporary in-browser session identity. Passkey identity is only used when unlocking writer mode.
+          This blog uses passkey DID identities only.
         </p>
         <div class="flex items-center justify-between">
           <span class="text-xs" data-testid="security-identity-summary" style="color: var(--text-muted); line-height: 1.45;">
@@ -565,17 +626,12 @@
             <span>Passkey DID: {shortIdentity(storedPasskeyDid)}</span>
             <br />
             <span
-              style="color: {identityMode === 'writer-session' ? 'var(--success)' : 'var(--text-muted)'}; font-weight: {identityMode === 'writer-session' ? '600' : '400'};"
+              style="color: var(--success); font-weight: 600;"
             >
               Active DID: {shortIdentity($identity?.id)}
             </span>
           </span>
           <div class="flex flex-col gap-2 items-end">
-            {#if identityMode !== 'writer-session'}
-              <button class="btn-primary btn-sm" data-testid="activate-passkey-writer-mode" onclick={activatePasskeyWriterMode} disabled={!canActivateWriterMode}>
-                Activate passkey writer mode
-              </button>
-            {/if}
             <button class="btn-outline btn-sm" data-testid="reset-local-passkey" onclick={resetPasskeyCredential}>
               Reset local passkey
             </button>

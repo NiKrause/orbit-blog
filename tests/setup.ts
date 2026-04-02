@@ -1,8 +1,7 @@
 import { rm, access } from 'fs/promises'
 import { join } from 'path'
 import { spawn, type ChildProcess } from 'child_process'
-import { dirname } from 'path'
-import { fileURLToPath } from 'url'
+import { createConnection } from 'net'
 import { constants } from 'fs'
 
 let relayProcess: ChildProcess | null = null;
@@ -28,51 +27,89 @@ function pipeChildOutput(child: ChildProcess, prefix: string) {
     if (child.stderr) child.stderr.on('data', (d: Buffer) => write(process.stderr, d));
 }
 
-async function waitForRelay(timeoutMs = 10000): Promise<boolean> {
+function canConnectToRelayPort(host: string, port: number): Promise<boolean> {
+    return new Promise((resolve) => {
+        const socket = createConnection(port, host, () => {
+            clearTimeout(timeout);
+            socket.destroy();
+            resolve(true);
+        });
+        const timeout = setTimeout(() => {
+            socket.destroy();
+            resolve(false);
+        }, 2000);
+        socket.once('error', () => {
+            clearTimeout(timeout);
+            socket.destroy();
+            resolve(false);
+        });
+    });
+}
+
+async function waitForRelay(timeoutMs = 60000): Promise<boolean> {
     const startTime = Date.now();
     const readyMarkers = [
-        // Might be logged via debug-style logger (can be disabled)
+        // orbitdb-relay-pinner 0.1.25+ prints these (order may vary)
+        'Relay PeerId:',
+        'p2p addr:',
         'Starting relay server',
-        // Always printed by the relay CLI after libp2p starts
-        'p2p addr:'
     ];
-    
+    let resolved = false;
+
+    const tryResolve = (success: boolean) => {
+        if (resolved) return;
+        resolved = true;
+        if (success) {
+            console.log('Relay server started successfully');
+        }
+    };
+
     return new Promise((resolve) => {
-        const checkInterval = setInterval(() => {
-            // Check if process is still running
+        const doResolve = (success: boolean) => {
+            tryResolve(success);
+            resolve(success);
+        };
+
+        const checkInterval = setInterval(async () => {
+            // Check if process exited
             if (relayProcess && relayProcess.exitCode !== null) {
                 clearInterval(checkInterval);
                 console.error('Relay process exited with code:', relayProcess.exitCode);
-                resolve(false);
+                doResolve(false);
                 return;
             }
 
-            // Timeout check
+            // Timeout
             if (Date.now() - startTime > timeoutMs) {
                 clearInterval(checkInterval);
                 console.error('Timeout waiting for relay to start');
-                resolve(false);
+                doResolve(false);
                 return;
             }
-        }, 100);
 
-        // Also set up error handling
+            // Port check fallback: relay listens on WS port when ready
+            const portReady = await canConnectToRelayPort('127.0.0.1', RELAY_WS_PORT);
+            if (portReady) {
+                clearInterval(checkInterval);
+                doResolve(true);
+                return;
+            }
+        }, 500);
+
         if (relayProcess) {
             relayProcess.on('error', (err) => {
                 clearInterval(checkInterval);
                 console.error('Relay process error:', err);
-                resolve(false);
+                doResolve(false);
             });
 
             const onData = (data: Buffer) => {
-                // libp2p/debug-style logging often goes to stderr, so watch both streams.
                 const text = data.toString();
                 if (readyMarkers.some((m) => text.includes(m))) {
                     clearInterval(checkInterval);
-                    console.log('Relay server started successfully');
-                    resolve(true);
+                    doResolve(true);
                 }
-            }
+            };
 
             relayProcess.stdout?.on('data', onData);
             relayProcess.stderr?.on('data', onData);
@@ -108,8 +145,9 @@ export async function setupTestEnvironment() {
                 RELAY_TCP_PORT: String(RELAY_TCP_PORT),
                 RELAY_WS_PORT: String(RELAY_WS_PORT),
                 RELAY_WEBRTC_PORT: String(RELAY_WEBRTC_PORT),
-                // Keep WebRTC enabled so browser peers can establish direct connections in e2e.
-                RELAY_DISABLE_WEBRTC: 'false',
+                // Disable WebRTC to avoid UDP port binding failures (errno 48) in CI/constrained envs.
+                // Browsers still connect via WebSocket; direct WebRTC between browsers uses dcutr over relay.
+                RELAY_DISABLE_WEBRTC: 'true',
                 // Prevent CI flakes from port collisions (e.g. 9090 already bound on runners).
                 METRICS_PORT: '0',
 
@@ -133,8 +171,8 @@ export async function setupTestEnvironment() {
             throw err;
         });
 
-        // Wait for relay to start
-        const started = await waitForRelay(30000);
+        // Wait for relay to start (60s default; orbitdb-relay-pinner 0.1.25+ can take longer)
+        const started = await waitForRelay(60000);
         if (!started) {
             throw new Error('Failed to start relay server');
         }

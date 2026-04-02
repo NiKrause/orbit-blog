@@ -5,12 +5,22 @@ import { info, debug, error } from './utils/logger.js'
 // Store for connected peers count
 export const connectedPeersCount = writable<number>(0);
 
+export type PeerListenerOptions = {
+  /** When false, discovery still logs but does not auto-dial peers */
+  enablePeerConnections?: boolean;
+};
+
 /**
  * Setup event listeners for libp2p peer discovery and connections
  * @param libp2p The libp2p instance to set up listeners for
  */
-export function  setupPeerEventListeners(libp2p: Libp2p) {
+export function setupPeerEventListeners(
+  libp2p: Libp2p,
+  options: PeerListenerOptions = {}
+) {
   if (!libp2p) return;
+
+  const { enablePeerConnections = true } = options;
 
   // Update connected peers count initially
   updateConnectedPeersCount(libp2p);
@@ -24,6 +34,10 @@ export function  setupPeerEventListeners(libp2p: Libp2p) {
     // Check if we're already connected to this peer
     const connections = libp2p.getConnections(peer.id);
     if (!connections || connections.length === 0) {
+      if (!enablePeerConnections) {
+        debug('Skipping auto-dial (peer connections disabled in consent)', peer.id.toString());
+        return;
+      }
       info(`Dialing new peer: ${peer.id.toString()}`);
       
       try {

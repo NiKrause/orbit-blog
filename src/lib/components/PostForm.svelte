@@ -46,10 +46,7 @@ import { loadWebAuthnVarsigCredential } from '@le-space/orbitdb-identity-provide
 
   function buildPrePostIdentityNotice(): string {
     const activeDid = $identity?.id || '';
-    const activeType = $identity?.type === 'webauthn-varsig' ? 'hardware-passkey' : 'session/software';
-    const sessionDid = typeof window !== 'undefined'
-      ? sessionStorage.getItem('sessionIdentityDid')
-      : null;
+    const activeType = $identity?.type === 'webauthn-varsig' ? 'hardware-passkey' : 'software';
     const storedPasskeyDid = loadWebAuthnVarsigCredential()?.did
       || (typeof window !== 'undefined' ? sessionStorage.getItem('passkeyIdentityDid') : null);
 
@@ -57,7 +54,6 @@ import { loadWebAuthnVarsigCredential } from '@le-space/orbitdb-identity-provide
       'Identity check before posting:',
       `Active signer type: ${activeType}`,
       `Active signer DID: ${shortIdentity(activeDid)}`,
-      `Session DID: ${shortIdentity(sessionDid)}`,
       `Passkey DID: ${shortIdentity(storedPasskeyDid)}`,
       '',
       'Continue and publish this post?'
@@ -78,9 +74,14 @@ import { loadWebAuthnVarsigCredential } from '@le-space/orbitdb-identity-provide
           return;
         }
 
-        const writerSessionActive = typeof window !== 'undefined' && sessionStorage.getItem('identityMode') === 'passkey';
-        if (!writerSessionActive) {
-          alert('Publishing is blocked in reader mode. Activate passkey writer mode first.');
+        const writeSet =
+          typeof $postsDB?.access?.get === 'function'
+            ? await $postsDB.access.get('write')
+            : new Set(Array.isArray($postsDB?.access?.write) ? $postsDB.access.write : []);
+        const writeAccess = Array.from(writeSet || []);
+        const hasWriteAccess = writeAccess.includes($identity.id) || writeAccess.includes('*');
+        if (!hasWriteAccess) {
+          alert('Publishing is blocked because your active identity has no write access to this blog.');
           return;
         }
 
