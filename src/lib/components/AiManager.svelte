@@ -1,6 +1,5 @@
 <script lang="ts">
   import { _ } from 'svelte-i18n';
-  import { IPFS_VIDEO_GATEWAY } from '$lib/utils/videoEmbedUtils.js';
   import {
     aiDB,
     helia,
@@ -43,7 +42,7 @@
   } from '$lib/ai/aiRunDocument.js';
   import { textBodyMergeModeForManifest } from '$lib/ai/aiOutputTextMerge.js';
   import RelaySyncLed from './RelaySyncLed.svelte';
-  import { getRelayPinnedCidBase } from '$lib/relay/relayEnv.js';
+  import { getRelayPinnedCidBase, relayOnlyIpfsUrlForCid } from '$lib/relay/relayEnv.js';
   import { startRelayPinPolling, type RelayLedState } from '$lib/services/relayPinStatus.js';
   import type { AiJobLifecycleStatus, AiModelManifest } from '$lib/ai/types.js';
 
@@ -94,6 +93,8 @@
   /** Run epoch when the job last reached `succeeded` (for ingest gating). */
   let successRunEpoch = $state(0);
   let ingestedCid = $state<string | null>(null);
+  /** `mediaDB` `createdAt` for ingested video — relay LED uses vs `lastSyncedAt`. */
+  let ingestedContentCreatedAtIso = $state<string | undefined>(undefined);
   let ingestErrorKey = $state<string | null>(null);
   let ingesting = $state(false);
 
@@ -111,6 +112,7 @@
     jobRunning = false;
     successRunEpoch = 0;
     ingestedCid = null;
+    ingestedContentCreatedAtIso = undefined;
     ingestErrorKey = null;
     ingesting = false;
   });
@@ -135,10 +137,13 @@
     }
     const ac = new AbortController();
     outputRelayLedState = 'yellow';
+    const mediaAddr = $mediaDB?.address?.toString?.()?.trim() ?? '';
     const stop = startRelayPinPolling({
       cid,
       pinnedBase: base,
       signal: ac.signal,
+      mediaDbAddress: mediaAddr || undefined,
+      mediaContentCreatedAtIso: ingestedContentCreatedAtIso,
       onState: (s) => {
         outputRelayLedState = s;
       },
@@ -467,13 +472,14 @@
     if (epoch !== successRunEpoch) return;
     ingesting = true;
     try {
-      const { cid } = await ingestRemoteVideoToMedia({
+      const { cid, createdAt } = await ingestRemoteVideoToMedia({
         assetUrl: url.trim(),
         mediaDB: db,
         helia: h,
       });
       if (epoch !== runEpoch || epoch !== successRunEpoch) return;
       ingestedCid = cid;
+      ingestedContentCreatedAtIso = createdAt;
     } catch (e) {
       if (epoch !== runEpoch) return;
       ingestErrorKey =
@@ -711,18 +717,25 @@
         {/if}
       {/if}
       {#if ingestedCid}
+        {@const ingestedVideoSrc = relayOnlyIpfsUrlForCid(ingestedCid)}
         <div class="space-y-2" data-testid="ai-video-ingested-block">
           <div class="relative w-full max-w-md">
             <RelaySyncLed state={outputRelayLedState} reducedMotion={reduceMotion} />
-            <!-- svelte-ignore a11y_media_has_caption -->
-            <video
-              class="w-full max-w-md rounded-md border"
-              style="border-color: var(--border);"
-              controls
-              preload="metadata"
-              src={`${IPFS_VIDEO_GATEWAY}${ingestedCid}`}
-              data-testid="ai-job-video-preview"
-            ></video>
+            {#if ingestedVideoSrc}
+              <!-- svelte-ignore a11y_media_has_caption -->
+              <video
+                class="w-full max-w-md rounded-md border"
+                style="border-color: var(--border);"
+                controls
+                preload="metadata"
+                src={ingestedVideoSrc}
+                data-testid="ai-job-video-preview"
+              ></video>
+            {:else}
+              <p class="text-xs m-0" style="color: var(--text-secondary);">
+                {$_('ai_image_media_not_ready')}
+              </p>
+            {/if}
           </div>
           <div class="flex flex-wrap gap-2 {$isRTL ? 'flex-row-reverse' : ''}">
             <button

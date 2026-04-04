@@ -1,8 +1,13 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { mediaDB, helia } from '$lib/store';
+  import { relayOnlyIpfsUrlForCid } from '$lib/relay/relayEnv.js';
   import { unixfs } from '@helia/unixfs';
-  import { error } from '../utils/logger.js'
+  import { error } from '../utils/logger.js';
+  import {
+    logImageUploadIpfsStored,
+    logImageUploadMediaDbRegistered,
+  } from '../utils/imageUploadDiagnostics.js';
 
   let { onMediaSelected = (mediaCid: string) => {} } = $props();
 
@@ -38,7 +43,7 @@
       if ($helia) {
         fs = unixfs($helia as any);
       } else {
-        return `https://dweb.link/ipfs/${cid}`;
+        return relayOnlyIpfsUrlForCid(cid) || null;
       }
     }
     
@@ -57,7 +62,7 @@
       return url;
     } catch (_error) {
       error('Error fetching from IPFS:', _error);
-      return `https://dweb.link/ipfs/${cid}`;
+      return relayOnlyIpfsUrlForCid(cid) || null;
     }
   }
 
@@ -133,17 +138,35 @@
         
         // Add to IPFS
         const cid = await fs.addBytes(fileBytes);
-        
+        const cidStr = cid.toString();
+        if (file.type.startsWith('image/')) {
+          logImageUploadIpfsStored('MediaUploader', {
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            cid: cidStr,
+            bytesOnWire: fileBytes.byteLength,
+          });
+        }
+
         // Store metadata in OrbitDB
         const mediaId = crypto.randomUUID();
-        await $mediaDB.put({
+        const createdAt = new Date().toISOString();
+        const record = {
           _id: mediaId,
           name: file.name,
           type: file.type,
           size: file.size,
-          cid: cid.toString(),
-          createdAt: new Date().toISOString()
-        });
+          cid: cidStr,
+          createdAt,
+        };
+        await $mediaDB.put(record);
+        if (file.type.startsWith('image/')) {
+          logImageUploadMediaDbRegistered('MediaUploader', {
+            record,
+            mediaDbAddress: $mediaDB.address?.toString?.(),
+          });
+        }
       }
       
       await loadMedia();
@@ -170,10 +193,6 @@
     }
   }
 
-  function getMediaPreviewUrl(media) {
-    if (!media || !media.cid) return '';
-    return `https://ipfs.io/ipfs/${media.cid}`;
-  }
 </script>
 
 <div class="media-uploader bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
@@ -232,7 +251,17 @@
         aria-label={`Select ${media.name}`}
       >
         {#if media.type.startsWith('image/')}
-          <img src={media.url || `https://dweb.link/ipfs/${media.cid}`} alt={media.name} class="w-full h-24 object-cover" />
+          {#if media.url || relayOnlyIpfsUrlForCid(media.cid)}
+            <img
+              src={media.url || relayOnlyIpfsUrlForCid(media.cid)}
+              alt={media.name}
+              class="w-full h-24 object-cover"
+            />
+          {:else}
+            <div class="w-full h-24 bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-xs text-gray-500 dark:text-gray-400">
+              …
+            </div>
+          {/if}
         {:else if media.type.startsWith('video/')}
           <div class="w-full h-24 bg-gray-700 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">

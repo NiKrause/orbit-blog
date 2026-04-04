@@ -30,7 +30,7 @@ export interface IngestRemoteVideoParams {
  */
 export async function ingestRemoteVideoToMedia(
   params: IngestRemoteVideoParams,
-): Promise<{ cid: string; mediaId: string }> {
+): Promise<{ cid: string; mediaId: string; createdAt: string }> {
   const maxBytes = params.maxBytes ?? 10 * 1024 * 1024;
   const fetchImpl = params.fetchImpl ?? fetch;
   let res: Response;
@@ -76,14 +76,15 @@ export async function ingestRemoteVideoToMedia(
     }
   })();
 
+  const createdAt = new Date().toISOString();
   await params.mediaDB.put({
     _id: mediaId,
     name: nameFromUrl,
     type,
     size: buf.byteLength,
     cid: cidStr,
-    createdAt: new Date().toISOString(),
+    createdAt,
   });
 
-  return { cid: cidStr, mediaId };
+  return { cid: cidStr, mediaId, createdAt };
 }

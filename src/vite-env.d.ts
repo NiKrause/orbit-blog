@@ -2,9 +2,22 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
+  /**
+   * Relay HTTP origin without `/ipfs/`, e.g. `http://localhost:81`.
+   * Preview: `{origin}/ipfs/{cid}`; health: `{origin}/health`.
+   */
+  readonly VITE_RELAY_ORIGIN?: string;
+  /**
+   * @deprecated Prefer `VITE_RELAY_ORIGIN`. If set alone, origin is derived by stripping a trailing `/ipfs` path.
+   * Example: `http://localhost:81/ipfs/` → origin `http://localhost:81`.
+   */
   readonly VITE_RELAY_PINNED_CID_BASE?: string;
-  /** Optional origin for `orbitdb-relay-pinner` metrics `GET /health` (dev defaults to `/api/relay` proxy). */
-  readonly VITE_RELAY_METRICS_BASE?: string;
+  /**
+   * Optional. HTTP origin for relay pinning JSON API (`GET /pinning/databases`, `POST /pinning/sync`).
+   * Use when metrics/pinning listen on a different port than `VITE_RELAY_ORIGIN` (e.g. `http://127.0.0.1:9090`).
+   * If unset, defaults to `VITE_RELAY_ORIGIN` / legacy pinned base origin.
+   */
+  readonly VITE_RELAY_METRICS_ORIGIN?: string;
 }
 
 // Build-time constants injected by Vite

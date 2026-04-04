@@ -8,8 +8,12 @@
   import { unixfs } from '@helia/unixfs';
   import { CID } from 'multiformats/cid';
   import { error } from '$lib/utils/logger.js';
+  import {
+    logImageUploadIpfsStored,
+    logImageUploadMediaDbRegistered,
+  } from '$lib/utils/imageUploadDiagnostics.js';
   import RelaySyncLed from './RelaySyncLed.svelte';
-  import { getRelayPinnedCidBase, relayPreviewUrl } from '$lib/relay/relayEnv.js';
+  import { getRelayPinnedCidBase, relayOnlyIpfsUrlForCid } from '$lib/relay/relayEnv.js';
   import { startRelayPinPolling, type RelayLedState } from '$lib/services/relayPinStatus.js';
 
   interface Props {
@@ -23,7 +27,7 @@
 
   let fileInput = $state<HTMLInputElement | null>(null);
   let uploading = $state(false);
-  type ImageRow = { _id: string; cid: string; name: string; type: string; url?: string };
+  type ImageRow = { _id: string; cid: string; name: string; type: string; createdAt?: string; url?: string };
   let imageRows = $state<ImageRow[]>([]);
   let fs = $state<ReturnType<typeof unixfs> | undefined>(undefined);
   const mediaCache = new Map<string, string>();
@@ -33,6 +37,8 @@
   let relayLedState = $state<RelayLedState>('idle');
   let selectedPreviewLocal = $state<string | null>(null);
   let reduceMotion = $state(false);
+  /** `mediaDB` document `createdAt` for `selectedCid` — gates relay LED until `lastSyncedAt` ≥ this. */
+  let selectedContentCreatedAtIso = $state<string | undefined>(undefined);
 
   const pinBase = $derived(getRelayPinnedCidBase());
 
@@ -45,6 +51,22 @@
     };
     mq.addEventListener('change', onChange);
     return () => mq.removeEventListener('change', onChange);
+  });
+
+  $effect(() => {
+    if (!selectedCid?.trim()) {
+      selectedContentCreatedAtIso = undefined;
+    }
+  });
+
+  /** When CID is bound without local upload/pick state (e.g. draft reload), fill `createdAt` from `mediaDB` rows once loaded. */
+  $effect(() => {
+    const cid = selectedCid?.trim();
+    if (!cid || selectedContentCreatedAtIso !== undefined) return;
+    const row = imageRows.find((r) => r.cid === cid);
+    if (row?.createdAt) {
+      selectedContentCreatedAtIso = row.createdAt;
+    }
   });
 
   $effect(() => {
@@ -71,10 +93,14 @@
     }
     const ac = new AbortController();
     relayLedState = 'yellow';
+    const mediaAddr = $mediaDB?.address?.toString?.()?.trim() ?? '';
     const stop = startRelayPinPolling({
       cid,
       pinnedBase: base,
       signal: ac.signal,
+      mediaDbAddress: mediaAddr || undefined,
+      mediaContentCreatedAtIso: selectedContentCreatedAtIso,
+      pollDebugLabel: `ai-image:${fieldId}`,
       onState: (s) => {
         relayLedState = s;
       },
@@ -88,8 +114,9 @@
   const thumbSrc = $derived.by(() => {
     const cid = selectedCid?.trim();
     if (!cid) return null as string | null;
-    if (relayLedState === 'green' && pinBase) return relayPreviewUrl(pinBase, cid);
-    return selectedPreviewLocal ?? `https://dweb.link/ipfs/${cid}`;
+    if (selectedPreviewLocal) return selectedPreviewLocal;
+    const relay = relayOnlyIpfsUrlForCid(cid);
+    return relay || null;
   });
 
   $effect(() => {
@@ -109,7 +136,7 @@
       fs = unixfs($helia as Parameters<typeof unixfs>[0]);
     }
     if (!fs) {
-      return `https://dweb.link/ipfs/${cid}`;
+      return relayOnlyIpfsUrlForCid(cid) || null;
     }
     if (mediaCache.has(cid)) return mediaCache.get(cid)!;
     try {
@@ -126,7 +153,7 @@
       mediaCache.set(cid, url);
       return url;
     } catch {
-      return `https://dweb.link/ipfs/${cid}`;
+      return relayOnlyIpfsUrlForCid(cid) || null;
     }
   }
 
@@ -145,6 +172,7 @@
           cid?: string;
           name?: string;
           type?: string;
+          createdAt?: string;
         };
         if (media?.type?.startsWith('image/') && media.cid) {
           const url = (await getBlobUrl(media.cid)) ?? undefined;
@@ -153,6 +181,7 @@
             cid: media.cid,
             name: media.name ?? '',
             type: media.type,
+            ...(typeof media.createdAt === 'string' ? { createdAt: media.createdAt } : {}),
             url,
           });
         }
@@ -197,15 +226,29 @@
         const fileBytes = new Uint8Array(buffer);
         const cid = await fs.addBytes(fileBytes);
         const cidStr = cid.toString();
+        logImageUploadIpfsStored('AiImageField', {
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          cid: cidStr,
+          bytesOnWire: fileBytes.byteLength,
+        });
         const mediaId = crypto.randomUUID();
-        await db.put({
+        const createdAt = new Date().toISOString();
+        const record = {
           _id: mediaId,
           name: file.name,
           type: file.type,
           size: file.size,
           cid: cidStr,
-          createdAt: new Date().toISOString(),
+          createdAt,
+        };
+        await db.put(record);
+        logImageUploadMediaDbRegistered('AiImageField', {
+          record,
+          mediaDbAddress: db.address?.toString?.(),
         });
+        selectedContentCreatedAtIso = createdAt;
         onSelectCid(cidStr);
       }
       await loadImages();
@@ -224,8 +267,9 @@
     }
   }
 
-  function pickFromLibrary(cid: string) {
-    onSelectCid(cid);
+  function pickFromLibrary(row: ImageRow) {
+    selectedContentCreatedAtIso = row.createdAt;
+    onSelectCid(row.cid);
   }
 
   /** FR-7e: clear job input and remove `Media` row like {@link MediaUploader} delete. */
@@ -235,6 +279,7 @@
     const cid = selectedCid?.trim();
     const db = $mediaDB;
     if (!cid) {
+      selectedContentCreatedAtIso = undefined;
       onSelectCid('');
       return;
     }
@@ -261,6 +306,7 @@
       }
       mediaCache.delete(cid);
     }
+    selectedContentCreatedAtIso = undefined;
     onSelectCid('');
     await loadImages();
   }
@@ -305,18 +351,24 @@
       data-testid="ai-image-library-grid"
     >
       {#each imageRows as m (m._id + m.cid)}
+        {@const gridSrc = m.url || relayOnlyIpfsUrlForCid(m.cid)}
         <button
           type="button"
           class="relative overflow-hidden rounded border p-0 h-14 w-full hover:opacity-90"
           style="border-color: {selectedCid === m.cid ? 'var(--accent)' : 'var(--border)'};"
-          onclick={() => pickFromLibrary(m.cid)}
+          onclick={() => pickFromLibrary(m)}
           aria-label={$_('ai_image_pick_aria', { values: { name: m.name || formatCidHint(m.cid) } })}
         >
-          <img
-            src={m.url || `https://dweb.link/ipfs/${m.cid}`}
-            alt=""
-            class="h-full w-full object-cover"
-          />
+          {#if gridSrc}
+            <img src={gridSrc} alt="" class="h-full w-full object-cover" />
+          {:else}
+            <div
+              class="h-full w-full flex items-center justify-center text-[10px] opacity-60"
+              style="background: var(--bg-tertiary); color: var(--text-secondary);"
+            >
+              …
+            </div>
+          {/if}
         </button>
       {/each}
     </div>

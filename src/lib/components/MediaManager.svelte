@@ -5,6 +5,7 @@
   import { unixfs } from '@helia/unixfs';
   import { CID } from 'multiformats/cid';
   import { helia, mediaDB } from '$lib/store';
+  import { relayOnlyIpfsUrlForCid } from '$lib/relay/relayEnv.js';
   import { error } from '../utils/logger.js';
   import MediaUploader from './MediaUploader.svelte';
 
@@ -60,7 +61,7 @@
       return url;
     } catch (_error) {
       error('Error fetching from IPFS:', _error);
-      return `https://dweb.link/ipfs/${cid}`;
+      return relayOnlyIpfsUrlForCid(cid) || null;
     }
   }
 
@@ -78,7 +79,9 @@
         selectedMedia.map(async (cid) => {
           const media = mediaMap.find(m => m.cid === cid);
           if (media) {
-            const url = await getBlobUrl(cid);
+            const local = await getBlobUrl(cid);
+            const relay = relayOnlyIpfsUrlForCid(cid);
+            const url = (local ?? relay) || undefined;
             return {
               cid,
               name: media.name,
@@ -86,11 +89,14 @@
               url
             };
           }
+          const local = await getBlobUrl(cid);
+          const relay = relayOnlyIpfsUrlForCid(cid);
+          const url = (local ?? relay) || undefined;
           return {
             cid,
             name: `Unknown (${cid.slice(0, 8)}...)`,
             type: 'unknown',
-            url: await getBlobUrl(cid)
+            url
           };
         })
       );
@@ -134,11 +140,7 @@
         {#each selectedMediaDetails as media}
           <div class="relative bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
             {#if media.type.startsWith('image/') && media.url}
-              <img 
-                src={media.url} 
-                alt={media.name} 
-                class="w-full h-24 object-cover"
-              />
+              <img src={media.url} alt={media.name} class="w-full h-24 object-cover" />
             {:else if media.type.startsWith('video/')}
               <div class="w-full h-24 bg-gray-600 flex items-center justify-center">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -1,7 +1,7 @@
 <script lang="ts">
   /**
    * Non-text status indicator for relay pin / gateway readiness (FR-7c).
-   * Pairs color with `aria-label` (UX §7.5).
+   * Pairs color with `aria-label` (UX §7.5). Wrapper `title` gives a native hover tooltip.
    */
   import { _ } from 'svelte-i18n';
   import type { RelayLedState } from '$lib/services/relayPinStatus.js';
@@ -26,28 +26,42 @@
 </script>
 
 {#if state !== 'idle'}
-  <span
-    class="relay-led"
-    class:relay-led--yellow={state === 'yellow'}
-    class:relay-led--orange={state === 'orange'}
-    class:relay-led--green={state === 'green'}
-    class:relay-led--error={state === 'error'}
-    class:relay-led--blink={state === 'yellow' && !reducedMotion}
-    role="status"
-    aria-label={$_(ariaKey)}
-  ></span>
+  <span class="relay-led-wrap" title={$_(ariaKey)}>
+    <span
+      class="relay-led"
+      class:relay-led--yellow={state === 'yellow'}
+      class:relay-led--orange={state === 'orange'}
+      class:relay-led--green={state === 'green'}
+      class:relay-led--error={state === 'error'}
+      class:relay-led--blink={state === 'yellow' && !reducedMotion}
+      role="status"
+      aria-label={$_(ariaKey)}
+    ></span>
+  </span>
 {/if}
 
 <style>
-  .relay-led {
+  .relay-led-wrap {
     position: absolute;
     top: 0.25rem;
     inset-inline-end: 0.25rem;
+    z-index: 2;
+    padding: 0.35rem;
+    margin: -0.35rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    cursor: help;
+    box-sizing: content-box;
+  }
+
+  .relay-led {
+    flex-shrink: 0;
     width: 0.55rem;
     height: 0.55rem;
     border-radius: 9999px;
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--text, #111) 25%, transparent);
-    z-index: 2;
     pointer-events: none;
   }
 

@@ -7,7 +7,11 @@
   import { unixfs, type UnixFS } from '@helia/unixfs';
   import { onMount, onDestroy } from 'svelte';
   import { getImageUrlFromHelia, revokeImageUrl } from '../utils/mediaUtils.js';
-  import { info, debug, error } from '../utils/logger.js'
+  import { info, debug, error } from '../utils/logger.js';
+  import {
+    logImageUploadIpfsStored,
+    logImageUploadMediaDbRegistered,
+  } from '../utils/imageUploadDiagnostics.js';
   let persistentSeedPhrase = false; // Default to true since we're always encrypting now
   let showChangePasswordModal = $state(false);
   let newPassword = $state('');
@@ -165,25 +169,37 @@
 
       // Add to IPFS
       const cid = await fs.addBytes(fileBytes);
-      info('File added to IPFS, CID:', cid.toString());
+      const cidStr = cid.toString();
+      logImageUploadIpfsStored('SettingsProfilePicture', {
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        cid: cidStr,
+        bytesOnWire: fileBytes.byteLength,
+      });
 
       // Store metadata in OrbitDB
       const mediaId = crypto.randomUUID();
-      await $mediaDB.put({
+      const createdAt = new Date().toISOString();
+      const record = {
         _id: mediaId,
         name: file.name,
         type: file.type,
         size: file.size,
-        cid: cid.toString(),
-        createdAt: new Date().toISOString()
+        cid: cidStr,
+        createdAt,
+      };
+      await $mediaDB.put(record);
+      logImageUploadMediaDbRegistered('SettingsProfilePicture', {
+        record,
+        mediaDbAddress: $mediaDB.address?.toString?.(),
       });
-      info('Media metadata stored in OrbitDB:', mediaId);
 
       // Store profile picture reference in settings
-      await $settingsDB.put({ _id: 'profilePicture', value: cid.toString() });
-      info('Profile picture CID stored in settings:', cid.toString());
-      
-      $profilePictureCid = cid.toString();
+      await $settingsDB.put({ _id: 'profilePicture', value: cidStr });
+      info('Profile picture CID stored in settings:', cidStr);
+
+      $profilePictureCid = cidStr;
       info('Profile picture CID updated in component state:', $profilePictureCid);
     } catch (error) {
       error('Error uploading profile picture:', error);

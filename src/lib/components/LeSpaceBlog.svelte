@@ -705,7 +705,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     if (showPasswordModal) return;
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     touchStartX = clientX;
-    info('Touch/Mouse start:', touchStartX);
   }
 
   function handleTouchMove(e) {
@@ -716,19 +715,16 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 
   function handleTouchEnd(e) {
     if (showPasswordModal) return;
-    info('Touch/Mouse end:', 'startX:', touchStartX, 'endX:', touchEndX);
     const deltaX = touchStartX - touchEndX;
     const swipeDistance = Math.abs(deltaX);
     
     if (swipeDistance > SWIPE_THRESHOLD) {
       if (deltaX > 0 && sidebarVisible) {
         // Swipe left - hide sidebar
-        info('Swiping left to hide sidebar');
         sidebarVisible = false;
         e?.preventDefault?.();
       } else if (deltaX < 0 && !sidebarVisible) {
         // Swipe right - show sidebar
-        info('Swiping right to show sidebar');
         sidebarVisible = true;
         e?.preventDefault?.();
       }
