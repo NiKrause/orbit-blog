@@ -1,8 +1,36 @@
 # Deferred work (from code reviews)
 
+## Deferred from: code review of 4-2-image-input-library-upload.md (2026-04-04)
+
+- **Docs vs code — relay LED in Story 4.2 widget:** `AiImageField` ships `RelaySyncLed` (FR-7c-style) while story AC12 still says LED belongs to Story 4.3 only; reconcile `epics.md` / story traceability when Epic 4 is finalized.
+
+- **`getBlobUrl` chunk concat performance:** Inefficient byte merging for large images in `AiImageField`; optimize if authors upload multi‑MB files regularly.
+
+## Deferred from: code review of 4-3-relay-replication-and-pin-status-for-ai-inputs.md (2026-04-04)
+
+- **AC4 vs relay API surface:** No JSON “replicated DB addresses” on **`orbitdb-relay-pinner`** today; LED uses **`GET /health`** + CID **HEAD**/Range as documented. Revisit if the relay gains a first-class replication API and PRD text should be tightened to match.
+
+- **Timer-based `startRelayPinPolling` tests:** `sleep()`-driven assertions; switch to fake timers or a test seam if CI flakes.
+
+## Deferred from: code review of 5-1-submit-job-lifecycle-status.md (2026-04-04)
+
+- **Silent AIDB `put` failures:** Run persistence errors are swallowed so Generate never blocks; consider a lightweight, non-secret UI hint if `aiDB.put` repeatedly fails and history matters.
+
+## Deferred from: code review of 6-1-advertise-supported-models-to-peers.md (2026-04-04)
+
+- **Cap incoming gossipsub payload size before `JSON.parse`:** Harden `onMessage` with a max-bytes guard to reduce memory DoS risk from oversized gossipsub payloads; out of scope for Story 6.1 unless architecture sets a limit.
+
+- **Silent `publish` failures:** Empty catch around `pubsub.publish` avoids noise and payload logging; add optional debug/metrics later if providers cannot diagnose mesh publish issues.
+
 ## Deferred from: code review of 5-3-nfr-verification-and-documentation-touchpoint.md (2026-04-02)
 
 - **Optional NFR-1 manual smoke:** Run `pnpm build` + `pnpm preview` and exercise AI Manager with mock credentials; confirm console/network panels show no Bearer token, decrypted key, or full prompt text — checklist checkbox remains optional.
+
+## Deferred from: code review of 5-2-ingest-output-video-media-draft.md (2026-04-04)
+
+- **Post embed gateway vs relay base:** `appendVideoEmbedToContent` uses dweb.link while LED uses `VITE_RELAY_PINNED_CID_BASE`; optional alignment for consistent relay URLs in saved markdown.
+
+- **`output.textBodyMerge: "replace"` impact:** Full draft replace is spec-correct but risky UX; prefer `append` in manifests unless product explicitly wants replace.
 
 ## Deferred from: code review of 5-2-ingest-output-video-media-draft.md (2026-04-02)
 

@@ -9,10 +9,13 @@ inputDocuments:
 workflowType: epics-and-stories
 project_name: bolt-orbitdb-blog
 user_name: Nandi
-date: '2026-04-02'
+date: '2026-04-04'
 status: complete
 workflowNote: >-
   Consolidated epic/story pass for AI Manager (M1) plus backlog epics for M2–M4.
+  v1.1: aligned inventory and stories with PRD (2026-04-04) FR-7b–FR-7f, FR-8b–FR-8c
+  (immediate mediaDB, relay LED, AIDB runs, post-body outputs).
+  v1.2: Epic 5 delivery note — Stories 5.1/5.2 may ship in one AiManager panel (2026-04-04).
 ---
 
 # bolt-orbitdb-blog — Epic Breakdown (AI Manager)
@@ -33,7 +36,14 @@ FR-4: AI settings and job history live in a dedicated OrbitDB database whose add
 FR-5: Model registry supports multiple entries; each has id, label, input schema (or manifest), and transport (HTTP for M1); new models can be added without a bespoke one-off Svelte form for each.
 FR-6: Kling I2V models are pre-registered for Pro and Standard tiers with correct model identifiers for Atlas Cloud.
 FR-7: Image inputs support upload via the existing media pipeline and selection of existing media from mediaDB.
+FR-7b: New or replaced image uploads in AI Manager and Media Manager persist to mediaDB immediately (before post save) so the pinning relay can replicate early.
+FR-7c: Per-upload replication + pin status for AI inputs and generated media: UI shows LED states (blinking yellow → orange → green) until relay has DB replicated and CID is retrievable via relay IPFS base; polling/probe per architecture.
+FR-7d: Relay-served media preview uses VITE_RELAY_PINNED_CID_BASE (or deployment equivalent) as documented in config.
+FR-7e: AI Manager offers remove control (×) on each input thumbnail; detaches from run form and updates mediaDB per app delete semantics.
+FR-7f: Multi-image inputs when manifest allows multiple slots; single-image models replace prior upload on new upload (schema-driven).
 FR-8: Successful generation creates a Media document for the output video and surfaces it in the media workflow for the post.
+FR-8b: Every Generate run appends a run record to AIDB (success or failure) with model, inputs snapshot, timestamps, status, errors per architecture.
+FR-8c: Job outputs: binary media → new Media in mediaDB (with same relay LED semantics as uploads); text outputs merge into post body per manifest; post body references returned media (e.g. markdown embeds) without manual CID paste.
 FR-9: API errors (auth, quota, validation) are surfaced to the user.
 FR-10: CORS feasibility is verified before shipping browser-direct calls; outcome documented; relay path defined if blocked.
 FR-11 (M2): Provider advertises supported models and a UCEP-compatible handshake for remote consumers.
@@ -91,7 +101,14 @@ UX-DR10: RTL: flex rows in the new panel respect [dir="rtl"] patterns consistent
 | FR-5 | Epic 3, 4 |
 | FR-6 | Epic 3 |
 | FR-7 | Epic 4 |
+| FR-7b | Epic 4 (shared upload path with Media Manager) |
+| FR-7c | Epic 4 (inputs), Epic 5 (generated outputs) |
+| FR-7d | Epic 4, 5 |
+| FR-7e | Epic 4 |
+| FR-7f | Epic 4 |
 | FR-8 | Epic 5 |
+| FR-8b | Epic 5 |
+| FR-8c | Epic 5 |
 | FR-9 | Epic 5 |
 | FR-10 | Epic 1 |
 | FR-11 | Epic 6 |
@@ -134,15 +151,15 @@ Authors can open an AI panel from create/edit post, pick a registered model (sta
 
 ### Epic 4: Schema-driven inputs and media sources
 
-Authors can fill provider-specific fields from manifests and supply image input via upload (media pipeline) or existing media library selection.
+Authors can fill provider-specific fields from manifests and supply image input via upload (media pipeline) or existing media library selection, with immediate mediaDB persistence, relay sync feedback, and correct multi- vs single-image behavior.
 
-**FRs covered:** FR-5, FR-7. **UX-DR:** UX-DR4, UX-DR6.
+**FRs covered:** FR-5, FR-7, FR-7b, FR-7c (inputs), FR-7d, FR-7e, FR-7f. **UX-DR:** UX-DR4, UX-DR6.
 
 ### Epic 5: Run generation and attach video output
 
-Authors can execute a job, see status and errors, receive output video as Media, and attach it to the draft in line with existing post/media behavior.
+Authors can execute a job, see status and errors, persist every run to AIDB, receive outputs as Media and/or post body updates with embeds, and attach assets to the draft in line with existing post/media behavior.
 
-**FRs covered:** FR-8, FR-9. **UX-DR:** UX-DR7–8. **NFRs:** NFR-1, NFR-3 (verify).
+**FRs covered:** FR-8, FR-8b, FR-8c, FR-9. **UX-DR:** UX-DR7–8. **NFRs:** NFR-1, NFR-3 (verify).
 
 ### Epic 6 (Backlog / M2): Network AI provider and consumer
 
@@ -295,7 +312,7 @@ So that **I can run jobs later without retyping secrets every session**.
 
 ## Epic 4: Schema-driven inputs and media sources
 
-**Goal:** Render manifest fields; image input via library + upload.
+**Goal:** Render manifest fields; image input via library + upload; immediate mediaDB writes; relay replication/pin LEDs and preview base URL; remove and multi-slot inputs per PRD.
 
 ### Story 4.1: JSON Schema (or subset) field renderer
 
@@ -321,14 +338,33 @@ So that **the provider receives an image consistent with my blog’s media pipel
 **Given** mediaDB and Helia available  
 **When** I pick from library or upload  
 **Then** uploads follow the same media persistence path used elsewhere for posts  
+**And** a `Media` document exists in mediaDB **before** post save (FR-7b), including when uploading from **Media Manager** on the same screen where applicable  
 **And** selected library items reference valid `Media` / CID as required by the transport  
+**And** for manifests with a single image slot, a new upload **replaces** the prior input; for multi-image manifests, the UI supports multiple concurrent inputs (FR-7f)  
+**And** each input thumbnail shows a remove control (×) that removes the input from the job form and applies media delete semantics consistent with Media Manager (FR-7e)  
 **And** FR-7 is satisfied in manual or automated tests.
+
+### Story 4.3: Relay replication and pin status for AI inputs
+
+As a **blog author**,  
+I want **clear visual feedback while my AI input images sync to the pinning relay**,  
+So that **I know when previews will load from the relay IPFS base**.
+
+**Acceptance Criteria:**
+
+**Given** a configured pinning relay and `VITE_RELAY_PINNED_CID_BASE` (or production equivalent) per `src/lib/config.ts` / docs  
+**When** I add or change an image input for a job  
+**Then** each affected upload shows a **status LED** progressing **blinking yellow** (DB not yet replicated on relay) → **solid orange** (DB replicated, CID not yet loadable) → **green** (CID loadable via relay IPFS base), per PRD SC-4c / FR-7c  
+**And** when green, preview uses the relay base URL + CID (FR-7d)  
+**And** probe method (e.g. HEAD vs minimal GET) and pinning API polling match **architecture** (avoid full asset download where possible).
 
 ---
 
 ## Epic 5: Run generation and attach video output
 
-**Goal:** End-to-end job execution, error display, Media creation, preview, attach to post.
+**Goal:** End-to-end job execution, AIDB run logging, error display, Media creation, relay LEDs for outputs, post body integration, preview, attach to post.
+
+**Delivery note (2026-04-04):** Stories **5.1** and **5.2** are separate for traceability, but the **shipped UI** may combine them in one **`AiManager`** surface. **5.1** emphasizes submit/poll/result, FR-8b run records, and FR-9 errors; **5.2** is the owning story for FR-8 / FR-8c / output-side FR-7c (ingest, embed pattern, relay LED, text merge). Implementing both in the same component does **not** violate epic intent.
 
 ### Story 5.1: Submit job and show lifecycle status
 
@@ -339,8 +375,9 @@ So that **I know whether to wait, fix config, or retry**.
 **Acceptance Criteria:**
 
 **Given** valid credentials and inputs  
-**When** I start a run  
-**Then** the UI shows running state and then success or failure  
+**When** I click **Generate run** (or equivalent)  
+**Then** a **run** document is appended to **AIDB** immediately with at least model id, inputs snapshot, timestamps, and status (pending → terminal), including on API failure (FR-8b)  
+**And** the UI shows running state and then success or failure  
 **And** auth, quota, validation, and network/CORS failures surface actionable messages (FR-9, UX-DR7).
 
 ### Story 5.2: Ingest output video into Media and attach to draft
@@ -351,9 +388,12 @@ So that **I can publish it like any other asset**.
 
 **Acceptance Criteria:**
 
-**Given** a successful job that returns video bytes or URL per provider contract  
+**Given** a successful job that returns video bytes or URL per provider contract (and optionally other binary or text artifacts per manifest)  
 **When** ingestion completes  
-**Then** a new `Media` document exists in mediaDB and appears in the media workflow  
+**Then** each binary output becomes a new `Media` in mediaDB and appears in the media workflow  
+**And** output media shows the **same relay LED progression** as AI inputs until the CID is loadable from the relay base (FR-7c, FR-8c)  
+**And** any **text** output is merged into the **post body** per manifest rules (append vs replace) without surprising silent overwrite beyond those rules (FR-8c)  
+**And** the post body gains **references** to returned media (e.g. markdown embeds) so the editor shows embeds without manual CID pasting (FR-8c)  
 **And** I can preview video with native controls (UX-DR8)  
 **And** I can add the asset to the post (selected media and/or markdown insertion per existing app behavior).  
 **And** FR-8 is satisfied.
@@ -371,6 +411,19 @@ So that **shipping does not regress security or bundle hygiene**.
 **Then** no decrypted keys or raw keys are logged in production paths  
 **And** heavy AI modules are loaded lazily where agreed  
 **And** README or `docs/` links Atlas / EIP references as needed (NFR-5).
+
+### Story 5.4: (Follow-up) Run history select, delete, and re-run
+
+As a **blog author**,  
+I want **to select, delete, or re-run a stored AIDB run from the AI Manager**,  
+So that **I can iterate without re-entering inputs**.
+
+**Acceptance Criteria:**
+
+**Given** FR-8b run records exist  
+**When** this follow-up ships (same milestone family as PRD)  
+**Then** the AI Manager exposes a control to pick a prior run, remove it, or re-run with stored inputs  
+**And** behavior matches PRD “follow-up” note without requiring a second DB migration if possible.
 
 ---
 
@@ -453,3 +506,5 @@ So that **reputation is visible on-chain per ERC-8004 patterns**.
 | Version | Date | Notes |
 | --- | --- | --- |
 | 1.0 | 2026-04-02 | Initial epic/story breakdown from PRD, architecture, UX spec |
+| 1.1 | 2026-04-04 | PRD FR-7b–FR-7f, FR-8b–FR-8c: inventory, coverage map, Epic 4/5 scope, stories 4.2–4.3, 5.1–5.2, follow-up 5.4 |
+| 1.2 | 2026-04-04 | Epic 5: delivery note that 5.1 job UI and 5.2 output/ingest may share `AiManager` (planning option A) |

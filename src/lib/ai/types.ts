@@ -32,6 +32,8 @@ export interface AiFetchResultInput {
 export interface AiFetchResultOutput {
   /** HTTPS URL to generated asset when provider returns a URL */
   assetUrl?: string;
+  /** Optional caption / description text to merge into the draft (FR-8c). */
+  outputText?: string;
   raw?: unknown;
 }
 
@@ -79,6 +81,12 @@ export interface AiInputSchema {
   'x-order'?: string[];
 }
 
+/** Optional manifest hints for non-binary job outputs (FR-8c / Story 5.2). */
+export interface AiManifestOutputHints {
+  /** How {@link AiFetchResultOutput.outputText} is applied to the post body. Default `append`. */
+  textBodyMerge?: 'append' | 'replace';
+}
+
 /** Registered model entry for UI + transport (full JSON Schema in Epic 4). */
 export interface AiModelManifest {
   /** Stable id for selection state (not the provider model string). */
@@ -89,4 +97,6 @@ export interface AiModelManifest {
   model: string;
   /** Optional JSON Schema subset describing provider job body fields (Story 4.1). */
   inputSchema?: AiInputSchema;
+  /** Optional output handling (text merge, future artifact types). */
+  output?: AiManifestOutputHints;
 }

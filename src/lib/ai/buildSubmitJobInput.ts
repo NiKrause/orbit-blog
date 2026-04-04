@@ -28,6 +28,10 @@ export function cidOrHttpToImageUrl(value: string): string {
  * **Field mapping (Kling image-to-video on Atlas):** `inputValues` keys match `inputSchema.properties`
  * and are sent on the JSON body as the same names where supported: `prompt`, `duration`, and `image`
  * (image URL string). Provider `model` comes from {@link AiModelManifest.model}, not `manifest.id`.
+ *
+ * **At most one `x-ui: image` field** is supported: Atlas uses a single `image_url`; additional image
+ * properties in the same schema are ignored after the first mapped image (schema key order via
+ * {@link orderPropertyKeys}).
  */
 export function buildSubmitJobInput(
   manifest: AiModelManifest,
@@ -57,6 +61,7 @@ export function buildSubmitJobInput(
     }
 
     if (prop.type === 'string' && isImageUiProperty(prop)) {
+      if (body.image_url !== undefined) continue;
       /** Atlas `generateVideo` uses `image_url` (see Atlas video docs). */
       body.image_url = cidOrHttpToImageUrl(typeof raw === 'string' ? raw : String(raw ?? ''));
       continue;

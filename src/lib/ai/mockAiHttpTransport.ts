@@ -23,6 +23,8 @@ type InternalJob = {
 export class MockAiHttpTransport implements AiHttpTransport {
   private nextId = 1;
   private readonly jobs = new Map<string, InternalJob>();
+  /** Test hook: optional inline text returned from {@link fetchResult}. */
+  private readonly fetchOutputTextByJobId = new Map<string, string>();
 
   async submitJob(input: AiSubmitJobInput, _options?: AiHttpTransportOptions): Promise<AiSubmitJobResult> {
     const jobId = `mock-job-${this.nextId++}`;
@@ -60,10 +62,17 @@ export class MockAiHttpTransport implements AiHttpTransport {
     if (!job.completedSuccessfully) {
       throw new Error(`mock: job ${input.jobId} has not completed successfully yet`);
     }
+    const outputText = this.fetchOutputTextByJobId.get(input.jobId);
     return {
       assetUrl: `https://example.invalid/mock-output/${input.jobId}.mp4`,
+      ...(outputText !== undefined ? { outputText } : {}),
       raw: { jobId: input.jobId },
     };
+  }
+
+  /** Test helper: simulate provider caption / text alongside video URL. */
+  setFetchOutputText(jobId: string, text: string): void {
+    this.fetchOutputTextByJobId.set(jobId, text);
   }
 
   /** Test helper: mark a job as failed before polling completes. */

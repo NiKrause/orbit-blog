@@ -36,6 +36,15 @@
     AiTransportError,
     mapAiTransportError,
   } from '$lib/ai/aiJobErrors.js';
+  import {
+    createPendingAiRunDoc,
+    patchAiRun,
+    type AiRunDocPatch,
+  } from '$lib/ai/aiRunDocument.js';
+  import { textBodyMergeModeForManifest } from '$lib/ai/aiOutputTextMerge.js';
+  import RelaySyncLed from './RelaySyncLed.svelte';
+  import { getRelayPinnedCidBase } from '$lib/relay/relayEnv.js';
+  import { startRelayPinPolling, type RelayLedState } from '$lib/services/relayPinStatus.js';
   import type { AiJobLifecycleStatus, AiModelManifest } from '$lib/ai/types.js';
 
   interface AiManagerProps {
@@ -43,9 +52,15 @@
     onInsertVideoEmbed?: (cid: string) => void;
     /** Add CID to `selectedMedia` without duplicating (`videoEmbedUtils.addCidToSelectedMedia`). */
     onAddVideoToSelectedMedia?: (cid: string) => void;
+    /** FR-8c: when `fetchResult` includes `outputText`, merge into draft per manifest `output.textBodyMerge`. */
+    onMergeOutputText?: (text: string, mode: 'append' | 'replace') => void;
   }
 
-  let { onInsertVideoEmbed, onAddVideoToSelectedMedia }: AiManagerProps = $props();
+  let {
+    onInsertVideoEmbed,
+    onAddVideoToSelectedMedia,
+    onMergeOutputText,
+  }: AiManagerProps = $props();
 
   const manifests: AiModelManifest[] = listKlingI2vManifests();
   let selectedModelId = $state(manifests[0]?.id ?? '');
@@ -82,6 +97,10 @@
   let ingestErrorKey = $state<string | null>(null);
   let ingesting = $state(false);
 
+  /** FR-7c: same relay LED progression as AI image inputs after output video is in IPFS (Story 4.3). */
+  let outputRelayLedState = $state<RelayLedState>('idle');
+  let reduceMotion = $state(false);
+
   $effect(() => {
     selectedModelId;
     runEpoch += 1;
@@ -94,6 +113,40 @@
     ingestedCid = null;
     ingestErrorKey = null;
     ingesting = false;
+  });
+
+  $effect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    reduceMotion = mq.matches;
+    const onChange = () => {
+      reduceMotion = mq.matches;
+    };
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  });
+
+  $effect(() => {
+    const cid = ingestedCid?.trim();
+    const base = getRelayPinnedCidBase();
+    if (!cid || !base) {
+      outputRelayLedState = 'idle';
+      return;
+    }
+    const ac = new AbortController();
+    outputRelayLedState = 'yellow';
+    const stop = startRelayPinPolling({
+      cid,
+      pinnedBase: base,
+      signal: ac.signal,
+      onState: (s) => {
+        outputRelayLedState = s;
+      },
+    });
+    return () => {
+      ac.abort();
+      stop();
+    };
   });
 
   $effect(() => {
@@ -287,6 +340,26 @@
       jobPhase = 'failed';
       return;
     }
+
+    let runDoc = createPendingAiRunDoc({
+      manifestModelId: manifest.id,
+      providerModelId,
+      inputValues,
+    });
+    const persistRun = async (patch: AiRunDocPatch) => {
+      runDoc = patchAiRun(runDoc, patch);
+      try {
+        await db.put(runDoc);
+      } catch {
+        /* FR-8b: persistence must not block generation; avoid logging doc payloads (NFR-1). */
+      }
+    };
+    try {
+      await db.put(runDoc);
+    } catch {
+      /* same */
+    }
+
     jobRunning = true;
     jobPhase = 'running';
     lastPollLifecycle = 'queued';
@@ -296,6 +369,7 @@
       if (credResult.status !== 'ok') {
         jobErrorKey = 'ai_credential_validation_key';
         jobPhase = 'failed';
+        await persistRun({ status: 'failed', errorKey: 'ai_credential_validation_key' });
         return;
       }
       const { baseUrl: bu, apiKey } = credResult.credential;
@@ -304,6 +378,7 @@
       const opts = { baseUrl: bu.trim(), apiKey };
       const { jobId } = await transport.submitJob(submitInput, opts);
       if (epoch !== runEpoch) return;
+      await persistRun({ status: 'queued', providerJobId: jobId });
       const pollIntervalMs = 2000;
       const maxPolls = 180;
       for (let i = 0; i < maxPolls; i += 1) {
@@ -314,10 +389,22 @@
         if (poll.status === 'succeeded') {
           successRunEpoch = epoch;
           jobPhase = 'succeeded';
+          await persistRun({
+            status: 'succeeded',
+            lastPollLifecycle: 'succeeded',
+            providerJobId: jobId,
+          });
           try {
             const out = await transport.fetchResult({ jobId }, opts);
             if (epoch !== runEpoch) return;
             resultAssetUrl = out.assetUrl ?? null;
+            const ot = out.outputText?.trim();
+            if (ot && onMergeOutputText) {
+              onMergeOutputText(ot, textBodyMergeModeForManifest(manifest));
+            }
+            if (resultAssetUrl) {
+              await persistRun({ resultAssetUrl });
+            }
           } catch {
             resultAssetUrl = null;
           }
@@ -326,17 +413,25 @@
         if (poll.status === 'failed') {
           jobPhase = 'failed';
           jobErrorKey = AI_JOB_ERROR_KEYS.pollFailed;
+          await persistRun({
+            status: 'failed',
+            errorKey: AI_JOB_ERROR_KEYS.pollFailed,
+            lastPollLifecycle: 'failed',
+            providerJobId: jobId,
+          });
           return;
         }
         await sleep(pollIntervalMs);
       }
       jobPhase = 'failed';
       jobErrorKey = AI_JOB_ERROR_KEYS.timeout;
+      await persistRun({ status: 'failed', errorKey: AI_JOB_ERROR_KEYS.timeout });
     } catch (e) {
       if (epoch !== runEpoch) return;
       jobPhase = 'failed';
-      jobErrorKey =
-        e instanceof AiTransportError ? e.i18nKey : mapAiTransportError(e);
+      const errKey = e instanceof AiTransportError ? e.i18nKey : mapAiTransportError(e);
+      jobErrorKey = errKey;
+      await persistRun({ status: 'failed', errorKey: errKey });
     } finally {
       if (epoch === runEpoch) {
         jobRunning = false;
@@ -361,8 +456,12 @@
     const db = $mediaDB;
     const h = $helia;
     const epoch = runEpoch;
-    if (!url?.trim() || !db || !h) {
+    if (!url?.trim()) {
       ingestErrorKey = AI_INGEST_ERROR_KEYS.network;
+      return;
+    }
+    if (!db || !h) {
+      ingestErrorKey = 'ai_image_media_not_ready';
       return;
     }
     if (epoch !== successRunEpoch) return;
@@ -570,12 +669,19 @@
         {/if}
       </p>
     {:else if jobPhase === 'succeeded'}
-      <p class="text-xs m-0" style="color: var(--text-secondary);" data-testid="ai-job-succeeded">
+      <p
+        class="text-xs m-0 flex items-center gap-2 {$isRTL ? 'flex-row-reverse' : ''}"
+        style="color: var(--text-secondary);"
+        data-testid="ai-job-succeeded"
+      >
         {$_('ai_job_status_succeeded')}
       </p>
       {#if resultAssetUrl}
-        <p class="text-xs font-mono m-0 break-all" data-testid="ai-job-result-url">
-          {$_('ai_job_result_url_hint')}:
+        <p
+          class="text-xs font-mono m-0 break-all flex flex-wrap items-baseline gap-x-1 {$isRTL ? 'flex-row-reverse' : ''}"
+          data-testid="ai-job-result-url"
+        >
+          <span>{$_('ai_job_result_url_hint')}:</span>
           <a href={resultAssetUrl} class="underline" target="_blank" rel="noopener noreferrer"
             >{resultAssetUrl}</a
           >
@@ -606,15 +712,18 @@
       {/if}
       {#if ingestedCid}
         <div class="space-y-2" data-testid="ai-video-ingested-block">
-          <!-- svelte-ignore a11y_media_has_caption -->
-          <video
-            class="w-full max-w-md rounded-md border"
-            style="border-color: var(--border);"
-            controls
-            preload="metadata"
-            src={`${IPFS_VIDEO_GATEWAY}${ingestedCid}`}
-            data-testid="ai-job-video-preview"
-          ></video>
+          <div class="relative w-full max-w-md">
+            <RelaySyncLed state={outputRelayLedState} reducedMotion={reduceMotion} />
+            <!-- svelte-ignore a11y_media_has_caption -->
+            <video
+              class="w-full max-w-md rounded-md border"
+              style="border-color: var(--border);"
+              controls
+              preload="metadata"
+              src={`${IPFS_VIDEO_GATEWAY}${ingestedCid}`}
+              data-testid="ai-job-video-preview"
+            ></video>
+          </div>
           <div class="flex flex-wrap gap-2 {$isRTL ? 'flex-row-reverse' : ''}">
             <button
               type="button"

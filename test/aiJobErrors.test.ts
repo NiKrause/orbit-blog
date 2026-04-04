@@ -33,4 +33,9 @@ describe('mapAiTransportError', () => {
     const res = new Response(null, { status: 403 });
     assert.strictEqual(mapAiTransportError(new Error('x'), res), AI_JOB_ERROR_KEYS.forbidden);
   });
+
+  it('maps AbortError to aborted key', () => {
+    const err = new DOMException('Aborted', 'AbortError');
+    assert.strictEqual(mapAiTransportError(err), AI_JOB_ERROR_KEYS.aborted);
+  });
 });

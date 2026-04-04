@@ -3,6 +3,9 @@
     "id": "kwaivgi-kling-v3-pro-i2v",
     "labelKey": "ai_model_kling_v3_pro_i2v",
     "model": "kwaivgi/kling-v3.0-pro/image-to-video",
+    "output": {
+      "textBodyMerge": "append"
+    },
     "inputSchema": {
       "type": "object",
       "required": ["prompt"],
@@ -29,6 +32,9 @@
     "id": "kwaivgi-kling-v3-std-i2v",
     "labelKey": "ai_model_kling_v3_std_i2v",
     "model": "kwaivgi/kling-v3.0-std/image-to-video",
+    "output": {
+      "textBodyMerge": "append"
+    },
     "inputSchema": {
       "type": "object",
       "required": ["prompt"],

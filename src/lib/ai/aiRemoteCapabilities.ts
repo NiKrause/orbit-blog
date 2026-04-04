@@ -60,3 +60,27 @@ export function validateAiCapabilitiesPayload(
 export function encodeAiCapabilitiesPayload(payload: AiRemoteCapabilitiesPayload): Uint8Array {
   return new TextEncoder().encode(JSON.stringify(payload));
 }
+
+/**
+ * Decodes UTF-8 JSON bytes to a validated payload. Invalid UTF-8, JSON, or shape → `{ ok: false }`
+ * (never throws).
+ */
+export function decodeAiCapabilitiesPayload(
+  bytes: Uint8Array,
+  acceptedProtocolVersion: number
+): ValidateCapabilitiesResult {
+  if (!bytes || bytes.length === 0) return { ok: false };
+  let text: string;
+  try {
+    text = new TextDecoder().decode(bytes);
+  } catch {
+    return { ok: false };
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return { ok: false };
+  }
+  return validateAiCapabilitiesPayload(parsed, acceptedProtocolVersion);
+}

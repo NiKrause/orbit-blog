@@ -8,6 +8,7 @@
  * - **429** → `ai_job_error_rate_limit`
  * - **5xx** → `ai_job_error_http_server`
  * - **other 4xx** → `ai_job_error_http_client`
+ * - **AbortError** (cancelled fetch) → `ai_job_error_aborted`
  *
  * Browser "opaque" / CORS-blocked responses: `fetch` rejects or yields `type: 'opaque'`
  * with no readable body — treat like network/CORS (see `mapAiTransportError`).
@@ -26,6 +27,8 @@ export const AI_JOB_ERROR_KEYS = {
   badResponse: 'ai_job_error_bad_response',
   /** Poll loop exhausted without terminal job status (see `AiManager` max polls). */
   timeout: 'ai_job_error_timeout',
+  /** `fetch` aborted (user navigation, `AbortSignal`, etc.). */
+  aborted: 'ai_job_error_aborted',
 } as const;
 
 export class AiTransportError extends Error {
@@ -59,7 +62,7 @@ export function mapAiTransportError(err: unknown, response?: Response): string {
     return AI_JOB_ERROR_KEYS.network;
   }
   if (typeof DOMException !== 'undefined' && err instanceof DOMException && err.name === 'AbortError') {
-    return AI_JOB_ERROR_KEYS.unknown;
+    return AI_JOB_ERROR_KEYS.aborted;
   }
   return AI_JOB_ERROR_KEYS.unknown;
 }

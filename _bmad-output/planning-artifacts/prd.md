@@ -14,6 +14,18 @@ stepsCompleted:
   - step-10-nonfunctional
   - step-11-polish
   - step-12-complete
+  - step-e-01-discovery
+  - step-e-02-review
+  - step-e-03-edit
+workflow: edit
+lastEdited: '2026-04-04'
+editHistory:
+  - date: '2026-04-04'
+    changes: >-
+      Milestone 1: immediate mediaDB persistence for uploads; relay replication/pin
+      status UX (LED); VITE_RELAY_PINNED_CID_BASE; multi/single image AI inputs;
+      delete control; AIDB run logging on Generate; run outputs to media/post body;
+      open issues for relay unpin and probe method (OPTIONS vs HEAD).
 inputDocuments:
   - ../../_bmad-output/project-context.md
   - ../../docs/index.md
@@ -40,7 +52,7 @@ workflowNote: >-
 
 **Le Space Blog** (bolt-orbitdb-blog) is a local-first, peer-to-peer blogging SPA (Svelte 5, Helia, libp2p, OrbitDB). This PRD adds an **AI Manager** on the create/edit post screen: a card alongside the existing **Media Manager**, where authors configure external AI providers (starting with **Kling v3.0 Pro** and **Kling v3.0 Standard** image-to-video), run jobs, and attach generated video to posts via the existing **media** pipeline.
 
-The work is **phased in four milestones**: (1) first-party API usage with schema-driven UI, encrypted credentials in OrbitDB, and media integration; (2) **UCEP-style** libp2p discovery and provider/consumer roles so remote peers can use hosted models without embedding API keys; (3) **ETH/USDT** payment flows for paid consumption; (4) **ERC-8004**-aligned reputation for providers and feedback from consumers.
+The work is **phased in four milestones**: (1) first-party API usage with schema-driven UI, encrypted credentials in OrbitDB, **immediate mediaDB** uploads with **pinning-relay** replication/pin **status LEDs**, **AIDB** run logging on every generate, and **post body** integration for text and media outputs; (2) **UCEP-style** libp2p discovery and provider/consumer roles so remote peers can use hosted models without embedding API keys; (3) **ETH/USDT** payment flows for paid consumption; (4) **ERC-8004**-aligned reputation for providers and feedback from consumers.
 
 **Differentiator:** AI generation stays tied to the blog’s OrbitDB + media model, with a path from solo API use to **trust-minimized** network sharing (UCEP) and then **economic** and **reputation** layers—without forcing full prompt disclosure on chain.
 
@@ -52,7 +64,11 @@ The work is **phased in four milestones**: (1) first-party API usage with schema
 | SC-2 | Authors can configure provider endpoint + API key for at least two Kling I2V model IDs | Stored in dedicated OrbitDB data; keys not plaintext at rest |
 | SC-3 | UI matches model input schema | Required/optional fields from provider docs; Kling I2V: prompt, negative_prompt, image, end_image, duration, cfg_scale, sound, voice_list per provider documentation |
 | SC-4 | Images for AI jobs reuse Media Manager | Upload path writes to **mediaDB**; users can pick existing **Media** as image input |
+| SC-4b | Uploads trigger immediate **mediaDB** write | New or replaced uploads in **AI Manager** and **Media Manager** persist to **mediaDB** at upload time so the **orbitdb-pinning-relay** can replicate without waiting for post save |
+| SC-4c | Authors see relay sync state on uploads | Per-upload **status LED**: blinking **yellow** until **mediaDB** is replicated on the relay; **orange** when DB is replicated but relay-served **CID** is not yet loadable; **green** when the image is loadable from the configured relay **IPFS** base URL |
 | SC-5 | Successful run produces video in media library | New **Media** entry (and blob/CID handling consistent with existing media flow); insertable into post markdown |
+| SC-5b | Every **Generate run** is recorded | Clicking **Generate run** appends a **run** record to **AIDB** whether the job succeeds or fails; architecture defines minimal fields (model, inputs snapshot, timestamps, status, errors) |
+| SC-5c | Run outputs land in post workflow | **Image/video** (and other binary media) outputs become **Media** in **mediaDB**; **text** outputs from the chosen model populate or append to the **post body**; media outputs are **referenced in the post body** (e.g. markdown embeds) per model contract |
 | SC-6 | CORS feasibility known before ship | Spike documented: browser-direct vs proxy; decision recorded |
 | SC-7 | Milestone 2: optional remote execution | Consumer discovers provider; negotiates model list; streams request/result without consumer API key |
 | SC-8 | Milestone 3: paid runs | Consumer approves preset USDT amounts; provider verifies settlement before/around execution |
@@ -67,8 +83,14 @@ The work is **phased in four milestones**: (1) first-party API usage with schema
 - **Dynamic form generation** from machine-readable model definitions (JSON Schema or equivalent internal manifest) so adding Text2Image and other modalities later does not require one-off screens per model.
 - **AI configuration OrbitDB** registered in **settingsDB** alongside posts, comments, media (new address pointer + bootstrap in app init).
 - **Secrets:** encrypt API keys with the **current identity private key**; document future **WebAuthn + PRF / passkey** wrapping—**not in M1 scope**.
-- **Media integration:** uploads go through existing media manager; optional selection of existing media as model input.
-- **Output:** generated video ingested into **mediaDB** and available in the post editor.
+- **Media integration (immediate persistence):** Any **image upload** in **AI Manager** or **Media Manager** creates or updates **mediaDB** **immediately** (not deferred until post publish). Goal: the **orbitdb-pinning-relay** starts replicating **mediaDB** right away so **mediaIds** / **CID** fields can be scanned and CIDs pinned per relay behavior.
+- **Relay observability (product contract):** The pinning relay exposes HTTP APIs such as **pinning** (e.g. which OrbitDB addresses have been replicated) and **IPFS** (e.g. `GET /ipfs/<cid>` for pinned content). **AI Manager** (and shared upload UI where applicable) treats sync as **two steps**: (1) **mediaDB** (or relevant DB address) appears as replicated on the relay; (2) the **image CID** is pinned and retrievable via the relay’s **IPFS** route.
+- **Dev/prod URL for pinned content:** Use env **`VITE_RELAY_PINNED_CID_BASE`** (example: `http://localhost:81/ipfs/`) as the base URL for loading relay-served media in development; production uses the deployment-specific relay base.
+- **Per-upload status LED:** **Blinking yellow** while step (1) is false; **solid orange** when step (1) is true and step (2) is false; **green** when step (2) is true. **Probe for step (2):** Architecture SHALL confirm whether **OPTIONS** on `/ipfs/<cid>` is sufficient; the reference **orbitdb-relay-pinner** metrics server responds to **OPTIONS** with **204** and CORS headers for preflight but does **not** validate pin state—**green** likely requires **HEAD** or a minimal **GET** (document final choice in architecture; avoid full asset download if possible).
+- **AI image inputs:** If the selected model’s schema supports **multiple** images, the UI allows multiple uploads/selections; if only **one** image is supported, each new upload **replaces** the prior registry entry (prior CID may become eligible for unpin on the relay—**see open questions**).
+- **Remove uploaded AI input:** **AI Manager** offers a small **(×)** overlay on the upper-right of each input thumbnail (same interaction pattern as **Media Manager** where it exists) to detach/delete that input from the run form and **mediaDB** as per app delete semantics.
+- **Run history (M1 vs follow-up):** **AI Manager** (on **Generate run**—not the Media Manager card) persists a **run** to **AIDB** on every click (success or failure). **Follow-up (same milestone family, can ship shortly after core M1):** dropdown to **select**, **delete**, and **re-run** a stored run; PRD assumes data model supports this without a second migration if possible.
+- **Run outputs:** **Binary media** (image, video, other file outputs) → new **Media** in **mediaDB** with same relay LED semantics as uploads. **Text** outputs → merged into **post body** according to model type (append vs replace defined per manifest). **Post body** automatically **references** returned media (markdown or equivalent) so the editor shows embeds without manual CID pasting.
 - **Spike (blocking implementation detail):** verify whether Atlas Cloud allows browser calls or requires a same-origin or server relay due to **CORS**; document outcome and NFR implications.
 
 ### Milestone 2 — Network provider / consumer (UCEP-aligned)
@@ -98,8 +120,10 @@ The work is **phased in four milestones**: (1) first-party API usage with schema
 1. Opens create/edit post → clicks **AI** → AI Manager card opens.
 2. Enters Atlas (or compatible) base URL + API key (once); chooses **Kling v3.0 Pro I2V**.
 3. Sees generated form (prompt, negative prompt, image picker, optional end image, duration, cfg_scale, sound, voice list).
-4. Uploads a new image **or** picks existing media → image is stored/referenced like normal media.
-5. Runs job → progress/error states visible → resulting **video** appears in media library and can be inserted into the post.
+4. Uploads a new image **or** picks existing media → **mediaDB** is written **immediately**; **LED** shows **yellow** → **orange** → **green** as relay replication and CID pinning progress; preview loads from **`VITE_RELAY_PINNED_CID_BASE`** when green.
+5. Optionally removes an input via **(×)** on the thumbnail; optional multi-image inputs when the model schema allows (otherwise single slot overwrites).
+6. Clicks **Generate run** → a **run** row is stored in **AIDB** immediately (pending/completed/failed).
+7. Watches progress/errors → **video** (or other media) lands in **mediaDB** with the same relay status pattern; **text** output updates **post body**; media is **referenced in the post body** automatically where applicable.
 
 ### Journey B — Remote consumer (M2)
 
@@ -145,7 +169,14 @@ The work is **phased in four milestones**: (1) first-party API usage with schema
 | FR-5 | Model registry supports multiple entries; each has **id**, **label**, **input schema** (or link to schema doc), **transport** (http M1) | Adding a new manifest adds UI without new hardcoded Svelte form |
 | FR-6 | Kling I2V models pre-registered for Pro and Standard tiers | User can select either; request uses correct `model` string per Atlas Cloud |
 | FR-7 | Image inputs: **upload** uses existing media pipeline; **pick existing** lists mediaDB | Media documents created/linked as today for posts |
+| FR-7b | **Immediate mediaDB write** on upload in **AI Manager** and **Media Manager** | Integration: entry exists before post save; observable on relay pinning API |
+| FR-7c | **Replication + pin status** for uploads and generated media: detect relay **DB replicated**, then **CID** available via relay **IPFS** base | UI LED matches states; polling/backoff strategy in architecture |
+| FR-7d | **Relay base URL** for dev/prod supplied via **`VITE_RELAY_PINNED_CID_BASE`** | Config doc + example localhost relay |
+| FR-7e | **AI input removal** via corner **(×)** on thumbnail; behavior aligned with Media Manager | UI test; mediaDB/orbit entry updated per delete semantics |
+| FR-7f | **Multi-image** inputs when model manifest declares multiple; **single-image** models **replace** prior input on new upload | Schema-driven UI test |
 | FR-8 | Successful generation creates **Media** for output video and surfaces it in Media Manager | E2E or integration: CID/name present |
+| FR-8b | **Generate run** click always creates an **AIDB** run record (success or failure) | Integration: failed API still persists run with error |
+| FR-8c | **Outputs:** binary results → **mediaDB**; text results → **post body** per model rules; **post body** includes **references** to returned media | Content test on representative model |
 | FR-9 | Errors from API surfaced to user (auth, quota, validation) | Mock failure paths |
 | FR-10 | **CORS spike** completed; if browser blocked, app documents **relay** requirement (separate task) | Written decision in `docs/` or architecture artifact |
 | FR-11 | M2: Provider advertises **supported models** and **UCEP-compatible** handshake | Interop test with reference consumer pattern |
@@ -168,15 +199,18 @@ The work is **phased in four milestones**: (1) first-party API usage with schema
 
 1. **CORS:** Confirm Atlas Cloud (and chosen base URL) **Access-Control** policy for browser `fetch`; if disallowed, define minimal **backend or worker relay** in architecture (out of repo or tiny adjunct)—**must complete before M1 implementation**.
 2. **Exact HTTP contract:** Align request/response shapes (polling vs webhook vs SSE) with Atlas Cloud **Queue: Submit → Status → Result** flow from their docs; capture in API contract appendix during architecture.
-3. **WebAuthn + PRF:** Document key-wrapping migration path only; implementation deferred.
-4. **M3 settlement:** Compare **EOA transfers + signed receipts** vs **smart contract** for fee split—architecture phase shall list pros/cons (disputes, automation, gas, trust).
-5. **M4 gas:** Who funds registry/feedback txs—product decision.
+3. **Relay “green” probe:** Confirm in architecture whether **HEAD** or **range-limited GET** on `VITE_RELAY_PINNED_CID_BASE` + CID is required; **OPTIONS** may be supported for CORS but **not** prove pin readiness on reference **orbitdb-relay-pinner** (global **204** preflight).
+4. **Pinning API mapping:** Exact JSON shape for “**mediaDB replicated**” (e.g. `/pinning/databases` vs other route) depends on relay version—architecture pins contract against the deployed relay.
+5. **Unpin on delete:** If **mediaDB** entries are removed via **`db.del()`** (or UI delete), does the relay **stop pinning** associated CIDs? If not, file/track an **issue** on **orbitdb-relay-pinner** and document operational gap (storage growth, stale pins).
+6. **WebAuthn + PRF:** Document key-wrapping migration path only; implementation deferred.
+7. **M3 settlement:** Compare **EOA transfers + signed receipts** vs **smart contract** for fee split—architecture phase shall list pros/cons (disputes, automation, gas, trust).
+8. **M4 gas:** Who funds registry/feedback txs—product decision.
 
 ## Traceability (Milestones → themes)
 
 | Milestone | Themes |
 | --- | --- |
-| M1 | UI, OrbitDB, encryption, media pipeline, Atlas HTTP, CORS spike |
+| M1 | UI, OrbitDB, encryption, media pipeline, immediate mediaDB + relay LED, AIDB runs, Atlas HTTP, CORS spike |
 | M2 | UCEP-like discovery, libp2p streams, provider/consumer |
 | M3 | Wallet, USDT presets, provider verification |
 | M4 | ERC-8004 registries, feedback |

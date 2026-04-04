@@ -30,4 +30,22 @@ describe('FetchAiHttpTransport (mocked fetch)', () => {
       (e: unknown) => e instanceof Error && e.message === 'ai_job_error_auth',
     );
   });
+
+  it('fetchResult returns outputText alongside assetUrl', async () => {
+    globalThis.fetch = async () =>
+      new Response(
+        JSON.stringify({
+          status: 'completed',
+          output: { url: 'https://cdn.example/v.mp4', caption: 'scene A' },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    const t = new FetchAiHttpTransport();
+    const r = await t.fetchResult(
+      { jobId: 'j1' },
+      { baseUrl: 'https://api.atlascloud.ai', apiKey: 'k' },
+    );
+    assert.strictEqual(r.assetUrl, 'https://cdn.example/v.mp4');
+    assert.strictEqual(r.outputText, 'scene A');
+  });
 });

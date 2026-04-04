@@ -2,8 +2,9 @@
 story_key: 5-2-ingest-output-video-media-draft
 epic: 5
 story: 5.2
-frs: FR-8
+frs: FR-8, FR-8c, FR-7c
 ux_drs: UX-DR8, UX-DR10
+prd_alignment: 'PRD v1.1 + epics.md Story 5.2; output relay LED shares Story 4.3 behavior (FR-7c). Epic 5 delivery note: ingest/preview/post actions may live in AiManager alongside Story 5.1 job UI.'
 ---
 
 # Story 5.2: Ingest output video into Media and attach to draft
@@ -42,7 +43,11 @@ so that **I can publish it like any other asset**.
 
 9. **And** **RTL:** success actions and preview row follow **`AiManager`** **`dir`** / **`$isRTL`** patterns (**UX-DR10**).
 
-10. **Not in scope:** **Story 5.3** (NFR bundle/docs verification); **paid / network provider** paths (**Epic 6+**); **persistent job history** in AI DB; **editing** Media name after ingest.
+10. **Not in scope:** **Story 5.3** (NFR bundle/docs verification); **paid / network provider** paths (**Epic 6+**); **run history UI** (browse/re-run) in AI DB; **editing** Media name after ingest.
+
+11. **FR-8c (PRD v1.1 / epics Story 5.2) — full output contract:** **Binary** outputs → **`mediaDB`** (video path in AC1–6); **text** outputs (when the model returns text) merge into **post body** per **manifest rules** (append vs replace); **post body** must **reference** returned media (e.g. markdown/embeds) so the editor shows them without manual CID pasting. *Current implementation focuses on **video** + HTML embed; extend when manifests define text artifacts.*
+
+12. **FR-7c on outputs (epics Story 5.2):** New **Media** from job outputs shows the **same relay status LED progression** as AI inputs (**yellow** → **orange** → **green**) until the CID is loadable from **`VITE_RELAY_PINNED_CID_BASE`** (or prod equivalent). *Reuse the same component/logic as **Story 4.3** once that exists; until then, track as gap.*
 
 ## Tasks / Subtasks
 
@@ -59,10 +64,14 @@ so that **I can publish it like any other asset**.
   - [x] Update **`MarkdownRenderer.renderContent`** DOMPurify allowlist so **safe** **`<video>`** embeds ( **`controls`**, **`src`** to **https** gateway or **relative** policy) survive sanitization **if** you insert HTML.  
   - [x] **Or** extend **`marked`** custom renderer so **`![Video](ipfs://cid)`** (or similar) emits **`<video>`** with CID resolved like images — **document the chosen syntax** in Dev Notes.
 
-- [x] **Task 4 — Tests + check (AC: all)**  
+- [x] **Task 4 — Tests + check (AC: 1–10 baseline)**  
   - [x] Unit tests: ingest helper with **mock `fetch`** + mock **`mediaDB`/`helia`** (or stub **`unixfs`**) — happy path + oversize + fetch error.  
   - [x] Extend **`test/postFormAiI18n.test.ts`** `KEYS` for new strings.  
   - [x] **`pnpm check`** and **`pnpm test`** green.
+
+- [x] **Task 5 — PRD v1.1 gaps (AC: 11–12)**  
+  - [x] **Text + manifest merge rules** when provider returns non-video text (per **`inputSchema` / manifest** `output` hints if any).  
+  - [x] **Output relay LED** — wire **`AiImageField`**-class status UI to **ingested output** **Media** (depends on **4.3** polling/probe helpers or duplicate thin wrapper).
 
 ### Review Findings
 
@@ -78,6 +87,16 @@ _(BMad code-review — 2026-04-02; Blind Hunter + Edge Case Hunter + Acceptance 
 
 - [x] [Review][Dismiss] **XSS via `cid` in generated HTML** — Standard IPFS CID strings use a charset that does not break out of `data-ipfs-cid` / `src`; treat as infeasible for real CIDs. Revisit if arbitrary strings are ever accepted as CIDs.
 
+#### Code review — 2026-04-04 (BMad triage vs Story 5.2 + current code)
+
+- [x] [Review][Patch] **Import guard showed “network” when mediaDB/Helia missing** — Misleading for authors; **`AiManager.handleImportVideoToLibrary`** now uses **`ai_image_media_not_ready`** when DB/IPFS is not ready (empty URL still uses ingest network key). [`src/lib/components/AiManager.svelte`]
+
+- [x] [Review][Defer] **Post embed gateway vs relay base** — **`appendVideoEmbedToContent`** always uses **`IPFS_VIDEO_GATEWAY`** (dweb.link); preview LED uses **`VITE_RELAY_PINNED_CID_BASE`**. Consider aligning embed **`src`** with relay base when configured so drafts match relay-served URLs in dev/prod. [`src/lib/utils/videoEmbedUtils.ts`]
+
+- [x] [Review][Defer] **`output.textBodyMerge: "replace"`** — **`mergeProviderTextIntoPostBody`** replaces the **entire** draft body; correct per spec but high-impact; keep manifest default **`append`** unless product explicitly wants wipe. [`src/lib/ai/aiOutputTextMerge.ts`]
+
+**Acceptance snapshot (auditor):** AC1–10 (ingest, mediaDB, `<video>` preview, insert/selected media, **`removeMediaFromContent`** + **`removeVideoEmbedFromContent`**, i18n, RTL) **met** in code. **AC11** (**FR-8c**): **`extractOutputText`**, **`onMergeOutputText`**, manifest **`output.textBodyMerge`** **met** for Kling path. **AC12** (**FR-7c** output): **`RelaySyncLed`** + **`startRelayPinPolling`** after ingest **met** (idle when relay base unset).
+
 ## Dev Notes
 
 ### Implementation summary (5.2)
@@ -85,6 +104,8 @@ _(BMad code-review — 2026-04-02; Blind Hunter + Edge Case Hunter + Acceptance 
 - **Ingest trigger:** User clicks **Import video to library** after a successful run when **`resultAssetUrl`** is present (`canImportVideo` gates **`mediaDB`/`helia`** + stale-run via **`successRunEpoch`**).
 - **Embed syntax:** Raw HTML **`<video controls preload="metadata" playsinline data-ipfs-cid="CID" src="https://dweb.link/ipfs/CID">`** appended by **`appendVideoEmbedToContent`** in **`videoEmbedUtils.ts`** (avoids pulling **`MarkdownRenderer`** / **`store`** into Node tests). **`removeMediaFromContent`** also strips this block via **`removeVideoEmbedFromContent`**.
 - **Preview after ingest:** **`<video>`** uses **dweb.link** gateway URL for the ingested CID (acceptable per AC3 “gateway fallback”).
+- **FR-8c text merge:** Provider JSON parsed by **`extractOutputText`** (e.g. `text`, `caption`, `data.text`, `output.caption`); **not** treated as body text if it duplicates **`assetUrl`** or is a bare `http(s)` URL. **`manifest.output.textBodyMerge`**: **`append`** (default) adds `\n\n` + text; **`replace`** replaces draft body. Applied automatically when **`fetchResult`** returns **`outputText`** and **`PostForm`** passes **`onMergeOutputText`**.
+- **FR-7c output LED:** After ingest, **`RelaySyncLed`** on the preview uses **`startRelayPinPolling`** + **`getRelayPinnedCidBase()`** (idle when env base missing).
 - **Tests:** **`TS_NODE_TRANSPILE_ONLY=true`** added to **`package.json`** `test` script so **`ts-node`** does not fail on pre-existing **`src/lib/utils.ts`** peer-id typing under **`tsconfig.test.json`**.
 
 ### Architecture compliance
@@ -130,7 +151,7 @@ _(BMad code-review — 2026-04-02; Blind Hunter + Edge Case Hunter + Acceptance 
 
 ### Agent Model Used
 
-Cursor agent — 2026-04-02
+Cursor agent — 2026-04-02; Cursor agent — 2026-04-04 (Task 5 / FR-8c + FR-7c output LED)
 
 ### Debug Log References
 
@@ -144,6 +165,7 @@ Cursor agent — 2026-04-02
 - **`PostForm`**: wires callbacks to **`content`** / **`selectedMedia`**.
 - **`MarkdownRenderer`**: DOMPurify **`video` / `source`**, attrs **`controls`**, **`preload`**, **`playsinline`**, **`data-ipfs-cid`**.
 - **`package.json`**: **`TS_NODE_TRANSPILE_ONLY=true`** for **`mocha`** TS tests.
+- **Task 5 (2026-04-04):** **`aiFetchResultParse.extractOutputText`**, **`AiFetchResultOutput.outputText`** in **`FetchAiHttpTransport`**, **`aiOutputTextMerge`** (`mergeProviderTextIntoPostBody`, **`textBodyMergeModeForManifest`**), manifest **`output.textBodyMerge`** in **`kling-i2v.json`**, **`PostForm` → `AiManager` `onMergeOutputText`** (merge on successful **`fetchResult`** when text present). **Output relay:** **`RelaySyncLed`** + **`startRelayPinPolling`** on ingested video CID (same helpers as **`AiImageField`** / Story 4.3). **`MockAiHttpTransport.setFetchOutputText`** for tests.
 
 ### File List
 
@@ -159,10 +181,22 @@ Cursor agent — 2026-04-02
 - `test/postUtilsVideo.test.ts`
 - `test/postFormAiI18n.test.ts`
 - `package.json`
+- `src/lib/ai/aiFetchResultParse.ts`
+- `src/lib/ai/aiOutputTextMerge.ts`
+- `src/lib/ai/types.ts` (`outputText`, **`AiManifestOutputHints`**)
+- `src/lib/ai/fetchAiHttpTransport.ts`
+- `src/lib/ai/mockAiHttpTransport.ts`
+- `src/lib/ai/manifests/kling-i2v.json`
+- `src/lib/ai/index.ts`
+- `test/aiFetchResultParse.test.ts`
+- `test/aiOutputTextMerge.test.ts`
 
 ### Change Log
 
 - **2026-04-02:** Story 5.2 implemented — ingest, video embed, i18n, tests; sprint status → done.
+- **2026-04-04:** Direct edit — **PRD v1.1** / **`epics.md`** alignment: **FR-8c**, **FR-7c**; **AC11–12** + **Task 5**; status **review** until text-merge + output **LED** match epic (or epic is revised).
+- **2026-04-04:** Task 5 implemented — **FR-8c** text merge + **FR-7c** output **relay LED**; tests; story **review** (all tasks complete).
+- **2026-04-04:** **bmad-code-review** — import-guard i18n fix; acceptance snapshot recorded; status **done**; sprint **5-2** → **done**.
 
 ---
 

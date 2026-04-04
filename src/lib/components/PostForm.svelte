@@ -16,6 +16,7 @@ import {
   removeMediaFromContent,
   validateEncryptionFields,
 } from '$lib/utils/postUtils.js';
+import { mergeProviderTextIntoPostBody } from '$lib/ai/aiOutputTextMerge.js';
 import { renderContent } from '$lib/services/MarkdownRenderer.js';
 import MultiSelect from './MultiSelect.svelte';
 import { MarkdownImportResolver } from '$lib/services/MarkdownImportResolver.js';
@@ -125,6 +126,10 @@ import { info } from '$lib/utils/logger.js';
 
   function handleAddAiVideoToSelectedMedia(cid: string) {
     selectedMedia = addCidToSelectedMedia(cid, selectedMedia);
+  }
+
+  function handleMergeAiOutputText(text: string, mode: 'append' | 'replace') {
+    content = mergeProviderTextIntoPostBody(content, text, mode);
   }
 
   async function removeSelectedMedia(mediaId: string) {
@@ -324,6 +329,7 @@ import { info } from '$lib/utils/logger.js';
       <AiManager
         onInsertVideoEmbed={handleInsertAiVideoEmbed}
         onAddVideoToSelectedMedia={handleAddAiVideoToSelectedMedia}
+        onMergeOutputText={handleMergeAiOutputText}
       />
     </div>
 

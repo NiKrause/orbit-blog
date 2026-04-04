@@ -39,4 +39,28 @@ describe('buildSubmitJobInput', () => {
     assert.strictEqual(input.body.image_url, 'https://dweb.link/ipfs/bafybeig');
     assert.strictEqual(input.body.duration, 10);
   });
+
+  it('uses first schema-ordered x-ui:image only when multiple are present', () => {
+    const manifest: AiModelManifest = {
+      id: 'm',
+      labelKey: 'ai_model_kling_v3_pro_i2v',
+      model: 'kwaivgi/kling-v3.0-pro/image-to-video',
+      inputSchema: {
+        type: 'object',
+        required: ['prompt'],
+        properties: {
+          prompt: { type: 'string', titleKey: 'ai_schema_field_prompt' },
+          image: { type: 'string', titleKey: 'ai_schema_field_image_url', 'x-ui': 'image' },
+          imageB: { type: 'string', titleKey: 'ai_schema_field_image_url', 'x-ui': 'image' },
+        },
+      },
+    };
+    const input = buildSubmitJobInput(manifest, {
+      prompt: 'x',
+      image: 'bafyFIRST',
+      imageB: 'bafySECOND',
+    });
+    assert.strictEqual(input.body.image_url, 'https://dweb.link/ipfs/bafyFIRST');
+    assert.strictEqual((input.body as { imageB?: string }).imageB, undefined);
+  });
 });

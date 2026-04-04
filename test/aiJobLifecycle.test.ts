@@ -22,6 +22,18 @@ describe('MockAiHttpTransport job lifecycle (Story 5.1)', () => {
     assert.ok(out.assetUrl?.includes(jobId));
   });
 
+  it('fetchResult returns outputText when set via setFetchOutputText (Story 5.2)', async () => {
+    const t = new MockAiHttpTransport();
+    const { jobId } = await t.submitJob({ model: 'm', body: {} });
+    for (let i = 0; i < 10; i += 1) {
+      const p = await t.pollStatus({ jobId });
+      if (p.status === 'succeeded') break;
+    }
+    t.setFetchOutputText(jobId, 'mock caption');
+    const out = await t.fetchResult({ jobId });
+    assert.strictEqual(out.outputText, 'mock caption');
+  });
+
   it('poll fails after markFailed', async () => {
     const t = new MockAiHttpTransport();
     const { jobId } = await t.submitJob({ model: 'm', body: {} });

@@ -1,15 +1,16 @@
 import type { Libp2p } from 'libp2p';
-import type { Message } from '@libp2p/interface/pubsub';
+import type { Message } from '@libp2p/interface-pubsub';
 import {
   AI_REMOTE_PROTOCOL_VERSION,
+  decodeAiCapabilitiesPayload,
+  encodeAiCapabilitiesPayload,
   LE_SPACE_AI_CAPABILITIES_TOPIC,
-  validateAiCapabilitiesPayload,
   type AiRemoteCapabilitiesPayload,
 } from './aiRemoteCapabilities.js';
 import { listKlingI2vManifests } from './modelRegistry.js';
 import { createLogger } from '../utils/logger.js';
 
-const log = createLogger('ai-cap-pubsub');
+const log = createLogger('p2p');
 
 /** Latest known remote advertisement per libp2p peer id string (from signed pubsub sender only). */
 const remoteCapabilitiesByPeerId = new Map<string, AiRemoteCapabilitiesPayload>();
@@ -65,7 +66,7 @@ export function startAiCapabilitiesPubsub(libp2p: Libp2p): () => void {
       protocolVersion: AI_REMOTE_PROTOCOL_VERSION,
       models,
     };
-    const bytes = new TextEncoder().encode(JSON.stringify(payload));
+    const bytes = encodeAiCapabilitiesPayload(payload);
     try {
       await pubsub.publish(LE_SPACE_AI_CAPABILITIES_TOPIC, bytes);
     } catch {
@@ -83,21 +84,7 @@ export function startAiCapabilitiesPubsub(libp2p: Libp2p): () => void {
       const data = msg.data;
       if (!data || data.length === 0) return;
 
-      let text: string;
-      try {
-        text = new TextDecoder().decode(data);
-      } catch {
-        return;
-      }
-
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(text);
-      } catch {
-        return;
-      }
-
-      const validated = validateAiCapabilitiesPayload(parsed, AI_REMOTE_PROTOCOL_VERSION);
+      const validated = decodeAiCapabilitiesPayload(data, AI_REMOTE_PROTOCOL_VERSION);
       if (!validated.ok) return;
 
       remoteCapabilitiesByPeerId.set(sender, validated.value);

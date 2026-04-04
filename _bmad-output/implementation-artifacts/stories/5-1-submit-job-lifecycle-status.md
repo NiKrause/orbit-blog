@@ -2,8 +2,9 @@
 story_key: 5-1-submit-job-lifecycle-status
 epic: 5
 story: 5.1
-frs: FR-8, FR-9
+frs: FR-8b, FR-9
 ux_drs: UX-DR7, UX-DR10
+prd_alignment: 'PRD v1.1 + epics.md Epic 5; Story 5.1 = job lifecycle + FR-8b + FR-9; Story 5.2 = FR-8/FR-8c output details (may ship in same AiManager panel — planning note 2026-04-04).'
 ---
 
 # Story 5.1: Submit job and show lifecycle status
@@ -26,7 +27,7 @@ so that **I know whether to wait, fix config, or retry**.
 
 2. **And** the UI enters a **running** phase: **Run** is disabled while the job is non-terminal; the **job status area** (UX **§7.2** item **6**) shows **queued** → **running** as reported by **`pollStatus`** until **succeeded** or **failed** (**UX-DR7**).
 
-3. **And** on **terminal success**, the status area shows an explicit **succeeded** state (e.g. checkmark + short message). **Video preview, `<video>` embed, and writing output to `mediaDB`** are **Story 5.2** — this story may show a **non-sensitive** hint only (e.g. optional `assetUrl` from **`fetchResult`** as plain text/link) if already available, but **must not** block on full ingestion.
+3. **And** on **terminal success**, the status area shows an explicit **succeeded** state (e.g. short confirmation message). The app **may** show a **non-sensitive** output hint (e.g. optional `assetUrl` from **`fetchResult`** as plain text/link). **Planning (2026-04-04, option A):** import-to-library, **`<video>`** preview, and draft / selected-media actions **may** live in the same **`AiManager`** panel as part of the Epic 5 increment; **Story 5.2** remains the **authoritative** spec for **FR-8 / FR-8c** output behavior (ingest, embed pattern, relay LED, text merge). Success of the **job** must not **depend** on ingestion completing (ingest remains user-triggered or best-effort per 5.2).
 
 4. **And** on **terminal failure** (including **`pollStatus`** returning **`failed`**, **`submitJob`** throw, or transport error), the user sees an **inline** error using **`var(--danger)`** with an **i18n** message (**FR-9**); **no toast-only** for blocking errors (**UX** §7.2 item **7**).
 
@@ -40,7 +41,9 @@ so that **I know whether to wait, fix config, or retry**.
 
 9. **And** **RTL:** job status row and error text align with **`AiManager`** **`dir`** / **`$isRTL`** patterns (**UX-DR10**).
 
-10. **Not in scope:** **Story 5.2** — ingest output video into `mediaDB`, attach to draft, markdown insertion; **persistent job history** documents in AI DB (optional follow-up); **cancel job** API if vendor does not support it; **dynamic import** bundle split (NFR-3) unless already trivial.
+10. **Not in scope (5.1 slice):** **UI** for browsing/deleting/re-running past runs (PRD follow-up); **cancel job** API if vendor does not support it; **dynamic import** bundle split (NFR-3) unless already trivial. **Story 5.2** defines **FR-8 / FR-8c / FR-7c** output details (ingest, markdown/HTML embed rules, relay LED on output media, text merge); those may be **implemented in the same component** as 5.1 — see **epics.md** Epic 5 delivery note.
+
+11. **FR-8b (PRD v1.1 / epics Story 5.1):** On **Generate run**, append a **run** document to **`aiDB`** **immediately** (pending → terminal), including when the API fails — at minimum model id, inputs snapshot, timestamps, status, errors. *Epic text is authoritative; this supersedes any earlier note that treated AIDB runs as optional.*
 
 ## Tasks / Subtasks
 
@@ -52,17 +55,20 @@ so that **I know whether to wait, fix config, or retry**.
 - [x] **Task 2 — Run control + lifecycle state (AC: 2, 4, 7–9)**  
   - [x] Add **Run generation** button to **`AiManager.svelte`** (or extracted subcomponent): disabled when **`!canSubmitInputs`**, **`loadingCredential`**, missing **`aiDB`/`identitySeed32`**, or no saved key for model, or while job **in flight**.  
   - [x] Implement **async lifecycle** loop: **`submitJob` → poll until `succeeded` \| `failed`** (respect **`MockAiHttpTransport`** needing multiple polls). Use **`$state`** / **`$derived`** for **`jobPhase`**: `idle` \| `running` \| `succeeded` \| `failed`.  
-  - [x] On success, optionally call **`fetchResult`** to show **`assetUrl`** hint; catch errors without failing the whole UX if **5.2** will handle media.  
+  - [x] On success, optionally call **`fetchResult`** to show **`assetUrl`** hint; catch errors without failing the whole UX; ingest/preview may follow per **Story 5.2** in the same panel.  
   - [x] **Inline** error display + **spinner** / status text per **UX-DR7**.
 
 - [x] **Task 3 — Error mapping (AC: 4, 5)**  
   - [x] Centralize **HTTP → i18n key** mapping in a **pure** function (e.g. `mapAiTransportError(err): string` returning an **i18n key**).  
   - [x] Cover **CORS** / **TypeError** / **status codes** paths used in **FR-9** tests.
 
-- [x] **Task 4 — Tests + check (AC: all)**  
+- [x] **Task 4 — Tests + check (AC: 1–10 baseline)**  
   - [x] Unit tests: error mapper, **mock transport** lifecycle (happy path + failure), optional **buildSubmitJobInput** shape.  
   - [x] Extend **`test/postFormAiI18n.test.ts`** `KEYS` for new **`ai_job_*`** / **`ai_run_*`** keys.  
   - [x] **`pnpm check`** and **`pnpm test`** green.
+
+- [x] **Task 5 — FR-8b AIDB run row (AC: 11)**  
+  - [x] On **Generate** click (before or right after transport call), **`aiDB.put`** a **run** doc with agreed shape (see **`prd.md`**, architecture); update on terminal success/failure; verify with integration or unit test with mock DB.
 
 ### Review Findings
 
@@ -72,12 +78,24 @@ _(BMad code-review — 2026-04-02; single-pass blind + edge + acceptance audit.)
 
 - [x] [Review][Defer] **Sprint hygiene: Epic 4 story status** — `4-1-json-schema-field-renderer` remains `in-progress` in `sprint-status.yaml` while 5.1 was developed; reconcile when convenient. [pre-existing tracking]
 
+_(BMad code-review — 2026-04-04; blind + edge + acceptance audit.)_
+
+- [x] [Review][Decision] **Story 5.1 vs AC10 (5.2 scope)** — **Resolved (option A, 2026-04-04):** treat **merged delivery** in **`AiManager`** as intentional; **AC3/AC10** and **`epics.md`** updated so **5.1** = job + AIDB + errors and **5.2** = tracked FR-8/FR-8c output contract (same panel allowed).
+
+- [x] [Review][Patch] **`AbortError` maps to generic unknown** — **Fixed:** `AI_JOB_ERROR_KEYS.aborted` / `ai_job_error_aborted` in all locales; `mapAiTransportError` + unit test. [`aiJobErrors.ts`, `test/aiJobErrors.test.ts`]
+
+- [x] [Review][Patch] **Multiple `x-ui: image` fields** — **Fixed:** JSDoc documents single-URL constraint; first schema-ordered image wins (`body.image_url` already set → skip); `buildSubmitJobInput` test. [`buildSubmitJobInput.ts`, `test/buildSubmitJobInput.test.ts`]
+
+- [x] [Review][Patch] **RTL consistency on success copy** — **Fixed:** succeeded line and result URL block use `flex` + `$isRTL` `flex-row-reverse` like running/failed. [`AiManager.svelte`]
+
+- [x] [Review][Defer] **Silent AIDB `put` failures** — Initial and patched run docs swallow `put` errors so generation never blocks (matches inline comment / NFR-1 posture); users may have no persisted run history if OrbitDB write fails. Accept as tradeoff unless product wants a non-blocking warning. [`AiManager.svelte` ~301–313, 303–307]
+
 ## Dev Notes
 
 ### Architecture compliance
 
 - [Source: `_bmad-output/planning-artifacts/architecture.md` — API patterns, FR-9] — UI calls **transport**, not scattered **`fetch`**; **job state machine** `queued` → `running` → `succeeded` \| `failed` aligned with **`AiPollStatusResult`**.  
-- [Source: `_bmad-output/planning-artifacts/architecture.md` — Jobs in AI DB] — **5.1** may stay **ephemeral UI state**; persisting **`job:{uuid}`** docs is optional and not required for AC.  
+- [Source: `_bmad-output/planning-artifacts/architecture.md` — Jobs in AI DB] — **PRD v1.1:** **FR-8b** requires **AIDB** **run** persistence on every **Generate**; **5.1** owns the write path — **Task 5**. (History **UI** can remain a follow-up.)  
 - [Source: `_bmad-output/planning-artifacts/ux-design-specification.md` — §7.2 items 5–7] — **Run** disabled rules; **job status area**; **inline** errors.
 
 ### Previous story intelligence (4.x)
@@ -109,7 +127,7 @@ _(BMad code-review — 2026-04-02; single-pass blind + edge + acceptance audit.)
 
 ### Agent Model Used
 
-Cursor agent — 2026-04-02
+Cursor agent — 2026-04-02; Cursor agent — 2026-04-04 (Task 5 / FR-8b)
 
 ### Debug Log References
 
@@ -120,14 +138,15 @@ Cursor agent — 2026-04-02
 - **`FetchAiHttpTransport`**: Atlas `POST /api/v1/model/generateVideo`, `GET /api/v1/model/getResult?predictionId=` per Atlas video docs; maps `completed`/`failed`/etc. to `AiJobLifecycleStatus`.
 - **`buildSubmitJobInput`**: schema-ordered body; **`x-ui: image`** maps to Atlas **`image`** (HTTPS URL) via **`cidOrHttpToImageUrl`** for bare CIDs.
 - **`AiManager`**: **`runEpoch`** abandons in-flight runs on model change; **`handleRunGeneration`** uses **`loadAiCredentialDetailed`** + **`FetchAiHttpTransport`**; **`hasSavedCredential`** requires a saved key (masked), not only a typed key; max **180** polls (~6 min at 2s); job status UI + **`ai_job_*`** / **`ai_run_generation`**.
-- **`aiJobErrors.ts`**: **`AiTransportError`**, **`mapAiTransportError`**, **`mapHttpStatusToAiJobErrorKey`** (401 → auth, **403 → `ai_job_error_forbidden`**, 429, 4xx/5xx, CORS/status 0).
+- **`aiJobErrors.ts`**: **`AiTransportError`**, **`mapAiTransportError`**, **`mapHttpStatusToAiJobErrorKey`** (401 → auth, **403 → `ai_job_error_forbidden`**, 429, 4xx/5xx, CORS/status 0); **`AbortError` → `ai_job_error_aborted`** (2026-04-04 review patch).
+- **`aiRunDocument.ts` + `AiManager` (FR-8b / Task 5):** On each **Generate**, **`run:`** documents in **`aiDB`** — **`pending`** immediately (inputs snapshot, manifest + provider model ids, timestamps), then **`queued`** + **`providerJobId`** after submit, terminal **`succeeded`** / **`failed`** with **`errorKey`** / optional **`resultAssetUrl`**; **`test/aiRunDocument.test.ts`** covers shape + mock **`put`** sequence.
 
 ### File List
 
 - `src/lib/ai/aiJobErrors.ts`
 - `src/lib/ai/fetchAiHttpTransport.ts`
 - `src/lib/ai/buildSubmitJobInput.ts`
-- `src/lib/ai/index.ts`
+- `src/lib/ai/index.ts` (exports **`aiRunDocument`** helpers)
 - `src/lib/components/AiManager.svelte`
 - `src/lib/i18n/*.js`
 - `test/aiJobErrors.test.ts`
@@ -135,12 +154,17 @@ Cursor agent — 2026-04-02
 - `test/fetchAiHttpTransport.test.ts`
 - `test/aiJobLifecycle.test.ts`
 - `test/postFormAiI18n.test.ts`
+- `test/aiRunDocument.test.ts`
 - `package.json`
+- `src/lib/ai/aiRunDocument.ts`
 
 ### Change Log
 
 - **2026-04-02:** Story 5.1 — Run generation, Atlas fetch transport, error i18n mapping, tests; sprint status → review.
 - **2026-04-02:** Code-review patch — poll exhaustion uses `ai_job_error_timeout` (not `unknown`); `el.js` indent normalized for `show_preview` block.
+- **2026-04-04:** Direct edit — **PRD v1.1** / **`epics.md`** alignment: **FRs** corrected to **FR-8b**, **FR-9**; **AC11** + **Task 5** for **AIDB** run records; status **review** until **FR-8b** implemented in code.
+- **2026-04-04:** Task 5 implemented — **`aiRunDocument`**, **`AiManager`** **`aiDB.put`** lifecycle for **`run:`** docs; **`test/aiRunDocument.test.ts`**; story **review** (all tasks complete).
+- **2026-04-04:** Planning **option A** — AC3/AC10 revised for merged **5.1+5.2** UI in **`AiManager`**; **`epics.md`** Epic 5 delivery note; review decision closed; status **done**.
 
 ---
 

@@ -8,7 +8,7 @@ ux_drs: UX placeholder for M2 remote (peer list + model badges — full UI can f
 
 # Story 6.1: Advertise supported models to peers
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -42,20 +42,36 @@ so that **consumers can choose me in the network layer** (FR-11).
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — Types + protocol constants (AC: 2, 3, 6)**  
-  - [ ] Add a small module under `src/lib/ai/` (e.g. `aiRemoteCapabilities.ts` or `network/aiCapabilities.ts`) exporting `AI_REMOTE_PROTOCOL_VERSION`, topic string, and TypeScript types for the capability message.  
-  - [ ] Document payload JSON shape in a file-level comment; reference [architecture.md — Discovery & M2 transport](../../planning-artifacts/architecture.md).
+- [x] **Task 1 — Types + protocol constants (AC: 2, 3, 6)**  
+  - [x] Add a small module under `src/lib/ai/` (e.g. `aiRemoteCapabilities.ts` or `network/aiCapabilities.ts`) exporting `AI_REMOTE_PROTOCOL_VERSION`, topic string, and TypeScript types for the capability message.  
+  - [x] Document payload JSON shape in a file-level comment; reference [architecture.md — Discovery & M2 transport](../../planning-artifacts/architecture.md).
 
-- [ ] **Task 2 — Pubsub publish/subscribe wiring (AC: 1, 4, 5)**  
-  - [ ] From a **single** initialization path (likely `LeSpaceBlog.svelte` after `$libp2p` exists, or a helper imported from e.g. `src/lib/ai/aiCapabilitiesPubsub.ts`), obtain **`libp2p.services.pubsub`** (project typings use `any` for pubsub today — see `src/lib/types.ts` / `src/types/libp2p.d.ts`). **Subscribe** to `LE_SPACE_AI_CAPABILITIES_TOPIC` **before** publishing.  
-  - [ ] **Wire format:** gossipsub carries **`Uint8Array`** — use **`new TextEncoder().encode(JSON.stringify(payload))`** for publish; on message, **`new TextDecoder().decode(data)`** then **`JSON.parse`** inside **try/catch** (invalid UTF-8 / JSON → ignore per AC5).  
-  - [ ] **Sender key:** use the gossipsub message’s **sender peer id** (libp2p gossipsub `Message` / event detail — use the API exposed by `@chainsafe/libp2p-gossipsub` for **from** / **propagationSource**) to key the in-memory map of remote capabilities — **do not** trust a `peerId` field inside JSON unless validated.  
-  - [ ] Publish local capabilities using `listKlingI2vManifests().map((m) => m.id)`; if the array is empty (future registry), **skip publish** or document no-op — AC2 requires **non-empty** `models` when advertising.  
-  - [ ] Ensure cleanup on teardown (unsubscribe / clear interval) to avoid duplicate listeners on hot reload.
+- [x] **Task 2 — Pubsub publish/subscribe wiring (AC: 1, 4, 5)**  
+  - [x] From a **single** initialization path (likely `LeSpaceBlog.svelte` after `$libp2p` exists, or a helper imported from e.g. `src/lib/ai/aiCapabilitiesPubsub.ts`), obtain **`libp2p.services.pubsub`** (project typings use `any` for pubsub today — see `src/lib/types.ts` / `src/types/libp2p.d.ts`). **Subscribe** to `LE_SPACE_AI_CAPABILITIES_TOPIC` **before** publishing.  
+  - [x] **Wire format:** gossipsub carries **`Uint8Array`** — use **`new TextEncoder().encode(JSON.stringify(payload))`** for publish; on message, **`new TextDecoder().decode(data)`** then **`JSON.parse`** inside **try/catch** (invalid UTF-8 / JSON → ignore per AC5).  
+  - [x] **Sender key:** use the gossipsub message’s **sender peer id** (libp2p gossipsub `Message` / event detail — use the API exposed by `@chainsafe/libp2p-gossipsub` for **from** / **propagationSource**) to key the in-memory map of remote capabilities — **do not** trust a `peerId` field inside JSON unless validated.  
+  - [x] Publish local capabilities using `listKlingI2vManifests().map((m) => m.id)`; if the array is empty (future registry), **skip publish** or document no-op — AC2 requires **non-empty** `models` when advertising.  
+  - [x] Ensure cleanup on teardown (unsubscribe / clear interval) to avoid duplicate listeners on hot reload.
 
-- [ ] **Task 3 — Tests + check (AC: 7)**  
-  - [ ] Unit tests for parse/validate and version mismatch handling.  
-  - [ ] `pnpm check` and `pnpm test` green.
+- [x] **Task 3 — Tests + check (AC: 7)**  
+  - [x] Unit tests for parse/validate and version mismatch handling.  
+  - [x] `pnpm check` and `pnpm test` green.
+
+### Review Findings
+
+- [ ] [Review][Decision] Unsplit vs split PR — The same working tree combines Story 6.1 code (`aiCapabilitiesPubsub`, `LeSpaceBlog`, tests) with large PRD v1.1 / epics / UX edits, Story 4.2 markdown updates, sprint-status moves across epics, and lockfile churn. Decide whether to ship as one changeset or split commits/PRs for traceability and revert safety.
+
+- [ ] [Review][Decision] Sprint status: Story 4.2 `review` + Epic 4 `in-progress` — `sprint-status.yaml` marks `4-2-image-input-library-upload` as `review` and sets `6-2-consumer-runs-remote-job-without-provider-api-secret` to `ready-for-dev` alongside 6.1. Confirm this reflects intentional Scrum state, not accidental coupling to the 6.1 branch.
+
+- [ ] [Review][Patch] Use fatal UTF-8 decode for capability bytes [`src/lib/ai/aiRemoteCapabilities.ts`] — Default `TextDecoder` replaces malformed sequences instead of throwing; `{ fatal: true }` (with catch → `{ ok: false }`) aligns more tightly with AC5’s invalid UTF-8 handling.
+
+- [ ] [Review][Patch] Clear `remoteCapabilitiesByPeerId` in the pubsub disposer [`src/lib/ai/aiCapabilitiesPubsub.ts`] — The module-level map outlives teardown; clearing on dispose avoids stale advertisements after libp2p re-init or HMR.
+
+- [ ] [Review][Patch] Track `test/aiRemoteCapabilities.test.ts` in version control — `package.json` already includes it in the Mocha list; an untracked file breaks `pnpm test` for clones/CI until committed.
+
+- [x] [Review][Defer] Cap incoming gossipsub payload size before `JSON.parse` [`src/lib/ai/aiCapabilitiesPubsub.ts`] — deferred, pre-existing hardening; max-bytes policy not specified in Story 6.1.
+
+- [x] [Review][Defer] Silent `publish` failure path [`src/lib/ai/aiCapabilitiesPubsub.ts` `publishLocal`] — deferred, pre-existing tradeoff (no noisy logs / no payload leakage); revisit with debug metrics if mesh timing issues need diagnosis.
 
 ## Dev Notes
 
@@ -92,15 +108,26 @@ so that **consumers can choose me in the network layer** (FR-11).
 
 ### Agent Model Used
 
-_(filled on implementation)_
+Composer (Cursor agent)
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Wired `startAiCapabilitiesPubsub` from `initializeApp` after `setupPeerEventListeners`, with dispose on re-init and `onDestroy`.
+- Added `decodeAiCapabilitiesPayload` for encode/decode tests and reused it in the pubsub handler; fixed `Message` import path (`@libp2p/interface-pubsub`) and logger category for `pnpm check`.
+
 ### File List
 
+- `src/lib/ai/aiRemoteCapabilities.ts`
+- `src/lib/ai/aiCapabilitiesPubsub.ts`
+- `src/lib/components/LeSpaceBlog.svelte`
+- `test/aiRemoteCapabilities.test.ts`
+- `package.json`
+
 ### Change Log
+
+- 2026-04-04 — Story 6.1: AI capability pubsub advertisement, decode helper, unit tests, LeSpaceBlog lifecycle wiring; sprint status → review.
 
 ---
 

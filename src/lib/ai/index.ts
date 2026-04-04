@@ -6,6 +6,7 @@ export type {
   AiInputPropertySchema,
   AiInputSchema,
   AiJobLifecycleStatus,
+  AiManifestOutputHints,
   AiModelManifest,
   AiPollStatusInput,
   AiPollStatusResult,
@@ -49,3 +50,17 @@ export {
   mapHttpStatusToAiJobErrorKey,
 } from './aiJobErrors.js';
 export { maskApiKeyLast4 } from './maskApiKey.js';
+export { extractOutputText } from './aiFetchResultParse.js';
+export {
+  mergeProviderTextIntoPostBody,
+  textBodyMergeModeForManifest,
+} from './aiOutputTextMerge.js';
+export type { AiRunDocument, AiRunDocPatch, AiRunRecordStatus } from './aiRunDocument.js';
+export {
+  AI_RUN_DOC_PREFIX,
+  createPendingAiRunDoc,
+  newAiRunDocumentId,
+  patchAiRun,
+  persistAiRunDoc,
+  snapshotAiInputs,
+} from './aiRunDocument.js';

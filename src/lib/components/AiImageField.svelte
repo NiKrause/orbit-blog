@@ -8,6 +8,9 @@
   import { unixfs } from '@helia/unixfs';
   import { CID } from 'multiformats/cid';
   import { error } from '$lib/utils/logger.js';
+  import RelaySyncLed from './RelaySyncLed.svelte';
+  import { getRelayPinnedCidBase, relayPreviewUrl } from '$lib/relay/relayEnv.js';
+  import { startRelayPinPolling, type RelayLedState } from '$lib/services/relayPinStatus.js';
 
   interface Props {
     fieldId: string;
@@ -26,6 +29,68 @@
   const mediaCache = new Map<string, string>();
 
   const ready = $derived($mediaDB != null && $helia != null);
+
+  let relayLedState = $state<RelayLedState>('idle');
+  let selectedPreviewLocal = $state<string | null>(null);
+  let reduceMotion = $state(false);
+
+  const pinBase = $derived(getRelayPinnedCidBase());
+
+  $effect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    reduceMotion = mq.matches;
+    const onChange = () => {
+      reduceMotion = mq.matches;
+    };
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  });
+
+  $effect(() => {
+    const cid = selectedCid?.trim();
+    if (!cid) {
+      selectedPreviewLocal = null;
+      return;
+    }
+    let cancelled = false;
+    void getBlobUrl(cid).then((u) => {
+      if (!cancelled) selectedPreviewLocal = u;
+    });
+    return () => {
+      cancelled = true;
+    };
+  });
+
+  $effect(() => {
+    const cid = selectedCid?.trim();
+    const base = getRelayPinnedCidBase();
+    if (!cid || !base) {
+      relayLedState = 'idle';
+      return;
+    }
+    const ac = new AbortController();
+    relayLedState = 'yellow';
+    const stop = startRelayPinPolling({
+      cid,
+      pinnedBase: base,
+      signal: ac.signal,
+      onState: (s) => {
+        relayLedState = s;
+      },
+    });
+    return () => {
+      ac.abort();
+      stop();
+    };
+  });
+
+  const thumbSrc = $derived.by(() => {
+    const cid = selectedCid?.trim();
+    if (!cid) return null as string | null;
+    if (relayLedState === 'green' && pinBase) return relayPreviewUrl(pinBase, cid);
+    return selectedPreviewLocal ?? `https://dweb.link/ipfs/${cid}`;
+  });
 
   $effect(() => {
     if ($helia) {
@@ -162,6 +227,43 @@
   function pickFromLibrary(cid: string) {
     onSelectCid(cid);
   }
+
+  /** FR-7e: clear job input and remove `Media` row like {@link MediaUploader} delete. */
+  async function removeSelectedImage(e: MouseEvent | TouchEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const cid = selectedCid?.trim();
+    const db = $mediaDB;
+    if (!cid) {
+      onSelectCid('');
+      return;
+    }
+    if (db) {
+      try {
+        const all = await db.all();
+        for (const entry of all) {
+          const m = entry.value as { _id?: string; cid?: string };
+          if (m?.cid === cid && m._id) {
+            await db.del(m._id);
+            break;
+          }
+        }
+      } catch (err) {
+        error('AiImageField removeSelectedImage', err);
+      }
+    }
+    const cached = mediaCache.get(cid);
+    if (cached) {
+      try {
+        URL.revokeObjectURL(cached);
+      } catch {
+        /* ignore */
+      }
+      mediaCache.delete(cid);
+    }
+    onSelectCid('');
+    await loadImages();
+  }
 </script>
 
 <div
@@ -220,15 +322,54 @@
     </div>
 
     {#if selectedCid}
-      <p
-        class="text-xs font-mono m-0 py-1 px-2 rounded border"
-        style="border-color: var(--border); color: var(--text);"
-        data-testid="ai-image-selected-hint"
-        aria-live="polite"
-      >
-        {$_('ai_image_selected_label')}
-        {formatCidHint(selectedCid)}
-      </p>
+      <div class="space-y-1">
+        <div
+          class="relative inline-block max-w-full rounded border overflow-hidden"
+          style="border-color: var(--border);"
+          data-testid="ai-image-selected-thumb-wrap"
+        >
+          {#if thumbSrc}
+            <img
+              src={thumbSrc}
+              alt=""
+              class="block max-h-36 w-auto max-w-full object-contain bg-black/5"
+              data-testid="ai-image-selected-thumb"
+            />
+          {/if}
+          {#if pinBase}
+            <RelaySyncLed state={relayLedState} reducedMotion={reduceMotion} />
+          {/if}
+          <button
+            type="button"
+            class="absolute top-1 z-[3] min-h-8 min-w-8 flex items-center justify-center rounded-full bg-red-500 hover:bg-red-600 text-white text-sm font-medium leading-none shadow-sm"
+            style="inset-inline-start: 0.25rem;"
+            aria-label={$_('ai_image_remove_aria')}
+            onclick={(e) => void removeSelectedImage(e)}
+            ontouchend={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              void removeSelectedImage(e);
+            }}
+            data-testid="ai-image-remove-input"
+          >
+            ×
+          </button>
+        </div>
+        {#if !pinBase}
+          <p class="text-xs m-0" style="color: var(--text-secondary);" data-testid="ai-relay-preview-disabled">
+            {$_('ai_relay_preview_not_configured')}
+          </p>
+        {/if}
+        <p
+          class="text-xs font-mono m-0 py-1 px-2 rounded border"
+          style="border-color: var(--border); color: var(--text);"
+          data-testid="ai-image-selected-hint"
+          aria-live="polite"
+        >
+          {$_('ai_image_selected_label')}
+          {formatCidHint(selectedCid)}
+        </p>
+      </div>
     {/if}
   {/if}
 </div>

@@ -78,6 +78,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 
   import { info, debug, warn, error } from '../utils/logger.js'
   import { canEject } from '../utils/pwaEject.js'
+  import { startAiCapabilitiesPubsub } from '$lib/ai/aiCapabilitiesPubsub.js';
 
   let blockstore = new LevelBlockstore('./helia-blocks');
   let datastore = new LevelDatastore('./helia-data');
@@ -98,6 +99,8 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   const SWIPE_THRESHOLD = 50; 
 
   let routerUnsubscribe;
+  /** Story 6.1 — tear down AI capability pubsub on re-init / destroy (avoids duplicate HMR listeners). */
+  let disposeAiCapabilitiesPubsub: (() => void) | undefined;
   let showNotification = false;
 
   let settingsDBUpdateHandler;
@@ -193,6 +196,9 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 	      directory: './orbitdb',
 	    })
     setupPeerEventListeners($libp2p);
+
+    disposeAiCapabilitiesPubsub?.();
+    disposeAiCapabilitiesPubsub = startAiCapabilitiesPubsub(_libp2p);
 
     if ($helia) {
       fs = unixfs($helia as any);
@@ -339,6 +345,8 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   });
 
   onDestroy(async () => {
+    disposeAiCapabilitiesPubsub?.();
+    disposeAiCapabilitiesPubsub = undefined;
     if (routerUnsubscribe) routerUnsubscribe();
     
     // Clean up all event listeners

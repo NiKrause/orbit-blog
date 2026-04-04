@@ -195,6 +195,16 @@ export default defineConfig(({ command, mode }) => {
   return {
     ...commonConfig,
     base: './',
+    server: {
+      proxy: {
+        // Dev-only: browser → Vite → orbitdb-relay-pinner metrics (GET /health) without CORS setup.
+        '/api/relay': {
+          target: process.env.VITE_RELAY_METRICS_TARGET || 'http://127.0.0.1:9090',
+          changeOrigin: true,
+          rewrite: (p) => p.replace(/^\/api\/relay/, ''),
+        },
+      },
+    },
     build: {
       target: 'esnext',
       assetsDir: 'assets',

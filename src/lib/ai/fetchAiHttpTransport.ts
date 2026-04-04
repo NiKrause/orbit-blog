@@ -3,6 +3,7 @@ import {
   AI_JOB_ERROR_KEYS,
   mapHttpStatusToAiJobErrorKey,
 } from './aiJobErrors.js';
+import { extractOutputText } from './aiFetchResultParse.js';
 import type {
   AiFetchResultInput,
   AiFetchResultOutput,
@@ -163,6 +164,7 @@ export class FetchAiHttpTransport implements AiHttpTransport {
     }
     const json = (await parseJsonSafe(res)) as Record<string, unknown>;
     const assetUrl = extractOutputUrl(json);
-    return { assetUrl, raw: json };
+    const outputText = extractOutputText(json, assetUrl);
+    return { assetUrl, outputText, raw: json };
   }
 }
