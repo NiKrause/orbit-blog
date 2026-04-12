@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type UserConfig } from 'vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import wasm from 'vite-plugin-wasm';
@@ -10,6 +10,49 @@ import path from 'path';
 const file = fileURLToPath(new URL('package.json', import.meta.url));
 const json = readFileSync(file, 'utf8');
 const pkg = JSON.parse(json);
+
+/**
+ * vite-plugin-node-polyfills injects (after imports):
+ *   globalThis.Buffer = globalThis.Buffer || __buffer_polyfill
+ * Hoisted dependency evaluation can run before any banner IIFE, so `globalThis` may still be
+ * nullish when that line runs. Resolve self/window first and never read `.Buffer` off nullish globalThis.
+ */
+function patchNodePolyfillGlobalAssignments(js: string): string {
+  return js
+    .replaceAll(
+      'globalThis.Buffer = globalThis.Buffer || __buffer_polyfill',
+      '(()=>{const __t=(typeof globalThis!=="undefined"&&globalThis!=null)?globalThis:(typeof self!=="undefined"?self:(typeof window!=="undefined"?window:void 0));if(__t!=null)__t.Buffer=__t.Buffer||__buffer_polyfill})()'
+    )
+    .replaceAll(
+      'globalThis.global = globalThis.global || __global_polyfill',
+      '(()=>{const __t=(typeof globalThis!=="undefined"&&globalThis!=null)?globalThis:(typeof self!=="undefined"?self:(typeof window!=="undefined"?window:void 0));if(__t!=null)__t.global=__t.global||__global_polyfill})()'
+    )
+    .replaceAll(
+      'globalThis.process = globalThis.process || __process_polyfill',
+      '(()=>{const __t=(typeof globalThis!=="undefined"&&globalThis!=null)?globalThis:(typeof self!=="undefined"?self:(typeof window!=="undefined"?window:void 0));if(__t!=null)__t.process=__t.process||__process_polyfill})()'
+    )
+}
+
+function patchNodePolyfillsBanners(cfg: UserConfig) {
+  const patchBannerJs = (js: string | undefined) => {
+    if (typeof js !== 'string' || !js) return js
+    return patchNodePolyfillGlobalAssignments(js)
+  }
+
+  const opt = (cfg.optimizeDeps ??= {})
+  const esb = (opt.esbuildOptions ??= {})
+  const prev = esb.banner
+  if (typeof prev === 'string') {
+    esb.banner = { js: patchBannerJs(prev) ?? prev }
+  } else if (prev && typeof prev === 'object') {
+    const js = typeof prev.js === 'string' ? prev.js : ''
+    esb.banner = { ...prev, js: patchBannerJs(js) ?? js }
+  }
+
+  if (cfg.esbuild && typeof cfg.esbuild === 'object' && typeof cfg.esbuild.banner === 'string') {
+    cfg.esbuild = { ...cfg.esbuild, banner: patchBannerJs(cfg.esbuild.banner) ?? cfg.esbuild.banner }
+  }
+}
 
 export default defineConfig(({ command, mode }) => {
   const isLib = mode === 'lib'
@@ -39,6 +82,12 @@ export default defineConfig(({ command, mode }) => {
         },
         protocolImports: true,
       }),
+      {
+        name: 'safe-node-polyfills-global-banner',
+        config(cfg) {
+          patchNodePolyfillsBanners(cfg)
+        },
+      },
       !isLib && VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto',

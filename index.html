@@ -1,6 +1,19 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <!-- Run before any module: vite-plugin-node-polyfills injects `globalThis.Buffer = …` into
+         optimized deps; if `globalThis` is missing (some WebViews), that throws. -->
+    <script>
+      (function () {
+        try {
+          var g = typeof self !== 'undefined' ? self : typeof window !== 'undefined' ? window : null;
+          if (!g) return;
+          if (typeof globalThis === 'undefined' || globalThis == null) {
+            g.globalThis = g;
+          }
+        } catch (e) {}
+      })();
+    </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/orbit192.png" />
     <link rel="manifest" href="./manifest.json" />
@@ -10,6 +23,6 @@
   </head>
   <body>
     <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="/src/bootstrap.ts"></script>
   </body>
 </html>
