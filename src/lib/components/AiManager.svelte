@@ -42,8 +42,9 @@
   } from '$lib/ai/aiRunDocument.js';
   import { textBodyMergeModeForManifest } from '$lib/ai/aiOutputTextMerge.js';
   import RelaySyncLed from './RelaySyncLed.svelte';
-  import { getRelayPinnedCidBase, relayOnlyIpfsUrlForCid } from '$lib/relay/relayEnv.js';
+  import { getRelayPinnedCidBase, getRelayPinnedCidBases, relayOnlyIpfsUrlForCid } from '$lib/relay/relayEnv.js';
   import { startRelayPinPolling, type RelayLedState } from '$lib/services/relayPinStatus.js';
+  import { aiLog } from '$lib/utils/logger.js';
   import type { AiJobLifecycleStatus, AiModelManifest } from '$lib/ai/types.js';
 
   interface AiManagerProps {
@@ -141,6 +142,7 @@
     const stop = startRelayPinPolling({
       cid,
       pinnedBase: base,
+      pinnedBases: getRelayPinnedCidBases(),
       signal: ac.signal,
       mediaDbAddress: mediaAddr || undefined,
       mediaContentCreatedAtIso: ingestedContentCreatedAtIso,
@@ -341,6 +343,12 @@
     const manifest = getManifestById(selectedModelId);
     const providerModelId = getProviderModelForId(selectedModelId);
     if (!db || !seed || !manifest || !providerModelId) {
+      aiLog.warn('AI Manager generation aborted before transport start', {
+        hasDb: db != null,
+        hasSeed: seed != null,
+        manifestId: selectedModelId,
+        providerModelId: providerModelId ?? null,
+      });
       jobErrorKey = AI_JOB_ERROR_KEYS.unknown;
       jobPhase = 'failed';
       return;
@@ -365,6 +373,13 @@
       /* same */
     }
 
+    aiLog.info('AI Manager generation started', {
+      runId: runDoc._id,
+      manifestModelId: manifest.id,
+      providerModelId,
+      inputKeys: Object.keys(inputValues),
+    });
+
     jobRunning = true;
     jobPhase = 'running';
     lastPollLifecycle = 'queued';
@@ -372,6 +387,12 @@
       const credResult = await loadAiCredentialDetailed(db, seed, providerModelId);
       if (epoch !== runEpoch) return;
       if (credResult.status !== 'ok') {
+        aiLog.warn('AI Manager generation blocked by missing or unreadable credential', {
+          runId: runDoc._id,
+          manifestModelId: manifest.id,
+          providerModelId,
+          credentialStatus: credResult.status,
+        });
         jobErrorKey = 'ai_credential_validation_key';
         jobPhase = 'failed';
         await persistRun({ status: 'failed', errorKey: 'ai_credential_validation_key' });
@@ -381,14 +402,21 @@
       const transport = new FetchAiHttpTransport();
       const submitInput = buildSubmitJobInput(manifest, inputValues);
       const opts = { baseUrl: bu.trim(), apiKey };
-      const { jobId } = await transport.submitJob(submitInput, opts);
+      const { jobId, resultUrl } = await transport.submitJob(submitInput, opts);
       if (epoch !== runEpoch) return;
+      aiLog.info('AI Manager provider job queued', {
+        runId: runDoc._id,
+        manifestModelId: manifest.id,
+        providerModelId,
+        providerJobId: jobId,
+        resultUrl: resultUrl ?? null,
+      });
       await persistRun({ status: 'queued', providerJobId: jobId });
       const pollIntervalMs = 2000;
       const maxPolls = 180;
       for (let i = 0; i < maxPolls; i += 1) {
         if (epoch !== runEpoch) return;
-        const poll = await transport.pollStatus({ jobId }, opts);
+        const poll = await transport.pollStatus({ jobId, resultUrl }, opts);
         if (epoch !== runEpoch) return;
         lastPollLifecycle = poll.status;
         if (poll.status === 'succeeded') {
@@ -400,10 +428,18 @@
             providerJobId: jobId,
           });
           try {
-            const out = await transport.fetchResult({ jobId }, opts);
+            const out = await transport.fetchResult({ jobId, resultUrl }, opts);
             if (epoch !== runEpoch) return;
             resultAssetUrl = out.assetUrl ?? null;
             const ot = out.outputText?.trim();
+            aiLog.info('AI Manager generation completed', {
+              runId: runDoc._id,
+              manifestModelId: manifest.id,
+              providerModelId,
+              providerJobId: jobId,
+              hasAssetUrl: Boolean(out.assetUrl),
+              hasOutputText: Boolean(ot),
+            });
             if (ot && onMergeOutputText) {
               onMergeOutputText(ot, textBodyMergeModeForManifest(manifest));
             }
@@ -416,6 +452,12 @@
           return;
         }
         if (poll.status === 'failed') {
+          aiLog.warn('AI Manager provider job reported failure', {
+            runId: runDoc._id,
+            manifestModelId: manifest.id,
+            providerModelId,
+            providerJobId: jobId,
+          });
           jobPhase = 'failed';
           jobErrorKey = AI_JOB_ERROR_KEYS.pollFailed;
           await persistRun({
@@ -428,6 +470,11 @@
         }
         await sleep(pollIntervalMs);
       }
+      aiLog.warn('AI Manager provider job timed out while polling', {
+        runId: runDoc._id,
+        manifestModelId: manifest.id,
+        providerModelId,
+      });
       jobPhase = 'failed';
       jobErrorKey = AI_JOB_ERROR_KEYS.timeout;
       await persistRun({ status: 'failed', errorKey: AI_JOB_ERROR_KEYS.timeout });
@@ -435,6 +482,13 @@
       if (epoch !== runEpoch) return;
       jobPhase = 'failed';
       const errKey = e instanceof AiTransportError ? e.i18nKey : mapAiTransportError(e);
+      aiLog.error('AI Manager generation failed', {
+        runId: runDoc._id,
+        manifestModelId: manifest.id,
+        providerModelId,
+        errorKey: errKey,
+        error: e instanceof Error ? { name: e.name, message: e.message } : String(e),
+      });
       jobErrorKey = errKey;
       await persistRun({ status: 'failed', errorKey: errKey });
     } finally {

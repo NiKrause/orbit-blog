@@ -8,7 +8,7 @@ Re-run after meaningful changes under `src/lib/ai/`, `src/lib/components/AiManag
 
 ## NFR-1 — No secrets or full prompts in production logs
 
-**Intent:** Decrypted API keys, raw key material, and **full user prompts** must not be emitted via `console.*` or logger output when `import.meta.env.PROD` is true. Non-sensitive status lines are OK.
+**Intent:** Decrypted API keys, raw key material, and **full user prompts** must not be emitted via `console.*` or logger output when `import.meta.env.PROD` is true. Non-sensitive status lines are OK, and development-only diagnostics may log the full provider payload/response.
 
 - [x] **Static scan (expect empty or allowlisted):**
 
@@ -26,11 +26,11 @@ Re-run after meaningful changes under `src/lib/ai/`, `src/lib/components/AiManag
     src/lib/components/AiManager.svelte src/lib/components/AiImageField.svelte
   ```
 
-  **Expected:** **`AiImageField.svelte`** imports **`error`** from `logger.js` for **load/upload** failures (messages are **not** user prompts or API keys). **`AiManager.svelte`** has **no** logger import. **`src/lib/ai/**` has **no** `console.*` (verified 2026-04-02).
+  **Expected:** **`AiImageField.svelte`** imports **`error`** from `logger.js` for **load/upload** failures. **`AiManager.svelte`** and `FetchAiHttpTransport` may log under **`le-space:blog:ai`**, but production logs must redact secrets and prompt-like fields. **`src/lib/ai/**` has **no** `console.*`.
 
-- [ ] **Manual smoke (optional):** Production build (`pnpm build` + `pnpm preview`), run a mock credential + job; confirm browser console shows no Bearer token, no decrypted key, no full `inputValues` / prompt text in any log line.
+- [ ] **Manual smoke (optional):** Production build (`pnpm build` + `pnpm preview`), run a mock credential + job; confirm browser console shows no Bearer token, no decrypted key, and no full prompt text in any `le-space:blog:ai` log line.
 
-- [x] **Transport:** `FetchAiHttpTransport` does not log request/response bodies or headers (`src/lib/ai/fetchAiHttpTransport.ts`).
+- [x] **Transport:** `FetchAiHttpTransport` logs request/response diagnostics under `le-space:blog:ai`; auth headers are redacted always, and prompt-like fields are redacted when `import.meta.env.PROD` is true (`src/lib/ai/fetchAiHttpTransport.ts`).
 
 ---
 
@@ -83,4 +83,4 @@ Re-run after meaningful changes under `src/lib/ai/`, `src/lib/components/AiManag
 
 ---
 
-_Last updated: 2026-04-02 — Story 5.3_
+_Last updated: 2026-04-11 — AI transport logging_

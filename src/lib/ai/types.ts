@@ -12,11 +12,14 @@ export interface AiSubmitJobInput {
 
 export interface AiSubmitJobResult {
   jobId: string;
+  /** Optional provider poll/result URL returned at submit time. */
+  resultUrl?: string;
   raw?: unknown;
 }
 
 export interface AiPollStatusInput {
   jobId: string;
+  resultUrl?: string;
 }
 
 export interface AiPollStatusResult {
@@ -26,6 +29,7 @@ export interface AiPollStatusResult {
 
 export interface AiFetchResultInput {
   jobId: string;
+  resultUrl?: string;
 }
 
 /** Result pointer after the job succeeds (e.g. video URL or inline payload reference). */

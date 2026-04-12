@@ -3,6 +3,7 @@ import {
   isInputSchemaStructureSupported,
   orderPropertyKeys,
 } from './inputSchema.js';
+import { relayOnlyIpfsUrlForCid } from '../relay/relayEnv.js';
 import type { AiInputPropertySchema, AiModelManifest, AiSubmitJobInput } from './types.js';
 
 function isEmptyForBody(v: unknown): boolean {
@@ -14,12 +15,15 @@ function isEmptyForBody(v: unknown): boolean {
 /**
  * Atlas `generateVideo` expects an HTTPS URL for the start frame. Values from the UI may be:
  * - a full URL (pasted), or
- * - an IPFS CID string from Story 4.2 — converted to a public gateway URL (no secrets in body).
+ * - an IPFS CID string from Story 4.2 — converted to the configured relay `/ipfs/{cid}` URL.
  */
-export function cidOrHttpToImageUrl(value: string): string {
+export function cidOrHttpToImageUrl(
+  value: string,
+  options?: { cidToUrl?: (cid: string) => string },
+): string {
   const t = value.trim();
   if (/^https?:\/\//i.test(t)) return t;
-  return `https://dweb.link/ipfs/${t}`;
+  return options?.cidToUrl?.(t) ?? relayOnlyIpfsUrlForCid(t);
 }
 
 /**
@@ -29,13 +33,14 @@ export function cidOrHttpToImageUrl(value: string): string {
  * and are sent on the JSON body as the same names where supported: `prompt`, `duration`, and `image`
  * (image URL string). Provider `model` comes from {@link AiModelManifest.model}, not `manifest.id`.
  *
- * **At most one `x-ui: image` field** is supported: Atlas uses a single `image_url`; additional image
+ * **At most one `x-ui: image` field** is supported: Atlas uses a single `image`; additional image
  * properties in the same schema are ignored after the first mapped image (schema key order via
  * {@link orderPropertyKeys}).
  */
 export function buildSubmitJobInput(
   manifest: AiModelManifest,
   inputValues: Record<string, unknown>,
+  options?: { cidToUrl?: (cid: string) => string },
 ): AiSubmitJobInput {
   const schema = manifest.inputSchema;
   if (!schema || !isInputSchemaStructureSupported(schema)) {
@@ -61,9 +66,13 @@ export function buildSubmitJobInput(
     }
 
     if (prop.type === 'string' && isImageUiProperty(prop)) {
-      if (body.image_url !== undefined) continue;
-      /** Atlas `generateVideo` uses `image_url` (see Atlas video docs). */
-      body.image_url = cidOrHttpToImageUrl(typeof raw === 'string' ? raw : String(raw ?? ''));
+      if (body.image !== undefined) continue;
+      /** Atlas `generateVideo` uses `image` (see Atlas video docs / API examples). */
+      const imageUrl = cidOrHttpToImageUrl(
+        typeof raw === 'string' ? raw : String(raw ?? ''),
+        options,
+      );
+      if (imageUrl) body.image = imageUrl;
       continue;
     }
 

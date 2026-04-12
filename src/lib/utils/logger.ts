@@ -2,6 +2,7 @@ import { logger } from '@libp2p/logger'
 
 type LogCategory =
   | 'app'
+  | 'ai'
   | 'p2p'
   | 'db'
   | 'ui'
@@ -16,6 +17,7 @@ const ROOT_NAMESPACE = 'le-space:blog'
 
 const categoryIcons: Record<LogCategory, string> = {
   app: '🌈',
+  ai: '🤖',
   p2p: '🛰️',
   db: '🗄️',
   ui: '🎨',
@@ -73,6 +75,7 @@ export const createLogger = (category: LogCategory): CategoryLogger => {
 }
 
 const appLog = createLogger('app')
+export const aiLog = createLogger('ai')
 
 // Backward-compatible exports used across the project
 export const debug = (message: unknown, ...args: unknown[]) => appLog.debug(message, ...args)
@@ -96,6 +99,7 @@ export default {
   info,
   warn,
   error,
+  aiLog,
   p2pLog,
   dbLog,
   uiLog,
