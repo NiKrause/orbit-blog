@@ -47,8 +47,21 @@ pnpm check    # svelte-check + TypeScript
 | `pnpm test` | Mocha — `test/orbitdb*.test.js` per package script |
 | `pnpm run test:watch` | Mocha watch |
 | `pnpm run test:e2e` | Playwright (`tests/`) |
+| `pnpm run test:e2e:ai-relay` | Focused Playwright check for AI image upload -> relay `/pinning` + `/ipfs` |
+| `pnpm run test:e2e:ai-relay:remote` | Same spec in remote mode (`PLAYWRIGHT_RELAY_MODE=remote`) |
+| `pnpm run test:e2e:post-relay` | Focused Playwright check for post creation -> relay `/pinning/databases` |
+| `pnpm run test:e2e:post-relay:remote` | Same post replication spec in remote mode |
 
 **Relay:** Many tests expect a **local relay**. Use `pnpm run relay:test` in another terminal, or follow CI: start relay before Mocha/E2E (see `test.yml` and `tests/global-setup.ts`).
+
+**AI relay pinning E2E:** `tests/AiRelayPinning.spec.ts` uploads a tiny PNG through the AI image field, reads the new `mediaDB` row, then independently verifies relay replication with `GET /pinning/databases?address=...` and the pinned bytes via `GET /ipfs/{cid}`.
+
+**Remote relay mode:** Set `PLAYWRIGHT_RELAY_MODE=remote` and provide these env vars before running the remote script when they are not already exported:
+
+- `PLAYWRIGHT_REMOTE_SEED_NODES` — relay seed multiaddr(s)
+- `PLAYWRIGHT_REMOTE_RELAY_ORIGIN` — relay HTTP origin(s) for `/ipfs`
+- `PLAYWRIGHT_REMOTE_RELAY_METRICS_ORIGIN` — optional `/pinning` origin(s); defaults to relay origin
+- `PLAYWRIGHT_REMOTE_RELAY_NAME` — optional label for test output (for example `le-space.de`)
 
 **Playwright:** Single worker; do not run multiple E2E jobs against the same `./orbitdb` folder without isolation.
 

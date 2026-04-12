@@ -1,11 +1,12 @@
 import { defineConfig, devices } from '@playwright/test'
+import {
+  LOCAL_RELAY_TCP_PORT,
+  LOCAL_RELAY_WEBRTC_PORT,
+  LOCAL_RELAY_WS_PORT,
+  getRelayViteEnv,
+} from './tests/relayTestEnv'
 
-const RELAY_PEER_ID = '12D3KooWAJjbRkp8FPF5MKgMU53aUTxWkqvDrs4zc1VMbwRwfsbE'
-// Use non-default ports to avoid collisions with a locally running relay.
-const RELAY_TCP_PORT = 19091
-const RELAY_WS_PORT = 19092
-const RELAY_WEBRTC_PORT = 19093
-const RELAY_SEED = `/ip4/127.0.0.1/tcp/${RELAY_WS_PORT}/ws/p2p/${RELAY_PEER_ID}`
+const relayViteEnv = getRelayViteEnv()
 
 export default defineConfig({
   testDir: './tests',
@@ -39,18 +40,12 @@ export default defineConfig({
     timeout: 120_000,
     env: {
       ...process.env,
-
-      // Ensure the app only bootstraps against the locally spawned relay for stable tests.
-      VITE_MODE: 'development',
-      VITE_SEED_NODES_DEV: RELAY_SEED,
-      VITE_SEED_NODES: RELAY_SEED,
-      VITE_P2P_PUPSUB_DEV: 'todo._peer-discovery._p2p._pubsub',
-      VITE_P2P_PUPSUB: 'todo._peer-discovery._p2p._pubsub',
+      ...relayViteEnv,
 
       // Keep relay ports in sync with tests/global-setup.ts spawning.
-      RELAY_TCP_PORT: String(RELAY_TCP_PORT),
-      RELAY_WS_PORT: String(RELAY_WS_PORT),
-      RELAY_WEBRTC_PORT: String(RELAY_WEBRTC_PORT),
+      RELAY_TCP_PORT: String(LOCAL_RELAY_TCP_PORT),
+      RELAY_WS_PORT: String(LOCAL_RELAY_WS_PORT),
+      RELAY_WEBRTC_PORT: String(LOCAL_RELAY_WEBRTC_PORT),
     },
   },
 

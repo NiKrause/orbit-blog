@@ -9,12 +9,12 @@
  *
  * **Fallback:** **`GET {relayOrigin}/health`** (same host as **`{origin}/ipfs/…`**) when the databases probe is skipped or returns **unknown** (non-OK response, parse error, or missing config).
  *
- * **Green** = **HEAD** or tiny **Range GET** on **`{pinnedBase}{cid}`** succeeds.
+ * **Green** = **HEAD** or tiny **Range GET** on **any configured** `{pinnedBase}{cid}` succeeds.
  */
 
 import {
-  getRelayHealthOriginForFetch,
-  getRelayMetricsOriginForFetch,
+  getRelayHealthOriginsForFetch,
+  getRelayMetricsOriginsForFetch,
   normalizeRelayPinnedBase,
 } from '../relay/relayEnv.js';
 import { mediaLog } from '../utils/logger.js';
@@ -49,6 +49,17 @@ function normalizeOrbitDbAddress(addr: string): string {
   return addr.trim().replace(/\/+$/, '');
 }
 
+function uniqueNonEmpty(values: string[]): string[] {
+  return [...new Set(values.map((v) => v.trim()).filter(Boolean))];
+}
+
+function summarizeProbeResults(results: RelayMediaDbPinningProbe[]): RelayMediaDbPinningProbe {
+  if (results.includes('listed')) return 'listed';
+  if (results.includes('listed_stale_sync')) return 'listed_stale_sync';
+  if (results.includes('not_listed')) return 'not_listed';
+  return 'unknown';
+}
+
 /** @internal */
 export async function probeRelayHealth(healthOrigin: string, signal?: AbortSignal): Promise<boolean> {
   const base = healthOrigin.replace(/\/$/, '');
@@ -58,6 +69,13 @@ export async function probeRelayHealth(healthOrigin: string, signal?: AbortSigna
   } catch {
     return false;
   }
+}
+
+async function probeRelayHealthAny(healthOrigins: string[], signal?: AbortSignal): Promise<boolean> {
+  for (const origin of uniqueNonEmpty(healthOrigins)) {
+    if (await probeRelayHealth(origin, signal)) return true;
+  }
+  return false;
 }
 
 /**
@@ -86,6 +104,20 @@ export async function requestRelayMediaDbPinSync(
   } catch {
     return false;
   }
+}
+
+async function requestRelayMediaDbPinSyncAny(
+  metricsOrigins: string[],
+  mediaDbAddress: string,
+  signal?: AbortSignal,
+): Promise<boolean> {
+  let anyOk = false;
+  for (const origin of uniqueNonEmpty(metricsOrigins)) {
+    if (await requestRelayMediaDbPinSync(origin, mediaDbAddress, signal)) {
+      anyOk = true;
+    }
+  }
+  return anyOk;
 }
 
 /**
@@ -125,6 +157,19 @@ export async function probeRelayMediaDbInPinningList(
   }
 }
 
+async function probeRelayMediaDbInPinningListAny(
+  metricsOrigins: string[],
+  mediaDbAddress: string,
+  signal?: AbortSignal,
+  mediaContentCreatedAtIso?: string,
+): Promise<RelayMediaDbPinningProbe> {
+  const results: RelayMediaDbPinningProbe[] = [];
+  for (const origin of uniqueNonEmpty(metricsOrigins)) {
+    results.push(await probeRelayMediaDbInPinningList(origin, mediaDbAddress, signal, mediaContentCreatedAtIso));
+  }
+  return summarizeProbeResults(results);
+}
+
 /**
  * True if the relay IPFS gateway appears to serve this CID (no full body download).
  */
@@ -152,9 +197,17 @@ export async function probeCidPinned(
   }
 }
 
+async function probeCidPinnedAny(pinnedBases: string[], cid: string, signal?: AbortSignal): Promise<boolean> {
+  for (const base of uniqueNonEmpty(pinnedBases)) {
+    if (await probeCidPinned(base, cid, signal)) return true;
+  }
+  return false;
+}
+
 export interface RelayPinPollOptions {
   cid: string;
   pinnedBase: string;
+  pinnedBases?: string[];
   signal: AbortSignal;
   onState: (s: RelayLedState) => void;
   /** Max polling iterations (each step waits with backoff). Default 80 (~minutes upper bound). */
@@ -164,6 +217,7 @@ export interface RelayPinPollOptions {
    * Pass empty string to skip health checks. Tests pass explicit values for stable branches.
    */
   healthOrigin?: string;
+  healthOrigins?: string[];
   /**
    * OrbitDB **manifest address** of **mediaDB** (e.g. `/orbitdb/zdpu…`). When set together with a
    * non-empty **metrics** origin, **`POST /pinning/sync`** (once) + **`GET /pinning/databases?address=…`** drive yellow vs orange.
@@ -174,6 +228,7 @@ export interface RelayPinPollOptions {
    * when **`mediaDbAddress`** is set. Pass **`''`** to force the legacy health-only heuristic (tests).
    */
   metricsOrigin?: string;
+  metricsOrigins?: string[];
   /**
    * When set, each poll tick is logged to the browser console (media category) with probe results and LED state.
    */
@@ -184,14 +239,19 @@ export interface RelayPinPollOptions {
   mediaContentCreatedAtIso?: string;
 }
 
-function resolveMetricsBaseForPoll(
+function resolveMetricsBasesForPoll(
   mediaDbAddress: string | undefined,
   metricsOriginOpt: string | undefined,
-): string {
+  metricsOriginsOpt: string[] | undefined,
+): string[] {
   const addr = mediaDbAddress?.trim();
-  if (!addr) return '';
-  if (metricsOriginOpt !== undefined) return metricsOriginOpt.replace(/\/$/, '');
-  return getRelayMetricsOriginForFetch();
+  if (!addr) return [];
+  if (metricsOriginsOpt !== undefined) return uniqueNonEmpty(metricsOriginsOpt.map((v) => v.replace(/\/$/, '')));
+  if (metricsOriginOpt !== undefined) {
+    const single = metricsOriginOpt.replace(/\/$/, '').trim();
+    return single ? [single] : [];
+  }
+  return getRelayMetricsOriginsForFetch();
 }
 
 /**
@@ -202,12 +262,15 @@ export function startRelayPinPolling(options: RelayPinPollOptions): () => void {
   const {
     cid,
     pinnedBase,
+    pinnedBases: pinnedBasesOpt,
     signal,
     onState,
     maxIterations = 80,
     healthOrigin: healthOriginOpt,
+    healthOrigins: healthOriginsOpt,
     mediaDbAddress: mediaDbAddressOpt,
     metricsOrigin: metricsOriginOpt,
+    metricsOrigins: metricsOriginsOpt,
     pollDebugLabel,
     mediaContentCreatedAtIso: mediaContentCreatedAtOpt,
   } = options;
@@ -226,13 +289,20 @@ export function startRelayPinPolling(options: RelayPinPollOptions): () => void {
     if (!cancelled && !signal.aborted) onState(s);
   };
 
-  const healthBase =
-    healthOriginOpt !== undefined
-      ? healthOriginOpt.replace(/\/$/, '')
-      : getRelayHealthOriginForFetch();
+  const healthBases =
+    healthOriginsOpt !== undefined
+      ? uniqueNonEmpty(healthOriginsOpt.map((v) => v.replace(/\/$/, '')))
+      : healthOriginOpt !== undefined
+        ? uniqueNonEmpty([healthOriginOpt.replace(/\/$/, '')])
+        : getRelayHealthOriginsForFetch();
+
+  const pinnedBaseList =
+    pinnedBasesOpt !== undefined
+      ? uniqueNonEmpty(pinnedBasesOpt.map((v) => normalizeRelayPinnedBase(v)))
+      : uniqueNonEmpty([normalizeRelayPinnedBase(pinnedBase)]);
 
   const mediaDbAddr = mediaDbAddressOpt?.trim();
-  const metricsBase = resolveMetricsBaseForPoll(mediaDbAddr, metricsOriginOpt);
+  const metricsBases = resolveMetricsBasesForPoll(mediaDbAddr, metricsOriginOpt, metricsOriginsOpt);
   const mediaContentCreatedAtIso = mediaContentCreatedAtOpt?.trim();
 
   const pollLog = (message: string, detail: Record<string, unknown>) => {
@@ -251,14 +321,14 @@ export function startRelayPinPolling(options: RelayPinPollOptions): () => void {
       return;
     }
 
-    const headOk = await probeCidPinned(pinnedBase, cid, signal);
+    const headOk = await probeCidPinnedAny(pinnedBaseList, cid, signal);
     if (cancelled || signal.aborted) return;
     if (headOk) {
       emit('green');
       pollLog(iteration === 0 ? 'CID reachable on relay gateway (after initial yellow)' : 'CID reachable on relay gateway', {
         iteration,
         cid,
-        pinnedBase: normalizeRelayPinnedBase(pinnedBase),
+        pinnedBases: pinnedBaseList,
         headOk: true,
         emittedState: 'green' as const,
         nextPollInMs: null,
@@ -268,23 +338,20 @@ export function startRelayPinPolling(options: RelayPinPollOptions): () => void {
 
     let dbProbe: RelayMediaDbPinningProbe = 'unknown';
     let pinSyncOk: boolean | null = null;
-    if (mediaDbAddr && metricsBase) {
+    if (mediaDbAddr && metricsBases.length > 0) {
       if (iteration === 0) {
-        pinSyncOk = await requestRelayMediaDbPinSync(metricsBase, mediaDbAddr, signal);
-        pollLog('POST /pinning/sync', { dbAddress: mediaDbAddr, ok: pinSyncOk });
+        pinSyncOk = await requestRelayMediaDbPinSyncAny(metricsBases, mediaDbAddr, signal);
+        pollLog('POST /pinning/sync', { dbAddress: mediaDbAddr, metricsOrigins: metricsBases, ok: pinSyncOk });
       }
-      dbProbe = await probeRelayMediaDbInPinningList(
-        metricsBase,
+      dbProbe = await probeRelayMediaDbInPinningListAny(
+        metricsBases,
         mediaDbAddr,
         signal,
         mediaContentCreatedAtIso,
       );
     }
 
-    let healthOk = false;
-    if (healthBase) {
-      healthOk = await probeRelayHealth(healthBase, signal);
-    }
+    const healthOk = healthBases.length > 0 ? await probeRelayHealthAny(healthBases, signal) : false;
 
     if (cancelled || signal.aborted) return;
 
@@ -293,9 +360,9 @@ export function startRelayPinPolling(options: RelayPinPollOptions): () => void {
       emitted = 'orange';
     } else if (dbProbe === 'listed_stale_sync' || dbProbe === 'not_listed') {
       emitted = 'yellow';
-    } else if (healthBase && !healthOk) {
+    } else if (healthBases.length > 0 && !healthOk) {
       emitted = 'yellow';
-    } else if (!healthBase && iteration < 4) {
+    } else if (healthBases.length === 0 && iteration < 4) {
       emitted = 'yellow';
     } else {
       emitted = 'orange';
@@ -306,15 +373,15 @@ export function startRelayPinPolling(options: RelayPinPollOptions): () => void {
     pollLog('tick', {
       iteration,
       cid,
-      pinnedBase: normalizeRelayPinnedBase(pinnedBase),
+      pinnedBases: pinnedBaseList,
       headOk: false,
       mediaDbAddress: mediaDbAddr || null,
-      metricsOrigin: metricsBase || null,
+      metricsOrigins: metricsBases,
       pinSyncPostOk: pinSyncOk,
       mediaContentCreatedAtIso: mediaContentCreatedAtIso || null,
       dbPinningProbe: dbProbe,
-      relayHealthOrigin: healthBase || null,
-      healthChecked: Boolean(healthBase),
+      relayHealthOrigins: healthBases,
+      healthChecked: healthBases.length > 0,
       healthOk,
       emittedState: emitted,
       initialYellowThisCycle: iteration === 0,

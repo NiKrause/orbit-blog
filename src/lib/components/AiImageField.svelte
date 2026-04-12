@@ -13,7 +13,7 @@
     logImageUploadMediaDbRegistered,
   } from '$lib/utils/imageUploadDiagnostics.js';
   import RelaySyncLed from './RelaySyncLed.svelte';
-  import { getRelayPinnedCidBase, relayOnlyIpfsUrlForCid } from '$lib/relay/relayEnv.js';
+  import { getRelayPinnedCidBase, getRelayPinnedCidBases, relayOnlyIpfsUrlForCid } from '$lib/relay/relayEnv.js';
   import { startRelayPinPolling, type RelayLedState } from '$lib/services/relayPinStatus.js';
 
   interface Props {
@@ -97,6 +97,7 @@
     const stop = startRelayPinPolling({
       cid,
       pinnedBase: base,
+      pinnedBases: getRelayPinnedCidBases(),
       signal: ac.signal,
       mediaDbAddress: mediaAddr || undefined,
       mediaContentCreatedAtIso: selectedContentCreatedAtIso,

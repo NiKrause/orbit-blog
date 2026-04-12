@@ -1,17 +1,20 @@
 import { rm, access } from 'fs/promises'
 import { join } from 'path'
 import { spawn, type ChildProcess } from 'child_process'
-import { dirname } from 'path'
-import { fileURLToPath } from 'url'
 import { constants } from 'fs'
+import {
+    LOCAL_RELAY_HTTP_PORT,
+    LOCAL_RELAY_ORIGIN,
+    LOCAL_RELAY_TCP_PORT,
+    LOCAL_RELAY_WEBRTC_PORT,
+    LOCAL_RELAY_WS_PORT,
+    getPrimaryRelayOrigin,
+    getRelayTargetLabel,
+    getRelayTestMode,
+    shouldSpawnLocalRelay,
+} from './relayTestEnv'
 
 let relayProcess: ChildProcess | null = null;
-
-// Keep these ports in sync with `playwright.config.ts` so the app bootstraps
-// against the relay spawned by Playwright globalSetup.
-const RELAY_TCP_PORT = 19091
-const RELAY_WS_PORT = 19092
-const RELAY_WEBRTC_PORT = 19093
 
 function getRelayBinPath() {
     const binName = process.platform === 'win32' ? 'orbitdb-relay-pinner.cmd' : 'orbitdb-relay-pinner'
@@ -85,13 +88,36 @@ async function ensureRelayBuilt() {
     await access(binPath, constants.F_OK)
 }
 
+async function waitForRelayHttp(url: string, timeoutMs = 10000): Promise<boolean> {
+    const startTime = Date.now();
+
+    while (Date.now() - startTime <= timeoutMs) {
+        try {
+            const response = await fetch(url, { method: 'GET' });
+            if (response.ok) return true;
+        } catch {
+            // Relay HTTP server may still be binding; keep polling.
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+
+    return false;
+}
+
 export async function setupTestEnvironment() {
-    console.log('Setting up test environment...');
+    console.log(`Setting up test environment (${getRelayTestMode()} relay mode)...`);
     
     try {
         // Clean directories first
         await cleanDirectories();
         console.log('Directories cleaned successfully');
+
+        if (!shouldSpawnLocalRelay()) {
+            console.log(`Skipping local relay startup; using external target ${getRelayTargetLabel()} (${getPrimaryRelayOrigin()})`);
+            console.log('Test environment setup completed');
+            return;
+        }
 
         // Start relay server with ES modules support
         console.log('Starting relay server...');
@@ -105,13 +131,15 @@ export async function setupTestEnvironment() {
                 DEBUG: 'le-space:*,libp2p:*',
 
                 // Avoid collisions with a locally running relay that might be using the defaults.
-                RELAY_TCP_PORT: String(RELAY_TCP_PORT),
-                RELAY_WS_PORT: String(RELAY_WS_PORT),
-                RELAY_WEBRTC_PORT: String(RELAY_WEBRTC_PORT),
+                RELAY_TCP_PORT: String(LOCAL_RELAY_TCP_PORT),
+                RELAY_WS_PORT: String(LOCAL_RELAY_WS_PORT),
+                RELAY_WEBRTC_PORT: String(LOCAL_RELAY_WEBRTC_PORT),
                 // Keep WebRTC enabled so browser peers can establish direct connections in e2e.
                 RELAY_DISABLE_WEBRTC: 'false',
-                // Prevent CI flakes from port collisions (e.g. 9090 already bound on runners).
-                METRICS_PORT: '0',
+                // Local Playwright relay does not need public bootstrap peers; skipping them keeps logs quiet and startup tighter.
+                RELAY_DISABLE_BOOTSTRAP: 'true',
+                // Fixed test HTTP origin so Playwright can probe /health, /pinning/* and /ipfs/*.
+                METRICS_PORT: String(LOCAL_RELAY_HTTP_PORT),
 
                 // Make relay logs visible and useful in Playwright output.
                 ENABLE_GENERAL_LOGS: 'true',
@@ -136,6 +164,11 @@ export async function setupTestEnvironment() {
         const started = await waitForRelay(30000);
         if (!started) {
             throw new Error('Failed to start relay server');
+        }
+
+        const httpReady = await waitForRelayHttp(`${LOCAL_RELAY_ORIGIN}/health`, 30000);
+        if (!httpReady) {
+            throw new Error(`Relay HTTP endpoint did not become ready at ${LOCAL_RELAY_ORIGIN}/health`);
         }
 
         console.log('Test environment setup completed');

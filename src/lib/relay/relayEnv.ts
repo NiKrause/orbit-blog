@@ -1,7 +1,8 @@
 /**
  * Relay pinning node HTTP surface (FR-7c / FR-7d).
  *
- * Set **`VITE_RELAY_ORIGIN`** to the relay’s HTTP origin **without** `/ipfs/`, e.g. `http://localhost:81`.
+ * Set **`VITE_RELAY_ORIGIN`** to one or more relay HTTP origins **without** `/ipfs/`, e.g.
+ * `http://localhost:81` or `https://relay-a.example,https://relay-b.example`.
  * The app derives:
  * - **Pinned CID gateway base:** `{origin}/ipfs/` (used for preview URLs and HEAD/Range probes)
  * - **Health:** `GET {origin}/health` (same host as the gateway, not the Vite dev server)
@@ -9,13 +10,21 @@
  * **Legacy:** `VITE_RELAY_PINNED_CID_BASE` (e.g. `http://localhost:81/ipfs/`) is still read if
  * `VITE_RELAY_ORIGIN` is unset; the origin is inferred by stripping a trailing `/ipfs` path.
  *
- * **Pinning API (`GET /pinning/databases`, …):** defaults to the same origin as {@link getRelayOrigin}
- * (single-listener relay). When the metrics server runs on another port (e.g. **`9090`** in
- * `orbitdb-relay-pinner`), set **`VITE_RELAY_METRICS_ORIGIN`** to that base URL (no trailing slash).
+ * **Pinning API (`GET /pinning/databases`, …):** defaults to the same origin set as {@link getRelayOrigins}
+ * (single-listener relay). When the metrics server runs on another port, set
+ * **`VITE_RELAY_METRICS_ORIGIN`** to one or more base URLs (no trailing slash), comma-separated.
  */
 
 function stripTrailingSlashes(s: string): string {
   return s.replace(/\/+$/, '');
+}
+
+function parseOriginList(raw: string | undefined | null): string[] {
+  if (typeof raw !== 'string') return [];
+  return raw
+    .split(',')
+    .map((part) => stripTrailingSlashes(part.trim()))
+    .filter(Boolean);
 }
 
 /**
@@ -30,13 +39,18 @@ export function relayOriginFromLegacyPinnedBase(raw: string): string {
   return stripTrailingSlashes(u);
 }
 
-/** Relay HTTP origin with no trailing slash, or empty when unset. */
-export function getRelayOrigin(): string {
-  const o = import.meta.env.VITE_RELAY_ORIGIN?.trim();
-  if (o) return stripTrailingSlashes(o);
+/** Relay HTTP origins with no trailing slash, or empty when unset. */
+export function getRelayOrigins(): string[] {
+  const configured = parseOriginList(import.meta.env.VITE_RELAY_ORIGIN);
+  if (configured.length > 0) return configured;
   const legacy = import.meta.env.VITE_RELAY_PINNED_CID_BASE?.trim();
-  if (legacy) return relayOriginFromLegacyPinnedBase(legacy);
-  return '';
+  if (legacy) return [relayOriginFromLegacyPinnedBase(legacy)];
+  return [];
+}
+
+/** First configured relay HTTP origin with no trailing slash, or empty when unset. */
+export function getRelayOrigin(): string {
+  return getRelayOrigins()[0] || '';
 }
 
 export function normalizeRelayPinnedBase(raw: string): string {
@@ -47,9 +61,12 @@ export function normalizeRelayPinnedBase(raw: string): string {
 
 /** Normalized `{origin}/ipfs/` for gateway URLs, or empty when no relay is configured. */
 export function getRelayPinnedCidBase(): string {
-  const origin = getRelayOrigin();
-  if (!origin) return '';
-  return `${origin}/ipfs/`;
+  return getRelayPinnedCidBases()[0] || '';
+}
+
+/** Normalized `{origin}/ipfs/` for every configured relay gateway. */
+export function getRelayPinnedCidBases(): string[] {
+  return getRelayOrigins().map((origin) => `${origin}/ipfs/`);
 }
 
 /**
@@ -60,14 +77,24 @@ export function getRelayHealthOriginForFetch(): string {
   return getRelayOrigin();
 }
 
+/** All configured relay origins for `GET /health`. */
+export function getRelayHealthOriginsForFetch(): string[] {
+  return getRelayOrigins();
+}
+
 /**
  * HTTP origin for **`/pinning/*`** on `orbitdb-relay-pinner` (default **`METRICS_PORT`** e.g. 9090).
  * Falls back to {@link getRelayOrigin} when unset so gateway + pinning share one host.
  */
 export function getRelayMetricsOriginForFetch(): string {
-  const m = import.meta.env.VITE_RELAY_METRICS_ORIGIN?.trim();
-  if (m) return stripTrailingSlashes(m);
-  return getRelayOrigin();
+  return getRelayMetricsOriginsForFetch()[0] || '';
+}
+
+/** All configured HTTP origins for **`/pinning/*`** on `orbitdb-relay-pinner`. */
+export function getRelayMetricsOriginsForFetch(): string[] {
+  const configured = parseOriginList(import.meta.env.VITE_RELAY_METRICS_ORIGIN);
+  if (configured.length > 0) return configured;
+  return getRelayOrigins();
 }
 
 /** Full preview URL for a CID on the relay gateway. */

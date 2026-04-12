@@ -4,6 +4,7 @@
 interface ImportMetaEnv {
   /**
    * Relay HTTP origin without `/ipfs/`, e.g. `http://localhost:81`.
+   * Multiple origins may be comma-separated; the first is used for preview URLs and all are used by relay LED probes.
    * Preview: `{origin}/ipfs/{cid}`; health: `{origin}/health`.
    */
   readonly VITE_RELAY_ORIGIN?: string;
@@ -14,7 +15,7 @@ interface ImportMetaEnv {
   readonly VITE_RELAY_PINNED_CID_BASE?: string;
   /**
    * Optional. HTTP origin for relay pinning JSON API (`GET /pinning/databases`, `POST /pinning/sync`).
-   * Use when metrics/pinning listen on a different port than `VITE_RELAY_ORIGIN` (e.g. `http://127.0.0.1:9090`).
+   * Multiple origins may be comma-separated. Use when metrics/pinning listen on a different port than `VITE_RELAY_ORIGIN`.
    * If unset, defaults to `VITE_RELAY_ORIGIN` / legacy pinned base origin.
    */
   readonly VITE_RELAY_METRICS_ORIGIN?: string;
