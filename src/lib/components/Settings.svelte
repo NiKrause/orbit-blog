@@ -12,8 +12,8 @@
     logImageUploadIpfsStored,
     logImageUploadMediaDbRegistered,
   } from '../utils/imageUploadDiagnostics.js';
-  let persistentSeedPhrase = false; // Default to true since we're always encrypting now
-  let showChangePasswordModal = $state(false);
+  let hasPersistedSeed = $state(typeof window !== 'undefined' && Boolean(localStorage.getItem('encryptedSeedPhrase')));
+  let showSeedPasswordModal = $state(false);
   let newPassword = $state('');
   let confirmNewPassword = $state('');
   let errorMessage = $state('');
@@ -71,7 +71,15 @@
     }
   }
 
-  async function changePassword() {
+  function openSeedPasswordModal() {
+    newPassword = '';
+    confirmNewPassword = '';
+    errorMessage = '';
+    successMessage = '';
+    showSeedPasswordModal = true;
+  }
+
+  async function persistOrChangeSeedPassword() {
     errorMessage = '';
     successMessage = '';
     
@@ -91,16 +99,22 @@
     }
     
     try {
+      const wasPersistedSeed = hasPersistedSeed;
       const encryptedPhrase = await encryptSeedPhrase($seedPhrase, newPassword);
       localStorage.setItem('encryptedSeedPhrase', encryptedPhrase);
-      successMessage = $_('password_changed_successfully');
+      hasPersistedSeed = true;
+      successMessage = wasPersistedSeed
+        ? $_('password_changed_successfully')
+        : $_('seed_phrase_persisted_successfully');
       setTimeout(() => {
-        showChangePasswordModal = false;
+        showSeedPasswordModal = false;
         successMessage = '';
       }, 2000);
     } catch (error) {
       error('Error changing password:', error);
-      errorMessage = $_('failed_to_change_password');
+      errorMessage = hasPersistedSeed
+        ? $_('failed_to_change_password')
+        : $_('failed_to_persist_seed_phrase');
     }
   }
 
@@ -339,12 +353,17 @@
     {#if openSections.security}
       <div class="settings-content">
         <label for="seed-phrase-input" class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">{$_('seed_phrase')}</label>
+        <p class="text-xs mb-2" style="color: var(--text-muted);">
+          {hasPersistedSeed ? $_('seed_phrase_persisted_note') : $_('seed_phrase_not_persisted_note')}
+        </p>
         <div class="flex items-center gap-2">
           <input id="seed-phrase-input" type="{showSeedPhrase ? 'text' : 'password'}" class="input flex-1 font-mono text-xs" value={$seedPhrase || ''} />
           <button class="btn-icon" onclick={toggleSeedVisibility} aria-label={showSeedPhrase ? $_('hide_seed_phrase') : $_('show_seed_phrase')}>
             <svg viewBox="0 0 24 24" class="w-4 h-4" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
           </button>
-          <button class="btn-outline btn-sm" onclick={() => showChangePasswordModal = true}>{$_('change_password')}</button>
+          <button class="btn-outline btn-sm" onclick={openSeedPasswordModal} data-testid="seed-password-button">
+            {hasPersistedSeed ? $_('change_password') : $_('persist_seed')}
+          </button>
         </div>
       </div>
     {/if}
@@ -371,12 +390,17 @@
   </div>
 </div>
 
-{#if showChangePasswordModal}
+{#if showSeedPasswordModal}
   <div class="fixed inset-0 flex items-center justify-center z-50" style="background-color: rgba(0, 0, 0, 0.4); backdrop-filter: blur(2px);">
     <div class="card p-6 max-w-md w-full mx-4" style="box-shadow: var(--shadow-lg);">
-      <h2 class="text-lg font-semibold mb-4" style="color: var(--text);">{$_('change_password')}</h2>
+      <h2 class="text-lg font-semibold mb-2" style="color: var(--text);">
+        {hasPersistedSeed ? $_('change_password') : $_('persist_seed')}
+      </h2>
+      <p class="text-sm mb-4" style="color: var(--text-secondary);">
+        {hasPersistedSeed ? $_('change_seed_password_explanation') : $_('password_create_info')}
+      </p>
       
-      <form onsubmit={preventDefault(changePassword)} class="space-y-4">
+      <form onsubmit={preventDefault(persistOrChangeSeedPassword)} class="space-y-4">
         <div>
           <label for="new-password-input" class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">{$_('new_password')}</label>
           <input id="new-password-input" type="password" bind:value={newPassword} class="input" placeholder={$_('enter_new_password')} />
@@ -388,8 +412,10 @@
         {#if errorMessage}<div class="text-sm" style="color: var(--danger);">{errorMessage}</div>{/if}
         {#if successMessage}<div class="text-sm" style="color: var(--success);">{successMessage}</div>{/if}
         <div class="flex justify-end gap-2">
-          <button type="button" class="btn-outline" onclick={() => showChangePasswordModal = false}>{$_('cancel')}</button>
-          <button type="submit" class="btn-primary">{$_('change_password')}</button>
+          <button type="button" class="btn-outline" onclick={() => showSeedPasswordModal = false}>{$_('cancel')}</button>
+          <button type="submit" class="btn-primary">
+            {hasPersistedSeed ? $_('change_password') : $_('persist_seed')}
+          </button>
         </div>
       </form>
     </div>
