@@ -41,4 +41,4 @@ if (typeof root.global === 'undefined') {
   root.global = root;
 }
 
-await import('./main.ts');
+await import('./main.js');

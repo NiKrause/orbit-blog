@@ -144,7 +144,7 @@ export default {
   "ai_ingest_error_network": "Could not download the video. Check your connection and try again.",
   "ai_ingest_error_cors_or_blocked": "The browser blocked downloading the video (CORS or policy). Try another browser or check the provider.",
   "ai_ingest_error_http": "The video download was rejected. Try again or re-run generation.",
-  "ai_ingest_error_too_large": "The video is too large for the media library limit (10 MB).",
+  "ai_ingest_error_too_large": "The video is too large for the media library limit ({maxSize}).",
 
   "show_preview": "Önizlemeyi Göster",
   "selected_media": "Seçilen Medya:",
@@ -190,7 +190,7 @@ export default {
   "select_files": "Dosyaları Seç",
   "failed_to_load_media": "Medya yüklenemedi",
   "media_database_not_initialized": "Medya veritabanı veya IPFS başlatılmadı",
-  "file_too_large": "Dosya {name} çok büyük. Maksimum boyut 10MB",
+  "file_too_large": "Dosya {name} çok büyük. Maksimum boyut {maxSize}",
   "failed_to_upload_files": "Dosyalar yüklenemedi",
   "failed_to_delete_media": "Medya silinemedi",
   "browser_no_video_support": "Tarayıcınız video oynatmayı desteklemiyor",

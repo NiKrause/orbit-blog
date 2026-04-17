@@ -5,6 +5,10 @@
    */
   import { _ } from 'svelte-i18n';
   import { helia, isRTL, mediaDB } from '$lib/store.js';
+  import {
+    isMediaFileTooLarge,
+    MEDIA_MAX_FILE_SIZE_LABEL,
+  } from '$lib/mediaConfig.js';
   import { unixfs } from '@helia/unixfs';
   import { CID } from 'multiformats/cid';
   import { error } from '$lib/utils/logger.js';
@@ -187,10 +191,54 @@
           });
         }
       }
-      imageRows = rows;
+      imageRows = rows.sort((a, b) => {
+        const aTime = Date.parse(a.createdAt ?? '');
+        const bTime = Date.parse(b.createdAt ?? '');
+        const aValid = Number.isFinite(aTime);
+        const bValid = Number.isFinite(bTime);
+        if (aValid && bValid && aTime !== bTime) return bTime - aTime;
+        if (aValid !== bValid) return aValid ? -1 : 1;
+        return a.name.localeCompare(b.name);
+      });
     } catch (e) {
       error('AiImageField loadImages', e);
     }
+  }
+
+  async function deleteLibraryImageByCid(cid: string) {
+    const trimmedCid = cid.trim();
+    const db = $mediaDB;
+    if (!trimmedCid || !db) return;
+
+    try {
+      const all = await db.all();
+      for (const entry of all) {
+        const m = entry.value as { _id?: string; cid?: string };
+        if (m?.cid === trimmedCid && m._id) {
+          await db.del(m._id);
+          break;
+        }
+      }
+    } catch (err) {
+      error('AiImageField deleteLibraryImageByCid', err);
+    }
+
+    const cached = mediaCache.get(trimmedCid);
+    if (cached) {
+      try {
+        URL.revokeObjectURL(cached);
+      } catch {
+        /* ignore */
+      }
+      mediaCache.delete(trimmedCid);
+    }
+
+    if (selectedCid?.trim() === trimmedCid) {
+      selectedContentCreatedAtIso = undefined;
+      onSelectCid('');
+    }
+
+    await loadImages();
   }
 
   $effect(() => {
@@ -220,8 +268,12 @@
       const list = Array.from(files);
       for (const file of list) {
         if (!file.type.startsWith('image/')) continue;
-        if (file.size > 10 * 1024 * 1024) {
-          throw new Error(`File ${file.name} is too large. Maximum size is 10MB`);
+        if (isMediaFileTooLarge(file.size)) {
+          throw new Error(
+            $_('file_too_large', {
+              values: { name: file.name, maxSize: MEDIA_MAX_FILE_SIZE_LABEL },
+            }),
+          );
         }
         const buffer = await file.arrayBuffer();
         const fileBytes = new Uint8Array(buffer);
@@ -278,38 +330,12 @@
     e.preventDefault();
     e.stopPropagation();
     const cid = selectedCid?.trim();
-    const db = $mediaDB;
     if (!cid) {
       selectedContentCreatedAtIso = undefined;
       onSelectCid('');
       return;
     }
-    if (db) {
-      try {
-        const all = await db.all();
-        for (const entry of all) {
-          const m = entry.value as { _id?: string; cid?: string };
-          if (m?.cid === cid && m._id) {
-            await db.del(m._id);
-            break;
-          }
-        }
-      } catch (err) {
-        error('AiImageField removeSelectedImage', err);
-      }
-    }
-    const cached = mediaCache.get(cid);
-    if (cached) {
-      try {
-        URL.revokeObjectURL(cached);
-      } catch {
-        /* ignore */
-      }
-      mediaCache.delete(cid);
-    }
-    selectedContentCreatedAtIso = undefined;
-    onSelectCid('');
-    await loadImages();
+    await deleteLibraryImageByCid(cid);
   }
 </script>
 
@@ -353,24 +379,42 @@
     >
       {#each imageRows as m (m._id + m.cid)}
         {@const gridSrc = m.url || relayOnlyIpfsUrlForCid(m.cid)}
-        <button
-          type="button"
-          class="relative overflow-hidden rounded border p-0 h-14 w-full hover:opacity-90"
+        <div
+          class="relative h-14 w-full overflow-hidden rounded border"
           style="border-color: {selectedCid === m.cid ? 'var(--accent)' : 'var(--border)'};"
-          onclick={() => pickFromLibrary(m)}
-          aria-label={$_('ai_image_pick_aria', { values: { name: m.name || formatCidHint(m.cid) } })}
         >
-          {#if gridSrc}
-            <img src={gridSrc} alt="" class="h-full w-full object-cover" />
-          {:else}
-            <div
-              class="h-full w-full flex items-center justify-center text-[10px] opacity-60"
-              style="background: var(--bg-tertiary); color: var(--text-secondary);"
-            >
-              …
-            </div>
-          {/if}
-        </button>
+          <button
+            type="button"
+            class="block h-full w-full p-0 hover:opacity-90"
+            onclick={() => pickFromLibrary(m)}
+            aria-label={$_('ai_image_pick_aria', { values: { name: m.name || formatCidHint(m.cid) } })}
+          >
+            {#if gridSrc}
+              <img src={gridSrc} alt="" class="h-full w-full object-cover" />
+            {:else}
+              <div
+                class="h-full w-full flex items-center justify-center text-[10px] opacity-60"
+                style="background: var(--bg-tertiary); color: var(--text-secondary);"
+              >
+                …
+              </div>
+            {/if}
+          </button>
+          <button
+            type="button"
+            class="absolute top-0.5 z-[2] min-h-5 min-w-5 flex items-center justify-center rounded-full bg-red-500 hover:bg-red-600 text-white text-[10px] leading-none shadow-sm"
+            style="inset-inline-end: 0.125rem;"
+            aria-label={$_('delete')}
+            title={$_('delete')}
+            onclick={async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              await deleteLibraryImageByCid(m.cid);
+            }}
+          >
+            ×
+          </button>
+        </div>
       {/each}
     </div>
 
@@ -388,6 +432,14 @@
               class="block max-h-36 w-auto max-w-full object-contain bg-black/5"
               data-testid="ai-image-selected-thumb"
             />
+          {:else}
+            <div
+              class="flex min-h-24 min-w-24 items-center justify-center px-3 py-2 text-xs"
+              style="background: var(--bg-tertiary); color: var(--text-secondary);"
+              data-testid="ai-image-selected-thumb-missing"
+            >
+              {formatCidHint(selectedCid)}
+            </div>
           {/if}
           {#if pinBase}
             <RelaySyncLed state={relayLedState} reducedMotion={reduceMotion} />

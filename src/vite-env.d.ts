@@ -3,6 +3,11 @@
 
 interface ImportMetaEnv {
   /**
+   * Maximum upload/import size for media files in megabytes.
+   * Defaults to `100` when unset or invalid.
+   */
+  readonly VITE_MEDIA_MAX_FILE_SIZE_MB?: string;
+  /**
    * Relay HTTP origin without `/ipfs/`, e.g. `http://localhost:81`.
    * Multiple origins may be comma-separated; the first is used for preview URLs and all are used by relay LED probes.
    * Preview: `{origin}/ipfs/{cid}`; health: `{origin}/health`.

@@ -144,7 +144,7 @@ export default {
   "ai_ingest_error_network": "Could not download the video. Check your connection and try again.",
   "ai_ingest_error_cors_or_blocked": "The browser blocked downloading the video (CORS or policy). Try another browser or check the provider.",
   "ai_ingest_error_http": "The video download was rejected. Try again or re-run generation.",
-  "ai_ingest_error_too_large": "The video is too large for the media library limit (10 MB).",
+  "ai_ingest_error_too_large": "The video is too large for the media library limit ({maxSize}).",
 
   "show_preview": "წინა ხედვის ჩვენება",
   "selected_media": "არჩეული მედია:",
@@ -190,7 +190,7 @@ export default {
   "select_files": "ფაილების არჩევა",
   "failed_to_load_media": "მედიის ჩატვირთვა ვერ მოხერხდა",
   "media_database_not_initialized": "მედიის მონაცემთა ბაზა ან IPFS არ არის ინიციალიზებული",
-  "file_too_large": "ფაილი {name} ძალიან დიდია. მაქსიმალური ზომა არის 10MB",
+  "file_too_large": "ფაილი {name} ძალიან დიდია. მაქსიმალური ზომა არის {maxSize}",
   "failed_to_upload_files": "ფაილების ატვირთვა ვერ მოხერხდა",
   "failed_to_delete_media": "მედიის წაშლა ვერ მოხერხდა",
   "browser_no_video_support": "თქვენი ბრაუზერი არ იძლევა ვიდეოს დაკვრის მხარდაჭერას",

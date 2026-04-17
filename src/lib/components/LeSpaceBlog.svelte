@@ -26,12 +26,11 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   import PasswordModal from './PasswordModal.svelte';
   import LoadingBlog from './LoadingBlog.svelte';
   import LanguageSelector from './LanguageSelector.svelte';
-  import PWAEjectModal from './PWAEjectModal.svelte';
 
   import FaBars from 'svelte-icons/fa/FaBars.svelte';
   import FaTimes from 'svelte-icons/fa/FaTimes.svelte';
   import { getLocaleVersionString } from '$lib/utils/buildInfo.js';
-  import { derived } from 'svelte/store';
+  import { derived, get } from 'svelte/store';
   import { locale } from 'svelte-i18n';
 
   import { libp2pOptions, multiaddrs } from '$lib/config.js';
@@ -76,8 +75,8 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     isRTL
   } from '$lib/store';
 
+  import { currentTheme, loadThemeState, persistThemeState, themeState, applyTheme } from '$lib/themes/themeStore.js';
   import { info, debug, warn, error } from '../utils/logger.js'
-  import { canEject } from '../utils/pwaEject.js'
   import { startAiCapabilitiesPubsub } from '$lib/ai/aiCapabilitiesPubsub.js';
 
   let blockstore = new LevelBlockstore('./helia-blocks');
@@ -89,8 +88,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   let isNewUser = !encryptedSeedPhrase;
   let canWrite = $state(false);
   let ownerIdentityId = $state<string | null>(null);
-  let showEjectModal = $state(false);
-  let canEjectPWA = $state(false);
 
   // Add sidebar state variables
   let sidebarVisible = $state(true);
@@ -117,13 +114,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   // Create a reactive version string that updates when locale changes
   const reactiveVersionString = derived(locale, ($locale) => {
     return getLocaleVersionString();
-  });
-
-  // Check if PWA can be ejected (runs once on mount)
-  $effect(() => {
-    canEject().then(result => {
-      canEjectPWA = result;
-    });
   });
 
   let fs = $state<UnixFS | null>(null);
@@ -423,7 +413,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     info('Loading settings from new database:', lastSettingsDBAddress);
     
     // Initial load of settings - use .all() to get all documents first to avoid CID parsing errors on empty DBs
-    $settingsDB.all().then(allSettings => {
+    $settingsDB.all().then(async allSettings => {
       info('All settings from database:', allSettings);
 
       const canWriteSettings = $settingsDB?.access?.write?.includes?.($identity?.id);
@@ -459,8 +449,20 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
               info('Set profile picture CID from settings:', setting.value);
             }
             break;
+          case 'themeState':
+            if (setting.value !== undefined) {
+              const loadedThemeState = await loadThemeState($settingsDB);
+              themeState.set(loadedThemeState);
+              persistThemeState($settingsDB).catch((err) => {
+                warn('Failed to persist themeState after load:', err);
+              });
+            }
+            break;
         }
       }
+      
+      const activeTheme = get(currentTheme);
+      applyTheme(activeTheme);
       
       // If no postsDBAddress found but we have a postsDB, save it (only if we can write settings).
       if (canWriteSettings && !$postsDBAddress && $postsDB?.address) {
@@ -534,6 +536,15 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
           case 'profilePicture':
             $profilePictureCid = rest.value;
             break;
+          case 'themeState':
+            if (rest.value) {
+              loadThemeState($settingsDB).then((loadedThemeState) => {
+                themeState.set(loadedThemeState);
+              }).catch((err) => {
+                warn('Failed to load themeState from update event:', err);
+              });
+            }
+            break;
           // ... handle other settings ...
         }
       } else if (entry?.payload?.op === 'DEL') {
@@ -572,6 +583,13 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       lastPersistedCommentsAddr = commentsAddr;
       $settingsDB.put({ _id: 'commentsDBAddress', value: commentsAddr }).catch((err) => {
         console.error('Failed to persist commentsDBAddress to settings:', err);
+      });
+    }
+
+    const currentThemeState = get(themeState);
+    if (currentThemeState && settingsAddr) {
+      $settingsDB.put({ _id: 'themeState', value: currentThemeState }).catch((err) => {
+        console.error('Failed to persist themeState to settings:', err);
       });
     }
 
@@ -756,14 +774,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     } else {
       alert('Settings database is not available.');
     }
-  }
-
-  function openEjectModal() {
-    showEjectModal = true;
-  }
-
-  function closeEjectModal() {
-    showEjectModal = false;
   }
 
   $effect(() => {
@@ -1000,22 +1010,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     </a>
     <LanguageSelector />
     <ThemeToggle />
-    {#if canEjectPWA}
-      <button
-        class="control-button eject-button"
-        onclick={openEjectModal}
-        title={$_('eject_pwa_title')}
-        aria-label={$_('eject_pwa_title')}>
-        <svg class="w-4 h-4" style="color: var(--danger);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"/>
-        </svg>
-      </button>
-    {/if}
   </div>
-{/if}
-
-{#if showEjectModal}
-  <PWAEjectModal on:close={closeEjectModal} />
 {/if}
 
 <style>
@@ -1072,14 +1067,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 
   :global(.control-button:hover) {
     background-color: var(--bg-hover);
-  }
-
-  :global(.eject-button) {
-    background-color: transparent !important;
-  }
-
-  :global(.eject-button:hover) {
-    background-color: rgba(220, 38, 38, 0.1) !important;
   }
 
   @media (max-width: 768px) {

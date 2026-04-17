@@ -3,11 +3,17 @@ import isOptionObject from 'is-plain-obj';
 const { hasOwnProperty } = Object.prototype;
 const { propertyIsEnumerable } = Object;
 const rootThis = globalThis;
+type PropertyRecord = Record<PropertyKey, unknown>;
+type MergeableArray = unknown[] & PropertyRecord;
 
 const defaultMergeOptions = {
   concatArrays: false,
   ignoreUndefined: false
 };
+
+const isOptionRecord = (value: unknown): value is PropertyRecord => isOptionObject(value);
+
+const asMergeableArray = (value: unknown[]): MergeableArray => value as MergeableArray;
 
 const defineProperty = (object: object, name: PropertyKey, value: unknown): void => {
   Object.defineProperty(object, name, {
@@ -43,7 +49,7 @@ function clone<T>(value: T): T {
     return cloneArray(value) as T;
   }
 
-  if (isOptionObject(value)) {
+  if (isOptionRecord(value)) {
     return cloneOptionObject(value) as T;
   }
 
@@ -60,7 +66,7 @@ function cloneArray(array: unknown[]): unknown[] {
   return result;
 }
 
-function cloneOptionObject(object: Record<PropertyKey, unknown>): Record<PropertyKey, unknown> {
+function cloneOptionObject(object: PropertyRecord): PropertyRecord {
   const result =
     Object.getPrototypeOf(object) === null
       ? Object.create(null)
@@ -74,11 +80,11 @@ function cloneOptionObject(object: Record<PropertyKey, unknown>): Record<Propert
 }
 
 const mergeKeys = (
-  merged: Record<PropertyKey, unknown>,
-  source: Record<PropertyKey, unknown>,
+  merged: PropertyRecord,
+  source: PropertyRecord,
   keys: PropertyKey[],
   config: typeof defaultMergeOptions
-): Record<PropertyKey, unknown> => {
+): PropertyRecord => {
   keys.forEach((key) => {
     if (typeof source[key] === 'undefined' && config.ignoreUndefined) {
       return;
@@ -120,11 +126,11 @@ const concatArrays = (
     }
 
     result = mergeKeys(
-      result as Record<PropertyKey, unknown>,
-      array as Record<PropertyKey, unknown>,
+      asMergeableArray(result),
+      asMergeableArray(array),
       getEnumerableOwnPropertyKeys(array).filter((key) => !indices.includes(String(key))),
       config
-    ) as unknown[];
+    ) as MergeableArray;
   });
 
   return result;
@@ -139,38 +145,38 @@ function merge(
     return concatArrays(merged, source, config);
   }
 
-  if (!isOptionObject(source) || !isOptionObject(merged)) {
+  if (!isOptionRecord(source) || !isOptionRecord(merged)) {
     return clone(source);
   }
 
   return mergeKeys(
-    merged as Record<PropertyKey, unknown>,
-    source as Record<PropertyKey, unknown>,
+    merged,
+    source,
     getEnumerableOwnPropertyKeys(source),
     config
   );
 }
 
-export function mergeOptions(...options: Array<Record<PropertyKey, unknown> | undefined>): Record<PropertyKey, unknown> {
+export function mergeOptions(...options: Array<PropertyRecord | undefined>): PropertyRecord {
   const config = merge(
     clone(defaultMergeOptions),
-    ((this !== rootThis && this) || {}) as Record<PropertyKey, unknown>,
+    ((this !== rootThis && this) || {}) as PropertyRecord,
     defaultMergeOptions
   ) as typeof defaultMergeOptions;
 
-  let merged: Record<PropertyKey, unknown> = { _: {} };
+  let merged: PropertyRecord = { _: {} };
 
   for (const option of options) {
     if (option === undefined) {
       continue;
     }
 
-    if (!isOptionObject(option)) {
+    if (!isOptionRecord(option)) {
       throw new TypeError(`\`${String(option)}\` is not an Option Object`);
     }
 
-    merged = merge(merged, { _: option }, config) as Record<PropertyKey, unknown>;
+    merged = merge(merged, { _: option }, config) as PropertyRecord;
   }
 
-  return merged._ as Record<PropertyKey, unknown>;
+  return merged._ as PropertyRecord;
 }

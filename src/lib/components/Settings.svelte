@@ -2,18 +2,26 @@
   import { _ } from 'svelte-i18n';
   import { preventDefault } from 'svelte/legacy';
   import { settingsDB, profilePictureCid, blogName, blogDescription, categories, seedPhrase, libp2p, orbitdb, enabledLanguages, aiApiKey, aiApiUrl, identity, isRTL, mediaDB, helia } from '../store.js';
+  import { currentTheme, installedThemes, selectTheme, saveCustomTheme } from '../themes/themeStore.js';
+  import type { Theme } from '../themes/types.js';
   import { encryptSeedPhrase } from '../cryptoUtils.js';
   import { LANGUAGES } from '../i18n/index.js';
   import { unixfs, type UnixFS } from '@helia/unixfs';
   import { onMount, onDestroy } from 'svelte';
+  import {
+    isMediaFileTooLarge,
+    MEDIA_MAX_FILE_SIZE_LABEL,
+  } from '$lib/mediaConfig.js';
   import { getImageUrlFromHelia, revokeImageUrl } from '../utils/mediaUtils.js';
   import { info, debug, error } from '../utils/logger.js';
   import {
     logImageUploadIpfsStored,
     logImageUploadMediaDbRegistered,
   } from '../utils/imageUploadDiagnostics.js';
+  import PWAEjectModal from './PWAEjectModal.svelte';
   let hasPersistedSeed = $state(typeof window !== 'undefined' && Boolean(localStorage.getItem('encryptedSeedPhrase')));
   let showSeedPasswordModal = $state(false);
+  let showEjectModal = $state(false);
   let newPassword = $state('');
   let confirmNewPassword = $state('');
   let errorMessage = $state('');
@@ -27,14 +35,24 @@
   let openSections = $state({
     languages: false,
     blogSettings: false,
+    themeSettings: false,
     categories: false,
     identity: false,
     security: false,
-    aiSettings: false
+    aiSettings: false,
+    hardwareReset: false
   });
 
   
   let uploading = $state(false);
+  let savingTheme = $state(false);
+  let themeSaveMessage = $state('');
+  let themeSaveError = $state('');
+  let newThemeName = $state('');
+  let newThemeDescription = $state('');
+  let newThemeAccent = $state('');
+  let newThemeSurface = $state('');
+  let newThemeText = $state('');
   let fs: UnixFS = $state(); // UnixFS instance
 
   onMount(async () => {
@@ -60,6 +78,10 @@
 
   function toggleSection(section: keyof typeof openSections) {
     openSections[section] = !openSections[section];
+  }
+
+  function changeTheme(themeId: string) {
+    selectTheme(themeId, $settingsDB);
   }
 
   // Function to toggle language
@@ -122,6 +144,81 @@
     showSeedPhrase = !showSeedPhrase;
   }
 
+  function resetThemeForm() {
+    newThemeName = '';
+    newThemeDescription = '';
+    newThemeAccent = $currentTheme?.colors?.accents?.primary ?? '';
+    newThemeSurface = $currentTheme?.colors?.surfaces?.default ?? '';
+    newThemeText = $currentTheme?.colors?.content?.default ?? '';
+    themeSaveMessage = '';
+    themeSaveError = '';
+  }
+
+  async function saveThemeFromCurrent() {
+    themeSaveError = '';
+    themeSaveMessage = '';
+
+    if (!newThemeName.trim()) {
+      themeSaveError = 'Please enter a theme name.';
+      return;
+    }
+
+    const slug = newThemeName
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '') || `custom-theme-${Date.now()}`;
+
+    const customTheme: Theme = {
+      id: slug,
+      name: newThemeName.trim(),
+      description: newThemeDescription.trim() || `Custom theme based on ${$currentTheme.name}`,
+      category: 'custom',
+      colors: {
+        ...$currentTheme.colors,
+        surfaces: {
+          ...$currentTheme.colors.surfaces,
+          default: newThemeSurface || $currentTheme.colors.surfaces.default,
+        },
+        content: {
+          ...$currentTheme.colors.content,
+          default: newThemeText || $currentTheme.colors.content.default,
+        },
+        accents: {
+          ...$currentTheme.colors.accents,
+          primary: newThemeAccent || $currentTheme.colors.accents.primary,
+        },
+      },
+      typography: $currentTheme.typography,
+      layout: $currentTheme.layout,
+      metadata: {
+        creator: 'User',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    };
+
+    savingTheme = true;
+    try {
+      await saveCustomTheme(customTheme, $settingsDB);
+      selectTheme(customTheme.id, $settingsDB);
+      themeSaveMessage = 'Custom theme saved and activated.';
+      resetThemeForm();
+    } catch (err) {
+      themeSaveError = String(err?.message ?? err) || 'Failed to save theme.';
+    } finally {
+      savingTheme = false;
+    }
+  }
+
+  function openEjectModal() {
+    showEjectModal = true;
+  }
+
+  function closeEjectModal() {
+    showEjectModal = false;
+  }
+
   function addCategory() {
     if (newCategory.trim() && !$categories.includes(newCategory.trim())) {
       $categories = [...$categories, newCategory.trim()];
@@ -155,8 +252,10 @@
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
-      errorMessage = $_('image_too_large');
+    if (isMediaFileTooLarge(file.size)) {
+      errorMessage = $_('file_too_large', {
+        values: { name: file.name, maxSize: MEDIA_MAX_FILE_SIZE_LABEL },
+      });
       info('File too large:', file.size);
       return;
     }
@@ -279,6 +378,70 @@
     {/if}
   </div>
 
+  <!-- Theme Settings -->
+  <div class="settings-section">
+    <button class="settings-header" onclick={() => toggleSection('themeSettings')}>
+      <span class="text-sm font-medium" style="color: var(--text);">Theme Settings</span>
+      <svg class="w-3 h-3 transition-transform" style="color: var(--text-muted);" class:rotate-180={openSections.themeSettings} fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+    </button>
+    {#if openSections.themeSettings}
+      <div class="settings-content space-y-3">
+        <p class="text-xs" style="color: var(--text-secondary);">Choose an installed theme for your blog.</p>
+        <div class="grid gap-2">
+          {#each $installedThemes as theme}
+            <button type="button" class="btn-outline btn-sm" style="width: 100%; text-align: left;" onclick={() => changeTheme(theme.id)}>
+              <span>{theme.name}</span>
+              {#if theme.id === $currentTheme.id}
+                <span class="text-xs" style="color: var(--accent);">✓ Active</span>
+              {/if}
+            </button>
+          {/each}
+        </div>
+
+        <div class="mt-4 p-4 rounded-lg" style="background-color: var(--bg-tertiary); border: 1px solid var(--border-subtle);">
+          <h3 class="text-sm font-semibold mb-2" style="color: var(--text);">Create custom theme</h3>
+          <p class="text-xs mb-3" style="color: var(--text-secondary);">Duplicate the current theme and adjust colors to save a custom theme.</p>
+
+          <div class="grid gap-3">
+            <div>
+              <label for="theme-name-input" class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">Theme name</label>
+              <input id="theme-name-input" class="input w-full" type="text" bind:value={newThemeName} placeholder="My custom theme" />
+            </div>
+            <div>
+              <label for="theme-description-input" class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">Description</label>
+              <input id="theme-description-input" class="input w-full" type="text" bind:value={newThemeDescription} placeholder="A polished custom theme" />
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label for="theme-accent-input" class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">Primary accent</label>
+                <input id="theme-accent-input" class="w-full h-10 rounded-md border" type="color" bind:value={newThemeAccent} />
+              </div>
+              <div>
+                <label for="theme-surface-input" class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">Surface background</label>
+                <input id="theme-surface-input" class="w-full h-10 rounded-md border" type="color" bind:value={newThemeSurface} />
+              </div>
+              <div>
+                <label for="theme-text-input" class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">Text color</label>
+                <input id="theme-text-input" class="w-full h-10 rounded-md border" type="color" bind:value={newThemeText} />
+              </div>
+            </div>
+
+            {#if themeSaveError}
+              <div class="text-xs" style="color: var(--danger);">{themeSaveError}</div>
+            {/if}
+            {#if themeSaveMessage}
+              <div class="text-xs" style="color: var(--success);">{themeSaveMessage}</div>
+            {/if}
+
+            <button type="button" class="btn-primary btn-sm" onclick={saveThemeFromCurrent} disabled={savingTheme}>
+              {savingTheme ? 'Saving…' : 'Save custom theme'}
+            </button>
+          </div>
+        </div>
+      </div>
+    {/if}
+  </div>
+
   <!-- Language Settings -->
   <div class="settings-section">
     <button class="settings-header" onclick={() => toggleSection('languages')} ontouchend={(e) => {e.preventDefault(); toggleSection('languages')}}>
@@ -388,6 +551,32 @@
       </div>
     {/if}
   </div>
+
+  <!-- Factory Reset -->
+  <div class="settings-section">
+    <button class="settings-header" onclick={() => toggleSection('hardwareReset')} data-testid="hardware-reset-accordion">
+      <span class="text-sm font-medium" style="color: var(--danger);">{$_('eject_pwa_title')}</span>
+      <svg class="w-3 h-3 transition-transform" style="color: var(--text-muted);" class:rotate-180={openSections.hardwareReset} fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+    </button>
+    {#if openSections.hardwareReset}
+      <div class="settings-content">
+        <div class="danger-card">
+          <p class="text-xs mb-2" style="color: var(--text-secondary);">
+            {$_('eject_pwa_subtitle')}
+          </p>
+          <p class="text-xs mb-3" style="color: var(--text-muted);">
+            {$_('eject_warning_irreversible')}
+          </p>
+          <button
+            class="btn-outline btn-sm danger-action"
+            onclick={openEjectModal}
+            data-testid="open-hardware-reset-modal">
+            {$_('eject_pwa_confirm')}
+          </button>
+        </div>
+      </div>
+    {/if}
+  </div>
 </div>
 
 {#if showSeedPasswordModal}
@@ -422,6 +611,10 @@
   </div>
 {/if}
 
+{#if showEjectModal}
+  <PWAEjectModal on:close={closeEjectModal} />
+{/if}
+
 <style>
   .rotate-180 { transform: rotate(180deg); }
 
@@ -446,6 +639,18 @@
   }
   .settings-content {
     padding: 0 0 0.75rem 0;
+  }
+
+  .danger-card {
+    padding: 0.875rem;
+    border-radius: 0.75rem;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .danger-action {
+    color: var(--danger);
+    border-color: var(--danger);
   }
 
   :global([dir="rtl"]) .flex { flex-direction: row-reverse; }

@@ -1,4 +1,5 @@
 import { unixfs } from '@helia/unixfs';
+import { MEDIA_MAX_FILE_SIZE_BYTES } from './mediaConfig.js';
 
 /** i18n keys for ingest failures (FR-8, Story 5.2). */
 export const AI_INGEST_ERROR_KEYS = {
@@ -19,7 +20,7 @@ export interface IngestRemoteVideoParams {
   assetUrl: string;
   mediaDB: { put: (doc: unknown) => Promise<unknown> };
   helia: unknown;
-  /** Default 10 MB (same as MediaUploader / AiImageField). */
+  /** Default from `VITE_MEDIA_MAX_FILE_SIZE_MB` (100 MB fallback). */
   maxBytes?: number;
   fetchImpl?: typeof fetch;
 }
@@ -31,7 +32,7 @@ export interface IngestRemoteVideoParams {
 export async function ingestRemoteVideoToMedia(
   params: IngestRemoteVideoParams,
 ): Promise<{ cid: string; mediaId: string; createdAt: string }> {
-  const maxBytes = params.maxBytes ?? 10 * 1024 * 1024;
+  const maxBytes = params.maxBytes ?? MEDIA_MAX_FILE_SIZE_BYTES;
   const fetchImpl = params.fetchImpl ?? fetch;
   let res: Response;
   try {

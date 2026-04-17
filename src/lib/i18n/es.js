@@ -139,7 +139,7 @@ export default {
   "ai_ingest_error_network": "Could not download the video. Check your connection and try again.",
   "ai_ingest_error_cors_or_blocked": "The browser blocked downloading the video (CORS or policy). Try another browser or check the provider.",
   "ai_ingest_error_http": "The video download was rejected. Try again or re-run generation.",
-  "ai_ingest_error_too_large": "The video is too large for the media library limit (10 MB).",
+  "ai_ingest_error_too_large": "The video is too large for the media library limit ({maxSize}).",
 
   "show_preview": "Mostrar vista previa",
   "selected_media": "Medios seleccionados:",
@@ -185,7 +185,7 @@ export default {
   "select_files": "Seleccionar archivos",
   "failed_to_load_media": "Error al cargar medios",
   "media_database_not_initialized": "Base de datos de medios o IPFS no inicializada",
-  "file_too_large": "El archivo {name} es demasiado grande. Tamaño máximo 10MB",
+  "file_too_large": "El archivo {name} es demasiado grande. Tamaño máximo {maxSize}",
   "failed_to_upload_files": "Error al subir archivos",
   "failed_to_delete_media": "Error al eliminar medios",
   "browser_no_video_support": "Tu navegador no soporta reproducción de video",

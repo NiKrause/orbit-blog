@@ -12,6 +12,7 @@
     AiIngestError,
     ingestRemoteVideoToMedia,
   } from '$lib/mediaIngest.js';
+  import { MEDIA_MAX_FILE_SIZE_LABEL } from '$lib/mediaConfig.js';
   import {
     getManifestById,
     getProviderModelForId,
@@ -766,7 +767,11 @@
             role="alert"
             data-testid="ai-ingest-error"
           >
-            {$_(ingestErrorKey)}
+            {#if ingestErrorKey === AI_INGEST_ERROR_KEYS.tooLarge}
+              {$_(ingestErrorKey, { values: { maxSize: MEDIA_MAX_FILE_SIZE_LABEL } })}
+            {:else}
+              {$_(ingestErrorKey)}
+            {/if}
           </p>
         {/if}
       {/if}

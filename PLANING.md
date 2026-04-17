@@ -32,7 +32,31 @@
 - [?] Better password decryption workflow
 - [ ] Newly rolled out pinned ipfs version is often cached too long, probably by nginx. (no-cache header by Nginx)
 
-### Version 0.3 (Enhanced Features)
+### Version 0.3 (UI-Design / Pluggable Themes)
+- [ ] Design System Foundation
+  - [ ] Analyze Top 5 blogging platforms (WordPress, Medium, Ghost, Wix, Substack)
+  - [ ] Extract common UI patterns and design principles
+  - [ ] Create component library abstraction layer
+- [ ] Pluggable Theme Architecture
+  - [ ] Define theme configuration format (CSS variables, Tailwind tokens)
+  - [ ] Implement theme provider and context system
+  - [ ] Support runtime theme switching
+- [ ] Default Themes
+  - [ ] Minimal/Clean theme (default)
+  - [ ] Magazine/Editorial theme
+  - [ ] Portfolio theme
+  - [ ] Academic/Blog theme
+- [ ] Theme Customization UI
+  - [ ] Settings panel for theme selection
+  - [ ] Color/Typography customization controls
+  - [ ] Preview mode for theme changes
+  - [ ] Export/Import theme configurations
+- [ ] Documentation & Guidelines
+  - [ ] Theme developer guide
+  - [ ] Component API documentation
+  - [ ] Design token system
+
+### Version 0.4 (Enhanced Features)
 - [ ] PostList drag-and-drop ordering with position storage
 - [ ] AI Integration
   - [ ] Spell checker
@@ -41,7 +65,6 @@
   - [ ] Logo configuration
   - [ ] Navigation activation
   - [ ] Favicon configuration
-  - [ ] CSS style configuration
   - [ ] Imprint and data protection
   - [ ] Background media for blog/posts
 - [ ] Search functionality for comments
@@ -50,7 +73,7 @@
   - [ ] Support for Aleph IM, Filecoin, Arweave
   - [ ] Cloud storage integration
 
-### Version 0.4 (Platform & Integration)
+### Version 0.5 (Platform & Integration)
 - [ ] Web2.0 Integration
   - [ ] RSS Feed
   - [ ] Social media photo display
@@ -69,7 +92,7 @@
   - [ ] AI translation integration
   - [ ] Translation service integration
 
-### Version 0.5 (Advanced Features)
+### Version 0.6 (Advanced Features)
 - [ ] Blog forking & merging capability
 - [ ] Svelte components in markdown
 - [ ] WebRTC direct connections

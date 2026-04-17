@@ -1,6 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { _ } from 'svelte-i18n';
   import { mediaDB, helia } from '$lib/store';
+  import {
+    isMediaFileTooLarge,
+    MEDIA_MAX_FILE_SIZE_LABEL,
+  } from '$lib/mediaConfig.js';
   import { relayOnlyIpfsUrlForCid } from '$lib/relay/relayEnv.js';
   import { unixfs } from '@helia/unixfs';
   import { error } from '../utils/logger.js';
@@ -127,9 +132,12 @@
     
     try {
       for (const file of files) {
-        // File size validation (limit to 10MB)
-        if (file.size > 10 * 1024 * 1024) {
-          throw new Error(`File ${file.name} is too large. Maximum size is 10MB`);
+        if (isMediaFileTooLarge(file.size)) {
+          throw new Error(
+            $_('file_too_large', {
+              values: { name: file.name, maxSize: MEDIA_MAX_FILE_SIZE_LABEL },
+            }),
+          );
         }
         
         // Read file as arrayBuffer

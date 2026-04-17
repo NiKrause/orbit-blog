@@ -138,7 +138,7 @@ export default {
   "ai_ingest_error_network": "Could not download the video. Check your connection and try again.",
   "ai_ingest_error_cors_or_blocked": "The browser blocked downloading the video (CORS or policy). Try another browser or check the provider.",
   "ai_ingest_error_http": "The video download was rejected. Try again or re-run generation.",
-  "ai_ingest_error_too_large": "The video is too large for the media library limit (10 MB).",
+  "ai_ingest_error_too_large": "The video is too large for the media library limit ({maxSize}).",
 
   "show_preview": "عرض المعاينة",
   "selected_media": "الوسائط المحددة:",
@@ -184,7 +184,7 @@ export default {
   "select_files": "اختر الملفات",
   "failed_to_load_media": "فشل تحميل الوسائط",
   "media_database_not_initialized": "لم يتم تهيئة قاعدة بيانات الوسائط أو IPFS",
-  "file_too_large": "الملف {name} كبير جدًا. الحجم الأقصى هو 10 ميجابايت",
+  "file_too_large": "الملف {name} كبير جدًا. الحجم الأقصى هو {maxSize}",
   "failed_to_upload_files": "فشل رفع الملفات",
   "failed_to_delete_media": "فشل حذف الوسائط",
   "browser_no_video_support": "متصفحك لا يدعم تشغيل الفيديو",
