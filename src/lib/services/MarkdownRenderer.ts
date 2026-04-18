@@ -328,24 +328,9 @@ function isAllowedDomain(src: string, node?: Element): boolean {
 
   try {
     const url = new URL(src);
-    
+
     // Special handling for YouTube URLs to convert them to embed format
-    if (url.hostname === 'www.youtube.com' && url.pathname.startsWith('/watch')) {
-      const videoId = url.searchParams.get('v');
-      if (videoId && node) {
-        // Replace the node's src with the embed URL
-        node.setAttribute('src', `https://www.youtube-nocookie.com/embed/${videoId}`);
-        // Add helpful attributes
-        if (!node.hasAttribute('width')) node.setAttribute('width', '560');
-        if (!node.hasAttribute('height')) node.setAttribute('height', '315');
-        if (!node.hasAttribute('frameborder')) node.setAttribute('frameborder', '0');
-        if (!node.hasAttribute('allowfullscreen')) node.setAttribute('allowfullscreen', '');
-        return true;
-      }
-    }
-    
-    // Handle youtu.be short URLs
-    if (url.hostname === 'youtu.be') {
+    if (url.hostname === 'youtu.be' || url.hostname.endsWith('.youtu.be')) {
       const videoId = url.pathname.slice(1); // Remove leading slash
       if (videoId && node) {
         node.setAttribute('src', `https://www.youtube-nocookie.com/embed/${videoId}`);
@@ -356,7 +341,21 @@ function isAllowedDomain(src: string, node?: Element): boolean {
         return true;
       }
     }
-    
+
+    if (url.hostname === 'youtube.com' || url.hostname.endsWith('.youtube.com')) {
+      if (url.pathname.startsWith('/watch')) {
+        const videoId = url.searchParams.get('v');
+        if (videoId && node) {
+          node.setAttribute('src', `https://www.youtube-nocookie.com/embed/${videoId}`);
+          if (!node.hasAttribute('width')) node.setAttribute('width', '560');
+          if (!node.hasAttribute('height')) node.setAttribute('height', '315');
+          if (!node.hasAttribute('frameborder')) node.setAttribute('frameborder', '0');
+          if (!node.hasAttribute('allowfullscreen')) node.setAttribute('allowfullscreen', '');
+          return true;
+        }
+      }
+    }
+
     return allowedDomains.some(domain => url.hostname.endsWith(domain));
   } catch {
     return false;

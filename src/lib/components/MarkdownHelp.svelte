@@ -56,8 +56,8 @@
       },
       { 
         name: 'Video Embeds', 
-        syntax: '<iframe src="https://www.youtube-nocookie.com/embed/VIDEO_ID" width="560" height="315" frameborder="0" allowfullscreen></iframe>',
-        description: 'Embed videos (use embed URLs, not watch URLs)'
+        syntax: '<iframe src="https://www.youtube-nocookie.com/embed/VIDEO_ID" width="560" height="315" frameborder="0" allowfullscreen></iframe>\n\n<iframe src="https://youtu.be/VIDEO_ID" width="560" height="315" frameborder="0" allowfullscreen></iframe>\n\n<iframe src="https://www.youtube.com/watch?v=VIDEO_ID" width="560" height="315" frameborder="0" allowfullscreen></iframe>',
+        description: 'Embed YouTube videos using the preferred nocookie/embed URL. Short and watch URLs are also normalized automatically by the renderer.'
       }
     ]
   };
@@ -137,6 +137,10 @@
             {/each}
           </div>
 
+          <div class="embed-warning">
+            ⚠️ Use YouTube embed iframe URLs whenever possible. The renderer also normalizes `youtu.be/VIDEO_ID` and `youtube.com/watch?v=VIDEO_ID` sources, but the `youtube-nocookie.com/embed/VIDEO_ID` form is the most reliable.
+          </div>
+
           <div class="help-footer">
             <p>💡 <strong>Pro Tip:</strong> Use the Preview toggle to see your formatted content before publishing!</p>
             <p>📚 For detailed documentation, check the <code>docs/MARKDOWN_GUIDE.md</code> file.</p>
@@ -155,9 +159,9 @@
 
   .help-button {
     padding: 0.5rem;
-    border: 1px solid #d1d5db;
-    background: #f9fafb;
-    color: #6b7280;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
     border-radius: 0.375rem;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -171,17 +175,8 @@
   }
 
   .help-button:hover {
-    color: #4f46e5;
-    background-color: #f3f4f6;
-  }
-
-  :global(.dark) .help-button {
-    color: #9ca3af;
-  }
-
-  :global(.dark) .help-button:hover {
-    color: #6366f1;
-    background-color: #374151;
+    color: var(--text);
+    background-color: var(--bg-hover);
   }
 
   .help-overlay {
@@ -199,7 +194,8 @@
   }
 
   .help-panel {
-    background: white;
+    background: var(--bg);
+    color: var(--text);
     border-radius: 0.75rem;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     max-width: 800px;
@@ -210,56 +206,34 @@
     overflow: hidden;
   }
 
-  :global(.dark) .help-panel {
-    background: #1f2937;
-    color: #f3f4f6;
-  }
-
   .help-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 1.5rem;
-    border-bottom: 1px solid #e5e7eb;
-  }
-
-  :global(.dark) .help-header {
-    border-bottom-color: #374151;
+    border-bottom: 1px solid var(--border);
   }
 
   .help-header h3 {
     margin: 0;
     font-size: 1.25rem;
     font-weight: 600;
-    color: #111827;
-  }
-
-  :global(.dark) .help-header h3 {
-    color: #f9fafb;
+    color: var(--text);
   }
 
   .close-button {
     padding: 0.25rem;
     border: none;
     background: transparent;
-    color: #6b7280;
+    color: var(--text-secondary);
     border-radius: 0.25rem;
     cursor: pointer;
     transition: all 0.2s ease;
   }
 
   .close-button:hover {
-    color: #ef4444;
-    background-color: #fee2e2;
-  }
-
-  :global(.dark) .close-button {
-    color: #9ca3af;
-  }
-
-  :global(.dark) .close-button:hover {
-    color: #f87171;
-    background-color: #450a0a;
+    color: var(--text);
+    background-color: var(--bg-hover);
   }
 
   .help-content {
@@ -276,68 +250,44 @@
     margin: 0 0 1rem 0;
     font-size: 1.125rem;
     font-weight: 600;
-    color: #374151;
-    border-bottom: 2px solid #e5e7eb;
+    color: var(--text);
+    border-bottom: 2px solid var(--border);
     padding-bottom: 0.5rem;
-  }
-
-  :global(.dark) .help-section h4 {
-    color: #e5e7eb;
-    border-bottom-color: #4b5563;
   }
 
   .feature-item {
     margin-bottom: 1.5rem;
     padding: 1rem;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--border);
     border-radius: 0.5rem;
-    background: #f9fafb;
-  }
-
-  :global(.dark) .feature-item {
-    border-color: #374151;
-    background: #111827;
+    background: var(--bg-secondary);
   }
 
   .feature-name {
     font-weight: 600;
-    color: #1f2937;
+    color: var(--text);
     margin-bottom: 0.5rem;
     font-size: 0.875rem;
   }
 
-  :global(.dark) .feature-name {
-    color: #f3f4f6;
-  }
-
   .feature-description {
     font-weight: 400;
-    color: #6b7280;
+    color: var(--text-secondary);
     font-size: 0.75rem;
     display: block;
     margin-top: 0.25rem;
   }
 
-  :global(.dark) .feature-description {
-    color: #9ca3af;
-  }
-
   .feature-syntax {
     margin: 0;
     padding: 0.75rem;
-    background: #f3f4f6;
-    border: 1px solid #d1d5db;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
     border-radius: 0.375rem;
     font-size: 0.75rem;
     line-height: 1.4;
-    color: #374151;
+    color: var(--text);
     overflow-x: auto;
-  }
-
-  :global(.dark) .feature-syntax {
-    background: #374151;
-    border-color: #4b5563;
-    color: #d1d5db;
   }
 
   .feature-syntax code {
@@ -350,14 +300,9 @@
   .help-footer {
     margin-top: 2rem;
     padding-top: 1rem;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid var(--border);
     font-size: 0.875rem;
-    color: #6b7280;
-  }
-
-  :global(.dark) .help-footer {
-    border-top-color: #374151;
-    color: #9ca3af;
+    color: var(--text-secondary);
   }
 
   .help-footer p {
@@ -365,14 +310,39 @@
   }
 
   .help-footer code {
-    background: #f3f4f6;
+    background: var(--bg-tertiary);
     padding: 0.125rem 0.25rem;
     border-radius: 0.25rem;
     font-size: 0.75rem;
   }
 
-  :global(.dark) .help-footer code {
-    background: #374151;
+  .embed-warning {
+    margin-top: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 0.8125rem;
+  }
+
+  @media (max-width: 640px) {
+    .help-overlay {
+      padding: 0.5rem;
+    }
+
+    .help-panel {
+      max-height: 90vh;
+    }
+
+    .help-header,
+    .help-content {
+      padding: 1rem;
+    }
+
+    .feature-syntax {
+      font-size: 0.6875rem;
+    }
   }
 
   /* Responsive design */
