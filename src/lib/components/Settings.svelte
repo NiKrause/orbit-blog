@@ -366,11 +366,11 @@
           <div class="flex-1 space-y-3">
             <div>
               <label for="blog-name-input" class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">{$_('blog_name')}</label>
-              <input id="blog-name-input" type="text" class="input" value={$blogName} data-testid="blog-name-input" onchange={(event: Event) => { const target = event.target as HTMLInputElement; $settingsDB?.put({ _id: 'blogName', value: target.value }) }} />
+              <input id="blog-name-input" type="text" class="input" bind:value={$blogName} data-testid="blog-name-input" onblur={() => { $settingsDB?.put({ _id: 'blogName', value: $blogName }).catch((err) => error('Failed to save blogName', err)); }} />
             </div>
             <div>
               <label for="blog-description-input" class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">{$_('blog_description')}</label>
-              <input id="blog-description-input" type="text" class="input" value={$blogDescription} data-testid="blog-description-input" onchange={(event: Event) => { const target = event.target as HTMLInputElement; $settingsDB?.put({ _id: 'blogDescription', value: target.value }) }} />
+              <input id="blog-description-input" type="text" class="input" bind:value={$blogDescription} data-testid="blog-description-input" onblur={() => { $settingsDB?.put({ _id: 'blogDescription', value: $blogDescription }).catch((err) => error('Failed to save blogDescription', err)); }} />
             </div>
           </div>
         </div>
