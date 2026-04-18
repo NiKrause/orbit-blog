@@ -41,7 +41,8 @@
 <div class="multiselect-container relative" {id}>
   <!-- Selected values display -->
   <div 
-    class="min-h-[42px] w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white cursor-pointer flex flex-wrap gap-1 items-center"
+    class="min-h-[42px] w-full px-3 py-2 border rounded-md cursor-pointer flex flex-wrap gap-1 items-center"
+    style="background-color: var(--bg-secondary); border-color: var(--border); color: var(--text);"
     role="button"
     tabindex="0"
     aria-expanded="{isOpen}"
@@ -50,14 +51,15 @@
     onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); isOpen = !isOpen; } }}
   >
     {#if values.length === 0}
-      <span class="text-gray-500 dark:text-gray-400">{placeholder}</span>
+      <span style="color: var(--text-muted);">{placeholder}</span>
     {:else}
       {#each values as value}
-        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-800 dark:text-indigo-100">
+        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium" style="background-color: var(--bg-tertiary); color: var(--text);">
           {value}
           <button
             type="button"
-            class="ml-1 text-indigo-600 hover:text-indigo-800 dark:text-indigo-200 dark:hover:text-white"
+            class="ml-1 hover:text-opacity-80"
+            style="color: var(--accent);"
             onclick={(e) => { e.stopPropagation(); removeOption(value); }}
           >
             ×
@@ -68,7 +70,8 @@
     
     <!-- Dropdown arrow -->
     <svg 
-      class="ml-auto h-4 w-4 text-gray-400 dark:text-gray-300 transition-transform {isOpen ? 'rotate-180' : ''}" 
+      class="ml-auto h-4 w-4 transition-transform {isOpen ? 'rotate-180' : ''}" 
+      style="color: var(--text-muted);"
       fill="none" 
       stroke="currentColor" 
       viewBox="0 0 24 24"
@@ -79,14 +82,17 @@
   
   <!-- Dropdown menu -->
   {#if isOpen}
-    <div class="absolute z-10 w-full mt-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto">
+    <div class="absolute z-10 w-full mt-1 rounded-md shadow-lg max-h-60 overflow-auto"
+      style="background-color: var(--bg-secondary); border: 1px solid var(--border); color: var(--text);"
+    >
       <!-- Search input -->
-      <div class="p-2 border-b border-gray-200 dark:border-gray-600">
+      <div class="p-2" style="border-bottom: 1px solid var(--border);">
         <input
           type="text"
           bind:value={searchTerm}
           placeholder="Search options..."
-          class="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          class="w-full px-2 py-1 text-sm rounded"
+          style="background-color: var(--bg); border: 1px solid var(--border); color: var(--text);"
         />
       </div>
       
@@ -95,7 +101,8 @@
         {#each filteredOptions as option}
           <button
             type="button"
-            class="w-full text-left px-3 py-2 text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-600"
+            class="w-full text-left px-3 py-2 text-sm focus:outline-none multiselect-option"
+            style="color: var(--text);"
             onclick={() => toggleOption(option)}
           >
             {option}
@@ -103,7 +110,7 @@
         {/each}
         
         {#if filteredOptions.length === 0}
-          <div class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+          <div class="px-3 py-2 text-sm" style="color: var(--text-secondary);">
             {searchTerm ? 'No matching options' : 'All options selected'}
           </div>
         {/if}
@@ -115,5 +122,15 @@
 <style>
   .multiselect-container {
     position: relative;
+  }
+
+  .multiselect-option {
+    background-color: transparent;
+    transition: background-color 0.15s ease;
+  }
+
+  .multiselect-option:hover,
+  .multiselect-option:focus {
+    background-color: var(--bg-hover);
   }
 </style>

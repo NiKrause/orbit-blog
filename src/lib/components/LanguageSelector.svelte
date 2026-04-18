@@ -83,18 +83,13 @@
     display: flex;
     align-items: center;
     padding: 0.5rem;
-    background-color: rgb(229 231 235 / var(--tw-bg-opacity, 1));
+    background-color: var(--bg-secondary);
     border-radius: 0.5rem;
     transition-property: all;
     transition-duration: 300ms;
-    color: rgb(55 65 81 / var(--tw-text-opacity, 1));
-    border: none;
+    color: var(--text);
+    border: 1px solid var(--border);
     cursor: pointer;
-  }
-
-  :global(.dark) .language-button {
-    background-color: rgb(75 85 99 / var(--tw-bg-opacity, 1));
-    color: rgb(229 231 235 / var(--tw-text-opacity, 1));
   }
 
   .language-button:hover {
@@ -117,15 +112,11 @@
     min-width: 10rem;
     padding: 0.5rem 0;
     margin-top: 0.25rem;
-    background-color: white;
+    background-color: var(--bg-secondary);
+    color: var(--text);
+    border: 1px solid var(--border);
     border-radius: 0.375rem;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  }
-
-  :global(.dark) .language-dropdown {
-    background-color: rgb(75 85 99 / var(--tw-bg-opacity, 1));
-    color: rgb(229 231 235 / var(--tw-text-opacity, 1));
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
   }
 
   .language-selector:hover .language-dropdown {
@@ -140,28 +131,16 @@
     background: none;
     border: none;
     cursor: pointer;
-    color: rgb(55 65 81 / var(--tw-text-opacity, 1));
-  }
-
-  :global(.dark) .language-option {
-    color: rgb(229 231 235 / var(--tw-text-opacity, 1));
+    color: var(--text);
   }
 
   .language-option:hover {
-    background-color: rgb(243 244 246 / var(--tw-bg-opacity, 1));
-  }
-
-  :global(.dark) .language-option:hover {
-    background-color: rgb(107 114 128 / var(--tw-bg-opacity, 1));
+    background-color: var(--bg-hover);
   }
 
   .language-option.active {
     font-weight: bold;
-    background-color: rgb(243 244 246 / var(--tw-bg-opacity, 1));
-  }
-
-  :global(.dark) .language-option.active {
-    background-color: rgb(107 114 128 / var(--tw-bg-opacity, 1));
+    background-color: var(--bg-hover);
   }
 
   @media (max-width: 768px) {
