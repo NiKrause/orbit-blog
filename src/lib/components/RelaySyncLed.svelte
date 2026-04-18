@@ -10,9 +10,24 @@
     state: RelayLedState;
     /** When true, skip blink (in addition to CSS `prefers-reduced-motion`). */
     reducedMotion?: boolean;
+    /** When true, render inside normal document flow instead of absolute top-right overlay. */
+    inline?: boolean;
+    /** Custom native tooltip text. Defaults to the translated state label. */
+    titleOverride?: string;
+    /** Custom aria label. Defaults to the translated state label. */
+    ariaLabelOverride?: string;
+    /** When false, still render an idle dot instead of hiding it. */
+    hideWhenIdle?: boolean;
   }
 
-  let { state, reducedMotion = false }: Props = $props();
+  let {
+    state,
+    reducedMotion = false,
+    inline = false,
+    titleOverride,
+    ariaLabelOverride,
+    hideWhenIdle = true,
+  }: Props = $props();
 
   const ariaKey = $derived(
     state === 'green'
@@ -23,19 +38,22 @@
           ? 'ai_relay_led_aria_stalled'
           : 'ai_relay_led_aria_syncing',
   );
+  const resolvedLabel = $derived(titleOverride ?? $_(ariaKey));
+  const resolvedAriaLabel = $derived(ariaLabelOverride ?? resolvedLabel);
 </script>
 
-{#if state !== 'idle'}
-  <span class="relay-led-wrap" title={$_(ariaKey)}>
+{#if !hideWhenIdle || state !== 'idle'}
+  <span class="relay-led-wrap" class:relay-led-wrap--inline={inline} title={resolvedLabel}>
     <span
       class="relay-led"
+      class:relay-led--idle={state === 'idle'}
       class:relay-led--yellow={state === 'yellow'}
       class:relay-led--orange={state === 'orange'}
       class:relay-led--green={state === 'green'}
       class:relay-led--error={state === 'error'}
       class:relay-led--blink={state === 'yellow' && !reducedMotion}
       role="status"
-      aria-label={$_(ariaKey)}
+      aria-label={resolvedAriaLabel}
     ></span>
   </span>
 {/if}
@@ -65,6 +83,18 @@
     pointer-events: none;
   }
 
+  .relay-led-wrap--inline {
+    position: static;
+    top: auto;
+    inset-inline-end: auto;
+    z-index: auto;
+    padding: 0;
+    margin: 0;
+  }
+
+  .relay-led--idle {
+    background: color-mix(in srgb, var(--text-secondary, #6b7280) 70%, transparent);
+  }
   .relay-led--yellow {
     background: #eab308;
   }

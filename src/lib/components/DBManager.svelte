@@ -3,12 +3,38 @@
   import { _ } from 'svelte-i18n';
 
   import { onDestroy } from 'svelte';
-  import { settingsDB, posts, allComments, allMedia, remoteDBs, selectedDBAddress, orbitdb, remoteDBsDatabases, identity, identities, isRTL } from '$lib/store.js';
+  import {
+    settingsDB,
+    posts,
+    allComments,
+    allMedia,
+    remoteDBs,
+    selectedDBAddress,
+    orbitdb,
+    remoteDBsDatabases,
+    identity,
+    identities,
+    isRTL,
+    postsDB,
+    postsDBAddress,
+    commentsDB,
+    commentsDBAddress,
+    mediaDB,
+    mediaDBAddress,
+    aiDB,
+    aiDBAddress,
+  } from '$lib/store.js';
   import Modal from './Modal.svelte';
   import { switchToRemoteDB, addRemoteDBToStore } from '$lib/dbUtils.js';
   import { IPFSAccessController } from '@orbitdb/core';
   import ConfirmModal from './ConfirmModal.svelte';
   import type { RemoteDB } from '$lib/types.js';
+  import RelaySyncLed from './RelaySyncLed.svelte';
+  import {
+    startRelayDatabasePolling,
+    type RelayDatabasePollUpdate,
+    type RelayLedState,
+  } from '$lib/services/relayPinStatus.js';
   import { error, debug } from '../utils/logger.js'
 
   let dbAddress = $state('');
@@ -26,6 +52,104 @@
   let dbToRemove: string | null = null;
   let showConfirmDropCurrentModal = $state(false);
   let dropCurrentModalMessage = $state('');
+
+  type CurrentDbLedKey = 'settings' | 'posts' | 'comments' | 'media' | 'ai';
+  type CurrentDbRelayStatus = RelayDatabasePollUpdate & { address: string };
+
+  const CURRENT_DB_LED_LABELS: Record<CurrentDbLedKey, string> = {
+    settings: 'settingsDB',
+    posts: 'postsDB',
+    comments: 'commentsDB',
+    media: 'mediaDB',
+    ai: 'aiDB',
+  };
+
+  function createDbRelayStatus(address = ''): CurrentDbRelayStatus {
+    return {
+      state: address ? 'yellow' : 'idle',
+      lastSyncedAt: null,
+      probe: 'unknown',
+      address,
+    };
+  }
+
+  let currentDbRelayStatus = $state<Record<CurrentDbLedKey, CurrentDbRelayStatus>>({
+    settings: createDbRelayStatus(),
+    posts: createDbRelayStatus(),
+    comments: createDbRelayStatus(),
+    media: createDbRelayStatus(),
+    ai: createDbRelayStatus(),
+  });
+
+  function normalizeAddress(address: string | null | undefined): string {
+    return typeof address === 'string' ? address.trim() : '';
+  }
+
+  function getCurrentDbRelayDefinitions() {
+    return [
+      {
+        key: 'settings' as const,
+        label: CURRENT_DB_LED_LABELS.settings,
+        address: normalizeAddress($settingsDB?.address?.toString?.()),
+      },
+      {
+        key: 'posts' as const,
+        label: CURRENT_DB_LED_LABELS.posts,
+        address: normalizeAddress($postsDBAddress || $postsDB?.address?.toString?.()),
+      },
+      {
+        key: 'comments' as const,
+        label: CURRENT_DB_LED_LABELS.comments,
+        address: normalizeAddress($commentsDBAddress || $commentsDB?.address?.toString?.()),
+      },
+      {
+        key: 'media' as const,
+        label: CURRENT_DB_LED_LABELS.media,
+        address: normalizeAddress($mediaDBAddress || $mediaDB?.address?.toString?.()),
+      },
+      {
+        key: 'ai' as const,
+        label: CURRENT_DB_LED_LABELS.ai,
+        address: normalizeAddress($aiDBAddress || $aiDB?.address?.toString?.()),
+      },
+    ];
+  }
+
+  function formatRelayStateText(state: RelayLedState, probe: RelayDatabasePollUpdate['probe']): string {
+    if (state === 'green') return 'Replicated on relay';
+    if (state === 'orange') return 'Relay reachable, waiting for clearer sync confirmation';
+    if (state === 'error') return 'Relay monitoring stalled';
+    if (probe === 'not_listed') return 'Waiting for first relay replication';
+    if (state === 'idle') return 'Database address not available';
+    return 'Syncing with relay';
+  }
+
+  function formatLastReplication(iso: string | null): string {
+    if (!iso) return 'Not replicated yet';
+    const ms = Date.parse(iso);
+    if (Number.isNaN(ms)) return iso;
+    return `${new Date(ms).toLocaleString()} (${iso})`;
+  }
+
+  function buildRelayTooltip(label: string, status: CurrentDbRelayStatus): string {
+    return [
+      `${label}`,
+      `State: ${formatRelayStateText(status.state, status.probe)}`,
+      `Last replication: ${formatLastReplication(status.lastSyncedAt)}`,
+      `Address: ${status.address || 'Not available'}`,
+    ].join('\n');
+  }
+
+  function getCurrentDbRelayItems() {
+    return getCurrentDbRelayDefinitions().map((definition) => {
+      const status = currentDbRelayStatus[definition.key] ?? createDbRelayStatus(definition.address);
+      return {
+        ...definition,
+        status,
+        tooltip: buildRelayTooltip(definition.label, status),
+      };
+    });
+  }
 
   // QR code generation function removed
 
@@ -553,6 +677,35 @@
     }
   });
 
+  $effect(() => {
+    const definitions = getCurrentDbRelayDefinitions();
+    const ac = new AbortController();
+    const stops: Array<() => void> = [];
+
+    for (const definition of definitions) {
+      currentDbRelayStatus[definition.key] = createDbRelayStatus(definition.address);
+      if (!definition.address) continue;
+      stops.push(
+        startRelayDatabasePolling({
+          dbAddress: definition.address,
+          signal: ac.signal,
+          pollDebugLabel: `db-manager:${definition.key}`,
+          onUpdate: (update) => {
+            currentDbRelayStatus[definition.key] = {
+              ...update,
+              address: definition.address,
+            };
+          },
+        }),
+      );
+    }
+
+    return () => {
+      ac.abort();
+      for (const stop of stops) stop();
+    };
+  });
+
   async function cloneDatabase(sourceDb) {
     isModalOpen = true;
     modalMessage = `${$_("cloning_database")} "${sourceDb.name}"...`;
@@ -779,6 +932,24 @@
           <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
         </button>
         {/if}
+      </div>
+      <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5" data-testid="db-sync-leds">
+        {#each getCurrentDbRelayItems() as item (item.key)}
+          <div
+            class="inline-flex items-center gap-1.5 text-[11px]"
+            style="color: var(--text-secondary);"
+            data-testid={`db-sync-led-${item.key}`}
+          >
+            <RelaySyncLed
+              state={item.status.state}
+              inline={true}
+              hideWhenIdle={false}
+              titleOverride={item.tooltip}
+              ariaLabelOverride={item.tooltip}
+            />
+            <span class="font-mono">{item.label}</span>
+          </div>
+        {/each}
       </div>
     </div>
 

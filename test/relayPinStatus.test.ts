@@ -6,11 +6,14 @@ import {
   relayPreviewUrl,
 } from '../src/lib/relay/relayEnv.js';
 import {
+  fetchRelayDatabaseListing,
   probeCidPinned,
   probeRelayHealth,
   probeRelayMediaDbInPinningList,
   requestRelayMediaDbPinSync,
+  startRelayDatabasePolling,
   startRelayPinPolling,
+  type RelayDatabasePollUpdate,
   type RelayLedState,
 } from '../src/lib/services/relayPinStatus.js';
 
@@ -171,6 +174,24 @@ describe('relayPinStatus probes', () => {
       });
     };
     assert.strictEqual(await requestRelayMediaDbPinSync('http://m:9', '/orbitdb/zdpuABC'), true);
+  });
+
+  it('fetchRelayDatabaseListing returns listed row with lastSyncedAt', async () => {
+    globalThis.fetch = async () =>
+      new Response(
+        JSON.stringify({
+          databases: [{ address: '/orbitdb/zdpuListed', lastSyncedAt: '2026-04-18T10:11:12.000Z' }],
+          total: 1,
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+    const result = await fetchRelayDatabaseListing('http://m:9', '/orbitdb/zdpuListed');
+    assert.strictEqual(result.probe, 'listed');
+    assert.strictEqual(result.row?.address, '/orbitdb/zdpuListed');
+    assert.strictEqual(result.row?.lastSyncedAt, '2026-04-18T10:11:12.000Z');
   });
 });
 
@@ -369,5 +390,114 @@ describe('startRelayPinPolling', () => {
     const lenAfter = states.length;
     await sleep(900);
     assert.strictEqual(states.length, lenAfter);
+  });
+});
+
+describe('startRelayDatabasePolling', () => {
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it('emits green with the latest lastSyncedAt when database is listed on relay', async () => {
+    let listingCalls = 0;
+    globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const u = String(input);
+      if (u.includes('/pinning/sync') && init?.method === 'POST') return pinSyncOkResponse();
+      if (u.includes('/pinning/databases')) {
+        listingCalls += 1;
+        return new Response(
+          JSON.stringify({
+            databases: [
+              {
+                address: '/orbitdb/zdpuDbLed',
+                lastSyncedAt:
+                  listingCalls > 1 ? '2026-04-18T10:15:00.000Z' : '2026-04-18T10:10:00.000Z',
+              },
+            ],
+            total: 1,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      if (u.includes('/health')) return { ok: true, status: 200 } as Response;
+      return { ok: false, status: 404 } as Response;
+    };
+
+    const updates: RelayDatabasePollUpdate[] = [];
+    const ac = new AbortController();
+    const dispose = startRelayDatabasePolling({
+      dbAddress: '/orbitdb/zdpuDbLed',
+      signal: ac.signal,
+      metricsOrigin: 'http://127.0.0.1:9090',
+      healthOrigin: 'http://127.0.0.1:9090',
+      onUpdate: (update) => updates.push(update),
+    });
+
+    await sleep(120);
+    assert.ok(
+      updates.some(
+        (update) => update.state === 'green' && update.lastSyncedAt === '2026-04-18T10:10:00.000Z',
+      ),
+      `expected a green update with lastSyncedAt, got: ${JSON.stringify(updates)}`,
+    );
+
+    dispose();
+    ac.abort();
+  });
+
+  it('does not regress back to yellow after a database was already confirmed on relay', async () => {
+    let listingCalls = 0;
+    globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const u = String(input);
+      if (u.includes('/pinning/sync') && init?.method === 'POST') return pinSyncOkResponse();
+      if (u.includes('/pinning/databases')) {
+        listingCalls += 1;
+        if (listingCalls === 1) {
+          return new Response(
+            JSON.stringify({
+              databases: [{ address: '/orbitdb/zdpuSticky', lastSyncedAt: '2026-04-18T10:28:08.861Z' }],
+              total: 1,
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          );
+        }
+        return new Response(JSON.stringify({ ok: false, error: 'Database address not found in relay sync history' }), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      if (u.includes('/health')) return { ok: true, status: 200 } as Response;
+      return { ok: false, status: 404 } as Response;
+    };
+
+    const updates: RelayDatabasePollUpdate[] = [];
+    const ac = new AbortController();
+    const dispose = startRelayDatabasePolling({
+      dbAddress: '/orbitdb/zdpuSticky',
+      signal: ac.signal,
+      metricsOrigin: 'http://127.0.0.1:9090',
+      healthOrigin: 'http://127.0.0.1:9090',
+      onUpdate: (update) => updates.push(update),
+    });
+
+    await sleep(1400);
+
+    assert.ok(
+      updates.some(
+        (update) => update.state === 'green' && update.lastSyncedAt === '2026-04-18T10:28:08.861Z',
+      ),
+      `expected green confirmation, got: ${JSON.stringify(updates)}`,
+    );
+    assert.ok(
+      !updates.some(
+        (update) => update.state === 'yellow' && update.lastSyncedAt === '2026-04-18T10:28:08.861Z',
+      ),
+      `expected no yellow regression after confirmation, got: ${JSON.stringify(updates)}`,
+    );
+
+    dispose();
+    ac.abort();
   });
 });

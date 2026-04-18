@@ -29,6 +29,16 @@ export type RelayMediaDbPinningProbe =
   | 'listed_stale_sync'
   | 'unknown';
 
+export interface RelayPinningDatabaseRow {
+  address?: string;
+  lastSyncedAt?: string;
+}
+
+export interface RelayDatabaseListingResult {
+  probe: Exclude<RelayMediaDbPinningProbe, 'listed_stale_sync'>;
+  row: RelayPinningDatabaseRow | null;
+}
+
 function parseIsoToMs(iso: string | undefined | null): number | null {
   if (iso == null || typeof iso !== 'string') return null;
   const t = Date.parse(iso.trim());
@@ -60,6 +70,35 @@ function summarizeProbeResults(results: RelayMediaDbPinningProbe[]): RelayMediaD
   return 'unknown';
 }
 
+function pickNewerRelayRow(
+  current: RelayPinningDatabaseRow | null,
+  candidate: RelayPinningDatabaseRow | null,
+): RelayPinningDatabaseRow | null {
+  if (!candidate) return current;
+  if (!current) return candidate;
+  const currentMs = parseIsoToMs(current.lastSyncedAt);
+  const candidateMs = parseIsoToMs(candidate.lastSyncedAt);
+  if (candidateMs === null) return current;
+  if (currentMs === null) return candidate;
+  return candidateMs > currentMs ? candidate : current;
+}
+
+function summarizeListingResults(results: RelayDatabaseListingResult[]): RelayDatabaseListingResult {
+  let newestListedRow: RelayPinningDatabaseRow | null = null;
+  for (const result of results) {
+    if (result.probe === 'listed') {
+      newestListedRow = pickNewerRelayRow(newestListedRow, result.row);
+    }
+  }
+  if (newestListedRow) {
+    return { probe: 'listed', row: newestListedRow };
+  }
+  if (results.some((result) => result.probe === 'not_listed')) {
+    return { probe: 'not_listed', row: null };
+  }
+  return { probe: 'unknown', row: null };
+}
+
 /** @internal */
 export async function probeRelayHealth(healthOrigin: string, signal?: AbortSignal): Promise<boolean> {
   const base = healthOrigin.replace(/\/$/, '');
@@ -82,13 +121,13 @@ async function probeRelayHealthAny(healthOrigins: string[], signal?: AbortSignal
  * **`POST /pinning/sync`** — ask the relay to open/sync one OrbitDB address (pin media CIDs, etc.).
  * Returns whether the relay responded **`200`** with **`ok: true`**.
  */
-export async function requestRelayMediaDbPinSync(
+export async function requestRelayDbPinSync(
   metricsOrigin: string,
-  mediaDbAddress: string,
+  dbAddressRaw: string,
   signal?: AbortSignal,
 ): Promise<boolean> {
   const base = metricsOrigin.replace(/\/$/, '');
-  const dbAddress = normalizeOrbitDbAddress(mediaDbAddress);
+  const dbAddress = normalizeOrbitDbAddress(dbAddressRaw);
   if (!base || !dbAddress) return false;
   try {
     const r = await fetch(`${base}/pinning/sync`, {
@@ -106,18 +145,60 @@ export async function requestRelayMediaDbPinSync(
   }
 }
 
-async function requestRelayMediaDbPinSyncAny(
+export const requestRelayMediaDbPinSync = requestRelayDbPinSync;
+
+async function requestRelayDbPinSyncAny(
   metricsOrigins: string[],
-  mediaDbAddress: string,
+  dbAddress: string,
   signal?: AbortSignal,
 ): Promise<boolean> {
   let anyOk = false;
   for (const origin of uniqueNonEmpty(metricsOrigins)) {
-    if (await requestRelayMediaDbPinSync(origin, mediaDbAddress, signal)) {
+    if (await requestRelayDbPinSync(origin, dbAddress, signal)) {
       anyOk = true;
     }
   }
   return anyOk;
+}
+
+export async function fetchRelayDatabaseListing(
+  metricsOrigin: string,
+  dbAddressRaw: string,
+  signal?: AbortSignal,
+): Promise<RelayDatabaseListingResult> {
+  const base = metricsOrigin.replace(/\/$/, '');
+  const want = normalizeOrbitDbAddress(dbAddressRaw);
+  if (!base || !want) return { probe: 'unknown', row: null };
+  const qs = new URLSearchParams({ address: want });
+  const url = `${base}/pinning/databases?${qs.toString()}`;
+  try {
+    const r = await fetch(url, { method: 'GET', signal, cache: 'no-store' });
+    if (r.status === 404) return { probe: 'not_listed', row: null };
+    if (!r.ok) return { probe: 'unknown', row: null };
+    const j = (await r.json()) as { databases?: RelayPinningDatabaseRow[] };
+    const list = Array.isArray(j.databases) ? j.databases : [];
+    const row =
+      list.find((d) => {
+        const address = d?.address;
+        return typeof address === 'string' && normalizeOrbitDbAddress(address) === want;
+      }) ?? null;
+    if (!row) return { probe: 'not_listed', row: null };
+    return { probe: 'listed', row };
+  } catch {
+    return { probe: 'unknown', row: null };
+  }
+}
+
+async function fetchRelayDatabaseListingAny(
+  metricsOrigins: string[],
+  dbAddress: string,
+  signal?: AbortSignal,
+): Promise<RelayDatabaseListingResult> {
+  const results: RelayDatabaseListingResult[] = [];
+  for (const origin of uniqueNonEmpty(metricsOrigins)) {
+    results.push(await fetchRelayDatabaseListing(origin, dbAddress, signal));
+  }
+  return summarizeListingResults(results);
 }
 
 /**
@@ -132,29 +213,12 @@ export async function probeRelayMediaDbInPinningList(
   signal?: AbortSignal,
   mediaContentCreatedAtIso?: string,
 ): Promise<RelayMediaDbPinningProbe> {
-  const base = metricsOrigin.replace(/\/$/, '');
-  const want = normalizeOrbitDbAddress(mediaDbAddress);
-  if (!base || !want) return 'unknown';
-  const qs = new URLSearchParams({ address: want });
-  const url = `${base}/pinning/databases?${qs.toString()}`;
-  try {
-    const r = await fetch(url, { method: 'GET', signal, cache: 'no-store' });
-    if (r.status === 404) return 'not_listed';
-    if (!r.ok) return 'unknown';
-    const j = (await r.json()) as { databases?: Array<{ address?: string; lastSyncedAt?: string }> };
-    const list = Array.isArray(j.databases) ? j.databases : [];
-    const row = list.find((d) => {
-      const a = d?.address;
-      return typeof a === 'string' && normalizeOrbitDbAddress(a) === want;
-    });
-    if (!row) return 'not_listed';
-    if (!relaySyncCoversContent(row.lastSyncedAt, mediaContentCreatedAtIso?.trim())) {
-      return 'listed_stale_sync';
-    }
-    return 'listed';
-  } catch {
-    return 'unknown';
+  const listing = await fetchRelayDatabaseListing(metricsOrigin, mediaDbAddress, signal);
+  if (listing.probe !== 'listed') return listing.probe;
+  if (!relaySyncCoversContent(listing.row?.lastSyncedAt, mediaContentCreatedAtIso?.trim())) {
+    return 'listed_stale_sync';
   }
+  return 'listed';
 }
 
 async function probeRelayMediaDbInPinningListAny(
@@ -240,11 +304,11 @@ export interface RelayPinPollOptions {
 }
 
 function resolveMetricsBasesForPoll(
-  mediaDbAddress: string | undefined,
+  dbAddress: string | undefined,
   metricsOriginOpt: string | undefined,
   metricsOriginsOpt: string[] | undefined,
 ): string[] {
-  const addr = mediaDbAddress?.trim();
+  const addr = dbAddress?.trim();
   if (!addr) return [];
   if (metricsOriginsOpt !== undefined) return uniqueNonEmpty(metricsOriginsOpt.map((v) => v.replace(/\/$/, '')));
   if (metricsOriginOpt !== undefined) {
@@ -252,6 +316,148 @@ function resolveMetricsBasesForPoll(
     return single ? [single] : [];
   }
   return getRelayMetricsOriginsForFetch();
+}
+
+export interface RelayDatabasePollUpdate {
+  state: RelayLedState;
+  lastSyncedAt: string | null;
+  probe: Exclude<RelayMediaDbPinningProbe, 'listed_stale_sync'>;
+}
+
+export interface RelayDatabasePollOptions {
+  dbAddress: string;
+  signal: AbortSignal;
+  onUpdate: (update: RelayDatabasePollUpdate) => void;
+  maxIterations?: number;
+  healthOrigin?: string;
+  healthOrigins?: string[];
+  metricsOrigin?: string;
+  metricsOrigins?: string[];
+  pollDebugLabel?: string;
+}
+
+/**
+ * Poll relay pinning history for a DB address and keep reporting the latest `lastSyncedAt`.
+ * Unlike CID polling, this keeps running so manager UIs can show ongoing replication freshness.
+ */
+export function startRelayDatabasePolling(options: RelayDatabasePollOptions): () => void {
+  const {
+    dbAddress: dbAddressOpt,
+    signal,
+    onUpdate,
+    maxIterations = Number.POSITIVE_INFINITY,
+    healthOrigin: healthOriginOpt,
+    healthOrigins: healthOriginsOpt,
+    metricsOrigin: metricsOriginOpt,
+    metricsOrigins: metricsOriginsOpt,
+    pollDebugLabel,
+  } = options;
+  let cancelled = false;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let lastSyncedAt: string | null = null;
+  let hasConfirmedReplication = false;
+
+  const cleanup = () => {
+    cancelled = true;
+    if (timer !== null) {
+      clearTimeout(timer);
+      timer = null;
+    }
+  };
+
+  const emit = (state: RelayLedState, probe: Exclude<RelayMediaDbPinningProbe, 'listed_stale_sync'>) => {
+    if (!cancelled && !signal.aborted) {
+      onUpdate({ state, lastSyncedAt, probe });
+    }
+  };
+
+  const healthBases =
+    healthOriginsOpt !== undefined
+      ? uniqueNonEmpty(healthOriginsOpt.map((v) => v.replace(/\/$/, '')))
+      : healthOriginOpt !== undefined
+        ? uniqueNonEmpty([healthOriginOpt.replace(/\/$/, '')])
+        : getRelayHealthOriginsForFetch();
+
+  const dbAddress = dbAddressOpt.trim();
+  const metricsBases = resolveMetricsBasesForPoll(dbAddress, metricsOriginOpt, metricsOriginsOpt);
+
+  const pollLog = (message: string, detail: Record<string, unknown>) => {
+    if (!pollDebugLabel) return;
+    mediaLog.info(`[relay db poll:${pollDebugLabel}] ${message}`, detail);
+  };
+
+  async function tick(iteration: number): Promise<void> {
+    if (cancelled || signal.aborted) return;
+
+    if (iteration >= maxIterations) {
+      emit('error', 'unknown');
+      pollLog('stopped (max iterations)', { iteration, dbAddress, maxIterations, emittedState: 'error' as const });
+      return;
+    }
+
+    if (iteration === 0) emit('yellow', 'unknown');
+
+    let pinSyncOk: boolean | null = null;
+    if (metricsBases.length > 0 && iteration === 0) {
+      pinSyncOk = await requestRelayDbPinSyncAny(metricsBases, dbAddress, signal);
+      pollLog('POST /pinning/sync', { dbAddress, metricsOrigins: metricsBases, ok: pinSyncOk });
+    }
+
+    const listing =
+      metricsBases.length > 0
+        ? await fetchRelayDatabaseListingAny(metricsBases, dbAddress, signal)
+        : { probe: 'unknown' as const, row: null };
+    const nextLastSyncedAt =
+      typeof listing.row?.lastSyncedAt === 'string' && listing.row.lastSyncedAt.trim()
+        ? listing.row.lastSyncedAt.trim()
+        : null;
+    if (nextLastSyncedAt) lastSyncedAt = nextLastSyncedAt;
+    if (listing.probe === 'listed') {
+      hasConfirmedReplication = true;
+    }
+
+    const healthOk = healthBases.length > 0 ? await probeRelayHealthAny(healthBases, signal) : false;
+
+    if (cancelled || signal.aborted) return;
+
+    let emitted: RelayLedState;
+    if (listing.probe === 'listed') {
+      emitted = lastSyncedAt ? 'green' : 'orange';
+    } else if (hasConfirmedReplication || lastSyncedAt) {
+      emitted = healthBases.length > 0 && !healthOk ? 'orange' : 'green';
+    } else if (listing.probe === 'not_listed') {
+      emitted = 'yellow';
+    } else if (healthBases.length > 0 && healthOk) {
+      emitted = 'orange';
+    } else {
+      emitted = 'yellow';
+    }
+    emit(emitted, listing.probe);
+
+    const delayMs = listing.probe === 'listed' ? 5000 : Math.min(1000 + iteration * 250, 5000);
+    pollLog('tick', {
+      iteration,
+      dbAddress,
+      metricsOrigins: metricsBases,
+      pinSyncPostOk: pinSyncOk,
+      listingProbe: listing.probe,
+      lastSyncedAt,
+      relayHealthOrigins: healthBases,
+      healthChecked: healthBases.length > 0,
+      healthOk,
+      emittedState: emitted,
+      nextPollInMs: delayMs,
+    });
+    timer = setTimeout(() => void tick(iteration + 1), delayMs);
+  }
+
+  void tick(0);
+
+  signal.addEventListener('abort', cleanup);
+  return () => {
+    cleanup();
+    signal.removeEventListener('abort', cleanup);
+  };
 }
 
 /**
@@ -340,7 +546,7 @@ export function startRelayPinPolling(options: RelayPinPollOptions): () => void {
     let pinSyncOk: boolean | null = null;
     if (mediaDbAddr && metricsBases.length > 0) {
       if (iteration === 0) {
-        pinSyncOk = await requestRelayMediaDbPinSyncAny(metricsBases, mediaDbAddr, signal);
+        pinSyncOk = await requestRelayDbPinSyncAny(metricsBases, mediaDbAddr, signal);
         pollLog('POST /pinning/sync', { dbAddress: mediaDbAddr, metricsOrigins: metricsBases, ok: pinSyncOk });
       }
       dbProbe = await probeRelayMediaDbInPinningListAny(
