@@ -57,6 +57,10 @@
       showPeers.set(false);
     }
   }
+
+  function getSectionActionLabel(isOpen: boolean, openLabel: string, closeLabel: string) {
+    return isOpen ? closeLabel : openLabel;
+  }
 </script>
 
 <nav class="sidebar w-56 md:w-64 h-full overflow-y-auto flex flex-col {$isRTL ? 'rtl' : 'ltr'}" style="background-color: var(--bg-secondary); border-right: 1px solid var(--border);" data-testid="sidebar-container">
@@ -72,10 +76,27 @@
       data-testid="blogs-header"
       aria-label={$showDBManager ? $_("hide_database_manager") : $_("show_database_manager")}
     >
-      <span>{$_('blogs')}</span>
-      <svg class="w-3 h-3 transition-transform" style="color: var(--text-muted); {$showDBManager ? 'transform: rotate(180deg);' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-      </svg>
+      <span class="flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5 flex-shrink-0" style="color: var(--text-muted);" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 7.5A2.5 2.5 0 016.5 5h3a2 2 0 011.414.586l.5.5A2 2 0 0012.828 7H17.5A2.5 2.5 0 0120 9.5v7A2.5 2.5 0 0117.5 19h-11A2.5 2.5 0 014 16.5v-9z" />
+        </svg>
+        <span>{$_('blogs')}</span>
+      </span>
+      <span
+        class="section-action-icon"
+        title={getSectionActionLabel($showDBManager, $_("show_database_manager"), $_("hide_database_manager"))}
+        aria-hidden="true"
+      >
+        {#if $showDBManager}
+          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        {:else}
+          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m-7-7h14" />
+          </svg>
+        {/if}
+      </span>
     </button>
 
     <div class="space-y-0.5 mt-1" data-testid="blogs-list">
@@ -197,12 +218,27 @@
       aria-label={$showPeers ? $_("hide_connected_peers") : $_("show_connected_peers")}
     >
       <span class="flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5 flex-shrink-0" style="color: var(--text-muted);" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19a4 4 0 00-8 0m12 0a4 4 0 00-3-3.874M15 19h4m-10 0H5m8-8a3 3 0 11-6 0 3 3 0 016 0zm6 2a2.5 2.5 0 10-5 0 2.5 2.5 0 005 0z" />
+        </svg>
         {$_('peers')}
         <span class="badge">{$connectedPeersCount}</span>
       </span>
-      <svg class="w-3 h-3 transition-transform" style="color: var(--text-muted); {$showPeers ? 'transform: rotate(180deg);' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-      </svg>
+      <span
+        class="section-action-icon"
+        title={getSectionActionLabel($showPeers, $_("show_connected_peers"), $_("hide_connected_peers"))}
+        aria-hidden="true"
+      >
+        {#if $showPeers}
+          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        {:else}
+          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m-7-7h14" />
+          </svg>
+        {/if}
+      </span>
     </button>
     {#if $showPeers}
       <div class="space-y-0.5 mt-1" data-testid="peers-list">
@@ -230,10 +266,28 @@
       data-testid="settings-header"
       aria-label={$showSettings ? $_("hide_settings") : $_("show_settings")}
     >
-      <span>{$_('settings')}</span>
-      <svg class="w-3 h-3 transition-transform" style="color: var(--text-muted); {$showSettings ? 'transform: rotate(180deg);' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-      </svg>
+      <span class="flex items-center gap-1.5">
+        <svg class="w-3.5 h-3.5 flex-shrink-0" style="color: var(--text-muted);" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317a1 1 0 011.35-.936l.994.398a1 1 0 00.986-.104l.878-.586a1 1 0 011.43.363l.472.944a1 1 0 00.79.548l1.048.152a1 1 0 01.85 1.123l-.137 1.05a1 1 0 00.287.949l.75.75a1 1 0 010 1.414l-.75.75a1 1 0 00-.287.95l.137 1.048a1 1 0 01-.85 1.124l-1.048.152a1 1 0 00-.79.547l-.472.944a1 1 0 01-1.43.363l-.878-.585a1 1 0 00-.986-.105l-.994.398a1 1 0 01-1.35-.936v-1.07a1 1 0 00-.553-.894l-.943-.472a1 1 0 01-.363-1.43l.586-.878a1 1 0 00.104-.986l-.398-.994a1 1 0 01.936-1.35h1.07a1 1 0 00.894-.553l.472-.943z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        <span>{$_('settings')}</span>
+      </span>
+      <span
+        class="section-action-icon"
+        title={getSectionActionLabel($showSettings, $_("show_settings"), $_("hide_settings"))}
+        aria-hidden="true"
+      >
+        {#if $showSettings}
+          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        {:else}
+          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m-7-7h14" />
+          </svg>
+        {/if}
+      </span>
     </button>
   </div>
   
@@ -283,5 +337,18 @@
   .touch-target:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
+  }
+
+  .section-action-icon {
+    width: 1.35rem;
+    height: 1.35rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    background-color: var(--bg-primary);
+    flex-shrink: 0;
   }
 </style>

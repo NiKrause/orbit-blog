@@ -101,8 +101,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   let showNotification = false;
 
   let settingsDBUpdateHandler;
-  let showWebRTCTester = false;
-  
   // Track event listeners to prevent memory leaks
   let settingsDBUpdateListener = null;
   let postsDBUpdateListener = null;
@@ -117,6 +115,16 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   });
 
   let fs = $state<UnixFS | null>(null);
+
+  function closeSidebarPanel(section: 'dbManager' | 'peers' | 'settings') {
+    if (section === 'dbManager') {
+      showDBManager.set(false);
+    } else if (section === 'peers') {
+      showPeers.set(false);
+    } else {
+      showSettings.set(false);
+    }
+  }
 
   if(!encryptedSeedPhrase) {
       info('no seed phrase, generating new one')
@@ -968,15 +976,57 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
           <div class="divider mb-8"></div>
 
           {#if $showDBManager}
-            <DBManager />
+            <div class="panel-shell">
+              <button
+                class="panel-close-button"
+                type="button"
+                onclick={() => closeSidebarPanel('dbManager')}
+                aria-label={$_('hide_database_manager')}
+                title={$_('hide_database_manager')}
+                data-testid="close-db-manager-panel"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <DBManager />
+            </div>
           {/if}
           
           {#if $showPeers}
-            <ConnectedPeers />
+            <div class="panel-shell">
+              <button
+                class="panel-close-button"
+                type="button"
+                onclick={() => closeSidebarPanel('peers')}
+                aria-label={$_('hide_connected_peers')}
+                title={$_('hide_connected_peers')}
+                data-testid="close-peers-panel"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <ConnectedPeers />
+            </div>
           {/if}
 
           {#if $showSettings}
-            <Settings />
+            <div class="panel-shell">
+              <button
+                class="panel-close-button"
+                type="button"
+                onclick={() => closeSidebarPanel('settings')}
+                aria-label={$_('hide_settings')}
+                title={$_('hide_settings')}
+                data-testid="close-settings-panel"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <Settings />
+            </div>
           {/if}
           
           <div class="grid gap-8">
@@ -1040,6 +1090,35 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   .share-button {
     left: auto !important;
     right: 20px !important;
+  }
+
+  .panel-shell {
+    position: relative;
+    margin-bottom: 1.5rem;
+  }
+
+  .panel-close-button {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    z-index: 5;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.9rem;
+    height: 1.9rem;
+    border: 1px solid var(--border) !important;
+    border-radius: 9999px;
+    background-color: color-mix(in srgb, var(--bg-primary) 86%, transparent);
+    color: var(--text-muted);
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(4px);
+  }
+
+  .panel-close-button:hover {
+    background-color: var(--bg-hover);
+    color: var(--text);
+    opacity: 1;
   }
 
   /* Fixed controls toolbar */
