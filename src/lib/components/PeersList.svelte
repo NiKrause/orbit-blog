@@ -6,6 +6,7 @@
   import { isRTL } from '$lib/store.js';
   import WebRTCCelebration from './WebRTCCelebration.svelte';
   import { info } from '$lib/utils/logger.js';
+  import { getTransportFromRemoteAddr } from '$lib/peerTransport.js';
   interface PeerInfo {
     id: string;
     shortId: string;
@@ -20,17 +21,7 @@
   let previousPeers: Record<string, string> = {};
   
   function getTransportFromMultiaddr(conn: Connection): string {
-    const remoteAddr = conn.remoteAddr.toString();
-    
-    if (remoteAddr.includes('/webrtc')) return 'WebRTC';
-    if (remoteAddr.includes('/wss') || remoteAddr.includes('/tls/sni/')) return 'WSS';
-    if (remoteAddr.includes('/ws')) return 'WS';
-    if (remoteAddr.includes('/sni')) return 'SNI';
-    if (remoteAddr.includes('/webtransport')) return 'WebTransport';
-    // if (remoteAddr.includes('/tcp')) return 'TCP';
-    if (remoteAddr.includes('/p2p-circuit')) return 'Circuit';
-    
-    return 'Other';
+    return getTransportFromRemoteAddr(conn.remoteAddr.toString());
   }
   
   function getShortPeerId(peerId: string): string {
@@ -53,8 +44,9 @@
         info('peer', peer);
         const previousTransport = previousPeers[peer.id];
         if (previousTransport && 
-            previousTransport !== 'WebRTC' && 
-            peer.transport === 'WebRTC') {
+            previousTransport !== 'WebRTC' &&
+            previousTransport !== 'WebRTC Direct' &&
+            (peer.transport === 'WebRTC' || peer.transport === 'WebRTC Direct')) {
           info('showing celebration');
           showWebRTCCelebration = true;
           setTimeout(() => {

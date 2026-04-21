@@ -2,9 +2,9 @@
   import { _ } from 'svelte-i18n';
   import { helia, libp2p } from '$lib/store.js';
   import { onMount } from 'svelte';
-  import WebRTCTester from './WebRTCTester.svelte';
   import { isRTL } from '$lib/store.js';
   import { info, error } from '$lib/utils/logger.js'
+  import { getTransportFromRemoteAddr } from '$lib/peerTransport.js';
 
   interface PeerInfo {
     id: string;
@@ -30,7 +30,6 @@
   
   let peers: PeerInfo[] = $state([]);
   let peerId = $helia?.libp2p?.peerId.toString() || '';
-  let showWebRTCTester = $state(false);
   let multiaddrs: string[] = $state([]);
   let dialPeerId = $state('');
   let dialStatus: string | null = $state(null);
@@ -39,16 +38,7 @@
   function getTransportFromMultiaddr(conn: Connection): string {
     const remoteAddr = conn.remoteAddr.toString();
     info('remoteAddr', remoteAddr);
-    // Check for different transport protocols
-    if (remoteAddr.includes('/webrtc-direct')) return 'WebRTC Direct';
-    if (remoteAddr.includes('/webrtc')) return 'WebRTC';
-    if (remoteAddr.includes('/wss')) return 'WSS';
-    if (remoteAddr.includes('/sni')) return 'SNI';
-    if (remoteAddr.includes('/ws')) return 'WS';
-    if (remoteAddr.includes('/webtransport')) return 'WebTransport';
-    if (remoteAddr.includes('/p2p-circuit')) return 'Circuit';
-    
-    return 'Unknown';
+    return getTransportFromRemoteAddr(remoteAddr);
   }
   
   function updatePeersList() {
@@ -82,31 +72,6 @@
           error(`Failed to disconnect from peer: ${peerId}`, _err);
         }
       }
-    }
-  }
-  
-  function hasWebRTCConnection(_peers: PeerInfo[]): boolean {
-    return _peers.some(peer => peer.multiaddr.startsWith('/webrtc'));
-  }
-
-  async function disconnectNonWebRTC() {
-    if ($helia?.libp2p) {
-      const nonWebRTCConnections = $helia.libp2p.getConnections().filter((conn: Connection) => !conn.remoteAddr.toString().startsWith('/webrtc'));
-      
-      for (const connection of nonWebRTCConnections) {
-        try {
-          await connection.close();
-            info(`Disconnected from non-WebRTC peer: ${connection.remotePeer.toString()}`);
-          
-          // Remove the peer from the peer store
-          await $helia.libp2p.peerStore.delete(connection.remotePeer);
-            info(`Removed non-WebRTC peer from peer store: ${connection.remotePeer.toString()}`);
-        } catch (err) {
-            error(`Failed to disconnect from non-WebRTC peer: ${connection.remotePeer.toString()}`, err);
-        }
-      }
-      
-      updatePeersList();
     }
   }
   
@@ -195,12 +160,6 @@
 
   <div class="flex justify-between items-center mb-3">
     <h2 class="text-sm font-semibold" style="color: var(--text);">{$_('connected_peers')}</h2>
-    <div class="flex gap-2">
-      <button class="btn-outline btn-sm" onclick={() => { showWebRTCTester = true; info('Button clicked, showWebRTCTester:', showWebRTCTester); }}>{$_('test_webrtc')}</button>
-      {#if (peers)}
-        <button class="btn-danger btn-sm" onclick={disconnectNonWebRTC}>{$_('disconnect_non_webrtc')}</button>
-      {/if}
-    </div>
   </div>
   
   <!-- Dial -->
@@ -256,13 +215,6 @@
     </div>
   {/if}
 </div>
-
-{#if showWebRTCTester}
-  <WebRTCTester on:close={() => {
-    info('Close event received');
-    showWebRTCTester = false;
-  }} />
-{/if}
 
 <style>
   .relative { overflow: visible; }

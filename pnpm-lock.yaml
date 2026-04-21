@@ -48,8 +48,8 @@ importers:
         specifier: ^5.1.8
         version: 5.1.15
       '@libp2p/dcutr':
-        specifier: ^3.0.15
-        version: 3.0.15
+        specifier: ^2.0.38
+        version: 2.0.38
       '@libp2p/identify':
         specifier: ^3.0.39
         version: 3.0.39
@@ -1527,9 +1527,6 @@ packages:
 
   '@libp2p/dcutr@2.0.38':
     resolution: {integrity: sha512-Ny3yA/BqtmRrPIiWjobduccZrUCP+H0HD+2x83wO723iCqBYIMN8Usa5arLTu+TUiMTbxtlWHYaZxGHqfKqn9Q==}
-
-  '@libp2p/dcutr@3.0.15':
-    resolution: {integrity: sha512-FmQpHuMVVc/KrD/92xN3INZHQpOrByuHOwTOucxrpo+5P7RNgk9VHm2lJFCQC62IkqZUxGHnnSgl0EZAh9tLDg==}
 
   '@libp2p/http-fetch@2.2.2':
     resolution: {integrity: sha512-dMPo2pe2h/AHAljgwDEErdiB8JbiJM5b0LzuF/Yq4HcplfJZf33VtzUHN1n8x+3K+F8fntWUKN30SwSisSoVaw==}
@@ -7911,17 +7908,6 @@ snapshots:
       delay: 6.0.0
       it-protobuf-stream: 2.0.6
       protons-runtime: 5.6.0
-      uint8arraylist: 2.4.9
-
-  '@libp2p/dcutr@3.0.15':
-    dependencies:
-      '@libp2p/interface': 3.2.0
-      '@libp2p/interface-internal': 3.1.0
-      '@libp2p/utils': 7.0.15
-      '@multiformats/multiaddr': 12.5.1
-      '@multiformats/multiaddr-matcher': 3.0.2
-      delay: 7.0.0
-      protons-runtime: 6.0.1
       uint8arraylist: 2.4.9
 
   '@libp2p/http-fetch@2.2.2':

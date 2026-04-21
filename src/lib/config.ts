@@ -5,8 +5,8 @@ import { noise } from "@chainsafe/libp2p-noise";
 import { circuitRelayTransport } from '@libp2p/circuit-relay-v2'
 import { yamux } from "@chainsafe/libp2p-yamux";
 import { identify, identifyPush } from "@libp2p/identify"
+import { dcutr } from "@libp2p/dcutr"
 import { autoNAT } from "@libp2p/autonat"
-import { dcutr } from '@libp2p/dcutr'
 import { gossipsub } from "@chainsafe/libp2p-gossipsub"
 import { ping } from '@libp2p/ping'
 import { pubsubPeerDiscovery } from '@libp2p/pubsub-peer-discovery'
@@ -73,11 +73,18 @@ export const libp2pOptions: Libp2pOptions = {
             rtcConfiguration: {
                 iceServers: [
                     { urls: ['stun:stun.l.google.com:19302'] },
-                    { urls: ['stun:stun1.l.google.com:19302'] }
+                    { urls: ['stun:global.stun.twilio.com:3478'] }
                 ]
             }
         }),
-        webRTCDirect(),
+        webRTCDirect({
+            rtcConfiguration: {
+                iceServers: [
+                    { urls: ['stun:stun.l.google.com:19302'] },
+                    { urls: ['stun:global.stun.twilio.com:3478'] }
+                ]
+            }
+        }),
         circuitRelayTransport({
             reservationCompletionTimeout: 20000 // 20 seconds
           })
@@ -88,27 +95,19 @@ export const libp2pOptions: Libp2pOptions = {
         yamux(),
     ],
     connectionManager: {
+        dialTimeout: 30000,
         inboundStreamProtocolNegotiationTimeout: 10000,
         inboundUpgradeTimeout: 10000,
         outboundStreamProtocolNegotiationTimeout: 10000,
-        outboundUpgradeTimeout: 1000,
+        outboundUpgradeTimeout: 10000,
     },
     connectionGater: {
         denyDialMultiaddr: () => false
     },
     peerDiscovery: [
-        // bootstrap({
-        //     list: [
-        //         '/ip4/157.180.21.20/tcp/9092/tls/sni/157-180-21-20.k51qzi5uqu5dk1lwtlmq5a5qzq7gpzbb5985azlkjop6atkbc03v3bwpqc7v5v.libp2p.direct/ws/p2p/12D3KooWLFBBsPa2eZEVV5T7cJH9kAQCFqArgA8yVCSkHoc5reJn',
-        //       // a list of bootstrap peer multiaddrs to connect to on node startup
-        //     //   '/ip4/104.131.131.82/tcp/4001/ipfs/QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ',
-        //     //   '/dnsaddr/bootstrap.libp2p.io/ipfs/QmNnooDu7bfjPFoTZYxMNLWUQJyrVwtbZg5gBMjTezGAJN',
-        //     //   '/dnsaddr/bootstrap.libp2p.io/ipfs/QmQCU2EcMqAqQPR2i9bChDtGNJchTbq5TbXJJ16u19uLTa'
-        //     ]
-        //   }),
         bootstrap(bootstrapConfig),
         pubsubPeerDiscovery({
-            interval: 10000,
+            interval: 3000,
             topics: pubSubPeerDiscoveryTopics,
             listenOnly: false,
         })
@@ -117,7 +116,7 @@ export const libp2pOptions: Libp2pOptions = {
         identify: identify(),
         identifyPush: identifyPush(),
         ping: ping(),
-        // autoNAT: autoNAT(), not necessary in browsers because no tcp etc.
+        autoNAT: autoNAT(),
         dcutr: dcutr(),
         pubsub: gossipsub({ 
             allowPublishToZeroTopicPeers: true
