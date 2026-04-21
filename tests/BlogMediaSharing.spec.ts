@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { waitForLoadingOverlayToSettle } from './pageLoad';
 
 const RELAY_WS_ORIGIN = 'ws://localhost:19092';
 
@@ -114,8 +115,7 @@ test.describe('Blog media sharing between Alice and Bob', () => {
     expect(aliceBlogAddress).toMatch(/^\/orbitdb\/[a-zA-Z0-9]+$/);
 
     await pageBob.goto(`http://localhost:5173/#${aliceBlogAddress}`);
-    await expect(pageBob.getByTestId('loading-overlay')).toBeVisible({ timeout: 30000 });
-    await expect(pageBob.getByTestId('loading-overlay')).toBeHidden({ timeout: 120000 });
+    await waitForLoadingOverlayToSettle(pageBob);
     await expect(pageBob.getByTestId('blog-name')).toHaveText('Alice Media Blog', { timeout: 120000 });
 
     const bobPostTitle = pageBob.getByTestId('post-item-title').filter({ hasText: 'Alice image post' });

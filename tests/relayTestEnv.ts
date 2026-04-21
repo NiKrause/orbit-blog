@@ -4,6 +4,8 @@ import { resolve } from 'path';
 loadDotenv({ path: resolve(process.cwd(), '.env') });
 
 export const LOCAL_RELAY_PEER_ID = '12D3KooWAJjbRkp8FPF5MKgMU53aUTxWkqvDrs4zc1VMbwRwfsbE';
+export const LOCAL_RELAY_TEST_PRIVATE_KEY =
+  '08011240821cb6bc3d4547fcccb513e82e4d718089f8a166b23ffcd4a436754b6b0774cf07447d1693cd10ce11ef950d7517bad6e9472b41a927cd17fc3fb23f8c70cd99';
 export const LOCAL_RELAY_HTTP_PORT = 19090;
 export const LOCAL_RELAY_TCP_PORT = 19091;
 export const LOCAL_RELAY_WS_PORT = 19092;

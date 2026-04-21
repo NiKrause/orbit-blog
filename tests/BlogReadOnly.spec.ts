@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { waitForLoadingOverlayToSettle } from './pageLoad';
 
 test.describe('Blog Sharing: Bob is read-only on Alice blog', () => {
   test('Alice creates a blog + post, Bob opens it read-only', async ({ browser }) => {
@@ -90,8 +91,7 @@ test.describe('Blog Sharing: Bob is read-only on Alice blog', () => {
     await pageBob.evaluate(() => {
       localStorage.setItem('debug', 'libp2p:*,le-space:*');
     });
-    await expect(pageBob.getByTestId('loading-overlay')).toBeVisible({ timeout: 30000 });
-    await expect(pageBob.getByTestId('loading-overlay')).toBeHidden({ timeout: 120000 });
+    await waitForLoadingOverlayToSettle(pageBob);
 
     await expect(pageBob.getByTestId('blog-name')).toHaveText('Alice Blog', { timeout: 120000 });
     await expect(pageBob.getByTestId('post-item-title').filter({ hasText: 'Hello from Alice' })).toBeVisible({

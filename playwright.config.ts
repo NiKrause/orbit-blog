@@ -36,7 +36,7 @@ export default defineConfig({
     // Use a dedicated Vite mode so env is deterministic for e2e (see `.env.test`).
     command: 'npm run dev -- --mode test --host 127.0.0.1 --port 5173 --strictPort',
     url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER === 'true',
     timeout: 120_000,
     env: {
       ...process.env,

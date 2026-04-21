@@ -20,13 +20,18 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '22'
-        # cache: 'npm'
+        cache: 'pnpm'
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10.29.3
 
     - name: Install dependencies
-      run: npm install
+      run: pnpm install --frozen-lockfile
 
     - name: Install Playwright Browsers
-      run: npx playwright install --with-deps
+      run: pnpm exec playwright install --with-deps
 
     - name: Run Mocha tests
       env:
@@ -37,13 +42,13 @@ jobs:
         VITE_P2P_PUPSUB_DEV: todo._peer-discovery._p2p._pubsub
         VITE_P2P_PUPSUB: todo._peer-discovery._p2p._pubsub
       run: |
-       npm run relay:test &
+       pnpm run relay:test &
        RELAY_PID=$!
        trap "kill $RELAY_PID" EXIT
        sleep 10
-       npx mocha "test/**/*.test.js"
+       pnpm exec mocha "test/**/*.test.js"
 
     - name: Run e2e tests
       run: |
         # Playwright config starts the Vite dev server, and globalSetup starts the relay.
-        DEBUG=playwright:* npm run test:e2e
+        DEBUG=playwright:* pnpm run test:e2e

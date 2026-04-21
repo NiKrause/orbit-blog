@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { waitForLoadingOverlayToSettle } from './pageLoad';
 
 test.describe('Realtime comments between Alice and Bob', () => {
   test('Bob comments on Alice post and Alice replies without reload', async ({ browser }) => {
@@ -92,8 +93,7 @@ test.describe('Realtime comments between Alice and Bob', () => {
     expect(aliceBlogAddress).toMatch(/^\/orbitdb\/[a-zA-Z0-9]+$/);
 
     await pageBob.goto(`http://localhost:5173/#${aliceBlogAddress}`);
-    await expect(pageBob.getByTestId('loading-overlay')).toBeVisible({ timeout: 30000 });
-    await expect(pageBob.getByTestId('loading-overlay')).toBeHidden({ timeout: 120000 });
+    await waitForLoadingOverlayToSettle(pageBob);
     await expect(pageBob.getByTestId('blog-name')).toHaveText('Realtime Comments Blog', { timeout: 120000 });
 
     const bobPostTitle = pageBob.getByTestId('post-item-title').filter({ hasText: 'Realtime comments post' });

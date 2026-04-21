@@ -5,6 +5,7 @@ import { constants } from 'fs'
 import {
     LOCAL_RELAY_HTTP_PORT,
     LOCAL_RELAY_ORIGIN,
+    LOCAL_RELAY_TEST_PRIVATE_KEY,
     LOCAL_RELAY_TCP_PORT,
     LOCAL_RELAY_WEBRTC_PORT,
     LOCAL_RELAY_WS_PORT,
@@ -16,9 +17,21 @@ import {
 
 let relayProcess: ChildProcess | null = null;
 
-function getRelayBinPath() {
+type RelayLaunchTarget = {
+    binPath: string;
+    source: string;
+};
+
+function getRelayLaunchTarget(): RelayLaunchTarget {
     const binName = process.platform === 'win32' ? 'orbitdb-relay-pinner.cmd' : 'orbitdb-relay-pinner'
-    return join(process.cwd(), 'node_modules', '.bin', binName)
+    return {
+        binPath: join(process.cwd(), 'node_modules', '.bin', binName),
+        source: 'node_modules/.bin',
+    };
+}
+
+function getRelayBinPath() {
+    return getRelayLaunchTarget().binPath
 }
 
 function pipeChildOutput(child: ChildProcess, prefix: string) {
@@ -122,8 +135,9 @@ export async function setupTestEnvironment() {
         // Start relay server with ES modules support
         console.log('Starting relay server...');
         await ensureRelayBuilt();
-        const relayBinPath = getRelayBinPath()
-        // Run the published relay CLI from node_modules (source lives in NiKrause/orbitdb-relay-pinner).
+        const relayLaunchTarget = getRelayLaunchTarget();
+        const relayBinPath = relayLaunchTarget.binPath
+        console.log(`Using relay CLI from ${relayLaunchTarget.source}: ${relayBinPath}`);
         relayProcess = spawn(relayBinPath, ['--test'], {
             stdio: ['inherit', 'pipe', 'pipe'],
             env: {
@@ -140,6 +154,8 @@ export async function setupTestEnvironment() {
                 RELAY_DISABLE_BOOTSTRAP: 'true',
                 // Fixed test HTTP origin so Playwright can probe /health, /pinning/* and /ipfs/*.
                 METRICS_PORT: String(LOCAL_RELAY_HTTP_PORT),
+                // Keep the local relay peer id deterministic for Playwright seed addresses.
+                TEST_PRIVATE_KEY: process.env.TEST_PRIVATE_KEY || LOCAL_RELAY_TEST_PRIVATE_KEY,
 
                 // Make relay logs visible and useful in Playwright output.
                 ENABLE_GENERAL_LOGS: 'true',

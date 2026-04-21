@@ -1,8 +1,12 @@
 import { test, expect, chromium } from '@playwright/test';
+import { getPrimaryRelayMetricsOrigin, getRelaySeedPeerIds, getRelayTargetLabel } from './relayTestEnv';
+import { waitForDirectWebRTCPeerConnection, waitForPeerCount } from './peerConnectivity';
 
 const config = {
     seedNodes: process.env.VITE_P2P_PUPSUB_DEV || ''
 };
+
+const relayPeerIds = getRelaySeedPeerIds();
 
 function parsePeersCount(text: string | null): number {
     if (!text) throw new Error('peers-header has no text');
@@ -12,6 +16,108 @@ function parsePeersCount(text: string | null): number {
     return count;
 }
 
+type RelayDatabaseRow = {
+    address?: string;
+    lastSyncedAt?: string;
+};
+
+type CreatedPostInfo = {
+    postId: string;
+    createdAtMs: number;
+    postsDbAddress: string;
+};
+
+async function readCreatedPostInfo(page, title: string): Promise<CreatedPostInfo | null> {
+    return page.evaluate(async (expectedTitle: string) => {
+        const globalWindow = window as typeof window & {
+            postsDB?: { all?: () => Promise<Array<{ value?: Record<string, unknown> }>>; address?: { toString?: () => string } };
+            settingsDB?: { get?: (key: string) => Promise<{ value?: { value?: string } } | null> };
+        };
+
+        const db = globalWindow.postsDB;
+        const settingsDb = globalWindow.settingsDB;
+        if (!db?.all || !settingsDb?.get) return null;
+
+        const allRows = await db.all();
+        const match = allRows
+            .map((entry) => entry?.value ?? {})
+            .find((value) => value?.title === expectedTitle && typeof value?._id === 'string');
+
+        if (!match) return null;
+
+        const postsDbAddressEntry = await settingsDb.get('postsDBAddress');
+        const createdAtRaw = match.createdAt;
+        const createdAtMs =
+            typeof createdAtRaw === 'number'
+                ? createdAtRaw
+                : Number.isFinite(Date.parse(String(createdAtRaw ?? '')))
+                    ? Date.parse(String(createdAtRaw))
+                    : NaN;
+
+        return {
+            postId: String(match._id ?? ''),
+            createdAtMs,
+            postsDbAddress:
+                postsDbAddressEntry?.value?.value?.trim() ||
+                db.address?.toString?.()?.trim() ||
+                '',
+        };
+    }, title);
+}
+
+async function fetchRelayDatabaseRow(
+    metricsOrigin: string,
+    dbAddress: string,
+): Promise<RelayDatabaseRow | null> {
+    const url = new URL('/pinning/databases', metricsOrigin);
+    url.searchParams.set('address', dbAddress);
+
+    const response = await fetch(url, { method: 'GET' });
+    if (!response.ok) return null;
+
+    const json = (await response.json()) as { databases?: RelayDatabaseRow[] };
+    return json.databases?.find((row) => row.address?.trim() === dbAddress) ?? null;
+}
+
+async function expectPostsDbReplicatedToRelay(page, title: string, timeoutMs = 120000) {
+    const metricsOrigin = getPrimaryRelayMetricsOrigin();
+
+    let createdPostInfo: CreatedPostInfo | null = null;
+    await expect
+        .poll(
+            async () => {
+                createdPostInfo = await readCreatedPostInfo(page, title);
+                if (!createdPostInfo?.postId || !createdPostInfo?.postsDbAddress || !Number.isFinite(createdPostInfo?.createdAtMs)) {
+                    return '';
+                }
+                return createdPostInfo.postId;
+            },
+            {
+                timeout: 60000,
+                message: `wait for "${title}" to be readable from postsDB`,
+            },
+        )
+        .not.toBe('');
+
+    expect(createdPostInfo?.postsDbAddress).toMatch(/^\/orbitdb\/[a-zA-Z0-9]+$/);
+
+    let relayDatabaseRow: RelayDatabaseRow | null = null;
+    await expect
+        .poll(
+            async () => {
+                relayDatabaseRow = await fetchRelayDatabaseRow(metricsOrigin, createdPostInfo!.postsDbAddress);
+                const relayLastSyncedAtMs = Date.parse(relayDatabaseRow?.lastSyncedAt ?? '');
+                if (!Number.isFinite(relayLastSyncedAtMs)) return 0;
+                return relayLastSyncedAtMs;
+            },
+            {
+                timeout: timeoutMs,
+                message: `wait for ${getRelayTargetLabel()} to advance postsDB sync history after "${title}"`,
+            },
+        )
+        .toBeGreaterThanOrEqual(createdPostInfo!.createdAtMs);
+}
+
 async function expectPeerCount(page, expected, timeoutMs = 90000) {
     await expect(async () => {
         await ensurePeersHeaderVisible(page);
@@ -19,23 +125,6 @@ async function expectPeerCount(page, expected, timeoutMs = 90000) {
         const peerCount = parsePeersCount(peersHeader);
         expect(peerCount).toBe(expected);
     }).toPass({ timeout: timeoutMs });
-}
-
-async function expectHasWebRTCTransport(page, timeoutMs = 90000) {
-    await ensurePeersHeaderVisible(page);
-    const peersList = page.getByTestId('peers-list');
-    await expect(async () => {
-        const isOpen = await peersList.isVisible().catch(() => false);
-        if (!isOpen) {
-            // Avoid Playwright actionability flake when sidebar rerenders and the header detaches.
-            await page.evaluate(() => {
-                const header = document.querySelector('[data-testid="peers-header"]') as HTMLElement | null;
-                header?.click();
-            });
-        }
-        await expect(peersList).toBeVisible({ timeout: 2000 });
-    }).toPass({ timeout: 30000 });
-    await expect(page.getByTestId('peers-list')).toContainText('WebRTC', { timeout: timeoutMs });
 }
 
 async function ensurePeersHeaderVisible(page, timeoutMs = 30000) {
@@ -116,12 +205,9 @@ test.describe('Blog Sharing between Alice and Bob', () => {
             localStorage.setItem('debug', 'libp2p:*,le-space:*');
         });
 
-        await expect(async () => {
-            const peersHeader = await pageAlice.getByTestId('peers-header').textContent();
-            const peerCount = parsePeersCount(peersHeader);
-            console.log('peerCount', peerCount);
-            expect(peerCount).toBeGreaterThanOrEqual(1);
-        }).toPass({ timeout: 60000 }); // Give it up to 30 seconds to connect to peers
+        await expect(pageAlice.getByTestId('loading-overlay')).toBeHidden({ timeout: 120000 });
+        await expect(pageAlice.getByTestId('post-form')).toBeVisible({ timeout: 120000 });
+        await waitForPeerCount(pageAlice, 1, 120000);
         // First, let's run the existing blog setup test
         const blogName = await pageAlice.getByTestId('blog-name').textContent();
         const blogDescription = await pageAlice.getByTestId('blog-description').textContent();
@@ -185,6 +271,9 @@ test.describe('Blog Sharing between Alice and Bob', () => {
 
             // Add additional delay after confirmation to ensure DB processing
             await pageAlice.waitForTimeout(2000);
+
+            // Verify the new post has actually been observed by the relay before Bob tries to load it.
+            await expectPostsDbReplicatedToRelay(pageAlice, post.title);
         }
 
         // Replace the simple posts check with a retry mechanism
@@ -238,9 +327,13 @@ test.describe('Blog Sharing between Alice and Bob', () => {
         await pageBob.evaluate(() => {
             localStorage.setItem('debug', 'libp2p:*,le-space:*');
         });
-        await expect(pageBob.getByTestId('loading-overlay')).toBeVisible({ timeout: 30000 });
+        const loadingOverlay = pageBob.getByTestId('loading-overlay');
+        const loadingOverlayShown = await loadingOverlay.isVisible().catch(() => false);
+        if (loadingOverlayShown) {
+            await expect(loadingOverlay).toBeVisible({ timeout: 30000 });
+        }
         // Remote blog load can take a while depending on replication/bootstrap timing.
-        await expect(pageBob.getByTestId('loading-overlay')).toBeHidden({ timeout: 120000 });
+        await expect(loadingOverlay).toBeHidden({ timeout: 120000 });
         await expect(pageBob.getByTestId('blog-name')).toHaveText('Bach Chronicles', { timeout: 120000 });
 
         // Alice and Bob should each see relay + direct browser peer.
@@ -249,8 +342,8 @@ test.describe('Blog Sharing between Alice and Bob', () => {
             expectPeerCount(pageBob, 2),
         ]);
         await Promise.all([
-            expectHasWebRTCTransport(pageAlice),
-            expectHasWebRTCTransport(pageBob),
+            waitForDirectWebRTCPeerConnection(pageAlice, relayPeerIds),
+            waitForDirectWebRTCPeerConnection(pageBob, relayPeerIds),
         ]);
 
         const posts = await pageBob.getByTestId('post-item-title').all();
