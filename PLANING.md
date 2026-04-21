@@ -58,10 +58,10 @@
 
 ### Version 0.4 (Enhanced Features)
 - [ ] PostList drag-and-drop ordering with position storage
-- [ ] AI Integration
+- [x] AI Integration
   - [ ] Spell checker
-  - [ ] Translator with configurable private API
-- [ ] Settings Improvements
+  - [x] Translator
+- [x] Settings Improvements
   - [ ] Logo configuration
   - [ ] Navigation activation
   - [ ] Favicon configuration
