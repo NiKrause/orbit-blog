@@ -1,6 +1,6 @@
 {
   "name": "le-space-blog",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "packageManager": "pnpm@10.33.0",
   "type": "module",
   "files": [
