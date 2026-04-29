@@ -1,6 +1,6 @@
 {
   "name": "le-space-blog",
-  "version": "0.4.1",
+  "version": "0.4.4",
   "packageManager": "pnpm@10.33.0",
   "type": "module",
   "files": [
@@ -43,7 +43,7 @@
     "test:e2e:post-relay:remote": "PLAYWRIGHT_RELAY_MODE=remote playwright test tests/PostsRelayReplication.spec.ts",
     "test:e2e:ui": "playwright test --ui",
     "test:watch": "mocha --config .mocharc.cjs --watch",
-    "ipfs-publish": "npm version patch && npm run build && ./ipfs-publish.sh",
+    "ipfs-publish": "./ipfs-publish.sh",
     "check": "svelte-check --tsconfig ./tsconfig.json"
   },
   "devDependencies": {
