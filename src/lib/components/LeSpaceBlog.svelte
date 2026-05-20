@@ -104,6 +104,12 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   // Track event listeners to prevent memory leaks
   let settingsDBUpdateListener = null;
   let postsDBUpdateListener = null;
+  let settingsDBErrorListener = null;
+  let postsDBErrorListener = null;
+  let commentsDBErrorListener = null;
+  let mediaDBErrorListener = null;
+  let aiDBErrorListener = null;
+  let remoteDBsErrorListener = null;
 
   const sidebarPosition = $derived($isRTL ? 'right' : 'left');
   const sidebarButtonPosition = $derived($isRTL ? 'right' : 'left');
@@ -357,6 +363,24 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     if (postsDBUpdateListener) {
       $postsDB?.events.removeListener('update', postsDBUpdateListener);
     }
+    if (settingsDBErrorListener) {
+      $settingsDB?.events.removeListener('error', settingsDBErrorListener);
+    }
+    if (postsDBErrorListener) {
+      $postsDB?.events.removeListener('error', postsDBErrorListener);
+    }
+    if (commentsDBErrorListener) {
+      $commentsDB?.events.removeListener('error', commentsDBErrorListener);
+    }
+    if (mediaDBErrorListener) {
+      $mediaDB?.events.removeListener('error', mediaDBErrorListener);
+    }
+    if (aiDBErrorListener) {
+      $aiDB?.events.removeListener('error', aiDBErrorListener);
+    }
+    if (remoteDBsErrorListener) {
+      $remoteDBsDatabases?.events.removeListener('error', remoteDBsErrorListener);
+    }
     
     try {
       await $settingsDB?.close();
@@ -381,6 +405,46 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   let lastPersistedCommentsAddr = '';
   let lastPersistedMediaAddr = '';
   let lastPersistedAiAddr = '';
+  let lastPersistedThemeState = '';
+  const settingsValueCache = new Map<string, string>();
+
+  function serializeSettingValue(value: unknown): string {
+    try {
+      return JSON.stringify(value) ?? 'null';
+    } catch {
+      return String(value);
+    }
+  }
+
+  async function persistSettingsValue(key: string, value: unknown, context: string) {
+    if (!$settingsDB) return;
+
+    const nextSerialized = serializeSettingValue(value);
+    const cachedSerialized = settingsValueCache.get(key);
+    if (cachedSerialized === nextSerialized) return;
+
+    try {
+      await $settingsDB.put({ _id: key, value });
+      settingsValueCache.set(key, nextSerialized);
+    } catch (err) {
+      warn(`Failed to persist ${key} during ${context}:`, err);
+    }
+  }
+
+  function attachDatabaseErrorListener(db: any, label: string, currentListener: any) {
+    if (currentListener && db?.events?.removeListener) {
+      db.events.removeListener('error', currentListener);
+    }
+
+    if (!db?.events?.on) return null;
+
+    const listener = (err: unknown) => {
+      warn(`${label} OrbitDB sync error:`, err);
+    };
+
+    db.events.on('error', listener);
+    return listener;
+  }
 
   // Load ownerIdentity from the current settings DB (local or remote).
   $effect(() => {
@@ -429,6 +493,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       // Process each setting
       for (const entry of allSettings) {
         const setting = entry.value;
+        settingsValueCache.set(setting._id, serializeSettingValue(setting.value));
         switch(setting._id) {
           case 'blogName':
             if (setting.value !== undefined) blogName.set(setting.value);
@@ -446,7 +511,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
             if (setting.value !== undefined) commentsDBAddress.set(setting.value);
             break;
           case 'mediaDBAddress':
-            // Currently not storing this in a variable, but could be used later
+            if (setting.value !== undefined) mediaDBAddress.set(setting.value);
             break;
           case 'aiDBAddress':
             if (setting.value !== undefined) aiDBAddress.set(setting.value);
@@ -475,42 +540,28 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       // If no postsDBAddress found but we have a postsDB, save it (only if we can write settings).
       if (canWriteSettings && !$postsDBAddress && $postsDB?.address) {
         const postsDBAddressValue = $postsDB.address.toString();
-        try {
-          $settingsDB?.put({ _id: 'postsDBAddress', value: postsDBAddressValue});
-          postsDBAddress.set(postsDBAddressValue);
-        } catch (err) {
-          console.error('Failed to write postsDBAddress to DB:', err);
-        }
+        await persistSettingsValue('postsDBAddress', postsDBAddressValue, 'initial settings load');
+        postsDBAddress.set(postsDBAddressValue);
       }
       
       // If no commentsDBAddress found but we have a commentsDB, save it (only if we can write settings).
       if (canWriteSettings && !$commentsDBAddress && $commentsDB?.address) {
         const commentsDBAddressValue = $commentsDB.address.toString();
-        try {
-          $settingsDB?.put({ _id: 'commentsDBAddress', value: commentsDBAddressValue});
-          commentsDBAddress.set(commentsDBAddressValue);
-        } catch (err) {
-          console.error('Failed to write commentsDBAddress to DB:', err);
-        }
+        await persistSettingsValue('commentsDBAddress', commentsDBAddressValue, 'initial settings load');
+        commentsDBAddress.set(commentsDBAddressValue);
       }
       
       // If no mediaDBAddress found but we have a mediaDB, save it (only if we can write settings).
       if (canWriteSettings && $mediaDB?.address) {
-        const mediaDBAddress = $mediaDB.address.toString();
-        try {
-          $settingsDB?.put({ _id: 'mediaDBAddress', value: mediaDBAddress});
-        } catch (err) {
-          console.error('Failed to write mediaDBAddress to DB:', err);
-        }
+        const mediaDBAddressValue = $mediaDB.address.toString();
+        await persistSettingsValue('mediaDBAddress', mediaDBAddressValue, 'initial settings load');
+        mediaDBAddress.set(mediaDBAddressValue);
       }
 
       if (canWriteSettings && $aiDB?.address) {
         const addr = $aiDB.address.toString();
-        try {
-          $settingsDB?.put({ _id: 'aiDBAddress', value: addr });
-        } catch (err) {
-          console.error('Failed to write aiDBAddress to DB:', err);
-        }
+        await persistSettingsValue('aiDBAddress', addr, 'initial settings load');
+        aiDBAddress.set(addr);
       }
     }).catch(err => {
       warn('Error loading settings from database:', err);
@@ -529,6 +580,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
       if (entry?.payload?.op === 'PUT') {
         const { _id, ...rest } = entry.payload.value;
         info('settingsDB update:', rest);
+        settingsValueCache.set(_id, serializeSettingValue(rest.value));
         
         // Update the appropriate store based on the _id
         switch(_id) {
@@ -540,6 +592,18 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
             break;
           case 'categories':
             $categories = rest.value;
+            break;
+          case 'postsDBAddress':
+            if (rest.value !== undefined) $postsDBAddress = rest.value;
+            break;
+          case 'commentsDBAddress':
+            if (rest.value !== undefined) $commentsDBAddress = rest.value;
+            break;
+          case 'mediaDBAddress':
+            if (rest.value !== undefined) $mediaDBAddress = rest.value;
+            break;
+          case 'aiDBAddress':
+            if (rest.value !== undefined) $aiDBAddress = rest.value;
             break;
           case 'profilePicture':
             $profilePictureCid = rest.value;
@@ -580,43 +644,35 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     if (postsAddr && (settingsAddr !== lastPersistedSettingsAddr || postsAddr !== lastPersistedPostsAddr)) {
       lastPersistedSettingsAddr = settingsAddr;
       lastPersistedPostsAddr = postsAddr;
-      $settingsDB.put({ _id: 'postsDBAddress', value: postsAddr }).catch((err) => {
-        console.error('Failed to persist postsDBAddress to settings:', err);
-      });
+      void persistSettingsValue('postsDBAddress', postsAddr, 'reactive posts address sync');
     }
 
     const commentsAddr = $commentsDB?.address?.toString?.() || '';
     if (commentsAddr && (settingsAddr !== lastPersistedSettingsAddr || commentsAddr !== lastPersistedCommentsAddr)) {
       lastPersistedSettingsAddr = settingsAddr;
       lastPersistedCommentsAddr = commentsAddr;
-      $settingsDB.put({ _id: 'commentsDBAddress', value: commentsAddr }).catch((err) => {
-        console.error('Failed to persist commentsDBAddress to settings:', err);
-      });
+      void persistSettingsValue('commentsDBAddress', commentsAddr, 'reactive comments address sync');
     }
 
     const currentThemeState = get(themeState);
-    if (currentThemeState && settingsAddr) {
-      $settingsDB.put({ _id: 'themeState', value: currentThemeState }).catch((err) => {
-        console.error('Failed to persist themeState to settings:', err);
-      });
+    const themeStateSerialized = currentThemeState ? serializeSettingValue(currentThemeState) : '';
+    if (currentThemeState && settingsAddr && themeStateSerialized !== lastPersistedThemeState) {
+      lastPersistedThemeState = themeStateSerialized;
+      void persistSettingsValue('themeState', currentThemeState, 'reactive theme state sync');
     }
 
     const mediaAddr = $mediaDB?.address?.toString?.() || '';
     if (mediaAddr && (settingsAddr !== lastPersistedSettingsAddr || mediaAddr !== lastPersistedMediaAddr)) {
       lastPersistedSettingsAddr = settingsAddr;
       lastPersistedMediaAddr = mediaAddr;
-      $settingsDB.put({ _id: 'mediaDBAddress', value: mediaAddr }).catch((err) => {
-        console.error('Failed to persist mediaDBAddress to settings:', err);
-      });
+      void persistSettingsValue('mediaDBAddress', mediaAddr, 'reactive media address sync');
     }
 
     const aiAddr = $aiDB?.address?.toString?.() || '';
     if (aiAddr && (settingsAddr !== lastPersistedSettingsAddr || aiAddr !== lastPersistedAiAddr)) {
       lastPersistedSettingsAddr = settingsAddr;
       lastPersistedAiAddr = aiAddr;
-      $settingsDB.put({ _id: 'aiDBAddress', value: aiAddr }).catch((err) => {
-        console.error('Failed to persist aiDBAddress to settings:', err);
-      });
+      void persistSettingsValue('aiDBAddress', aiAddr, 'reactive ai address sync');
     }
   });
 
@@ -661,6 +717,30 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     // Add the new event listener
     $postsDB.events.on('update', postsDBUpdateListener);
     }
+  });
+
+  $effect(() => {
+    settingsDBErrorListener = attachDatabaseErrorListener($settingsDB, 'settingsDB', settingsDBErrorListener);
+  });
+
+  $effect(() => {
+    postsDBErrorListener = attachDatabaseErrorListener($postsDB, 'postsDB', postsDBErrorListener);
+  });
+
+  $effect(() => {
+    commentsDBErrorListener = attachDatabaseErrorListener($commentsDB, 'commentsDB', commentsDBErrorListener);
+  });
+
+  $effect(() => {
+    mediaDBErrorListener = attachDatabaseErrorListener($mediaDB, 'mediaDB', mediaDBErrorListener);
+  });
+
+  $effect(() => {
+    aiDBErrorListener = attachDatabaseErrorListener($aiDB, 'aiDB', aiDBErrorListener);
+  });
+
+  $effect(() => {
+    remoteDBsErrorListener = attachDatabaseErrorListener($remoteDBsDatabases, 'remoteDBsDatabases', remoteDBsErrorListener);
   });
 
   $effect(() => {

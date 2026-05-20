@@ -8,6 +8,10 @@ const isBrowser = typeof window !== 'undefined';
 export const isLoadingRemoteBlog = writable(true);
 
 async function queryTXT(domain: string) {
+    if (['localhost', '127.0.0.1', '::1'].includes(domain)) {
+        debug('skipping initialAddress query for local hostname', domain);
+        return '';
+    }
     // const _domain = 'nicokrause.com';
     const url = `https://${domain}/.orbitblog`;
 

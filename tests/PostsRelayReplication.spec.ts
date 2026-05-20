@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import {
-  getPrimaryRelayMetricsOrigin,
+  getRelayMetricsOriginsRaw,
   getRelaySeedPeerIds,
   getRelayTargetLabel,
 } from './relayTestEnv';
@@ -8,17 +8,19 @@ import {
   waitForPeerCount,
   waitForRelayPeerConnection,
 } from './peerConnectivity';
-
-type RelayDatabaseRow = {
-  address?: string;
-  lastSyncedAt?: string;
-};
+import {
+  fetchRelayDatabaseListingAny,
+  getRelayMetricsOrigins,
+  requestRelayDatabaseSyncAny,
+} from './relayPinning';
 
 type CreatedPostInfo = {
   postId: string;
   createdAtMs: number;
   postsDbAddress: string;
 };
+
+const RELAY_SYNC_CLOCK_SKEW_MS = 2_000;
 
 async function closeSidebarIfVisible(page: Page) {
   const closeSidebarOverlay = page.locator('[aria-label="close_sidebar"]');
@@ -95,25 +97,11 @@ async function readCreatedPostInfo(page: Page, title: string) {
   }, title);
 }
 
-async function fetchRelayDatabaseRow(
-  metricsOrigin: string,
-  dbAddress: string,
-): Promise<RelayDatabaseRow | null> {
-  const url = new URL('/pinning/databases', metricsOrigin);
-  url.searchParams.set('address', dbAddress);
-
-  const response = await fetch(url, { method: 'GET' });
-  if (!response.ok) return null;
-
-  const json = (await response.json()) as { databases?: RelayDatabaseRow[] };
-  return json.databases?.find((row) => row.address?.trim() === dbAddress) ?? null;
-}
-
 test.describe('Post creation replicates to relay database sync history', () => {
   test('creates a post via UI and verifies postsDB appears in relay /pinning/databases', async ({ page }) => {
     test.slow();
 
-    const metricsOrigin = getPrimaryRelayMetricsOrigin();
+    const metricsOrigins = getRelayMetricsOrigins(getRelayMetricsOriginsRaw());
     const relayPeerIds = getRelaySeedPeerIds();
     const title = `relay-post-${Date.now()}`;
     const content = `relay replication check ${Date.now()}`;
@@ -146,12 +134,15 @@ test.describe('Post creation replicates to relay database sync history', () => {
 
     expect(createdPostInfo?.postsDbAddress).toMatch(/^\/orbitdb\/[a-zA-Z0-9]+$/);
 
-    let relayDatabaseRow: RelayDatabaseRow | null = null;
+    await requestRelayDatabaseSyncAny(metricsOrigins, createdPostInfo!.postsDbAddress);
+
+    let relayLastSyncedAt: string | undefined;
     await expect
       .poll(
         async () => {
-          relayDatabaseRow = await fetchRelayDatabaseRow(metricsOrigin, createdPostInfo!.postsDbAddress);
-          return relayDatabaseRow?.lastSyncedAt ?? '';
+          const listing = await fetchRelayDatabaseListingAny(metricsOrigins, createdPostInfo!.postsDbAddress);
+          relayLastSyncedAt = listing.row?.lastSyncedAt;
+          return relayLastSyncedAt ?? '';
         },
         {
           timeout: 120000,
@@ -160,6 +151,8 @@ test.describe('Post creation replicates to relay database sync history', () => {
       )
       .not.toBe('');
 
-    expect(Date.parse(relayDatabaseRow?.lastSyncedAt ?? '')).toBeGreaterThanOrEqual(createdPostInfo!.createdAtMs);
+    expect(Date.parse(relayLastSyncedAt ?? '')).toBeGreaterThanOrEqual(
+      createdPostInfo!.createdAtMs - RELAY_SYNC_CLOCK_SKEW_MS,
+    );
   });
 });

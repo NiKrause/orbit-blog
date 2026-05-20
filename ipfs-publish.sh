@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # -----------------------------------------------------------------------------
 # How to add a new IPNS_NAME and key locally:
 #
@@ -18,12 +19,23 @@ IPNS_KEY="k51qzi5uqu5dixys1k2prgbng4z9uxgvc4kj8l1xww1v5irt5cn3j5q402a0yb"  # <--
 IPNS_NAME="blog.le-space.de"                                                     # <-- Set your key name here
 IPFS_SERVER="ipfs.le-space.de"
 BUILD_DIR="dist"  # Change to "build" if your build output is in build/
+PROD_SERVER="le-space.de"
+IPFS_SSH_HOST="le-space.de"
+IPFS_SSH_USER="blogdeploy"
+PROD_SSH_USER="blogdeploy"
+SSH_OPTS=(-o BatchMode=yes -o StrictHostKeyChecking=accept-new)
 
-# Bump version automatically (patch level)
-npm version patch
+# Bump version automatically (patch level) without letting npm create its own git commit/tag.
+npm version patch --no-git-tag-version
 
 # Get the new version from package.json
 version=$(node -p "require('./package.json').version")
+current_branch=$(git branch --show-current)
+
+if [ -z "$current_branch" ]; then
+    echo "ERROR: could not determine current git branch" >&2
+    exit 1
+fi
 
 # Build the project before publishing to IPFS
 npm run build
@@ -102,18 +114,18 @@ NODE
 # fi
 
 # Run the ipfs name publish command with the extracted CID
-ipfs name publish --key=$IPNS_NAME /ipfs/$cid
+ipfs name publish --key="$IPNS_NAME" "/ipfs/$cid"
 echo "IPFS name $IPNS_NAME updated with CID $cid"
 
 # Update the vercel.json file with the new CID
 # sed -i '' "s|/ipfs/[^\"}]*|/ipfs/$cid|g" vercel.json
 
 # Pin the CID to the remote IPFS server
-ssh -t root@$IPFS_SERVER "su ipfs -c 'ipfs pin add $cid'"
+ssh "${SSH_OPTS[@]}" "$IPFS_SSH_USER@$IPFS_SSH_HOST" "sudo -n /usr/local/sbin/blog-pin-cid '$cid'"
 echo "IPFS CID $cid pinned to $IPFS_SERVER"
 
 # echo the result of name resolve should be the same as the cid
-result=$(ssh -t root@$IPFS_SERVER "su ipfs -c 'ipfs name resolve --nocache /ipns/$IPNS_KEY'" | tr -d '\r' | tr -d '\n')
+result=$(ssh "${SSH_OPTS[@]}" "$IPFS_SSH_USER@$IPFS_SSH_HOST" "sudo -n /usr/local/sbin/blog-resolve-ipns '$IPNS_KEY'" | tr -d '\r' | tr -d '\n')
 
 # Debug with hexdump to see exactly what characters we're getting
 echo "Result raw:"
@@ -125,21 +137,29 @@ if [ "$result" == "/ipfs/$cid" ]; then
     echo "$(tput setaf 2)IPFS name resolve result matches CID $cid$(tput sgr0)"
 else
     echo "$(tput setaf 1)IPFS name resolve result does not match CID $cid$(tput sgr0)"
+    exit 1
 fi
 
 # Git commands
 # git add vercel.json
-git add README.md package.json package-lock.json
+git add README.md package.json
+if [ -f package-lock.json ]; then
+    git add package-lock.json
+fi
 git commit -m "Update IPFS CID to $cid for version $version"
+if git rev-parse "v$version" >/dev/null 2>&1; then
+    echo "ERROR: git tag v$version already exists" >&2
+    exit 1
+fi
 git tag -a "v$version" -m "Version $version"
-git push origin main
+git push origin "$current_branch"
 git push origin --tags
 
 echo "Changes committed and pushed to GitHub. Tagged as v$version"
 
 read -p "Do you want to update the production Nginx config with the new CID? (yes/no): " answer
 if [[ "$answer" == "yes" ]]; then
-    ssh root@le-space.de "sed -i 's|proxy_pass https://$IPFS_SERVER/ipfs/[^/]*/;|proxy_pass https://$IPFS_SERVER/ipfs/$cid/;|' /etc/nginx/sites-available/$IPNS_NAME && systemctl reload nginx"
+    ssh "${SSH_OPTS[@]}" "$PROD_SSH_USER@$PROD_SERVER" "sudo -n /usr/local/sbin/blog-update-cid '$IPNS_NAME' '$cid'"
     echo "Nginx config updated with new CID $cid and reloaded for $IPNS_NAME."
 else
     echo "Production Nginx config was NOT updated."

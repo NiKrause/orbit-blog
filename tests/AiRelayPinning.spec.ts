@@ -1,9 +1,14 @@
 import { test, expect, type Page } from '@playwright/test';
 import {
-  getPrimaryRelayMetricsOrigin,
   getPrimaryRelayOrigin,
+  getRelayMetricsOriginsRaw,
   getRelayTargetLabel,
 } from './relayTestEnv';
+import {
+  fetchRelayDatabaseListingAny,
+  getRelayMetricsOrigins,
+  requestRelayDatabaseSyncAny,
+} from './relayPinning';
 
 const PNG_BASE64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7ZqkQAAAAASUVORK5CYII=';
@@ -15,10 +20,7 @@ type UploadedMediaInfo = {
   mediaDbAddress: string;
 };
 
-type RelayDatabaseRow = {
-  address?: string;
-  lastSyncedAt?: string;
-};
+const RELAY_SYNC_CLOCK_SKEW_MS = 2_000;
 
 async function readUploadedMediaInfo(page: Page, fileName: string) {
   return page.evaluate(async (expectedName: string) => {
@@ -51,20 +53,6 @@ async function readUploadedMediaInfo(page: Page, fileName: string) {
   }, fileName);
 }
 
-async function fetchRelayDatabaseRow(
-  metricsOrigin: string,
-  mediaDbAddress: string,
-): Promise<RelayDatabaseRow | null> {
-  const url = new URL('/pinning/databases', metricsOrigin);
-  url.searchParams.set('address', mediaDbAddress);
-
-  const response = await fetch(url, { method: 'GET' });
-  if (!response.ok) return null;
-
-  const json = (await response.json()) as { databases?: RelayDatabaseRow[] };
-  return json.databases?.find((row) => row.address?.trim() === mediaDbAddress) ?? null;
-}
-
 async function fetchRelayPinnedBytes(relayOrigin: string, cid: string) {
   const response = await fetch(new URL(`/ipfs/${cid}`, relayOrigin), { method: 'GET' });
   if (!response.ok) return null;
@@ -80,7 +68,7 @@ test.describe('AI image upload replicates to relay pinning service', () => {
     test.slow();
 
     const relayOrigin = getPrimaryRelayOrigin();
-    const metricsOrigin = getPrimaryRelayMetricsOrigin();
+    const metricsOrigins = getRelayMetricsOrigins(getRelayMetricsOriginsRaw());
     const fileName = `ai-relay-upload-${Date.now()}.png`;
 
     await page.goto('http://localhost:5173');
@@ -125,12 +113,15 @@ test.describe('AI image upload replicates to relay pinning service', () => {
 
     expect(uploadedInfo?.mediaDbAddress).toMatch(/^\/orbitdb\/[a-zA-Z0-9]+$/);
 
-    let relayDatabaseRow: RelayDatabaseRow | null = null;
+    await requestRelayDatabaseSyncAny(metricsOrigins, uploadedInfo!.mediaDbAddress);
+
+    let relayLastSyncedAt: string | undefined;
     await expect
       .poll(
         async () => {
-          relayDatabaseRow = await fetchRelayDatabaseRow(metricsOrigin, uploadedInfo!.mediaDbAddress);
-          return relayDatabaseRow?.lastSyncedAt ?? '';
+          const listing = await fetchRelayDatabaseListingAny(metricsOrigins, uploadedInfo!.mediaDbAddress);
+          relayLastSyncedAt = listing.row?.lastSyncedAt;
+          return relayLastSyncedAt ?? '';
         },
         {
           timeout: 120000,
@@ -139,8 +130,8 @@ test.describe('AI image upload replicates to relay pinning service', () => {
       )
       .not.toBe('');
 
-    expect(Date.parse(relayDatabaseRow?.lastSyncedAt ?? '')).toBeGreaterThanOrEqual(
-      Date.parse(uploadedInfo?.createdAt ?? ''),
+    expect(Date.parse(relayLastSyncedAt ?? '')).toBeGreaterThanOrEqual(
+      Date.parse(uploadedInfo?.createdAt ?? '') - RELAY_SYNC_CLOCK_SKEW_MS,
     );
 
     let pinnedAsset: { contentType: string; bytes: Buffer } | null = null;

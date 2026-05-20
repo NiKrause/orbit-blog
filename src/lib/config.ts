@@ -1,14 +1,11 @@
 import { webSockets } from "@libp2p/websockets";
-import { webRTC, webRTCDirect } from "@libp2p/webrtc";
-import { webTransport } from "@libp2p/webtransport";
+import { webRTC } from "@libp2p/webrtc";
 import { noise } from "@chainsafe/libp2p-noise";
 import { circuitRelayTransport } from '@libp2p/circuit-relay-v2'
 import { yamux } from "@chainsafe/libp2p-yamux";
 import { identify, identifyPush } from "@libp2p/identify"
 import { dcutr } from "@libp2p/dcutr"
-import { autoNAT } from "@libp2p/autonat"
 import { gossipsub } from "@chainsafe/libp2p-gossipsub"
-import { ping } from '@libp2p/ping'
 import { pubsubPeerDiscovery } from '@libp2p/pubsub-peer-discovery'
 import { multiaddr } from '@multiformats/multiaddr'
 import { bootstrap } from '@libp2p/bootstrap'
@@ -16,11 +13,20 @@ import { createLogger } from './utils/logger.js'
 
 const log = createLogger('p2p')
 
-let VITE_SEED_NODES = (import.meta.env.VITE_SEED_NODES || '').replace('\n','').split(',').filter(Boolean)
-let VITE_SEED_NODES_DEV = (import.meta.env.VITE_SEED_NODES_DEV || '').replace('\n','').split(',').filter(Boolean)
+function parseEnvList(value: string | undefined | null): string[] {
+    if (typeof value !== 'string') return []
+    return value
+        .replace(/\r?\n/g, ',')
+        .split(',')
+        .map(part => part.trim())
+        .filter(Boolean)
+}
+
+let VITE_SEED_NODES = parseEnvList(import.meta.env.VITE_SEED_NODES)
+let VITE_SEED_NODES_DEV = parseEnvList(import.meta.env.VITE_SEED_NODES_DEV)
 let MODE = import.meta.env.VITE_MODE //|| 'development';
-let VITE_P2P_PUPSUB_DEV = (import.meta.env.VITE_P2P_PUPSUB_DEV || '').replace('\n','').split(',').filter(Boolean);
-let VITE_P2P_PUPSUB = (import.meta.env.VITE_P2P_PUPSUB || '').replace('\n','').split(',').filter(Boolean);
+let VITE_P2P_PUPSUB_DEV = parseEnvList(import.meta.env.VITE_P2P_PUPSUB_DEV);
+let VITE_P2P_PUPSUB = parseEnvList(import.meta.env.VITE_P2P_PUPSUB);
 
 let _VITE_SEED_NODES_DEV = process.env.VITE_SEED_NODES_DEV || '';
 let _VITE_SEED_NODES = process.env.VITE_SEED_NODES || '';
@@ -30,10 +36,10 @@ let _VITE_P2P_PUPSUB_DEV = process.env.VITE_P2P_PUPSUB_DEV || '';
 let _VITE_P2P_PUPSUB = process.env.VITE_P2P_PUPSUB || '';
 
 if(_VITE_SEED_NODES || _VITE_SEED_NODES_DEV) {
-    VITE_SEED_NODES = _VITE_SEED_NODES
-    VITE_SEED_NODES_DEV = _VITE_SEED_NODES_DEV
-    VITE_P2P_PUPSUB = _VITE_P2P_PUPSUB
-    VITE_P2P_PUPSUB_DEV = _VITE_P2P_PUPSUB_DEV
+    VITE_SEED_NODES = parseEnvList(_VITE_SEED_NODES)
+    VITE_SEED_NODES_DEV = parseEnvList(_VITE_SEED_NODES_DEV)
+    VITE_P2P_PUPSUB = parseEnvList(_VITE_P2P_PUPSUB)
+    VITE_P2P_PUPSUB_DEV = parseEnvList(_VITE_P2P_PUPSUB_DEV)
 }
 if (import.meta.env.DEV) {
     MODE = 'development'
@@ -62,22 +68,11 @@ export const libp2pOptions: Libp2pOptions = {
         listen: [
             '/p2p-circuit',
             "/webrtc",
-            "/webtransport",
-            "/wss", "/ws",
         ]
     },
     transports: [
-        webTransport(),
         webSockets(),
         webRTC({
-            rtcConfiguration: {
-                iceServers: [
-                    { urls: ['stun:stun.l.google.com:19302'] },
-                    { urls: ['stun:global.stun.twilio.com:3478'] }
-                ]
-            }
-        }),
-        webRTCDirect({
             rtcConfiguration: {
                 iceServers: [
                     { urls: ['stun:stun.l.google.com:19302'] },
@@ -102,10 +97,9 @@ export const libp2pOptions: Libp2pOptions = {
         outboundUpgradeTimeout: 10000,
     },
     connectionGater: {
-        denyDialMultiaddr: () => false
+        denyDialMultiaddr: async () => false
     },
     peerDiscovery: [
-        bootstrap(bootstrapConfig),
         pubsubPeerDiscovery({
             interval: 3000,
             topics: pubSubPeerDiscoveryTopics,
@@ -115,13 +109,16 @@ export const libp2pOptions: Libp2pOptions = {
     services: {
         identify: identify(),
         identifyPush: identifyPush(),
-        ping: ping(),
-        autoNAT: autoNAT(),
         dcutr: dcutr(),
         pubsub: gossipsub({ 
-            allowPublishToZeroTopicPeers: true
+            allowPublishToZeroTopicPeers: true,
+            runOnLimitedConnection: true
         }),
-        bootstrap: bootstrap(bootstrapConfig)
+        ...(bootstrapConfig.list.length > 0
+            ? {
+                bootstrap: bootstrap(bootstrapConfig)
+            }
+            : {})
     }
 }
 

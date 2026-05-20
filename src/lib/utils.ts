@@ -74,11 +74,20 @@ export async function createKeyPairFromPrivateKey(privateKey: Buffer) {
     throw new Error('createKeyPairFromPrivateKey is deprecated - use @libp2p/crypto/keys instead')
 }
   
+function parseStoredJson(key, rawValue, initialValue) {
+  if (rawValue === null) return initialValue;
+  try {
+    return JSON.parse(rawValue);
+  } catch {
+    localStorage.removeItem(key);
+    return initialValue;
+  }
+}
 
 // Utility function to create a store that syncs with localStorage
 export function localStorageStore(key, initialValue) {
   const storedValue = localStorage.getItem(key);
-  const store = writable(storedValue !== null ? JSON.parse(storedValue) : initialValue);
+  const store = writable(parseStoredJson(key, storedValue, initialValue));
 
   store.subscribe(value => {
     localStorage.setItem(key, JSON.stringify(value));

@@ -2,6 +2,10 @@ import { get } from 'svelte/store';
 import { helia, orbitdb, blogName, categories, blogDescription, postsDBAddress, profilePictureCid, postsDB, posts, settingsDB, remoteDBs, commentsDB, mediaDB, aiDB, remoteDBsDatabases, commentsDBAddress, mediaDBAddress, aiDBAddress, identity, identities, loadingState } from './store.js';
 import type { RemoteDB } from './types.js';
 import { IPFSAccessController } from '@orbitdb/core';
+import { multiaddr } from '@multiformats/multiaddr';
+import { multiaddrs as seedMultiaddrs } from './config.js';
+import { getRelayMetricsOriginsForFetch } from './relay/relayEnv.js';
+import { requestRelayDbPinSync } from './services/relayPinStatus.js';
 import { createLogger } from './utils/logger.js'
 
 const log = createLogger('db')
@@ -49,6 +53,30 @@ const getPeerList = async (heliaInstance: any) => {
 function updateLoadingState(step: string, detail: string = '', progress: number = 0) {
   loadingState.set({ step, detail, progress });
   log.debug('Loading State:', { step, detail, progress });
+}
+
+async function requestRelaySyncForAddress(dbAddress: string): Promise<boolean> {
+  const normalized = dbAddress?.trim();
+  if (!normalized) return false;
+
+  const metricsOrigins = getRelayMetricsOriginsForFetch();
+  let anyOk = false;
+
+  for (const origin of metricsOrigins) {
+    try {
+      if (await requestRelayDbPinSync(origin, normalized)) {
+        anyOk = true;
+      }
+    } catch (error) {
+      log.warn('Relay sync request failed for database address:', normalized, origin, error);
+    }
+  }
+
+  if (anyOk) {
+    log.info('Requested relay sync for database address:', normalized);
+  }
+
+  return anyOk;
 }
 
 // Add a global write operation tracker
@@ -256,6 +284,7 @@ async function waitForDatabaseData(db: any, timeout: number = 20000): Promise<an
       
       // If no data yet, wait for events or timeout
       log.debug(`Database ${dbAddress} empty on attempt ${retryCount}, waiting for sync...`);
+      await requestRelaySyncForAddress(dbAddress);
       
       // Wait for either an update event or a short timeout
       await new Promise((resolve) => {
@@ -349,6 +378,10 @@ async function openOrCreateDB(
 
   if (dbAddressValue) {
     try {
+      if (isRemoteDB) {
+        await requestRelaySyncForAddress(dbAddressValue);
+      }
+
       const dbInstance = await orbitdbInstance.open(dbAddressValue);
       log.debug(`${config.name} ${dbAddressValue} loaded`);
       
@@ -449,16 +482,45 @@ function updateRemoteDBEntry(
 
 async function waitForPeers(heliaInstance: any, minPeers: number = 1, timeout: number = 30000): Promise<boolean> {
   const startTime = Date.now();
+  let lastBootstrapDialAt = 0;
   
   while (Date.now() - startTime < timeout) {
     const peers = await heliaInstance?.libp2p?.getPeers();
-    const peerCount = peers?.length || 0;
+    const activeConnections = heliaInstance?.libp2p?.getConnections?.() ?? [];
+    const connectedPeerIds = new Set(
+      activeConnections
+        .map((connection: any) => connection?.remotePeer?.toString?.() ?? '')
+        .filter(Boolean),
+    );
+    const peerCount = Math.max(peers?.length || 0, connectedPeerIds.size);
     
     updateLoadingState('connecting_peers', `Connected to ${peerCount} peers. Waiting for at least ${minPeers}...`, 20);
     log.debug('peerCount', peerCount)
     if (peerCount >= minPeers) {
       log.debug('peerCount >= minPeers', peerCount, minPeers)
       return true;
+    }
+
+    if (
+      connectedPeerIds.size === 0 &&
+      seedMultiaddrs.length > 0 &&
+      Date.now() - lastBootstrapDialAt >= 3000
+    ) {
+      lastBootstrapDialAt = Date.now();
+      for (const seed of seedMultiaddrs) {
+        try {
+          log.info('Attempting bootstrap dial while waiting for peers:', seed);
+          await heliaInstance?.libp2p?.dial?.(multiaddr(seed));
+          break;
+        } catch (error: any) {
+          const message = String(error?.message ?? error ?? '');
+          if (message.includes('Duplicate multiaddr connection') || message.includes('had an existing non-limited connection')) {
+            log.debug('Bootstrap dial skipped; connection already exists for seed:', seed);
+            break;
+          }
+          log.warn('Bootstrap dial failed while waiting for peers:', seed, error);
+        }
+      }
     }
     
     // Wait for 1 second before checking again
@@ -535,6 +597,8 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       aiDB.set(null);
       
       updateLoadingState('identifying_db', `Opening database: ${address}`, 30);
+
+      await requestRelaySyncForAddress(address);
       
       // Try opening with Voyager first, fall back to direct OrbitDB if it fails
       log.debug('🔄 Opening database with address:', address);
@@ -557,6 +621,8 @@ export async function switchToRemoteDB(address: string, showModal = false) {
       // Get all settings data with enhanced retry mechanism
       updateLoadingState('loading_settings', 'Loading blog configuration...', 40);
       log.debug('🔄 Loading settings from database...');
+
+      await requestRelaySyncForAddress(address);
       
       // Use the enhanced data loading function to handle empty results
       const dbContents = await waitForDatabaseData(db, 20000); // 20 second timeout
@@ -633,6 +699,7 @@ export async function switchToRemoteDB(address: string, showModal = false) {
         let commentsDBAddr = '';
         let mediaDBAddr = '';
         let aiDBAddr = '';
+        const isRemotePostsLoad = true;
 
         updateLoadingState('loading_posts', 'Opening posts database...', 60);
         // Create promises for all DB operations
@@ -655,20 +722,24 @@ export async function switchToRemoteDB(address: string, showModal = false) {
             } catch (writeError) {
               log.warn('Could not update postsDBAddress in settings:', writeError.message);
             }
-            const allPosts = (await postsInstance.all()).map(post => {
-          const { _id, ...rest } = post.value;
-          const resolvedId = _id ?? post.key;
-          const mappedPost = { 
-            ...rest,
-            _id: resolvedId,
-            content: rest.content || rest.value?.content,
-            title: rest.title || rest.value?.title,
-            date: rest.date || rest.value?.date,
-            published: rest.published !== undefined ? rest.published : rest.value?.published,
-          };
+            const rawPosts = isRemotePostsLoad
+              ? await waitForDatabaseData(postsInstance, 20000)
+              : await postsInstance.all();
+            const allPosts = rawPosts.map(post => {
+              const { _id, ...rest } = post.value;
+              const resolvedId = _id ?? post.key;
+              const mappedPost = {
+                ...rest,
+                _id: resolvedId,
+                content: rest.content || rest.value?.content,
+                title: rest.title || rest.value?.title,
+                date: rest.date || rest.value?.date,
+                published: rest.published !== undefined ? rest.published : rest.value?.published,
+              };
               return mappedPost;
             });
             postsCount = allPosts.length;
+            log.info(`Loaded ${postsCount} posts from ${isRemotePostsLoad ? 'remote' : 'local'} posts database`);
             posts.set(allPosts);
             return { instance: postsInstance, access: postsInstance.access };
           }

@@ -31,15 +31,19 @@ function hasOnlyRelayConnections(connections: ReturnType<typeof getConnectionsFo
 
 function getDialableMultiaddrs(multiaddrs: any): any[] {
   if (!Array.isArray(multiaddrs)) return [];
-  return multiaddrs.filter((addr) => {
+  const unique = new Map<string, any>();
+  for (const addr of multiaddrs) {
     const value = addr?.toString?.() ?? '';
-    return (
+    const isDialable =
       value.includes('/webrtc') ||
       value.includes('/webtransport') ||
       value.includes('/ws') ||
-      value.includes('/p2p-circuit')
-    );
-  });
+      value.includes('/p2p-circuit');
+    if (isDialable && !unique.has(value)) {
+      unique.set(value, addr);
+    }
+  }
+  return [...unique.values()];
 }
 
 /**
