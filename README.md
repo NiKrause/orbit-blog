@@ -11,9 +11,9 @@ IPNS: `ipns://k51qzi5uqu5dixys1k2prgbng4z9uxgvc4kj8l1xww1v5irt5cn3j5q402a0yb`
 
 Gateway: `https://k51qzi5uqu5dixys1k2prgbng4z9uxgvc4kj8l1xww1v5irt5cn3j5q402a0yb.ipns.dweb.link/`
 
-Latest IPFS CID: QmWEhPfqD81KjswchjJX38FfbFDBPmvEkqEexaiTXQSqLj
+Latest IPFS CID: QmYSAiZx84ZzT43cyYyne9yZsq6U581NPDBkh9REjQWvDd
 
-Latest IPFS Gateway: https://QmWEhPfqD81KjswchjJX38FfbFDBPmvEkqEexaiTXQSqLj.ipfs.dweb.link/
+Latest IPFS Gateway: https://QmYSAiZx84ZzT43cyYyne9yZsq6U581NPDBkh9REjQWvDd.ipfs.dweb.link/
 
 ## What It Does
 - Create a personal blog in the browser.
