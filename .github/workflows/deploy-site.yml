@@ -110,13 +110,50 @@ jobs:
       - name: Publish dist to Aleph IPFS
         id: publish
         env:
-          ALEPH_PRIVATE_KEY: ${{ secrets.ALEPH_PRIVATE_KEY }}
-          ALEPH_SITE_ALEPH_API_HOST: https://api1.aleph.cloud
           ALEPH_VM_MODE: site-publish
           ALEPH_SITE_PROJECT_DIR: ${{ github.workspace }}
           ALEPH_SITE_DIRECTORY: ${{ github.workspace }}/dist
-          ALEPH_SITE_PIN: true
+          ALEPH_SITE_PIN: false
         run: node --input-type=module -e "const m = await import('${{ steps.aleph_runner.outputs.dir }}/node_modules/@le-space/node/index.js'); await m.runSiteMode(process.env)"
+
+      - name: Pin IPFS CID on Aleph via CLI fallback
+        id: pin
+        shell: bash
+        env:
+          IPFS_CID_V0: ${{ steps.publish.outputs.ipfs_cid_v0 }}
+        run: |
+          if [[ -z "${IPFS_CID_V0}" ]]; then
+            echo "Missing IPFS CID from publish step." >&2
+            exit 1
+          fi
+
+          pin_output="$(aleph file pin "${IPFS_CID_V0}")"
+          printf '%s\n' "$pin_output"
+
+          item_hash="$(PIN_OUTPUT="$pin_output" python3 - <<'PY'
+          import json
+          import os
+          import sys
+
+          lines = [line for line in os.environ["PIN_OUTPUT"].splitlines() if line.strip()]
+          for start in range(len(lines) - 1, -1, -1):
+              candidate = "\n".join(lines[start:])
+              if not candidate.lstrip().startswith("{"):
+                  continue
+              try:
+                  payload = json.loads(candidate)
+              except json.JSONDecodeError:
+                  continue
+              item_hash = payload.get("item_hash")
+              if isinstance(item_hash, str) and item_hash.strip():
+                  print(item_hash.strip())
+                  sys.exit(0)
+
+          raise SystemExit("Could not parse item_hash from aleph file pin output")
+          PY
+          )"
+
+          echo "item_hash=${item_hash}" >> "$GITHUB_OUTPUT"
 
       - name: Link custom domain
         id: domain_link
@@ -124,7 +161,7 @@ jobs:
           ALEPH_VM_MODE: site-domain-link
           ALEPH_SITE_PROJECT_DIR: ${{ github.workspace }}
           ALEPH_SITE_DOMAIN: ${{ steps.settings.outputs.domain }}
-          ALEPH_SITE_ITEM_HASH: ${{ steps.publish.outputs.item_hash }}
+          ALEPH_SITE_ITEM_HASH: ${{ steps.pin.outputs.item_hash }}
           ALEPH_SITE_DOMAIN_CATCH_ALL_PATH: /index.html
         run: node --input-type=module -e "const m = await import('${{ steps.aleph_runner.outputs.dir }}/node_modules/@le-space/node/index.js'); await m.runSiteMode(process.env)"
 
@@ -138,6 +175,6 @@ jobs:
         shell: bash
         run: |
           echo "Deployed domain: ${{ steps.domain_link.outputs.domain }}"
-          echo "Aleph item hash: ${{ steps.publish.outputs.item_hash }}"
+          echo "Aleph item hash: ${{ steps.pin.outputs.item_hash }}"
           echo "IPFS CID v0: ${{ steps.publish.outputs.ipfs_cid_v0 }}"
           echo "IPFS CID v1: ${{ steps.publish.outputs.ipfs_cid_v1 }}"
