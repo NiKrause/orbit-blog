@@ -19,7 +19,7 @@ What it does:
 
 - installs app dependencies
 - builds the app into `dist/`
-- installs `@le-space/node@0.1.41`
+- installs `@le-space/node@0.1.43`
 - uses the shared Node-based Aleph site runner from that package to publish `dist/` to Aleph IPFS
 - pins the uploaded CID to Aleph storage
 - attaches the resulting Aleph item to the configured custom domain
@@ -51,6 +51,13 @@ Trigger model:
 - **Node 22**, `npm install`, Playwright browsers
 - Starts **relay** for Mocha, then runs **`npx mocha "test/**/*.test.js"`**
 - Runs **`npm run test:e2e`** with `DEBUG=playwright:*`
+
+**`.github/workflows/webrtc-compare.yml`:**
+
+- Focused comparison workflow for `tests/WebRTCDirectConnectivity.spec.ts`
+- Runs a two-way matrix on GitHub Actions: `local` relay mode and `remote` relay mode
+- Triggers on pushes to `e2e-relay-pinner` and manual `workflow_dispatch`
+- Keeps the main test workflow unchanged while we compare relay behavior
 
 Forks should align install command with their lockfile (`pnpm` vs `npm`).
 

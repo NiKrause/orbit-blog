@@ -1,0 +1,46 @@
+name: WebRTC Compare
+
+on:
+  push:
+    branches: [ e2e-relay-pinner ]
+  workflow_dispatch:
+
+jobs:
+  webrtc-compare:
+    name: WebRTC (${{ matrix.relay_mode }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        relay_mode: [local, remote]
+    env:
+      TEST_PRIVATE_KEY: 08011240821cb6bc3d4547fcccb513e82e4d718089f8a166b23ffcd4a436754b6b0774cf07447d1693cd10ce11ef950d7517bad6e9472b41a927cd17fc3fb23f8c70cd99
+      METRICS_PORT: 0
+      DEBUG: playwright:*
+      PLAYWRIGHT_RELAY_MODE: ${{ matrix.relay_mode }}
+      PLAYWRIGHT_REMOTE_RELAY_NAME: mansion-old-afford-damp.2n6.me
+      PLAYWRIGHT_REMOTE_RELAY_ORIGIN: https://mansion-old-afford-damp.2n6.me
+      PLAYWRIGHT_REMOTE_RELAY_METRICS_ORIGIN: https://mansion-old-afford-damp.2n6.me
+      PLAYWRIGHT_REMOTE_SEED_NODES: /dns4/37-114-50-44.k51qzi5uqu5dirmjhgnwfimfdnpa4575o66r6ldgmtwue9nuci7etnctbzd68j.libp2p.direct/tcp/24029/tls/ws/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/dns4/mansion-old-afford-damp.2n6.me/tcp/443/tls/ws/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/dns6/2a0e-97c0-3e3-54b-3-8753-4011-9b91.k51qzi5uqu5dirmjhgnwfimfdnpa4575o66r6ldgmtwue9nuci7etnctbzd68j.libp2p.direct/tcp/24029/tls/ws/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/dns6/mansion-old-afford-damp.2n6.me/tcp/443/tls/ws/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/ip4/37.114.50.44/tcp/24029/tls/sni/37-114-50-44.k51qzi5uqu5dirmjhgnwfimfdnpa4575o66r6ldgmtwue9nuci7etnctbzd68j.libp2p.direct/ws/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/ip6/2a0e:97c0:3e3:54b:3:8753:4011:9b91/tcp/24029/tls/sni/2a0e-97c0-3e3-54b-3-8753-4011-9b91.k51qzi5uqu5dirmjhgnwfimfdnpa4575o66r6ldgmtwue9nuci7etnctbzd68j.libp2p.direct/ws/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/ip4/37.114.50.44/udp/24026/webrtc-direct/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/ip6/2a0e:97c0:3e3:54b:3:8753:4011:9b91/udp/24026/webrtc-direct/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.33.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Browsers
+        run: pnpm exec playwright install --with-deps
+
+      - name: Run WebRTC direct connectivity spec
+        run: pnpm exec playwright test tests/WebRTCDirectConnectivity.spec.ts --project=chromium
