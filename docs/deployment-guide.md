@@ -19,7 +19,7 @@ What it does:
 
 - installs app dependencies
 - builds the app into `dist/`
-- installs `@le-space/node@0.1.43`
+- installs `@le-space/node@0.1.44`
 - uses the shared Node-based Aleph site runner from that package to publish `dist/` to Aleph IPFS
 - pins the uploaded CID to Aleph storage
 - attaches the resulting Aleph item to the configured custom domain
