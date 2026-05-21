@@ -77,6 +77,30 @@ export async function waitForRelayPeerConnection(
     .not.toBe('');
 }
 
+export async function waitForNonRelayPeerConnection(
+  page: Page,
+  relayPeerIds: string[],
+  timeoutMs = 120_000,
+) {
+  await expect
+    .poll(
+      async () => {
+        const connections = await getOpenConnections(page);
+        return connections.find(
+          (connection) =>
+            connection.status === 'open' &&
+            connection.remotePeerId.length > 0 &&
+            !relayPeerIds.includes(connection.remotePeerId),
+        )?.remotePeerId ?? '';
+      },
+      {
+        timeout: timeoutMs,
+        message: `wait for a non-relay peer connection (excluding: ${relayPeerIds.join(', ')})`,
+      },
+    )
+    .not.toBe('');
+}
+
 export async function getOpenConnections(page: Page): Promise<OpenConnectionInfo[]> {
   return page.evaluate(() => {
     const globalWindow = window as typeof window & {

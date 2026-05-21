@@ -1,7 +1,7 @@
 import { test } from '@playwright/test';
 import {
   waitForDirectWebRTCPeerConnection,
-  waitForPeerCount,
+  waitForNonRelayPeerConnection,
   waitForRelayPeerConnection,
 } from './peerConnectivity';
 import { waitForLoadingOverlayToSettle } from './pageLoad';
@@ -51,8 +51,8 @@ test.describe('Remote Direct WebRTC Connectivity', () => {
     ]);
 
     await Promise.all([
-      waitForPeerCount(pageAlice, 2),
-      waitForPeerCount(pageBob, 2),
+      waitForNonRelayPeerConnection(pageAlice, relayPeerIds),
+      waitForNonRelayPeerConnection(pageBob, relayPeerIds),
     ]);
 
     await Promise.all([
