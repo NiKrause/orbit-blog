@@ -62,7 +62,7 @@ jobs:
           runner_dir="${RUNNER_TEMP}/aleph-runner"
           rm -rf "$runner_dir"
           mkdir -p "$runner_dir"
-          npm install --prefix "$runner_dir" --package-lock=false --no-audit --no-fund @le-space/node@0.1.42
+          npm install --prefix "$runner_dir" --package-lock=false --no-audit --no-fund @le-space/node@0.1.43
           echo "dir=$runner_dir" >> "$GITHUB_OUTPUT"
 
       - name: Build app
@@ -110,6 +110,7 @@ jobs:
       - name: Publish dist to Aleph IPFS
         id: publish
         env:
+          ALEPH_PRIVATE_KEY: ${{ secrets.ALEPH_PRIVATE_KEY }}
           ALEPH_VM_MODE: site-publish
           ALEPH_SITE_PROJECT_DIR: ${{ github.workspace }}
           ALEPH_SITE_DIRECTORY: ${{ github.workspace }}/dist
