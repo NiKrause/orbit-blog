@@ -7,13 +7,10 @@ Local-first, peer-to-peer blogging powered by OrbitDB, libp2p, and IPFS.
 Status: alpha/experimental. Not security audited.
 
 ## Try It (PWA)
-IPNS: `ipns://k51qzi5uqu5dixys1k2prgbng4z9uxgvc4kj8l1xww1v5irt5cn3j5q402a0yb`
+Production: `https://blog.le-space.de`
 
-Gateway: `https://k51qzi5uqu5dixys1k2prgbng4z9uxgvc4kj8l1xww1v5irt5cn3j5q402a0yb.ipns.dweb.link/`
-
-Latest IPFS CID: QmYSAiZx84ZzT43cyYyne9yZsq6U581NPDBkh9REjQWvDd
-
-Latest IPFS Gateway: https://QmYSAiZx84ZzT43cyYyne9yZsq6U581NPDBkh9REjQWvDd.ipfs.dweb.link/
+Deployments are published from GitHub Actions to Aleph IPFS and attached to the
+production domain automatically.
 
 ## What It Does
 - Create a personal blog in the browser.
@@ -48,6 +45,16 @@ npm run relay:test
 npm test
 npm run test:e2e
 ```
+
+## Deployment
+The production site is built from `dist/` and deployed by
+`.github/workflows/deploy-site.yml`.
+
+Required repository secret:
+- `ALEPH_PRIVATE_KEY`
+
+Optional repository variable:
+- `ALEPH_SITE_DOMAIN` to override the default `blog.le-space.de`
 
 ## Debugging
 Browser console examples:

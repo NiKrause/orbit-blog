@@ -6,14 +6,37 @@ The production artifact is a **static site**: HTML, JS, CSS from **`pnpm run bui
 
 There is **no Node server** required for the app itself.
 
-## IPFS / IPNS (project practice)
+## Aleph site deployment
 
-Root `README.md` documents:
+The repo now deploys through GitHub Actions instead of the old local
+`ipfs-publish.sh` operator flow.
 
-- Example **IPNS** name and **gateway** URLs
-- **`npm run ipfs-publish`** — bumps version, builds, runs `./ipfs-publish.sh` (requires local IPFS tooling configured by the maintainer)
+Workflow:
 
-Treat publishing as **operator-specific**; paths and gateways depend on your IPFS node and DNSLink/IPNS setup.
+- `.github/workflows/deploy-site.yml`
+
+What it does:
+
+- installs app dependencies
+- builds the app into `dist/`
+- checks out `shared-aleph-tooling`
+- uses the shared Aleph site runner to publish `dist/` to Aleph IPFS
+- pins the uploaded CID to Aleph storage
+- attaches the resulting Aleph item to the configured custom domain
+
+Required repository secret:
+
+- `ALEPH_PRIVATE_KEY`
+
+Optional repository variable:
+
+- `ALEPH_SITE_DOMAIN`
+  Defaults to `blog.le-space.de` when unset.
+
+Trigger model:
+
+- automatic on pushes to `main` and `master`
+- manual through `workflow_dispatch`
 
 ## Progressive Web App
 
