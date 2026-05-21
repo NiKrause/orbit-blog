@@ -56,9 +56,20 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install shared Aleph runner package
-        run: npm install --no-save @le-space/node@0.1.41
+        id: aleph_runner
+        shell: bash
+        run: |
+          runner_dir="${RUNNER_TEMP}/aleph-runner"
+          rm -rf "$runner_dir"
+          mkdir -p "$runner_dir"
+          npm install --prefix "$runner_dir" --package-lock=false --no-audit --no-fund @le-space/node@0.1.42
+          echo "dir=$runner_dir" >> "$GITHUB_OUTPUT"
 
       - name: Build app
+        env:
+          VITE_MODE: production
+          VITE_SEED_NODES: /dns4/37-114-50-44.k51qzi5uqu5dirmjhgnwfimfdnpa4575o66r6ldgmtwue9nuci7etnctbzd68j.libp2p.direct/tcp/24029/tls/ws/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/dns4/mansion-old-afford-damp.2n6.me/tcp/443/tls/ws/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/dns6/2a0e-97c0-3e3-54b-3-8753-4011-9b91.k51qzi5uqu5dirmjhgnwfimfdnpa4575o66r6ldgmtwue9nuci7etnctbzd68j.libp2p.direct/tcp/24029/tls/ws/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/dns6/mansion-old-afford-damp.2n6.me/tcp/443/tls/ws/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/ip4/37.114.50.44/tcp/24029/tls/sni/37-114-50-44.k51qzi5uqu5dirmjhgnwfimfdnpa4575o66r6ldgmtwue9nuci7etnctbzd68j.libp2p.direct/ws/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/ip6/2a0e:97c0:3e3:54b:3:8753:4011:9b91/tcp/24029/tls/sni/2a0e-97c0-3e3-54b-3-8753-4011-9b91.k51qzi5uqu5dirmjhgnwfimfdnpa4575o66r6ldgmtwue9nuci7etnctbzd68j.libp2p.direct/ws/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/ip4/37.114.50.44/udp/24026/webrtc-direct/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/ip6/2a0e:97c0:3e3:54b:3:8753:4011:9b91/udp/24026/webrtc-direct/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv
+          VITE_P2P_PUPSUB: todo._peer-discovery._p2p._pubsub
         run: pnpm run build
 
       - name: Install Aleph CLI
@@ -103,7 +114,7 @@ jobs:
           ALEPH_SITE_PROJECT_DIR: ${{ github.workspace }}
           ALEPH_SITE_DIRECTORY: ${{ github.workspace }}/dist
           ALEPH_SITE_PIN: true
-        run: node --input-type=module -e "const m = await import('@le-space/node'); await m.runSiteMode(process.env)"
+        run: node --input-type=module -e "const m = await import('${{ steps.aleph_runner.outputs.dir }}/node_modules/@le-space/node/index.js'); await m.runSiteMode(process.env)"
 
       - name: Link custom domain
         id: domain_link
@@ -113,7 +124,7 @@ jobs:
           ALEPH_SITE_DOMAIN: ${{ steps.settings.outputs.domain }}
           ALEPH_SITE_ITEM_HASH: ${{ steps.publish.outputs.item_hash }}
           ALEPH_SITE_DOMAIN_CATCH_ALL_PATH: /index.html
-        run: node --input-type=module -e "const m = await import('@le-space/node'); await m.runSiteMode(process.env)"
+        run: node --input-type=module -e "const m = await import('${{ steps.aleph_runner.outputs.dir }}/node_modules/@le-space/node/index.js'); await m.runSiteMode(process.env)"
 
       - name: Upload built site artifact
         uses: actions/upload-artifact@v4
