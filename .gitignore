@@ -2,6 +2,7 @@
 .bolt
 .idea
 .vscode
+.cursor
 .svelte-kit
 dev-dist/
 # Logs
