@@ -111,6 +111,7 @@ jobs:
         id: publish
         env:
           ALEPH_PRIVATE_KEY: ${{ secrets.ALEPH_PRIVATE_KEY }}
+          ALEPH_SITE_ALEPH_API_HOST: https://api2.aleph.cloud
           ALEPH_VM_MODE: site-publish
           ALEPH_SITE_PROJECT_DIR: ${{ github.workspace }}
           ALEPH_SITE_DIRECTORY: ${{ github.workspace }}/dist
