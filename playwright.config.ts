@@ -1,5 +1,6 @@
 import { defineConfig, devices } from '@playwright/test'
 import {
+  LOCAL_RELAY_QUIC_PORT,
   LOCAL_RELAY_TCP_PORT,
   LOCAL_RELAY_WEBRTC_PORT,
   LOCAL_RELAY_WS_PORT,
@@ -45,6 +46,7 @@ export default defineConfig({
       // Keep relay ports in sync with tests/global-setup.ts spawning.
       RELAY_TCP_PORT: String(LOCAL_RELAY_TCP_PORT),
       RELAY_WS_PORT: String(LOCAL_RELAY_WS_PORT),
+      RELAY_QUIC_PORT: String(LOCAL_RELAY_QUIC_PORT),
       RELAY_WEBRTC_PORT: String(LOCAL_RELAY_WEBRTC_PORT),
     },
   },

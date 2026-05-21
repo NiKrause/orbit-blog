@@ -10,6 +10,7 @@ export const LOCAL_RELAY_HTTP_PORT = 19090;
 export const LOCAL_RELAY_TCP_PORT = 19091;
 export const LOCAL_RELAY_WS_PORT = 19092;
 export const LOCAL_RELAY_WEBRTC_PORT = 19093;
+export const LOCAL_RELAY_QUIC_PORT = 19094;
 export const LOCAL_RELAY_ORIGIN = `http://127.0.0.1:${LOCAL_RELAY_HTTP_PORT}`;
 export const LOCAL_RELAY_SEED = `/ip4/127.0.0.1/tcp/${LOCAL_RELAY_WS_PORT}/ws/p2p/${LOCAL_RELAY_PEER_ID}`;
 

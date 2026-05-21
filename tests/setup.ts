@@ -5,6 +5,7 @@ import { constants } from 'fs'
 import {
     LOCAL_RELAY_HTTP_PORT,
     LOCAL_RELAY_ORIGIN,
+    LOCAL_RELAY_QUIC_PORT,
     LOCAL_RELAY_TEST_PRIVATE_KEY,
     LOCAL_RELAY_TCP_PORT,
     LOCAL_RELAY_WEBRTC_PORT,
@@ -147,6 +148,7 @@ export async function setupTestEnvironment() {
                 // Avoid collisions with a locally running relay that might be using the defaults.
                 RELAY_TCP_PORT: String(LOCAL_RELAY_TCP_PORT),
                 RELAY_WS_PORT: String(LOCAL_RELAY_WS_PORT),
+                RELAY_QUIC_PORT: String(LOCAL_RELAY_QUIC_PORT),
                 RELAY_WEBRTC_PORT: String(LOCAL_RELAY_WEBRTC_PORT),
                 // Keep WebRTC enabled so browser peers can establish direct connections in e2e.
                 RELAY_DISABLE_WEBRTC: 'false',
