@@ -50,7 +50,8 @@ Trigger model:
 - Triggers on `main`, `master`, `e2e-relay-pinner`
 - **Node 22**, `npm install`, Playwright browsers
 - Starts **relay** for Mocha, then runs **`npx mocha "test/**/*.test.js"`**
-- Runs **`npm run test:e2e`** with `DEBUG=playwright:*`
+- Runs the main Playwright suite with `DEBUG=playwright:*`
+- Excludes `tests/WebRTCDirectConnectivity.spec.ts` from the main suite; that spec lives in the dedicated comparison workflow below
 
 **`.github/workflows/webrtc-compare.yml`:**
 

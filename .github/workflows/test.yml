@@ -51,4 +51,6 @@ jobs:
     - name: Run e2e tests
       run: |
         # Playwright config starts the Vite dev server, and globalSetup starts the relay.
-        DEBUG=playwright:* pnpm run test:e2e
+        # Keep the dedicated WebRTC direct-connectivity spec in `.github/workflows/webrtc-compare.yml`
+        # so the main suite stays stable while we track relay-mode differences separately.
+        DEBUG=playwright:* pnpm exec playwright test tests --project=chromium --grep-invert "Remote Direct WebRTC Connectivity"
