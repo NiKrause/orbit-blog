@@ -7,6 +7,13 @@
 </table>
 Note! This software is currently in alpha version status and thus may change, break backwards compatibility or contain major issues. It has not been security audited. Use it accordingly.
 
+### Current Infra Status
+- Deployment is now handled by GitHub Actions through `.github/workflows/deploy-site.yml`.
+- The site is published to Aleph IPFS through `@le-space/node` and attached to the configured custom domain.
+- The deploy workflow no longer uses the Aleph Python CLI path.
+- Site upload retention is automatic: the workflow keeps the latest `10` uploads for the `orbit-blog-prod` scope and forgets older ones.
+- Remaining infra work should be tracked as new focused items below instead of assuming the old local `ipfs-publish.sh` flow still exists.
+
 ### Install as Progressive Web App (PWA)
 
 Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m6otstezp2ngfs8g) [IPFS Companion needed](https://docs.ipfs.tech/install/ipfs-companion/)
@@ -15,7 +22,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
 
 ### Todos, Features, Issues
 - Todos:
-    - [ ] add an "eject PWA" icon in case this is a PWA and delete all orbitdb stored indexdb data
+    - [x] add an "eject PWA" icon in case this is a PWA and delete all orbitdb stored indexdb data
     - [ ] add github repo as projects
     - [ ] add deamo argumentation maps
     - [ ] when starting browser let user decide for memory sessions o persistent storage (and support the blog author)
@@ -50,9 +57,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [ ] Bug: locks & keys in sidebar are updating too late
     - [x] Feature: make use of @libp2p/logging
     - [x] GDPR-Question: When entering the website and loading remote blocks they get stored on the local browser, what does the GDPR says to that? 
-    - [x] Feature: use @libp2p/logging package
     - [x] UI-BUG: If old posts doesn't have a language it will never be displayed (and swallowed by the system)
-        - [ ] GDPR is only about personal data e.g. a token in local storage is personal data, being transparent is never an issue.
     - [x] Feature: Add synchronous password encryption to a blogPost 
     - [x] Bug: Website in browsers and mobile apps pwa is cached too long: nginx must send no-cache header
     - [x] Feature: Privacy Statement
@@ -66,7 +71,6 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
         - [ ] Feature: deliver posts in classic web2.0 mode to display photos in social media e.g. Telegram, Twitter etc. 
     - [x] Bug: blog author get's lost when updating (only on ipns.dweb.link)
     - [x] Feature: author needs to be shortened, the ID is too long, need to hover to see it fully
-        - [ ] obviously it get's lost but when testing locally and in production it is not loosing data 
     - [ ] Feature: integrated AI spell checker
     - [x] Feature: integrated AI translater via configurable private API url 
     - [x] Feature: Create Svelte lib from project, so it can be used in other projects as component
@@ -77,7 +81,6 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [x] comments can't be stored anymore
     - [x] when switching network off, blog should read local db and not connect. At the moment it tries to connect online and fail
         - [x] in dbutils try/catch if voyager.orbitdb.open works otherwise just do orbitdb.open (directly!) this could be done encapsulated internally inside voyager api
-    - [ ] BUG: issue with tailwind components - tailwind components are not activated when importing blog lib! 
     - [x] Feature: default orbit blog address configurable by nginx config location .orbitblog 
     - [ ] Feature: default orbit blog address configurable by ethereum, polygon, namecoin, bitcoin, arweave? (possible by hostname) 
     - [x] Feature: PDF export from a post content
@@ -100,15 +103,14 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [ ] Feature: better decrypt password only before write operations (simple in case nobody else has write access for own dbs - not so easy with shared write access)
     - [ ] Feature: private / private + link / public 
     - [x] Feature: green/orange indication doesn't work for new local blogs
-    - [ ] Feature: toggle button temporary persistent seed phrase suddenly missing 
+    - [x] Feature: toggle button temporary persistent seed phrase suddenly missing 
     - [ ] Feature: if url isn't the main url - show warning
-    - [ ] Feature: Scan QR-Code isn't fully implemented - make invisible
+    - [x] Feature: Scan QR-Code isn't fully implemented - make invisible
     - [x] improve usability mobile
         - [x] remote blogs not clickable
         - [x] disable zoom
         - [x] sidebar destroys layout
     - [x] restore old blog posts from OrbitDB log history
-    - [x] peer-to-peer via WebRTC between two browsers doesn't work
     - [x] disable DID and enable default orbitdb.id, DID not yet supported by voyager  
     - [x] adding & deleting blog databases works only with reloading the page
     - [x] in settings the storing the posts db address should happen somewhat automatically, because if forgotten, others cannot add it to there saved blogs
@@ -139,7 +141,6 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [x] Feature: orbitdb address (blog address) should be possible to be given over the url in hash router /#/orbitdb/xyz
     - [x] Feature: editable / flexible categories
     - [x] Feature: editable posts
-    - [x] Feature: deploy to IPFS
     - [x] Feature: markdown support for posts 
     - [?] Feature: markdown support for comments
     - [x] Feature: search in posts 
@@ -224,14 +225,16 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
         - [x] vite-plugin-pwa
         - [x] orbitlogo ai generated
     - [x] Feature: version management
-    - [ ] Feature: e2e tests
-    - [ ] Feature: ci / cd
-        - build project inside docker
-        - publish to ipfs inside docker
-        - extract CID of build folder
-        - pin build cid on pinning service
-        - tag version on github with CID
-        - display version and CID inside settings / about 
+    - [x] Feature: e2e tests
+    - [~] Feature: ci / cd
+        - [x] build and test via GitHub Actions
+        - [x] publish `dist/` to Aleph IPFS from GitHub Actions
+        - [x] attach the deployed Aleph item to the production domain
+        - [x] remove the legacy local `ipfs-publish.sh` deployment path
+        - [x] remove Aleph CLI usage from the site deployment workflow
+        - [x] keep only the latest 10 Aleph site uploads automatically
+        - [ ] tag releases automatically from CI if desired
+        - [ ] display version and deployed CID/item hash inside settings / about
 
 ### Additional Features & Goals
 - Core Features
