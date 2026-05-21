@@ -48,7 +48,8 @@ npm run test:e2e
 
 ## Deployment
 The production site is built from `dist/` and deployed by
-`.github/workflows/deploy-site.yml`.
+`.github/workflows/deploy-site.yml`, which installs
+`@le-space/node@0.1.41` and runs its Node-based Aleph site runner.
 
 Required repository secret:
 - `ALEPH_PRIVATE_KEY`

@@ -11,11 +11,6 @@ on:
         description: Optional domain override for this run
         required: false
         type: string
-      tooling_ref:
-        description: Optional shared-aleph-tooling ref override
-        required: false
-        default: main
-        type: string
 
 permissions:
   contents: read
@@ -32,13 +27,6 @@ jobs:
       - name: Checkout app repository
         uses: actions/checkout@v6
 
-      - name: Checkout shared aleph tooling
-        uses: actions/checkout@v6
-        with:
-          repository: NiKrause/shared-aleph-tooling
-          ref: ${{ github.event.inputs.tooling_ref || 'main' }}
-          path: shared-aleph-tooling
-
       - name: Resolve deployment settings
         id: settings
         shell: bash
@@ -51,11 +39,6 @@ jobs:
             domain="blog.le-space.de"
           fi
           echo "domain=$domain" >> "$GITHUB_OUTPUT"
-          tooling_ref="${{ github.event.inputs.tooling_ref }}"
-          if [[ -z "$tooling_ref" ]]; then
-            tooling_ref="main"
-          fi
-          echo "tooling_ref=$tooling_ref" >> "$GITHUB_OUTPUT"
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v6
@@ -67,25 +50,21 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-          cache-dependency-path: |
-            pnpm-lock.yaml
-            shared-aleph-tooling/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install app dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install shared Aleph runner package
+        run: npm install --no-save @le-space/node@0.1.41
+
       - name: Build app
         run: pnpm run build
-
-      - name: Install shared tooling dependencies
-        working-directory: shared-aleph-tooling
-        run: pnpm install --frozen-lockfile
 
       - name: Install Aleph CLI
         run: |
           python3 -m pip install --upgrade pip
           python3 -m pip install aleph-client
-          python3 -m pip install -r shared-aleph-tooling/packages/node/reference/requirements-site-publish.txt
           python3 -m pip install pycares==4.11.0
 
       - name: Prepare Aleph account
@@ -119,24 +98,22 @@ jobs:
 
       - name: Publish dist to Aleph IPFS
         id: publish
-        working-directory: shared-aleph-tooling
         env:
           ALEPH_VM_MODE: site-publish
           ALEPH_SITE_PROJECT_DIR: ${{ github.workspace }}
           ALEPH_SITE_DIRECTORY: ${{ github.workspace }}/dist
           ALEPH_SITE_PIN: true
-        run: node --input-type=module -e "const m = await import('./packages/node/src/site-runner.ts'); await m.runSiteMode(process.env)"
+        run: node --input-type=module -e "const m = await import('@le-space/node'); await m.runSiteMode(process.env)"
 
       - name: Link custom domain
         id: domain_link
-        working-directory: shared-aleph-tooling
         env:
           ALEPH_VM_MODE: site-domain-link
           ALEPH_SITE_PROJECT_DIR: ${{ github.workspace }}
           ALEPH_SITE_DOMAIN: ${{ steps.settings.outputs.domain }}
           ALEPH_SITE_ITEM_HASH: ${{ steps.publish.outputs.item_hash }}
           ALEPH_SITE_DOMAIN_CATCH_ALL_PATH: /index.html
-        run: node --input-type=module -e "const m = await import('./packages/node/src/site-runner.ts'); await m.runSiteMode(process.env)"
+        run: node --input-type=module -e "const m = await import('@le-space/node'); await m.runSiteMode(process.env)"
 
       - name: Upload built site artifact
         uses: actions/upload-artifact@v4

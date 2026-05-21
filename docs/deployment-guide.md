@@ -19,8 +19,8 @@ What it does:
 
 - installs app dependencies
 - builds the app into `dist/`
-- checks out `shared-aleph-tooling`
-- uses the shared Aleph site runner to publish `dist/` to Aleph IPFS
+- installs `@le-space/node@0.1.41`
+- uses the shared Node-based Aleph site runner from that package to publish `dist/` to Aleph IPFS
 - pins the uploaded CID to Aleph storage
 - attaches the resulting Aleph item to the configured custom domain
 
