@@ -62,7 +62,7 @@ jobs:
           runner_dir="${RUNNER_TEMP}/aleph-runner"
           rm -rf "$runner_dir"
           mkdir -p "$runner_dir"
-          npm install --prefix "$runner_dir" --package-lock=false --no-audit --no-fund @le-space/node@0.1.44
+          npm install --prefix "$runner_dir" --package-lock=false --no-audit --no-fund @le-space/node@0.1.45
           echo "dir=$runner_dir" >> "$GITHUB_OUTPUT"
 
       - name: Build app
@@ -80,6 +80,8 @@ jobs:
           ALEPH_SITE_PROJECT_DIR: ${{ github.workspace }}
           ALEPH_SITE_DIRECTORY: ${{ github.workspace }}/dist
           ALEPH_SITE_PIN: true
+          ALEPH_SITE_REF: orbit-blog-prod
+          ALEPH_SITE_RETENTION_KEEP_COUNT: 10
         run: node --input-type=module -e "const m = await import('${{ steps.aleph_runner.outputs.dir }}/node_modules/@le-space/node/index.js'); await m.runSiteMode(process.env)"
 
       - name: Link custom domain

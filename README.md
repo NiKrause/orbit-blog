@@ -49,13 +49,17 @@ npm run test:e2e
 ## Deployment
 The production site is built from `dist/` and deployed by
 `.github/workflows/deploy-site.yml`, which installs
-`@le-space/node@0.1.44` and runs its Node-based Aleph site runner.
+`@le-space/node@0.1.45` and runs its Node-based Aleph site runner.
 
 Required repository secret:
 - `ALEPH_PRIVATE_KEY`
 
 Optional repository variable:
 - `ALEPH_SITE_DOMAIN` to override the default `blog.le-space.de`
+
+The deploy workflow also keeps only the latest `10` Aleph site uploads for
+the `orbit-blog-prod` site scope, so older uploads from this same site wallet
+stream are forgotten automatically after a successful publish.
 
 ## Debugging
 Browser console examples:

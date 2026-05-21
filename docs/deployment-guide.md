@@ -19,10 +19,11 @@ What it does:
 
 - installs app dependencies
 - builds the app into `dist/`
-- installs `@le-space/node@0.1.44`
+- installs `@le-space/node@0.1.45`
 - uses the shared Node-based Aleph site runner from that package to publish `dist/` to Aleph IPFS
 - pins the uploaded CID to Aleph storage
 - attaches the resulting Aleph item to the configured custom domain
+- keeps the latest `10` uploads for the `orbit-blog-prod` site scope and forgets older ones automatically
 
 Required repository secret:
 
