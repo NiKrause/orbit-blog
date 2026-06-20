@@ -34,6 +34,7 @@
   let postMedia = $state([]);
   let fs = $state<any>();
   let renderedContent = $state('');
+  let lastMediaLoadKey = '';
   
   // Cache for IPFS content
   let mediaCache = new Map();
@@ -120,8 +121,12 @@ function updateRenderedContent(): void {
   /**
    * Loads and caches media associated with the current post
    */
-  async function loadPostMedia(): Promise<void> {
-    if (!$mediaDB || !post.mediaIds) return;
+  async function loadPostMedia(retries = 20): Promise<void> {
+    const mediaIds = post?.mediaIds || [];
+    if (!$mediaDB || mediaIds.length === 0) {
+      postMedia = [];
+      return;
+    }
     
     try {
       const allMedia = await $mediaDB.all();
@@ -131,7 +136,7 @@ function updateRenderedContent(): void {
       await initUnixFs();
       
       postMedia = await Promise.all(
-        post.mediaIds?.map(async cid => {
+        mediaIds.map(async cid => {
           const media = mediaMap.find(m => m.cid === cid);
           if (media) {
             return {
@@ -140,8 +145,14 @@ function updateRenderedContent(): void {
             };
           }
           return null;
-        }) || []
+        })
       ).then(results => results.filter(Boolean));
+
+      if (postMedia.length < mediaIds.length && retries > 0) {
+        setTimeout(() => {
+          void loadPostMedia(retries - 1);
+        }, 1000);
+      }
     } catch (_error) {
       error('Error loading media:',_error);
     }
@@ -203,6 +214,22 @@ function updateRenderedContent(): void {
 
   // Remove this effect as it causes unnecessary re-renders
   // updateRenderedContent is already called in onMount and the selectedPostId effect
+
+  $effect(() => {
+    const mediaIds = post?.mediaIds || [];
+    const mediaDbAddress = $mediaDB?.address?.toString?.() || '';
+    const mediaLoadKey = `${post?._id || ''}:${mediaDbAddress}:${mediaIds.join('|')}`;
+
+    if (!mediaDbAddress || mediaIds.length === 0) {
+      postMedia = [];
+      lastMediaLoadKey = mediaLoadKey;
+      return;
+    }
+
+    if (mediaLoadKey === lastMediaLoadKey) return;
+    lastMediaLoadKey = mediaLoadKey;
+    void loadPostMedia();
+  });
 
   $effect(() => {
     if (!$selectedPostId) return;

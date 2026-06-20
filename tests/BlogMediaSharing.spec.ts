@@ -4,8 +4,6 @@ import { waitForLoadingOverlayToSettle } from './pageLoad';
 const RELAY_WS_ORIGIN = 'ws://localhost:19092';
 
 test.describe('Blog media sharing between Alice and Bob', () => {
-  test.skip(Boolean(process.env.CI), 'Temporarily disabled in CI; run locally while media relay replication is investigated.');
-
   test('Alice uploads image to a post and Bob sees it', async ({ browser }) => {
     const contextAlice = await browser.newContext({
       ignoreHTTPSErrors: true,
