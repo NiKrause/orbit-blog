@@ -1,7 +1,11 @@
 name: Deploy Site
 
 on:
-  push:
+  workflow_run:
+    workflows:
+      - Tests
+    types:
+      - completed
     branches:
       - main
       - master
@@ -16,16 +20,19 @@ permissions:
   contents: read
 
 concurrency:
-  group: deploy-site-${{ github.ref }}
+  group: deploy-site-${{ github.event.workflow_run.head_branch || github.ref }}
   cancel-in-progress: true
 
 jobs:
   deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout app repository
         uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Resolve deployment settings
         id: settings
