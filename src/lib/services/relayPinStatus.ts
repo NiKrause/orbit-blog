@@ -2,7 +2,7 @@
  * FR-7c / Story 4.3 — relay sync LED support.
  *
  * **DB on relay:** When **`mediaDbAddress`** and a **metrics origin** are available, the first tick **`POST {metrics}/pinning/sync`**
- * with **`{ dbAddress }`** asks the relay to sync that DB (`orbitdb-relay-pinner` `docs/http-api.md`). Then each tick uses
+ * with **`{ dbAddress }`** asks the relay to sync that DB (`orbitdb-relay` `docs/http-api.md`). Then each tick uses
  * **`GET {metrics}/pinning/databases?address=…`** (targeted listing: **200** = row present, **404** = not in history yet).
  * When **`mediaContentCreatedAtIso`** is set (media document **`createdAt`**), **orange** only if **`lastSyncedAt` ≥** that time; otherwise stay **yellow** (**`listed_stale_sync`**) until the relay reports a newer sync.
  * Configure **`VITE_RELAY_METRICS_ORIGIN`** if pinning HTTP is not the same port as **`VITE_RELAY_ORIGIN`**.
@@ -202,7 +202,7 @@ async function fetchRelayDatabaseListingAny(
 }
 
 /**
- * **`GET /pinning/databases?address=…`** (targeted listing per `orbitdb-relay-pinner` http-api).
+ * **`GET /pinning/databases?address=…`** (targeted listing per `orbitdb-relay` http-api).
  * **404** ⇒ address not in relay sync history (**`not_listed`**). **200** ⇒ parse **`databases`** for a match (supports relays
  * that only return the filtered entry). If **`mediaContentCreatedAtIso`** is set, **`lastSyncedAt`** must be **≥** that instant
  * or the probe returns **`listed_stale_sync`**. Other failures ⇒ **`unknown`**.

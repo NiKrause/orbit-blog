@@ -83,14 +83,14 @@ export function getRelayHealthOriginsForFetch(): string[] {
 }
 
 /**
- * HTTP origin for **`/pinning/*`** on `orbitdb-relay-pinner` (default **`METRICS_PORT`** e.g. 9090).
+ * HTTP origin for **`/pinning/*`** on `orbitdb-relay` (default **`METRICS_PORT`** e.g. 9090).
  * Falls back to {@link getRelayOrigin} when unset so gateway + pinning share one host.
  */
 export function getRelayMetricsOriginForFetch(): string {
   return getRelayMetricsOriginsForFetch()[0] || '';
 }
 
-/** All configured HTTP origins for **`/pinning/*`** on `orbitdb-relay-pinner`. */
+/** All configured HTTP origins for **`/pinning/*`** on `orbitdb-relay`. */
 export function getRelayMetricsOriginsForFetch(): string[] {
   const configured = parseOriginList(import.meta.env.VITE_RELAY_METRICS_ORIGIN);
   if (configured.length > 0) return configured;

@@ -24,7 +24,7 @@ type RelayLaunchTarget = {
 };
 
 function getRelayLaunchTarget(): RelayLaunchTarget {
-    const binName = process.platform === 'win32' ? 'orbitdb-relay-pinner.cmd' : 'orbitdb-relay-pinner'
+    const binName = process.platform === 'win32' ? 'orbitdb-relay.cmd' : 'orbitdb-relay'
     return {
         binPath: join(process.cwd(), 'node_modules', '.bin', binName),
         source: 'node_modules/.bin',
