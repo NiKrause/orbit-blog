@@ -81,7 +81,7 @@ Visit [orbit-blog @ ipns](ipns://k51qzi5uqu5djjnnjgtviql86f19isjyz6azhw48ovgn22m
     - [x] comments can't be stored anymore
     - [x] when switching network off, blog should read local db and not connect. At the moment it tries to connect online and fail
         - [x] in dbutils try/catch if voyager.orbitdb.open works otherwise just do orbitdb.open (directly!) this could be done encapsulated internally inside voyager api
-    - [x] Feature: default orbit blog address configurable by nginx config location .orbitblog 
+    - [x] Feature: default orbit blog address configurable by `.well-known/orbit-blog.json`
     - [ ] Feature: default orbit blog address configurable by ethereum, polygon, namecoin, bitcoin, arweave? (possible by hostname) 
     - [x] Feature: PDF export from a post content
     - [ ] Feature: AI prompt templates + file upload e.g. 

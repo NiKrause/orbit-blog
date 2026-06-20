@@ -24,7 +24,7 @@ What it does:
 - pins the uploaded CID to Aleph storage
 - attaches the resulting Aleph item to the configured custom domain
 - keeps the latest `10` uploads for the `orbit-blog-prod` site scope and forgets older ones automatically
-- writes `/.well-known/orbit-blog.json` and legacy `/.orbitblog` from the configured default blog address
+- writes `/.well-known/orbit-blog.json` from the configured default blog address
 
 Required repository secret:
 

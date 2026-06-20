@@ -72,7 +72,7 @@ jobs:
         run: |
           initial_address="${ORBIT_BLOG_INITIAL_ADDRESS:-/orbitdb/zdpuAyR7FpgoqyU2BgUeRZTFGHSZZCno5Rdz3ZLNXGzXh78uS}"
           mkdir -p public/.well-known
-          ORBIT_BLOG_INITIAL_ADDRESS="$initial_address" node --input-type=module -e "import { mkdirSync, writeFileSync } from 'node:fs'; const initialAddress = process.env.ORBIT_BLOG_INITIAL_ADDRESS; const body = JSON.stringify({ initialAddress }, null, 2) + '\n'; mkdirSync('public/.well-known', { recursive: true }); writeFileSync('public/.well-known/orbit-blog.json', body); writeFileSync('public/.orbitblog', body);"
+          ORBIT_BLOG_INITIAL_ADDRESS="$initial_address" node --input-type=module -e "import { mkdirSync, writeFileSync } from 'node:fs'; const initialAddress = process.env.ORBIT_BLOG_INITIAL_ADDRESS; const body = JSON.stringify({ initialAddress }, null, 2) + '\n'; mkdirSync('public/.well-known', { recursive: true }); writeFileSync('public/.well-known/orbit-blog.json', body);"
 
       - name: Build app
         env:

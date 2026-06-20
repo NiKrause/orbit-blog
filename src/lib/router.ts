@@ -42,12 +42,7 @@ async function queryDomainInitialAddress(domain: string) {
         return '';
     }
 
-    for (const path of ['/.well-known/orbit-blog.json', '/.orbitblog']) {
-        const address = await fetchInitialAddressConfig(path);
-        if (address) return address;
-    }
-
-    return '';
+    return fetchInitialAddressConfig('/.well-known/orbit-blog.json');
 }
 
 function getHash() {
