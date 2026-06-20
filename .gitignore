@@ -3,6 +3,7 @@
 .idea
 .vscode
 .cursor
+_bmad/
 .svelte-kit
 dev-dist/
 # Logs
