@@ -62,7 +62,7 @@ jobs:
           runner_dir="${RUNNER_TEMP}/aleph-runner"
           rm -rf "$runner_dir"
           mkdir -p "$runner_dir"
-          npm install --prefix "$runner_dir" --package-lock=false --no-audit --no-fund @le-space/node@0.1.45
+          npm install --prefix "$runner_dir" --package-lock=false --no-audit --no-fund @le-space/node@0.6.4
           echo "dir=$runner_dir" >> "$GITHUB_OUTPUT"
 
       - name: Build app

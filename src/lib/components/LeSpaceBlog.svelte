@@ -33,7 +33,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   import { derived, get } from 'svelte/store';
   import { locale } from 'svelte-i18n';
 
-  import { libp2pOptions, multiaddrs } from '$lib/config.js';
+  import { createResolvedLibp2pOptions } from '$lib/config.js';
   import { encryptSeedPhrase } from '$lib/cryptoUtils.js';
   import { convertTo32BitSeed, generateMasterSeed, generateAndSerializeKey } from '$lib/utils.js';
   import createIdentityProvider from '$lib/identityProvider.js';
@@ -166,7 +166,8 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 	    const { hex } = await generateAndSerializeKey(masterSeed.subarray(0, 32))
 	    const privKeyBuffer = uint8ArrayFromString(hex, 'hex');
 	    const _keyPair = await privateKeyFromProtobuf(privKeyBuffer);
-	    const _libp2p = await createLibp2p({ privateKey: _keyPair, ...libp2pOptions })
+	    const resolvedLibp2pOptions = await createResolvedLibp2pOptions()
+	    const _libp2p = await createLibp2p({ privateKey: _keyPair, ...resolvedLibp2pOptions })
 	    $libp2p = _libp2p
 	    ;(window as any).libp2p=_libp2p
     // for (const multiaddr of multiaddrs) { 

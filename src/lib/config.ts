@@ -9,6 +9,8 @@ import { gossipsub } from "@chainsafe/libp2p-gossipsub"
 import { pubsubPeerDiscovery } from '@libp2p/pubsub-peer-discovery'
 import { multiaddr } from '@multiformats/multiaddr'
 import { bootstrap } from '@libp2p/bootstrap'
+import { discoverAlephBootstrapMultiaddrs } from '@le-space/aleph-bootstrap'
+import type { Libp2pOptions } from '@libp2p/interface'
 import { createLogger } from './utils/logger.js'
 
 const log = createLogger('p2p')
@@ -27,6 +29,13 @@ let VITE_SEED_NODES_DEV = parseEnvList(import.meta.env.VITE_SEED_NODES_DEV)
 let MODE = import.meta.env.VITE_MODE //|| 'development';
 let VITE_P2P_PUPSUB_DEV = parseEnvList(import.meta.env.VITE_P2P_PUPSUB_DEV);
 let VITE_P2P_PUPSUB = parseEnvList(import.meta.env.VITE_P2P_PUPSUB);
+let VITE_ALEPH_BOOTSTRAP_ENABLED = import.meta.env.VITE_ALEPH_BOOTSTRAP_ENABLED;
+let VITE_ALEPH_BOOTSTRAP_API_HOST = import.meta.env.VITE_ALEPH_BOOTSTRAP_API_HOST;
+let VITE_ALEPH_BOOTSTRAP_CHANNEL = import.meta.env.VITE_ALEPH_BOOTSTRAP_CHANNEL;
+let VITE_ALEPH_BOOTSTRAP_REF = import.meta.env.VITE_ALEPH_BOOTSTRAP_REF;
+let VITE_ALEPH_BOOTSTRAP_POST_TYPE = import.meta.env.VITE_ALEPH_BOOTSTRAP_POST_TYPE;
+let VITE_ALEPH_BOOTSTRAP_TIMEOUT_MS = import.meta.env.VITE_ALEPH_BOOTSTRAP_TIMEOUT_MS;
+let VITE_ALEPH_BOOTSTRAP_REQUIRE_DUAL_KEY = import.meta.env.VITE_ALEPH_BOOTSTRAP_REQUIRE_DUAL_KEY;
 
 let _VITE_SEED_NODES_DEV = process.env.VITE_SEED_NODES_DEV || '';
 let _VITE_SEED_NODES = process.env.VITE_SEED_NODES || '';
@@ -34,12 +43,26 @@ let _MODE = process.env.VITE_MODE || '';
 
 let _VITE_P2P_PUPSUB_DEV = process.env.VITE_P2P_PUPSUB_DEV || '';
 let _VITE_P2P_PUPSUB = process.env.VITE_P2P_PUPSUB || '';
+let _VITE_ALEPH_BOOTSTRAP_ENABLED = process.env.VITE_ALEPH_BOOTSTRAP_ENABLED || '';
+let _VITE_ALEPH_BOOTSTRAP_API_HOST = process.env.VITE_ALEPH_BOOTSTRAP_API_HOST || '';
+let _VITE_ALEPH_BOOTSTRAP_CHANNEL = process.env.VITE_ALEPH_BOOTSTRAP_CHANNEL || '';
+let _VITE_ALEPH_BOOTSTRAP_REF = process.env.VITE_ALEPH_BOOTSTRAP_REF || '';
+let _VITE_ALEPH_BOOTSTRAP_POST_TYPE = process.env.VITE_ALEPH_BOOTSTRAP_POST_TYPE || '';
+let _VITE_ALEPH_BOOTSTRAP_TIMEOUT_MS = process.env.VITE_ALEPH_BOOTSTRAP_TIMEOUT_MS || '';
+let _VITE_ALEPH_BOOTSTRAP_REQUIRE_DUAL_KEY = process.env.VITE_ALEPH_BOOTSTRAP_REQUIRE_DUAL_KEY || '';
 
 if(_VITE_SEED_NODES || _VITE_SEED_NODES_DEV) {
     VITE_SEED_NODES = parseEnvList(_VITE_SEED_NODES)
     VITE_SEED_NODES_DEV = parseEnvList(_VITE_SEED_NODES_DEV)
     VITE_P2P_PUPSUB = parseEnvList(_VITE_P2P_PUPSUB)
     VITE_P2P_PUPSUB_DEV = parseEnvList(_VITE_P2P_PUPSUB_DEV)
+    VITE_ALEPH_BOOTSTRAP_ENABLED = _VITE_ALEPH_BOOTSTRAP_ENABLED || VITE_ALEPH_BOOTSTRAP_ENABLED
+    VITE_ALEPH_BOOTSTRAP_API_HOST = _VITE_ALEPH_BOOTSTRAP_API_HOST || VITE_ALEPH_BOOTSTRAP_API_HOST
+    VITE_ALEPH_BOOTSTRAP_CHANNEL = _VITE_ALEPH_BOOTSTRAP_CHANNEL || VITE_ALEPH_BOOTSTRAP_CHANNEL
+    VITE_ALEPH_BOOTSTRAP_REF = _VITE_ALEPH_BOOTSTRAP_REF || VITE_ALEPH_BOOTSTRAP_REF
+    VITE_ALEPH_BOOTSTRAP_POST_TYPE = _VITE_ALEPH_BOOTSTRAP_POST_TYPE || VITE_ALEPH_BOOTSTRAP_POST_TYPE
+    VITE_ALEPH_BOOTSTRAP_TIMEOUT_MS = _VITE_ALEPH_BOOTSTRAP_TIMEOUT_MS || VITE_ALEPH_BOOTSTRAP_TIMEOUT_MS
+    VITE_ALEPH_BOOTSTRAP_REQUIRE_DUAL_KEY = _VITE_ALEPH_BOOTSTRAP_REQUIRE_DUAL_KEY || VITE_ALEPH_BOOTSTRAP_REQUIRE_DUAL_KEY
 }
 if (import.meta.env.DEV) {
     MODE = 'development'
@@ -51,8 +74,28 @@ log.debug('VITE_SEED_NODES', VITE_SEED_NODES)
 let pubSubPeerDiscoveryTopics = MODE === 'development'?VITE_P2P_PUPSUB_DEV:VITE_P2P_PUPSUB
 log.debug('pubSubPeerDiscoveryTopics', pubSubPeerDiscoveryTopics)
 log.debug('seed nodes multiaddrs', multiaddrs)
-export const bootstrapConfig = { 
-    list: multiaddrs.filter(addr => {
+
+function parseEnvBoolean(value: string | undefined | null, defaultValue: boolean): boolean {
+    if (typeof value !== 'string' || !value.trim()) return defaultValue
+    const normalized = value.trim().toLowerCase()
+    if (['1', 'true', 'yes', 'on'].includes(normalized)) return true
+    if (['0', 'false', 'no', 'off'].includes(normalized)) return false
+    return defaultValue
+}
+
+function parsePositiveInteger(value: string | undefined | null, defaultValue: number): number {
+    if (typeof value !== 'string' || !value.trim()) return defaultValue
+    const parsed = Number(value)
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : defaultValue
+}
+
+function dedupeMultiaddrs(addrs: string[]): string[] {
+    return [...new Set(addrs.map(addr => addr.trim()).filter(Boolean))]
+}
+
+function createBootstrapConfig(addrs: string[]) {
+    return {
+        list: dedupeMultiaddrs(addrs).filter(addr => {
         try {
             multiaddr(addr);
             return true;
@@ -60,10 +103,64 @@ export const bootstrapConfig = {
             log.warn(`Invalid multiaddr filtered out: ${addr}`);
             return false;
         }
-    })
-};
-import type { Libp2pOptions } from '@libp2p/interface'
-export const libp2pOptions: Libp2pOptions = {
+        })
+    }
+}
+
+export let bootstrapConfig = createBootstrapConfig(multiaddrs)
+
+function createTimedFetch(timeoutMs: number): typeof fetch {
+    return async (input, init) => {
+        const controller = new AbortController()
+        const timeout = globalThis.setTimeout(() => controller.abort(), timeoutMs)
+        try {
+            return await fetch(input, {
+                ...init,
+                signal: init?.signal ?? controller.signal,
+            })
+        } finally {
+            globalThis.clearTimeout(timeout)
+        }
+    }
+}
+
+async function discoverAlephSeedMultiaddrs(): Promise<string[]> {
+    if (!parseEnvBoolean(VITE_ALEPH_BOOTSTRAP_ENABLED, true)) {
+        log.debug('Aleph bootstrap discovery disabled')
+        return []
+    }
+
+    const timeoutMs = parsePositiveInteger(VITE_ALEPH_BOOTSTRAP_TIMEOUT_MS, 5000)
+
+    try {
+        const discovered = await discoverAlephBootstrapMultiaddrs({
+            apiHost: VITE_ALEPH_BOOTSTRAP_API_HOST || undefined,
+            channel: VITE_ALEPH_BOOTSTRAP_CHANNEL || undefined,
+            ref: VITE_ALEPH_BOOTSTRAP_REF || undefined,
+            postType: VITE_ALEPH_BOOTSTRAP_POST_TYPE || undefined,
+            browserDialableOnly: true,
+            requireDualKeyAttestation: parseEnvBoolean(VITE_ALEPH_BOOTSTRAP_REQUIRE_DUAL_KEY, false),
+            fetch: createTimedFetch(timeoutMs),
+        })
+        log.info(`Discovered ${discovered.length} Aleph bootstrap multiaddr(s)`)
+        return discovered
+    } catch (error) {
+        log.warn('Aleph bootstrap discovery failed; falling back to configured seed nodes', error)
+        return []
+    }
+}
+
+export async function resolveBootstrapMultiaddrs(): Promise<string[]> {
+    const discovered = await discoverAlephSeedMultiaddrs()
+    multiaddrs = dedupeMultiaddrs([...discovered, ...multiaddrs])
+    bootstrapConfig = createBootstrapConfig(multiaddrs)
+    log.debug('resolved bootstrap multiaddrs', bootstrapConfig.list)
+    return bootstrapConfig.list
+}
+
+export function createLibp2pOptions(bootstrapMultiaddrs: string[] = multiaddrs): Libp2pOptions {
+    const resolvedBootstrapConfig = createBootstrapConfig(bootstrapMultiaddrs)
+    return {
     addresses: {
         listen: [
             '/p2p-circuit',
@@ -114,13 +211,20 @@ export const libp2pOptions: Libp2pOptions = {
             allowPublishToZeroTopicPeers: true,
             runOnLimitedConnection: true
         }),
-        ...(bootstrapConfig.list.length > 0
+        ...(resolvedBootstrapConfig.list.length > 0
             ? {
-                bootstrap: bootstrap(bootstrapConfig)
+                bootstrap: bootstrap(resolvedBootstrapConfig)
             }
             : {})
     }
+    }
 }
+
+export async function createResolvedLibp2pOptions(): Promise<Libp2pOptions> {
+    return createLibp2pOptions(await resolveBootstrapMultiaddrs())
+}
+
+export const libp2pOptions: Libp2pOptions = createLibp2pOptions()
 
 export async function validateMultiaddrs(
     addrs: string[], 
