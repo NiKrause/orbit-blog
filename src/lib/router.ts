@@ -1,5 +1,4 @@
 import { readable, derived, writable, get } from 'svelte/store';
-import { switchToRemoteDB } from './dbUtils.js';
 import { initialAddress } from './store.js';
 import { info, debug, error } from './utils/logger.js';
 const domain = window.location.hostname;
@@ -76,6 +75,10 @@ export const hashRoute = readable(getHash(), (set) => {
 export const orbitDBAddress = derived(hashRoute, ($hashRoute) => {
     return extractOrbitDBAddress($hashRoute);
 });
+async function switchToRemoteDB(address: string, showLoadingModal?: boolean) {
+    const { switchToRemoteDB } = await import('./dbUtils.js');
+    return switchToRemoteDB(address, showLoadingModal);
+}
 // Function to handle database switching based on hash
 export async function initHashRouter() {
     if (!isBrowser)

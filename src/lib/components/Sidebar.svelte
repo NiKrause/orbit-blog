@@ -16,7 +16,6 @@
     showSettings,
     settingsDB,
   } from '$lib/store.js';
-  import { switchToRemoteDB } from '$lib/dbUtils.js';
   import PeersList from './PeersList.svelte';
   import { connectedPeersCount } from '$lib/peerConnections.js';
   import { getCompactVersionString } from '$lib/utils/buildInfo.js';
@@ -60,6 +59,11 @@
 
   function getSectionActionLabel(isOpen: boolean, openLabel: string, closeLabel: string) {
     return isOpen ? closeLabel : openLabel;
+  }
+
+  async function switchToRemoteDB(address: string, showLoadingModal?: boolean) {
+    const { switchToRemoteDB } = await import('$lib/dbUtils.js');
+    return switchToRemoteDB(address, showLoadingModal);
   }
 </script>
 
@@ -107,7 +111,7 @@
         onclick={async () => {
           if ($settingsDB.address) {
             try {   
-                switchToRemoteDB($settingsDB.address.toString());
+                await switchToRemoteDB($settingsDB.address.toString());
             } catch (error) {
               console.error('Error retrieving postsDBAddress from settingsDB:', error);
             }
@@ -117,7 +121,7 @@
           e.preventDefault();
           if ($settingsDB.address) {
             try {   
-                switchToRemoteDB($settingsDB.address.toString());
+                await switchToRemoteDB($settingsDB.address.toString());
             } catch (error) {
               console.error('Error retrieving postsDBAddress from settingsDB:', error);
             }
@@ -168,8 +172,8 @@
           <button 
             class="sidebar-item w-full text-left rounded-md px-2 py-1.5 flex items-center gap-1.5 cursor-pointer transition-colors touch-target truncate"
             style="{$settingsDB?.address?.toString() === db.address ? 'background-color: var(--bg-active); border-left: 2px solid var(--accent);' : 'background-color: transparent;'}"
-            onclick={() => switchToRemoteDB(db.address, true)}
-            ontouchend={(e) => { e.preventDefault(); switchToRemoteDB(db.address, true); }}
+            onclick={() => void switchToRemoteDB(db.address, true)}
+            ontouchend={(e) => { e.preventDefault(); void switchToRemoteDB(db.address, true); }}
             title={db.name}
             data-testid={`remote-blog-${db.id}`}
           >

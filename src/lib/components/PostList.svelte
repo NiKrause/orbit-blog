@@ -10,16 +10,11 @@
   import { onMount } from 'svelte';
   import { categories } from '$lib/store.js';
   import BlogPost from './BlogPost.svelte';
-  import MediaManager from './MediaManager.svelte';
   import ContentEditor from './ContentEditor.svelte';
-  import MediaUploader from './MediaUploader.svelte';
   import { TranslationService } from '$lib/services/translationService.js';
 import { handleMediaSelection, removeMediaFromContent, validateEncryptionFields, truncateTitle } from '$lib/utils/postUtils.js';
 import { renderContent } from '$lib/services/MarkdownRenderer.js';
 import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostInLanguage } from '$lib/services/languageFallbackService.js';
-  
-  // Import html2pdf for PDF generation
-  import html2pdf from 'html2pdf.js';
 
   import LanguageStatusLED from './LanguageStatusLED.svelte';
   import { encryptPost } from '$lib/cryptoUtils.js';
@@ -56,9 +51,12 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
   let isTranslating = $state(false);
   let translationError = $state('');
 
-  let translationStatuses = $state<Record<string, 'success' | 'error' | 'default'>>({});
+  type TranslationStatus = 'success' | 'error' | 'default';
+  let translationStatuses = $state<Record<string, TranslationStatus>>({});
 
   let showPreview = $state(false);
+  let MediaManagerComponent = $state<any>(null);
+  let MediaUploaderComponent = $state<any>(null);
 
   // Add these state variables at the top with other state declarations
   let isEncrypting = $state(false);
@@ -186,6 +184,22 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
     if (displayedPosts.length > 0 && (!$selectedPostId || !displayedPosts.find(post => post._id === $selectedPostId))) {
       $selectedPostId = displayedPosts[0]._id;
     }
+  });
+
+  async function loadMediaManagerComponent() {
+    MediaManagerComponent ??= (await import('./MediaManager.svelte')).default;
+  }
+
+  async function loadMediaUploaderComponent() {
+    MediaUploaderComponent ??= (await import('./MediaUploader.svelte')).default;
+  }
+
+  $effect(() => {
+    if (editMode) void loadMediaManagerComponent();
+  });
+
+  $effect(() => {
+    if (showMediaUploader) void loadMediaUploaderComponent();
   });
 
   // Using shared renderMarkdown function from utils
@@ -401,7 +415,7 @@ import { filterPostsWithLanguageFallback, getAvailableLanguagesForPost, getPostI
   }
 
   // Function to export the selected post as PDF
-  function exportToPdf() {
+  async function exportToPdf() {
     if (!selectedPost) return;
     
     // Create a temporary div to render the post content
@@ -498,12 +512,12 @@ ${renderContent(selectedPost.content)}
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
     
-    // Generate the PDF
-    html2pdf().from(element).set(options).save()
-      .then(() => {
-        // Remove the temporary element after PDF generation
-        document.body.removeChild(element);
-      });
+    try {
+      const { default: html2pdf } = await import('html2pdf.js');
+      await html2pdf().from(element).set(options).save();
+    } finally {
+      document.body.removeChild(element);
+    }
   }
 
   async function exportToLatex() {
@@ -609,14 +623,14 @@ ${convertMarkdownToLatex(selectedPost.content)}
         log.debug('🎉 SUCCESS! Translation party time! 🎉');
         log.debug('🏆 Translation statuses:', result.translationStatuses);
         log.debug('🚪 Exiting edit mode like a boss!');
-        translationStatuses = result.translationStatuses;
+        translationStatuses = result.translationStatuses as Record<string, TranslationStatus>;
         editMode = false;
       } else {
         log.debug('😱 OH NO! Translation failed! 😱');
         log.debug('💥 Error:', result.error);
         log.debug('📊 Status report:', result.translationStatuses);
         translationError = result.error;
-        translationStatuses = result.translationStatuses;
+        translationStatuses = result.translationStatuses as Record<string, TranslationStatus>;
       }
     } catch (error) {
       log.debug('🔥 CATASTROPHIC FAILURE! 🔥');
@@ -936,7 +950,11 @@ ${convertMarkdownToLatex(selectedPost.content)}
                 </div>
 
                 {#if showMediaUploader}
-                  <MediaUploader onMediaSelected={handleMediaSelected} />
+                  {#if MediaUploaderComponent}
+                    <MediaUploaderComponent onMediaSelected={handleMediaSelected} />
+                  {:else}
+                    <div class="p-4 text-sm" style="color: var(--text-secondary);">{$_('loading')}...</div>
+                  {/if}
                 {/if}
 
                 {#if showPreview}
@@ -957,11 +975,15 @@ ${convertMarkdownToLatex(selectedPost.content)}
                 {/if}
               </div>
 
-              <MediaManager 
-                selectedMedia={selectedMedia}
-                showMediaUploader={false}
-                on:mediaRemoved={(e) => removeSelectedMedia(e.detail.mediaId)}
-              />
+              {#if MediaManagerComponent}
+                <MediaManagerComponent 
+                  selectedMedia={selectedMedia}
+                  showMediaUploader={false}
+                  on:mediaRemoved={(e) => removeSelectedMedia(e.detail.mediaId)}
+                />
+              {:else}
+                <div class="p-4 text-sm" style="color: var(--text-secondary);">{$_('loading')}...</div>
+              {/if}
 
               {#if importResolutionError}
                 <div class="text-sm" style="color: var(--danger);">

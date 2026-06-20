@@ -97,7 +97,20 @@ export default defineConfig(({ command, mode }) => {
           // Keep offline support while avoiding caching large/local OrbitDB/IPFS directories.
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
           globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
-          globIgnores: ['**/orbitdb/**', '**/ipfs/**', '**/node_modules/**'],
+          globIgnores: [
+            '**/orbitdb/**',
+            '**/ipfs/**',
+            '**/node_modules/**',
+            '**/assets/p2p-*.js',
+            '**/assets/config-*.js',
+            '**/assets/dbUtils-*.js',
+            '**/assets/identityProvider-*.js',
+            '**/assets/secp256k1-*.js',
+            '**/assets/mermaid-*.js',
+            '**/assets/html2pdf-*.js',
+            '**/assets/cytoscape-*.js',
+            '**/assets/katex-*.js',
+          ],
           additionalManifestEntries: [{ url: 'index.html', revision: null }],
           runtimeCaching: [
             {

@@ -6,7 +6,6 @@
   import { renderContent, renderMermaidDiagrams } from '$lib/services/MarkdownRenderer.js';
   import { _, locale } from 'svelte-i18n';
   import { derived } from 'svelte/store';
-  import { unixfs } from '@helia/unixfs';
 
   // Local imports
   import type { BlogPost, Comment, Category } from '$lib/types.js';
@@ -62,8 +61,9 @@
    * Initializes the UnixFS instance for IPFS operations
    * @returns {boolean} True if initialization successful, false otherwise
    */
-  function initUnixFs(): boolean {
+  async function initUnixFs(): Promise<boolean> {
     if ($helia) {
+      const { unixfs } = await import('@helia/unixfs');
       fs = unixfs($helia as any);
       return true;
     }
@@ -76,7 +76,7 @@
    * @returns {Promise<string|null>} The blob URL or gateway URL as fallback
    */
   async function getBlobUrl(cid: string): Promise<string | null> {
-    if (!fs && !initUnixFs()) return null;
+    if (!fs && !(await initUnixFs())) return null;
     if (mediaCache.has(cid)) return mediaCache.get(cid);
     
     try {
@@ -128,7 +128,7 @@ function updateRenderedContent(): void {
       const mediaMap = allMedia.map(entry => entry.value);
       const existingMediaMap = new Map(postMedia.map(m => [m.cid, m.url]));
       
-      initUnixFs();
+      await initUnixFs();
       
       postMedia = await Promise.all(
         post.mediaIds?.map(async cid => {

@@ -22,7 +22,6 @@ import MultiSelect from './MultiSelect.svelte';
 import { MarkdownImportResolver } from '$lib/services/MarkdownImportResolver.js';
 import { info } from '$lib/utils/logger.js';
   import MarkdownHelp from './MarkdownHelp.svelte';
-  import AiManager from './AiManager.svelte';
 
   let title = $state('');
   let content = $state('');
@@ -40,6 +39,7 @@ import { info } from '$lib/utils/logger.js';
   let encryptionPassword = $state('');
   let encryptionError = $state('');
   let published = $state(false);
+  let AiManagerComponent = $state<any>(null);
 
   // Import resolution state
   let isResolvingImports = $state(false);
@@ -245,6 +245,14 @@ import { info } from '$lib/utils/logger.js';
 
   // Check if content has physical imports
   let hasPhysicalImports = $derived(content ? MarkdownImportResolver.hasPhysicalImports(content) : false);
+
+  async function loadAiManagerComponent() {
+    AiManagerComponent ??= (await import('./AiManager.svelte')).default;
+  }
+
+  $effect(() => {
+    if (showAiPanel) void loadAiManagerComponent();
+  });
 </script>
 
 <form onsubmit={preventDefault(handleSubmit)} data-testid="post-form" class="card p-6 space-y-4 {$isRTL ? 'rtl' : 'ltr'}">
@@ -318,20 +326,25 @@ import { info } from '$lib/utils/logger.js';
       <MediaUploader onMediaSelected={handleMediaSelected} />
     {/if}
 
-    <div
-      id="post-form-ai-panel"
-      role="region"
-      aria-labelledby="post-form-ai-heading"
-      hidden={!showAiPanel}
-      data-testid="post-form-ai-panel"
-      class="mb-2"
-    >
-      <AiManager
-        onInsertVideoEmbed={handleInsertAiVideoEmbed}
-        onAddVideoToSelectedMedia={handleAddAiVideoToSelectedMedia}
-        onMergeOutputText={handleMergeAiOutputText}
-      />
-    </div>
+    {#if showAiPanel}
+      <div
+        id="post-form-ai-panel"
+        role="region"
+        aria-labelledby="post-form-ai-heading"
+        data-testid="post-form-ai-panel"
+        class="mb-2"
+      >
+        {#if AiManagerComponent}
+          <AiManagerComponent
+            onInsertVideoEmbed={handleInsertAiVideoEmbed}
+            onAddVideoToSelectedMedia={handleAddAiVideoToSelectedMedia}
+            onMergeOutputText={handleMergeAiOutputText}
+          />
+        {:else}
+          <div class="p-4 text-sm" style="color: var(--text-secondary);">{$_('loading')}...</div>
+        {/if}
+      </div>
+    {/if}
 
     {#if showPreview}
       <div class="prose dark:prose-invert max-w-none min-h-[200px] p-4 rounded-md" style="background-color: var(--bg-tertiary); border: 1px solid var(--border);">

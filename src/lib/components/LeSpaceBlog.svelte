@@ -6,23 +6,11 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   import { cubicOut } from 'svelte/easing';
   import { _ } from 'svelte-i18n';
 
-  import { createHelia } from 'helia';
-  import { createLibp2p } from 'libp2p';
-  import { createOrbitDB, IPFSAccessController } from '@orbitdb/core';
-  
-  import { LevelDatastore } from 'datastore-level';
-  import { LevelBlockstore } from 'blockstore-level';
   import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string';
-  import { privateKeyFromProtobuf } from '@libp2p/crypto/keys';
-  import { generateMnemonic } from 'bip39';
 
   import Sidebar from './Sidebar.svelte';
-  import PostForm from './PostForm.svelte';
   import PostList from './PostList.svelte';
   import ThemeToggle from './ThemeToggle.svelte';
-  import DBManager from './DBManager.svelte';
-  import ConnectedPeers from './ConnectedPeers.svelte';
-  import Settings from './Settings.svelte';
   import PasswordModal from './PasswordModal.svelte';
   import LoadingBlog from './LoadingBlog.svelte';
   import LanguageSelector from './LanguageSelector.svelte';
@@ -33,14 +21,11 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   import { derived, get } from 'svelte/store';
   import { locale } from 'svelte-i18n';
 
-  import { createResolvedLibp2pOptions } from '$lib/config.js';
   import { encryptSeedPhrase } from '$lib/cryptoUtils.js';
-  import { convertTo32BitSeed, generateMasterSeed, generateAndSerializeKey } from '$lib/utils.js';
-  import createIdentityProvider from '$lib/identityProvider.js';
   import { initHashRouter, isLoadingRemoteBlog } from '$lib/router.js';
   import { setupPeerEventListeners } from '$lib/peerConnections.js';
   import { getImageUrlFromHelia } from '$lib/utils/mediaUtils.js';
-  import { unixfs, type UnixFS } from '@helia/unixfs';
+  import type { UnixFS } from '@helia/unixfs';
   import { 
     initialAddress,
     loadingState,
@@ -79,8 +64,9 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   import { info, debug, warn, error } from '../utils/logger.js'
   import { startAiCapabilitiesPubsub } from '$lib/ai/aiCapabilitiesPubsub.js';
 
-  let blockstore = new LevelBlockstore('./helia-blocks');
-  let datastore = new LevelDatastore('./helia-data');
+  let blockstore: any;
+  let datastore: any;
+  let createAccessController: typeof import('@orbitdb/core').IPFSAccessController | null = null;
 
   let encryptedSeedPhrase = localStorage.getItem('encryptedSeedPhrase');
 
@@ -88,6 +74,10 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   let isNewUser = !encryptedSeedPhrase;
   let canWrite = $state(false);
   let ownerIdentityId = $state<string | null>(null);
+  let DBManagerComponent = $state<any>(null);
+  let ConnectedPeersComponent = $state<any>(null);
+  let SettingsComponent = $state<any>(null);
+  let PostFormComponent = $state<any>(null);
 
   // Add sidebar state variables
   let sidebarVisible = $state(true);
@@ -132,10 +122,56 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     }
   }
 
+  async function loadDBManagerComponent() {
+    DBManagerComponent ??= (await import('./DBManager.svelte')).default;
+  }
+
+  async function loadConnectedPeersComponent() {
+    ConnectedPeersComponent ??= (await import('./ConnectedPeers.svelte')).default;
+  }
+
+  async function loadSettingsComponent() {
+    SettingsComponent ??= (await import('./Settings.svelte')).default;
+  }
+
+  async function loadPostFormComponent() {
+    PostFormComponent ??= (await import('./PostForm.svelte')).default;
+  }
+
+  $effect(() => {
+    if ($showDBManager) void loadDBManagerComponent();
+  });
+
+  $effect(() => {
+    if ($showPeers) void loadConnectedPeersComponent();
+  });
+
+  $effect(() => {
+    if ($showSettings) void loadSettingsComponent();
+  });
+
+  $effect(() => {
+    if (canWrite) void loadPostFormComponent();
+  });
+
+  async function generateNewSeedPhrase() {
+    const { generateMnemonic } = await import('bip39');
+    return generateMnemonic();
+  }
+
+  async function ensureUnixFs() {
+    if (!$helia || fs) return;
+    const { unixfs } = await import('@helia/unixfs');
+    fs = unixfs($helia as any);
+    info('LeSpaceBlog - UnixFS initialized');
+  }
+
   if(!encryptedSeedPhrase) {
       info('no seed phrase, generating new one')
-      $seedPhrase = generateMnemonic();
-      initializeApp();
+      generateNewSeedPhrase().then((newSeedPhrase) => {
+        $seedPhrase = newSeedPhrase;
+        initializeApp();
+      });
   }
 
   function toggleSidebar() {
@@ -143,7 +179,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   }
 
   async function handleSeedPhraseCreated(event: CustomEvent) {
-    const newSeedPhrase = generateMnemonic();
+    const newSeedPhrase = await generateNewSeedPhrase();
     const encryptedPhrase = await encryptSeedPhrase(newSeedPhrase, event.detail.password);
     localStorage.setItem('encryptedSeedPhrase', encryptedPhrase);
     $seedPhrase = newSeedPhrase;
@@ -161,9 +197,40 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 	    if (!$seedPhrase) return;
 	    
 	    info('initializeApp')
+
+      const [
+        { createHelia },
+        { createLibp2p },
+        { createOrbitDB, IPFSAccessController },
+        { LevelDatastore },
+        { LevelBlockstore },
+        { generateKeyPairFromSeed, privateKeyFromProtobuf, privateKeyToProtobuf },
+        { createResolvedLibp2pOptions },
+        { default: createIdentityProvider },
+        { unixfs },
+        { mnemonicToSeedSync },
+        { createHash },
+      ] = await Promise.all([
+        import('helia'),
+        import('libp2p'),
+        import('@orbitdb/core'),
+        import('datastore-level'),
+        import('blockstore-level'),
+        import('@libp2p/crypto/keys'),
+        import('$lib/config.js'),
+        import('$lib/identityProvider.js'),
+        import('@helia/unixfs'),
+        import('bip39'),
+        import('crypto'),
+      ]);
+
+      createAccessController = IPFSAccessController;
+      blockstore ??= new LevelBlockstore('./helia-blocks');
+      datastore ??= new LevelDatastore('./helia-data');
 	    
-	    const masterSeed = generateMasterSeed($seedPhrase, "password", false) as Buffer;
-	    const { hex } = await generateAndSerializeKey(masterSeed.subarray(0, 32))
+	    const masterSeed = mnemonicToSeedSync($seedPhrase, "password");
+      const keyPair = await generateKeyPairFromSeed('Ed25519', masterSeed.subarray(0, 32));
+	    const hex = Buffer.from(privateKeyToProtobuf(keyPair)).toString('hex');
 	    const privKeyBuffer = uint8ArrayFromString(hex, 'hex');
 	    const _keyPair = await privateKeyFromProtobuf(privKeyBuffer);
 	    const resolvedLibp2pOptions = await createResolvedLibp2pOptions()
@@ -187,7 +254,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 	    // info('undialable', undialable)
 	    // Deterministic OrbitDB identity from the seed phrase.
 	    // This is critical for headless agents: with the same seed phrase they can recreate the same writer identity.
-	    const identitySeed = convertTo32BitSeed(masterSeed)
+	    const identitySeed = createHash('sha256').update(masterSeed).digest()
 	    identitySeed32.set(new Uint8Array(identitySeed))
 	    const idProvider = await createIdentityProvider('ed25519', identitySeed, $helia)
 	    $identities = idProvider.identities
@@ -221,6 +288,11 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   async function createDefaultDatabases() {
     // IMPORTANT: This must await all opens. Otherwise, the `.then(...)` handlers can
     // run *after* `switchToRemoteDB()` and overwrite the global stores back to local DBs.
+    if (!createAccessController) {
+      const { IPFSAccessController } = await import('@orbitdb/core');
+      createAccessController = IPFSAccessController;
+    }
+
     try {
       const _db = await $orbitdb.open('settings', {
         type: 'documents',
@@ -229,7 +301,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         directory: './orbitdb/settings',
         identity: $identity,
         identities: $identities,
-        AccessController: IPFSAccessController({ write: [$identity.id] }),
+        AccessController: createAccessController({ write: [$identity.id] }),
       })
       $settingsDB = _db
       ;(window as any).settingsDB = _db
@@ -255,7 +327,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         directory: './orbitdb/posts',
         identity: $identity,
         identities: $identities,
-        AccessController: IPFSAccessController({ write: [$identity.id] }),
+        AccessController: createAccessController({ write: [$identity.id] }),
       })
       $postsDB = _db
       ;(window as any).postsDB = _db
@@ -272,7 +344,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         overwrite: false,
         identities: $identities,
         identity: $identity,
-        AccessController: IPFSAccessController({ write: [$identity.id] }),
+        AccessController: createAccessController({ write: [$identity.id] }),
       })
       $remoteDBsDatabases = _db
       ;(window as any).remoteDBsDatabases = _db
@@ -288,7 +360,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         directory: './orbitdb/comments',
         identity: $identity,
         identities: $identities,
-        AccessController: IPFSAccessController({ write: ['*'] }),
+        AccessController: createAccessController({ write: ['*'] }),
       })
       $commentsDB = _db
       $commentsDBAddress = _db.address.toString()
@@ -305,7 +377,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         directory: './orbitdb/media',
         identity: $identity,
         identities: $identities,
-        AccessController: IPFSAccessController({ write: [$identity.id] }),
+        AccessController: createAccessController({ write: [$identity.id] }),
       })
       $mediaDB = _db
       $mediaDBAddress = _db.address.toString()
@@ -322,7 +394,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         directory: './orbitdb/ai',
         identity: $identity,
         identities: $identities,
-        AccessController: IPFSAccessController({ write: [$identity.id] }),
+        AccessController: createAccessController({ write: [$identity.id] }),
       })
       $aiDB = _db
       $aiDBAddress = _db.address.toString()
@@ -866,10 +938,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   }
 
   $effect(() => {
-    if ($helia && !fs) {
-      fs = unixfs($helia as any);
-      info('LeSpaceBlog - UnixFS initialized');
-    }
+    if ($helia && !fs) void ensureUnixFs();
   });
 </script>
 <svelte:head>
@@ -1070,7 +1139,11 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
                   <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
-              <DBManager />
+              {#if DBManagerComponent}
+                <DBManagerComponent />
+              {:else}
+                <div class="p-4 text-sm" style="color: var(--text-secondary);">{$_('loading')}...</div>
+              {/if}
             </div>
           {/if}
           
@@ -1088,7 +1161,11 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
                   <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
-              <ConnectedPeers />
+              {#if ConnectedPeersComponent}
+                <ConnectedPeersComponent />
+              {:else}
+                <div class="p-4 text-sm" style="color: var(--text-secondary);">{$_('loading')}...</div>
+              {/if}
             </div>
           {/if}
 
@@ -1106,14 +1183,22 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
                   <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
-              <Settings />
+              {#if SettingsComponent}
+                <SettingsComponent />
+              {:else}
+                <div class="p-4 text-sm" style="color: var(--text-secondary);">{$_('loading')}...</div>
+              {/if}
             </div>
           {/if}
           
           <div class="grid gap-8">
             <PostList />
             {#if canWrite}
-              <PostForm />
+              {#if PostFormComponent}
+                <PostFormComponent />
+              {:else}
+                <div class="card p-6 text-sm" style="color: var(--text-secondary);">{$_('loading')}...</div>
+              {/if}
             {/if}
             <!-- e2e/debug hook: lets tests verify write gating without relying on UI text -->
             <span

@@ -1,6 +1,5 @@
 import type { UnixFS } from '@helia/unixfs';
 import { error } from './logger.js'
-import { CID } from 'multiformats/cid'
 
 export async function getImageUrlFromHelia(cid: string, fs: UnixFS | null): Promise<string> {
   console.log('getImageUrlFromHelia', cid, fs);
@@ -8,6 +7,7 @@ export async function getImageUrlFromHelia(cid: string, fs: UnixFS | null): Prom
   
   try {
     console.log('Getting image data from Helia for CID:', cid);
+    const { CID } = await import('multiformats/cid');
     const chunks = [];
     for await (const chunk of fs.cat(CID.parse(cid))) {
       chunks.push(chunk);

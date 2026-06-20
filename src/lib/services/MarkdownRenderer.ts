@@ -1,7 +1,5 @@
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
-import { unixfs } from '@helia/unixfs';
-import mermaid from 'mermaid';
 import { error, info } from '../utils/logger.js';
 import { helia } from '../store.js';
 import { get } from 'svelte/store';
@@ -214,8 +212,15 @@ const remoteImportExtension = {
 /**
  * Singleton instance of UnixFS for IPFS operations
  */
-let fs: ReturnType<typeof unixfs>;
+let fs: Awaited<ReturnType<typeof createUnixFs>>;
 const mediaCache = new Map<string, string>();
+
+async function createUnixFs() {
+  const { unixfs } = await import('@helia/unixfs');
+  const heliaInstance = get(helia);
+  if (!heliaInstance || typeof heliaInstance !== 'object' || !('blockstore' in heliaInstance)) return null;
+  return unixfs(heliaInstance as any);
+}
 
 /**
  * Cache for remote markdown content with expiration
@@ -228,6 +233,8 @@ interface RemoteContentCache {
 
 const remoteMarkdownCache = new Map<string, RemoteContentCache>();
 const CACHE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
+let mermaidImport: Promise<typeof import('mermaid')> | null = null;
+let mermaidInitialized = false;
 
 /**
  * Checks if a URL is allowed for remote markdown fetching
@@ -365,13 +372,8 @@ function isAllowedDomain(src: string, node?: Element): boolean {
 /**
  * Initializes IPFS UnixFS instance.
  */
-function initUnixFs() {
-  if (!fs) {
-    const heliaInstance = get(helia);
-    if (heliaInstance && typeof heliaInstance === 'object' && 'blockstore' in heliaInstance) {
-      fs = unixfs(heliaInstance as any);
-    }
-  }
+async function initUnixFs() {
+  if (!fs) fs = await createUnixFs();
 }
 
 /**
@@ -381,7 +383,8 @@ function initUnixFs() {
  * @returns The blob URL or gateway URL
  */
 async function getBlobUrl(cid: string): Promise<string | null> {
-  if (!fs) initUnixFs();
+  if (!fs) await initUnixFs();
+  if (!fs) return `https://dweb.link/ipfs/${cid}`;
   if (mediaCache.has(cid)) return mediaCache.get(cid) || null;
 
   try {
@@ -621,19 +624,31 @@ function configureMarked() {
   marked.use({ extensions: [accordionExtension, remoteImportExtension, physicalImportPlaceholderExtension] });
 }
 
-// Mermaid initialization
-mermaid.initialize({
-  startOnLoad: false,
-  theme: 'default',
-  securityLevel: 'loose'
-});
+async function getMermaid() {
+  mermaidImport ??= import('mermaid');
+  const { default: mermaid } = await mermaidImport;
+
+  if (!mermaidInitialized) {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'default',
+      securityLevel: 'loose'
+    });
+    mermaidInitialized = true;
+  }
+
+  return mermaid;
+}
 
 /**
  * Renders mermaid diagrams in the DOM
  * Call this after content is added to the DOM
  */
 export async function renderMermaidDiagrams(): Promise<void> {
+  if (typeof document === 'undefined' || !document.querySelector('.mermaid')) return;
+
   try {
+    const mermaid = await getMermaid();
     await mermaid.run({
       querySelector: '.mermaid'
     });
@@ -752,4 +767,3 @@ export function renderContent(content: string): string {
     ALLOW_DATA_ATTR: true
   });
 }
-

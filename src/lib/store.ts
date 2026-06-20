@@ -1,6 +1,6 @@
 import { writable, derived } from 'svelte/store';
 import type { Post, Category, RemoteDB, Media, Comment, Helia, OrbitDB, Voyager } from './types.js';
-import { localStorageStore } from './utils.js';
+import { localStorageStore } from './localStorageStore.js';
 import { LANGUAGES } from './i18n/index.js';
 
 // Create writable stores
@@ -71,5 +71,4 @@ export const identitySeed32 = writable<Uint8Array | null>(null);
 
 // Store for tracking the current language direction
 export const isRTL = writable(false);
-
 
