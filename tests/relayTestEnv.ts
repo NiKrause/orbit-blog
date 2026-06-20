@@ -104,11 +104,15 @@ export function getRelayTargetLabel(): string {
 
 export function getRelayViteEnv(): Record<string, string> {
   const seedNodes = getRelaySeedNodes();
+  const alephBootstrapEnabled = shouldSpawnLocalRelay()
+    ? 'false'
+    : (process.env.VITE_ALEPH_BOOTSTRAP_ENABLED?.trim() || 'true');
 
   return {
     VITE_MODE: 'development',
     VITE_SEED_NODES_DEV: seedNodes,
     VITE_SEED_NODES: seedNodes,
+    VITE_ALEPH_BOOTSTRAP_ENABLED: alephBootstrapEnabled,
     VITE_P2P_PUPSUB_DEV: 'todo._peer-discovery._p2p._pubsub',
     VITE_P2P_PUPSUB: 'todo._peer-discovery._p2p._pubsub',
     VITE_RELAY_ORIGIN: getRelayOriginsRaw(),
