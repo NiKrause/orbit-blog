@@ -7,16 +7,11 @@ const isBrowser = typeof window !== 'undefined';
 
 export const isLoadingRemoteBlog = writable(true);
 
-async function queryTXT(domain: string) {
-    if (['localhost', '127.0.0.1', '::1'].includes(domain)) {
-        debug('skipping initialAddress query for local hostname', domain);
-        return '';
-    }
-    // const _domain = 'nicokrause.com';
-    const url = `https://${domain}/.orbitblog`;
+async function fetchInitialAddressConfig(path: string): Promise<string> {
+    const url = `${window.location.origin}${path}`;
 
     try {
-        debug('querying initialAddress for domain', url);
+        debug('querying initialAddress config', url);
         const response = await fetch(url, {
             headers: {
                 'Accept': 'application/json',
@@ -26,14 +21,32 @@ async function queryTXT(domain: string) {
             },
             cache: 'no-store'
         });
+        if (!response.ok) return '';
+
         const data = await response.json();
-        if (data.initialAddress) {
-            info('initialAddress', data.initialAddress);
-            return data.initialAddress;
+        if (typeof data.initialAddress === 'string' && data.initialAddress.trim()) {
+            const address = data.initialAddress.trim();
+            info('initialAddress', address);
+            return address;
         }
-    } catch (error) {
-        info('LeSpaceBlog InitialAddress query not available:');
+    } catch (_error) {
+        debug('LeSpaceBlog initialAddress config not available:', path);
     }
+
+    return '';
+}
+
+async function queryDomainInitialAddress(domain: string) {
+    if (['localhost', '127.0.0.1', '::1'].includes(domain)) {
+        debug('skipping initialAddress query for local hostname', domain);
+        return '';
+    }
+
+    for (const path of ['/.well-known/orbit-blog.json', '/.orbitblog']) {
+        const address = await fetchInitialAddressConfig(path);
+        if (address) return address;
+    }
+
     return '';
 }
 
@@ -75,7 +88,7 @@ export async function initHashRouter() {
     let previousAddress = '';
     // Initial check for URL hash on page load
     const _initialAddressRouter = extractOrbitDBAddress(getHash());
-    const _initialAddressDNS =  await queryTXT(domain);
+    const _initialAddressDNS =  await queryDomainInitialAddress(domain);
     if (_initialAddressRouter || _initialAddressDNS) {
         const _initialAddress = _initialAddressRouter || _initialAddressDNS;
         info('initialAddress', _initialAddress);

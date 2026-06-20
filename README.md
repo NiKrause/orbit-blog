@@ -7,7 +7,7 @@ Local-first, peer-to-peer blogging powered by OrbitDB, libp2p, and IPFS.
 Status: alpha/experimental. Not security audited.
 
 ## Try It (PWA)
-Production: `https://blog.le-space.de`
+Demo: `https://blog.le-space.de`
 
 Deployments are published from GitHub Actions to Aleph IPFS and attached to the
 production domain automatically.
@@ -56,6 +56,7 @@ Required repository secret:
 
 Optional repository variable:
 - `ALEPH_SITE_DOMAIN` to override the default `blog.le-space.de`
+- `ORBIT_BLOG_INITIAL_ADDRESS` to override the default blog loaded at `/`
 
 The deploy workflow also keeps only the latest `10` Aleph site uploads for
 the `orbit-blog-prod` site scope, so older uploads from this same site wallet

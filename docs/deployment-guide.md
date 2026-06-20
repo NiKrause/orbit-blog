@@ -19,11 +19,12 @@ What it does:
 
 - installs app dependencies
 - builds the app into `dist/`
-- installs `@le-space/node@0.1.45`
+- installs `@le-space/node@0.6.4`
 - uses the shared Node-based Aleph site runner from that package to publish `dist/` to Aleph IPFS
 - pins the uploaded CID to Aleph storage
 - attaches the resulting Aleph item to the configured custom domain
 - keeps the latest `10` uploads for the `orbit-blog-prod` site scope and forgets older ones automatically
+- writes `/.well-known/orbit-blog.json` and legacy `/.orbitblog` from the configured default blog address
 
 Required repository secret:
 
@@ -33,6 +34,8 @@ Optional repository variable:
 
 - `ALEPH_SITE_DOMAIN`
   Defaults to `blog.le-space.de` when unset.
+- `ORBIT_BLOG_INITIAL_ADDRESS`
+  Defaults to `/orbitdb/zdpuAyR7FpgoqyU2BgUeRZTFGHSZZCno5Rdz3ZLNXGzXh78uS` when unset.
 
 Trigger model:
 
