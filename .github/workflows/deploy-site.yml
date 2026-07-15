@@ -107,7 +107,7 @@ jobs:
           ALEPH_SITE_CHANNEL: ALEPH-CLOUDSOLUTIONS
         run: |
           for attempt in 1 2 3; do
-            if node --input-type=module -e "import('${{ steps.aleph_runner.outputs.dir }}/node_modules/@le-space/node/index.js').then((m) => m.runSiteMode())"; then
+            if node --input-type=module -e "try { const m = await import('${{ steps.aleph_runner.outputs.dir }}/node_modules/@le-space/node/index.js'); await m.runSiteMode(); } catch (error) { const message = String(error?.message || error).replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A'); console.error('::error title=Aleph site publish failed::' + message); process.exit(1); }"; then
               exit 0
             fi
             if [ "$attempt" -eq 3 ]; then
