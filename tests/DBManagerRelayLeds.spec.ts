@@ -25,9 +25,10 @@ type CurrentDbAddresses = {
 };
 
 async function closeSidebarIfVisible(page: Page) {
-  const closeSidebarOverlay = page.locator('[aria-label="close_sidebar"]');
-  if (await closeSidebarOverlay.isVisible()) {
-    await closeSidebarOverlay.click();
+  const closeSidebarOverlay = page.locator('[aria-label="close_sidebar"]').first();
+  if (await closeSidebarOverlay.count() === 0) return;
+  if (await closeSidebarOverlay.isVisible().catch(() => false)) {
+    await closeSidebarOverlay.click({ force: true, timeout: 3000 }).catch(() => {});
   }
 }
 
@@ -148,10 +149,13 @@ async function waitForRelayListing(metricsOrigins: string[], dbAddress: string, 
 }
 
 async function expectDbManagerLedGreen(page: Page, key: keyof CurrentDbAddresses) {
-  const led = page.getByTestId(`db-sync-led-${key}`).getByRole('status');
   await expect
     .poll(
-      async () => (await led.getAttribute('aria-label')) ?? '',
+      async () => page.evaluate((ledKey) => {
+        return document
+          .querySelector(`[data-testid="db-sync-led-${ledKey}"] [role="status"]`)
+          ?.getAttribute('aria-label') ?? '';
+      }, key),
       {
         timeout: 120000,
         message: `wait for db-sync-led-${key} to report relay replication`,
@@ -206,7 +210,6 @@ test.describe('DB Manager replication LEDs', () => {
     await page.getByTestId('menu-button').click();
     await page.getByTestId('blogs-header').click();
     await page.getByTestId('db-manager-container').waitFor({ state: 'visible' });
-    await closeSidebarIfVisible(page);
 
     await expectDbManagerLedGreen(page, 'settings');
     await expectDbManagerLedGreen(page, 'posts');
