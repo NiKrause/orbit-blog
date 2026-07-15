@@ -229,8 +229,32 @@ function updateRenderedContent(): void {
     updateRenderedContent();
   });
 
-  // Remove this effect as it causes unnecessary re-renders
-  // updateRenderedContent is already called in onMount and the selectedPostId effect
+  // Keep the open post in sync when OrbitDB replaces the selected post in the
+  // parent store. The selected post id does not change for an edit, so the DB
+  // lookup effect below is not re-run for replicated updates on its own.
+  $effect(() => {
+    const nextTitle = post?.title || '';
+    const nextContent = post?.content || '';
+    const nextCategory = post?.category || '';
+    const nextMedia = post?.mediaIds || [];
+    const nextIsEncrypted = Boolean(post?.isEncrypted || isEncryptedPost({
+      title: nextTitle,
+      content: nextContent,
+    }));
+
+    title = nextTitle;
+    content = nextContent;
+    category = nextCategory;
+    selectedMedia = nextMedia;
+    isEncrypted = nextIsEncrypted;
+
+    if (nextIsEncrypted) {
+      showPasswordPrompt = true;
+    } else {
+      showPasswordPrompt = false;
+      updateRenderedContent();
+    }
+  });
 
   $effect(() => {
     const mediaIds = post?.mediaIds || [];
