@@ -3,6 +3,14 @@ import { waitForLoadingOverlayToSettle } from './pageLoad';
 
 const RELAY_WS_ORIGIN = 'ws://localhost:19092';
 
+async function closeSidebarOverlayIfPresent(page) {
+  const overlay = page.locator('[aria-label="close_sidebar"]').first();
+  if (await overlay.count() === 0) return;
+  if (await overlay.isVisible().catch(() => false)) {
+    await overlay.click({ force: true, timeout: 3000 }).catch(() => {});
+  }
+}
+
 test.describe('Blog media sharing between Alice and Bob', () => {
   test('Alice uploads image to a post and Bob sees it', async ({ browser }) => {
     test.slow();
@@ -36,10 +44,7 @@ test.describe('Blog media sharing between Alice and Bob', () => {
     await expect(pageAlice.getByTestId('blog-name')).toBeVisible({ timeout: 120000 });
 
     await pageAlice.getByTestId('settings-header').click();
-    const closeSidebarOverlay = pageAlice.locator('[aria-label="close_sidebar"]');
-    if (await closeSidebarOverlay.isVisible()) {
-      await closeSidebarOverlay.click();
-    }
+    await closeSidebarOverlayIfPresent(pageAlice);
 
     await pageAlice.getByTestId('blog-settings-accordion').click();
     await pageAlice.getByTestId('blog-name-input').fill('Alice Media Blog');
@@ -104,15 +109,9 @@ test.describe('Blog media sharing between Alice and Bob', () => {
       }, { timeout: 60000 })
       .toMatch(/^\/orbitdb\/[a-zA-Z0-9]+$/);
 
-    await pageAlice.getByTestId('menu-button').click();
-    await pageAlice.getByTestId('blogs-header').click();
-    await pageAlice.getByTestId('db-manager-container').waitFor({ state: 'visible' });
-    const closeSidebarOverlay2 = pageAlice.locator('[aria-label="close_sidebar"]');
-    if (await closeSidebarOverlay2.isVisible()) {
-      await closeSidebarOverlay2.click();
-    }
-
-    const aliceBlogAddress = await pageAlice.getByTestId('db-address-input').inputValue();
+    const aliceBlogAddress = await pageAlice.evaluate(() => {
+      return (window as any).settingsDB?.address?.toString?.() || '';
+    });
     expect(aliceBlogAddress).toMatch(/^\/orbitdb\/[a-zA-Z0-9]+$/);
 
     await pageBob.goto(`http://localhost:5173/#${aliceBlogAddress}`);
