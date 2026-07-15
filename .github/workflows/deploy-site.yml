@@ -101,23 +101,33 @@ jobs:
         env:
           ALEPH_PRIVATE_KEY: ${{ secrets.ALEPH_PRIVATE_KEY }}
           ALEPH_VM_MODE: site-publish
-          ALEPH_SITE_PROJECT_DIR: ${{ github.workspace }}
           ALEPH_SITE_DIRECTORY: ${{ github.workspace }}/dist
-          ALEPH_SITE_PIN: true
-          ALEPH_SITE_REF: orbit-blog-prod
-          ALEPH_SITE_RETENTION_KEEP_COUNT: 10
-        run: node --input-type=module -e "const m = await import('${{ steps.aleph_runner.outputs.dir }}/node_modules/@le-space/node/index.js'); await m.runSiteMode(process.env)"
+          ALEPH_SITE_PIN: 'true'
+          ALEPH_SITE_NAME: orbit-blog
+          ALEPH_SITE_CHANNEL: ALEPH-CLOUDSOLUTIONS
+        run: |
+          for attempt in 1 2 3; do
+            if node --input-type=module -e "import('${{ steps.aleph_runner.outputs.dir }}/node_modules/@le-space/node/index.js').then((m) => m.runSiteMode())"; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              exit 1
+            fi
+            echo "Aleph publish attempt $attempt failed; retrying..."
+            sleep $((attempt * 15))
+          done
 
       - name: Link custom domain
         id: domain_link
         env:
           ALEPH_PRIVATE_KEY: ${{ secrets.ALEPH_PRIVATE_KEY }}
           ALEPH_VM_MODE: site-domain-link
-          ALEPH_SITE_PROJECT_DIR: ${{ github.workspace }}
           ALEPH_SITE_DOMAIN: ${{ steps.settings.outputs.domain }}
           ALEPH_SITE_ITEM_HASH: ${{ steps.publish.outputs.item_hash }}
+          ALEPH_SITE_IPFS_CID: ${{ steps.publish.outputs.ipfs_cid }}
+          ALEPH_SITE_IPFS_CID_V0: ${{ steps.publish.outputs.ipfs_cid_v0 }}
           ALEPH_SITE_DOMAIN_CATCH_ALL_PATH: /index.html
-        run: node --input-type=module -e "const m = await import('${{ steps.aleph_runner.outputs.dir }}/node_modules/@le-space/node/index.js'); await m.runSiteMode(process.env)"
+        run: node --input-type=module -e "import('${{ steps.aleph_runner.outputs.dir }}/node_modules/@le-space/node/index.js').then((m) => m.runSiteMode())"
 
       - name: Upload built site artifact
         uses: actions/upload-artifact@v4
