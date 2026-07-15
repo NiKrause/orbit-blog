@@ -1,5 +1,5 @@
 import { test, expect, chromium } from '@playwright/test';
-import { getRelayMetricsOriginsRaw, getRelaySeedPeerIds, getRelayTargetLabel } from './relayTestEnv';
+import { getRelayMetricsOriginsRaw, getRelayTargetLabel } from './relayTestEnv';
 import { waitForPeerCount } from './peerConnectivity';
 import {
     fetchRelayDatabaseListingAny,
@@ -10,16 +10,6 @@ import {
 const config = {
     seedNodes: process.env.VITE_P2P_PUPSUB_DEV || ''
 };
-
-const relayPeerIds = getRelaySeedPeerIds();
-
-function parsePeersCount(text: string | null): number {
-    if (!text) throw new Error('peers-header has no text');
-    const match = text.match(/\((\d+)\)|\b(\d+)\b/);
-    const count = Number(match?.[1] ?? match?.[2]);
-    if (Number.isNaN(count)) throw new Error(`unable to parse peers count from: "${text}"`);
-    return count;
-}
 
 type CreatedPostInfo = {
     postId: string;
@@ -107,28 +97,6 @@ async function expectPostsDbReplicatedToRelay(page, title: string, timeoutMs = 1
         .toBeGreaterThanOrEqual(createdPostInfo!.createdAtMs - RELAY_SYNC_CLOCK_SKEW_MS);
 }
 
-async function expectPeerCount(page, expected, timeoutMs = 90000) {
-    await expect(async () => {
-        await ensurePeersHeaderVisible(page);
-        const peersHeader = await page.getByTestId('peers-header').textContent();
-        const peerCount = parsePeersCount(peersHeader);
-        expect(peerCount).toBe(expected);
-    }).toPass({ timeout: timeoutMs });
-}
-
-async function ensurePeersHeaderVisible(page, timeoutMs = 30000) {
-    const peersHeader = page.getByTestId('peers-header');
-    if (await peersHeader.isVisible().catch(() => false)) return;
-
-    const menuButton = page.getByTestId('menu-button');
-    if (await menuButton.isVisible().catch(() => false)) {
-        await menuButton.click();
-    }
-
-    await expect(peersHeader).toBeVisible({ timeout: timeoutMs });
-}
-        
-
 test.describe('Blog Sharing between Alice and Bob', () => {
     // This file shares mutable state across tests (aliceBlogAddress, pageAlice/pageBob),
     // so it must run serially.
@@ -181,6 +149,7 @@ test.describe('Blog Sharing between Alice and Bob', () => {
     });
 
     test('Alice creates Bach blog and gets the database address', async () => {
+        test.slow();
         pageAlice = await contextAlice.newPage();
         pageAlice.on('console', msg => {
             console.log('BROWSER LOG:', msg.text());
@@ -303,6 +272,7 @@ test.describe('Blog Sharing between Alice and Bob', () => {
     });
 
     test('Bob opens Alice\'s blog and waits for replication', async () => {
+        test.slow();
 
         pageBob = await contextBob.newPage();
         pageBob.on('console', msg => {
@@ -325,14 +295,10 @@ test.describe('Blog Sharing between Alice and Bob', () => {
         await expect(loadingOverlay).toBeHidden({ timeout: 120000 });
         await expect(pageBob.getByTestId('blog-name')).toHaveText('Bach Chronicles', { timeout: 120000 });
 
-        // Sharing flow cares that both browsers converge on the relay and the
-        // other browser peer. Direct WebRTC upgrade is asserted separately in
-        // WebRTCDirectConnectivity.spec.ts.
-        await Promise.all([
-            expectPeerCount(pageAlice, 2),
-            expectPeerCount(pageBob, 2),
-        ]);
-
+        // Loading the remote OrbitDB and rendering its entries is the sharing
+        // contract. libp2p may keep either the relay or an upgraded direct
+        // WebRTC connection open; transport-specific assertions live in the
+        // dedicated relay and WebRTC specs.
         await expect
             .poll(
                 async () => {

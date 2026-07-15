@@ -7,7 +7,7 @@ import * as filters from '@libp2p/websockets/filters'
 import { identify } from '@libp2p/identify'
 import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 import { privateKeyFromProtobuf } from '@libp2p/crypto/keys'
-import { gossipsub } from '@chainsafe/libp2p-gossipsub'
+import { gossipsub } from '@libp2p/gossipsub'
 import { pubsubPeerDiscovery } from '@libp2p/pubsub-peer-discovery'
 // output of: console.log(server.peerId.privateKey.toString('hex'))
 const relayPrivKey = '08011240821cb6bc3d4547fcccb513e82e4d718089f8a166b23ffcd4a436754b6b0774cf07447d1693cd10ce11ef950d7517bad6e9472b41a927cd17fc3fb23f8c70cd99'

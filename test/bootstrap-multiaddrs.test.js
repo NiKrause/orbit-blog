@@ -1,0 +1,43 @@
+import { expect } from 'chai';
+import {
+  resolveBootstrapMultiaddrs,
+  selectValidBrowserBootstrapMultiaddrs,
+} from '../scripts/lib/bootstrap-multiaddrs.mjs';
+
+const peerA = '12D3KooWAJjbRkp8FPF5MKgMU53aUTxWkqvDrs4zc1VMbwRwfsbE';
+const peerB = '12D3KooWSc3Sqr3Q7RGJAFBz5i7WTTC5kzunnm2tvXVcSwTEtUTP';
+const secureAddress = `/dns4/relay.example/tcp/443/tls/ws/p2p/${peerA}`;
+const websocketAddress = `/ip4/127.0.0.1/tcp/4001/ws/p2p/${peerB}`;
+
+describe('deployment bootstrap multiaddresses', () => {
+  it('filters invalid addresses, deduplicates, and ranks secure WebSockets first', () => {
+    expect(
+      selectValidBrowserBootstrapMultiaddrs([
+        websocketAddress,
+        '/ip4/203.0.113.1/tcp/4001',
+        secureAddress,
+        secureAddress,
+        '/not/a/multiaddr',
+      ]),
+    ).to.deep.equal([secureAddress, websocketAddress]);
+  });
+
+  it('uses explicit override, Aleph discovery, then fallback precedence', () => {
+    expect(
+      resolveBootstrapMultiaddrs({
+        override: secureAddress,
+        discovered: [websocketAddress],
+        fallback: websocketAddress,
+      }),
+    ).to.deep.equal({ addresses: [secureAddress], source: 'override' });
+
+    expect(
+      resolveBootstrapMultiaddrs({ discovered: [websocketAddress], fallback: secureAddress }),
+    ).to.deep.equal({ addresses: [websocketAddress], source: 'aleph' });
+
+    expect(resolveBootstrapMultiaddrs({ fallback: secureAddress })).to.deep.equal({
+      addresses: [secureAddress],
+      source: 'fallback',
+    });
+  });
+});

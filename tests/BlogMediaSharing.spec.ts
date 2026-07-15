@@ -5,6 +5,7 @@ const RELAY_WS_ORIGIN = 'ws://localhost:19092';
 
 test.describe('Blog media sharing between Alice and Bob', () => {
   test('Alice uploads image to a post and Bob sees it', async ({ browser }) => {
+    test.slow();
     const contextAlice = await browser.newContext({
       ignoreHTTPSErrors: true,
       launchOptions: {

@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { run, preventDefault } from 'svelte/legacy';
 
   // Third-party imports
   import { renderContent, renderMermaidDiagrams } from '$lib/services/MarkdownRenderer.js';
@@ -31,6 +30,7 @@
   let newComment = $state('');
   let commentAuthor = $state('');
   let comments: Comment[] = $state([]);
+  let pendingComments: Comment[] = $state([]);
   let postMedia = $state([]);
   let fs = $state<any>();
   let renderedContent = $state('');
@@ -169,9 +169,16 @@ function updateRenderedContent(): void {
     
     try {
       const allComments = await $commentsDB.all();
-      comments = allComments
+      const persistedComments = allComments
         .map(entry => entry.value)
         .filter(comment => comment.postId === activePostId);
+      const persistedIds = new Set(persistedComments.map(comment => comment._id));
+      comments = [
+        ...persistedComments,
+        ...pendingComments.filter(comment =>
+          comment.postId === activePostId && !persistedIds.has(comment._id)
+        )
+      ];
     } catch (_error) {
       error('Error loading comments:', _error);
     }
@@ -181,24 +188,34 @@ function updateRenderedContent(): void {
    * Adds a new comment to the post
    */
   async function addComment(): Promise<void> {
-    if (!newComment.trim() || !commentAuthor.trim() || !$commentsDB) return;
+    const activeCommentsDB = $commentsDB;
+    if (!newComment.trim() || !commentAuthor.trim() || !activeCommentsDB) return;
     const activePostId = post?._id || $selectedPostId;
     if (!activePostId) return;
     
+    const comment: Comment = {
+      _id: crypto.randomUUID(),
+      postId: activePostId,
+      content: newComment,
+      author: commentAuthor,
+      createdAt: new Date().toISOString()
+    };
+
+    // Reflect the submitted comment immediately. OrbitDB 4 may need to verify
+    // remote heads before `put` resolves, especially just after switching to a
+    // shared blog, but the local form should not appear to have done nothing.
+    pendingComments = [...pendingComments, comment];
+    comments = [...comments, comment];
+    newComment = '';
+    commentAuthor = '';
+
     try {
-      const _id = crypto.randomUUID();
-      await $commentsDB.put({
-        _id,
-        postId: activePostId,
-        content: newComment,
-        author: commentAuthor,
-        createdAt: new Date().toISOString()
-      });
-      
-      newComment = '';
-      commentAuthor = '';
+      await activeCommentsDB.put(comment);
+      pendingComments = pendingComments.filter(entry => entry._id !== comment._id);
       await loadComments();
     } catch (_error) {
+      pendingComments = pendingComments.filter(entry => entry._id !== comment._id);
+      comments = comments.filter(entry => entry._id !== comment._id);
       error('Error adding comment:', _error);
     }
   }
@@ -232,18 +249,21 @@ function updateRenderedContent(): void {
   });
 
   $effect(() => {
-    if (!$selectedPostId) return;
+    const activePostId = $selectedPostId;
+    const activePostsDB = $postsDB;
+    const activeCommentsDB = $commentsDB;
+    if (!activePostId || !activePostsDB) return;
 
     let isDisposed = false;
     let commentsUpdateHandler: ((entry: any) => Promise<void>) | null = null;
 
     // Async operations should be wrapped in an IIFE
     (async () => {
-      const postEntry = await $postsDB.get($selectedPostId);
+      const postEntry = await activePostsDB.get(activePostId);
       info('post', postEntry);
       if (!postEntry || isDisposed) return;
 
-      const activePostId = postEntry.value?._id || postEntry.key || $selectedPostId;
+      const resolvedPostId = postEntry.value?._id || postEntry.key || activePostId;
 
       title = postEntry.value.title;
       content = postEntry.value.content;
@@ -260,7 +280,7 @@ function updateRenderedContent(): void {
         updateRenderedContent();
       }
 
-      if ($commentsDB) {
+      if (activeCommentsDB) {
         await loadComments();
 
         commentsUpdateHandler = async (entry) => {
@@ -268,7 +288,7 @@ function updateRenderedContent(): void {
 
           if (entry?.payload?.op === 'PUT') {
             const comment = entry.payload.value;
-            if (comment?.postId === activePostId) {
+            if (comment?.postId === resolvedPostId) {
               await loadComments();
             }
           } else if (entry?.payload?.op === 'DEL') {
@@ -276,14 +296,14 @@ function updateRenderedContent(): void {
           }
         };
 
-        $commentsDB.events.on('update', commentsUpdateHandler);
+        activeCommentsDB.events.on('update', commentsUpdateHandler);
       }
     })();
 
     return () => {
       isDisposed = true;
-      if (commentsUpdateHandler && $commentsDB) {
-        $commentsDB.events.removeListener('update', commentsUpdateHandler);
+      if (commentsUpdateHandler && activeCommentsDB) {
+        activeCommentsDB.events.removeListener('update', commentsUpdateHandler);
       }
     };
   });
@@ -514,7 +534,13 @@ function updateRenderedContent(): void {
       </div>
     {/if}
 
-      <form onsubmit={preventDefault(addComment)} class="mt-6">
+      <form
+        onsubmit={(event) => {
+          event.preventDefault();
+          void addComment();
+        }}
+        class="mt-6"
+      >
         <div class="mb-3">
           <input
             type="text"
@@ -536,6 +562,7 @@ function updateRenderedContent(): void {
         <button 
           type="submit"
           class="btn-primary"
+          disabled={!$commentsDB}
         >
           {$_('add_comment')}
         </button>

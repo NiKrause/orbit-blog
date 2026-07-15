@@ -11,6 +11,10 @@ on:
       - master
   workflow_dispatch:
     inputs:
+      relay_bootstrap_addr:
+        description: Optional comma-separated production OrbitDB relay multiaddresses
+        required: false
+        type: string
       domain:
         description: Optional domain override for this run
         required: false
@@ -62,6 +66,11 @@ jobs:
       - name: Install app dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Resolve reachable production OrbitDB relays
+        env:
+          RELAY_BOOTSTRAP_OVERRIDE: ${{ github.event.inputs.relay_bootstrap_addr || '' }}
+        run: node scripts/resolve-aleph-bootstrap.mjs
+
       - name: Install shared Aleph runner package
         id: aleph_runner
         shell: bash
@@ -69,7 +78,7 @@ jobs:
           runner_dir="${RUNNER_TEMP}/aleph-runner"
           rm -rf "$runner_dir"
           mkdir -p "$runner_dir"
-          npm install --prefix "$runner_dir" --package-lock=false --no-audit --no-fund @le-space/node@0.6.4
+          npm install --prefix "$runner_dir" --package-lock=false --no-audit --no-fund @le-space/node@0.6.22
           echo "dir=$runner_dir" >> "$GITHUB_OUTPUT"
 
       - name: Write default blog config
@@ -84,7 +93,6 @@ jobs:
       - name: Build app
         env:
           VITE_MODE: production
-          VITE_SEED_NODES: /dns4/37-114-50-44.k51qzi5uqu5dirmjhgnwfimfdnpa4575o66r6ldgmtwue9nuci7etnctbzd68j.libp2p.direct/tcp/24029/tls/ws/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/dns4/mansion-old-afford-damp.2n6.me/tcp/443/tls/ws/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/dns6/2a0e-97c0-3e3-54b-3-8753-4011-9b91.k51qzi5uqu5dirmjhgnwfimfdnpa4575o66r6ldgmtwue9nuci7etnctbzd68j.libp2p.direct/tcp/24029/tls/ws/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/dns6/mansion-old-afford-damp.2n6.me/tcp/443/tls/ws/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/ip4/37.114.50.44/tcp/24029/tls/sni/37-114-50-44.k51qzi5uqu5dirmjhgnwfimfdnpa4575o66r6ldgmtwue9nuci7etnctbzd68j.libp2p.direct/ws/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/ip6/2a0e:97c0:3e3:54b:3:8753:4011:9b91/tcp/24029/tls/sni/2a0e-97c0-3e3-54b-3-8753-4011-9b91.k51qzi5uqu5dirmjhgnwfimfdnpa4575o66r6ldgmtwue9nuci7etnctbzd68j.libp2p.direct/ws/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/ip4/37.114.50.44/udp/24026/webrtc-direct/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/ip6/2a0e:97c0:3e3:54b:3:8753:4011:9b91/udp/24026/webrtc-direct/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv
           VITE_P2P_PUPSUB: todo._peer-discovery._p2p._pubsub
         run: pnpm run build
 

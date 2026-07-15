@@ -45,58 +45,6 @@ function pipeChildOutput(child: ChildProcess, prefix: string) {
     if (child.stderr) child.stderr.on('data', (d: Buffer) => write(process.stderr, d));
 }
 
-async function waitForRelay(timeoutMs = 10000): Promise<boolean> {
-    const startTime = Date.now();
-    const readyMarkers = [
-        // Might be logged via debug-style logger (can be disabled)
-        'Starting relay server',
-        // Always printed by the relay CLI after libp2p starts
-        'p2p addr:'
-    ];
-    
-    return new Promise((resolve) => {
-        const checkInterval = setInterval(() => {
-            // Check if process is still running
-            if (relayProcess && relayProcess.exitCode !== null) {
-                clearInterval(checkInterval);
-                console.error('Relay process exited with code:', relayProcess.exitCode);
-                resolve(false);
-                return;
-            }
-
-            // Timeout check
-            if (Date.now() - startTime > timeoutMs) {
-                clearInterval(checkInterval);
-                console.error('Timeout waiting for relay to start');
-                resolve(false);
-                return;
-            }
-        }, 100);
-
-        // Also set up error handling
-        if (relayProcess) {
-            relayProcess.on('error', (err) => {
-                clearInterval(checkInterval);
-                console.error('Relay process error:', err);
-                resolve(false);
-            });
-
-            const onData = (data: Buffer) => {
-                // libp2p/debug-style logging often goes to stderr, so watch both streams.
-                const text = data.toString();
-                if (readyMarkers.some((m) => text.includes(m))) {
-                    clearInterval(checkInterval);
-                    console.log('Relay server started successfully');
-                    resolve(true);
-                }
-            }
-
-            relayProcess.stdout?.on('data', onData);
-            relayProcess.stderr?.on('data', onData);
-        }
-    });
-}
-
 async function ensureRelayBuilt() {
     const binPath = getRelayBinPath()
     await access(binPath, constants.F_OK)
@@ -143,7 +91,7 @@ export async function setupTestEnvironment() {
             stdio: ['inherit', 'pipe', 'pipe'],
             env: {
                 ...process.env,
-                DEBUG: 'le-space:*,libp2p:*',
+                DEBUG: 'le-space:relay:error,libp2p:identify:error,libp2p:identify-push:error',
 
                 // Avoid collisions with a locally running relay that might be using the defaults.
                 RELAY_TCP_PORT: String(LOCAL_RELAY_TCP_PORT),
@@ -154,19 +102,26 @@ export async function setupTestEnvironment() {
                 RELAY_DISABLE_WEBRTC: 'false',
                 // Local Playwright relay does not need public bootstrap peers; skipping them keeps logs quiet and startup tighter.
                 RELAY_DISABLE_BOOTSTRAP: 'true',
+                // Keep local E2E replication on the already-connected browser peer.
+                // Empty public routing tables otherwise add repeated 10s DHT/AutoNAT
+                // waits to every OrbitDB manifest/block lookup.
+                RELAY_DISABLE_DHT: 'true',
+                RELAY_DISABLE_AUTONAT: 'true',
+                RELAY_DISABLE_QUIC: 'true',
+                RELAY_DISABLE_IPV6: 'true',
                 // Fixed test HTTP origin so Playwright can probe /health, /pinning/* and /ipfs/*.
                 METRICS_PORT: String(LOCAL_RELAY_HTTP_PORT),
                 // Keep the local relay peer id deterministic for Playwright seed addresses.
                 TEST_PRIVATE_KEY: process.env.TEST_PRIVATE_KEY || LOCAL_RELAY_TEST_PRIVATE_KEY,
 
-                // Make relay logs visible and useful in Playwright output.
-                ENABLE_GENERAL_LOGS: 'true',
-                ENABLE_SYNC_LOGS: 'true',
-                ENABLE_SYNC_STATS: 'true',
-                LOG_LEVEL_CONNECTION: 'true',
-                LOG_LEVEL_PEER: 'true',
-                LOG_LEVEL_DATABASE: 'true',
-                LOG_LEVEL_SYNC: 'true',
+                // Keep CI output focused; Playwright records page/trace context on failure.
+                ENABLE_GENERAL_LOGS: 'false',
+                ENABLE_SYNC_LOGS: 'false',
+                ENABLE_SYNC_STATS: 'false',
+                LOG_LEVEL_CONNECTION: 'false',
+                LOG_LEVEL_PEER: 'false',
+                LOG_LEVEL_DATABASE: 'false',
+                LOG_LEVEL_SYNC: 'false',
             }
         });
 
@@ -178,12 +133,8 @@ export async function setupTestEnvironment() {
             throw err;
         });
 
-        // Wait for relay to start
-        const started = await waitForRelay(30000);
-        if (!started) {
-            throw new Error('Failed to start relay server');
-        }
-
+        // Probe the actual HTTP health endpoint instead of depending on optional
+        // debug-log markers from the relay process.
         const httpReady = await waitForRelayHttp(`${LOCAL_RELAY_ORIGIN}/health`, 30000);
         if (!httpReady) {
             throw new Error(`Relay HTTP endpoint did not become ready at ${LOCAL_RELAY_ORIGIN}/health`);
@@ -228,8 +179,30 @@ export async function teardownTestEnvironment() {
         // Kill relay process if it exists
         if (relayProcess) {
             console.log('Stopping relay process...');
-            relayProcess.kill();
+            const processToStop = relayProcess;
             relayProcess = null;
+
+            if (processToStop.exitCode === null && processToStop.signalCode === null) {
+                const exited = new Promise<void>((resolve) => {
+                    processToStop.once('exit', () => resolve());
+                });
+
+                processToStop.kill('SIGTERM');
+
+                const stoppedGracefully = await Promise.race([
+                    exited.then(() => true),
+                    new Promise<false>((resolve) => setTimeout(() => resolve(false), 5000)),
+                ]);
+
+                if (!stoppedGracefully && processToStop.exitCode === null) {
+                    console.warn('Relay did not stop after SIGTERM; sending SIGKILL...');
+                    processToStop.kill('SIGKILL');
+                    await Promise.race([
+                        exited,
+                        new Promise<void>((resolve) => setTimeout(resolve, 3000)),
+                    ]);
+                }
+            }
         }
 
         // Clean up directories

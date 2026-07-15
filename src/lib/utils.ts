@@ -47,8 +47,8 @@ import type { PrivateKey } from '@libp2p/interface'
 export async function createPeerIdFromSeedPhrase(seedPhrase: string): Promise<{peerId: PeerId, privateKey: PrivateKey}> { 
   const masterSeed = generateMasterSeed(seedPhrase, "password", false) as Buffer;
   const { keyPair } = await generateAndSerializeKey(masterSeed.subarray(0, 32))
-  const { createFromPrivKey } = await import('@libp2p/peer-id-factory')
-  const peerId = await createFromPrivKey(keyPair)
+  const { peerIdFromPrivateKey } = await import('@libp2p/peer-id')
+  const peerId = peerIdFromPrivateKey(keyPair)
   return { peerId, privateKey: keyPair }
 }
 

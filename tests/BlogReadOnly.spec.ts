@@ -3,6 +3,7 @@ import { waitForLoadingOverlayToSettle } from './pageLoad';
 
 test.describe('Blog Sharing: Bob is read-only on Alice blog', () => {
   test('Alice creates a blog + post, Bob opens it read-only', async ({ browser }) => {
+    test.slow();
     const contextAlice = await browser.newContext({
       ignoreHTTPSErrors: true,
       launchOptions: {

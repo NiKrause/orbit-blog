@@ -92,30 +92,10 @@ export interface DatabaseUpdate {
   };
 }
 
-export interface Helia {
-  libp2p: Libp2p;
-  blockstore: {
-    get: (cid: any) => Promise<any>;
-    has: (cid: any) => Promise<boolean>;
-    put: (cid: any, block: any) => Promise<any>;
-  };
-  datastore?: any;
-}
-
-export interface Libp2p {
-  peerId: {
-    toString: () => string;
-  };
-  getConnections: () => Connection[];
-  getMultiaddrs: () => { toString: () => string }[];
-  addEventListener: (event: string, handler: (event: any) => void) => void;
-  removeEventListener: (event: string, handler: (event: any) => void) => void;
-  peerStore: {
-    delete: (peer: any) => Promise<void>;
-  };
-  dial: (peerId: string) => Promise<any>;
-  getPeers: () => Promise<string[]>;
-}
+export type Helia = import('@helia/libp2p').HeliaWithLibp2p<
+  import('@libp2p/interface').ServiceMap
+>;
+export type Libp2p = import('libp2p').Libp2p;
 
 export interface Connection {
   remotePeer: {

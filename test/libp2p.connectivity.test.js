@@ -5,7 +5,7 @@ import { tcp } from '@libp2p/tcp';
 import { webSockets } from '@libp2p/websockets';
 import { yamux } from '@chainsafe/libp2p-yamux';
 import { noise } from '@chainsafe/libp2p-noise';
-import { gossipsub } from '@chainsafe/libp2p-gossipsub';
+import { gossipsub } from '@libp2p/gossipsub';
 import { identify, identifyPush } from '@libp2p/identify';
 import { webRTC, webRTCDirect } from '@libp2p/webrtc';
 import 'dotenv/config'

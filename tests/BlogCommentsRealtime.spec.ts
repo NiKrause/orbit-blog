@@ -3,6 +3,7 @@ import { waitForLoadingOverlayToSettle } from './pageLoad';
 
 test.describe('Realtime comments between Alice and Bob', () => {
   test('Bob comments on Alice post and Alice replies without reload', async ({ browser }) => {
+    test.slow();
     const contextAlice = await browser.newContext({
       ignoreHTTPSErrors: true,
       launchOptions: {

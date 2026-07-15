@@ -53,4 +53,4 @@ jobs:
         # Playwright config starts the Vite dev server, and globalSetup starts the relay.
         # Keep the dedicated WebRTC direct-connectivity spec in `.github/workflows/webrtc-compare.yml`
         # so the main suite stays stable while we track relay-mode differences separately.
-        DEBUG=playwright:* pnpm exec playwright test tests --project=chromium --grep-invert "Remote Direct WebRTC Connectivity"
+        DEBUG=playwright:* pnpm test:e2e -- --project=chromium --grep-invert "Remote Direct WebRTC Connectivity"

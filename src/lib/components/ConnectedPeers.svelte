@@ -5,6 +5,7 @@
   import { isRTL } from '$lib/store.js';
   import { info, error } from '$lib/utils/logger.js'
   import { getTransportFromRemoteAddr } from '$lib/peerTransport.js';
+  import { peerIdFromString } from '@libp2p/peer-id';
 
   interface PeerInfo {
     id: string;
@@ -88,7 +89,7 @@
     }
     try {
       if ($libp2p) {
-        await $libp2p.dial(dialPeerId.trim());
+        await $libp2p.dial(peerIdFromString(dialPeerId.trim()));
         info('dialed peer', dialPeerId.trim());
         dialStatus = 'Dial successful!';
         updatePeersList();

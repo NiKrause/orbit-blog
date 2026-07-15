@@ -1,5 +1,5 @@
 import type { Libp2p } from 'libp2p';
-import type { Message } from '@libp2p/interface-pubsub';
+import type { Message } from '@libp2p/gossipsub';
 import {
   AI_REMOTE_PROTOCOL_VERSION,
   decodeAiCapabilitiesPayload,

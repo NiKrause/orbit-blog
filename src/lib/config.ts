@@ -1,16 +1,18 @@
 import { webSockets } from "@libp2p/websockets";
-import { webRTC } from "@libp2p/webrtc";
+import { webRTC, webRTCDirect } from "@libp2p/webrtc";
 import { noise } from "@chainsafe/libp2p-noise";
 import { circuitRelayTransport } from '@libp2p/circuit-relay-v2'
 import { yamux } from "@chainsafe/libp2p-yamux";
 import { identify, identifyPush } from "@libp2p/identify"
 import { dcutr } from "@libp2p/dcutr"
-import { gossipsub } from "@chainsafe/libp2p-gossipsub"
+import { autoNAT } from '@libp2p/autonat'
+import { gossipsub } from "@libp2p/gossipsub"
+import { ping } from '@libp2p/ping'
 import { pubsubPeerDiscovery } from '@libp2p/pubsub-peer-discovery'
 import { multiaddr } from '@multiformats/multiaddr'
 import { bootstrap } from '@libp2p/bootstrap'
 import { discoverAlephBootstrapMultiaddrs } from '@le-space/aleph-bootstrap'
-import type { Libp2pOptions } from '@libp2p/interface'
+import type { Libp2p, Libp2pOptions } from 'libp2p'
 import { createLogger } from './utils/logger.js'
 
 const log = createLogger('p2p')
@@ -72,6 +74,9 @@ log.debug('MODE === development', MODE === 'development')
 log.debug('VITE_SEED_NODES_DEV', VITE_SEED_NODES_DEV)
 log.debug('VITE_SEED_NODES', VITE_SEED_NODES)
 let pubSubPeerDiscoveryTopics = MODE === 'development'?VITE_P2P_PUPSUB_DEV:VITE_P2P_PUPSUB
+if (pubSubPeerDiscoveryTopics.length === 0) {
+    pubSubPeerDiscoveryTopics = ['todo._peer-discovery._p2p._pubsub']
+}
 log.debug('pubSubPeerDiscoveryTopics', pubSubPeerDiscoveryTopics)
 log.debug('seed nodes multiaddrs', multiaddrs)
 
@@ -103,7 +108,13 @@ function createBootstrapConfig(addrs: string[]) {
             log.warn(`Invalid multiaddr filtered out: ${addr}`);
             return false;
         }
-        })
+        }),
+        // Browser nodes need a durable relay connection. libp2p 3's bootstrap
+        // tag otherwise expires after two minutes, and only keep-alive-prefixed
+        // tags are eligible for automatic reconnects.
+        tagName: 'keep-alive-bootstrap',
+        tagValue: 100,
+        tagTTL: Infinity,
     }
 }
 
@@ -169,6 +180,14 @@ export function createLibp2pOptions(bootstrapMultiaddrs: string[] = multiaddrs):
     },
     transports: [
         webSockets(),
+        webRTCDirect({
+            rtcConfiguration: {
+                iceServers: [
+                    { urls: ['stun:stun.l.google.com:19302'] },
+                    { urls: ['stun:global.stun.twilio.com:3478'] }
+                ]
+            }
+        }),
         webRTC({
             rtcConfiguration: {
                 iceServers: [
@@ -178,8 +197,9 @@ export function createLibp2pOptions(bootstrapMultiaddrs: string[] = multiaddrs):
             }
         }),
         circuitRelayTransport({
+            discoverRelays: 1,
             reservationCompletionTimeout: 20000 // 20 seconds
-          })
+          } as any)
     ],
     connectionEncrypters: [noise()],
     
@@ -191,10 +211,19 @@ export function createLibp2pOptions(bootstrapMultiaddrs: string[] = multiaddrs):
         inboundStreamProtocolNegotiationTimeout: 10000,
         inboundUpgradeTimeout: 10000,
         outboundStreamProtocolNegotiationTimeout: 10000,
-        outboundUpgradeTimeout: 10000,
+        reconnectRetries: 20,
+        reconnectRetryInterval: 1000,
+        reconnectBackoffFactor: 1.5,
     },
     connectionGater: {
-        denyDialMultiaddr: async () => false
+        denyDialMultiaddr: () => false,
+        denyDialPeer: () => false,
+        denyInboundConnection: () => false,
+        denyOutboundConnection: () => false,
+        denyInboundEncryptedConnection: () => false,
+        denyOutboundEncryptedConnection: () => false,
+        denyInboundUpgradedConnection: () => false,
+        denyOutboundUpgradedConnection: () => false,
     },
     peerDiscovery: [
         pubsubPeerDiscovery({
@@ -206,6 +235,8 @@ export function createLibp2pOptions(bootstrapMultiaddrs: string[] = multiaddrs):
     services: {
         identify: identify(),
         identifyPush: identifyPush(),
+        ping: ping({ timeout: 10000 }),
+        autonat: autoNAT(),
         dcutr: dcutr(),
         pubsub: gossipsub({ 
             allowPublishToZeroTopicPeers: true,
@@ -222,6 +253,45 @@ export function createLibp2pOptions(bootstrapMultiaddrs: string[] = multiaddrs):
 
 export async function createResolvedLibp2pOptions(): Promise<Libp2pOptions> {
     return createLibp2pOptions(await resolveBootstrapMultiaddrs())
+}
+
+/**
+ * Establish one connection per configured bootstrap peer before OrbitDB opens
+ * its databases. This ensures Helia's Bitswap handler is available when a
+ * relay observes the first OrbitDB subscriptions and starts fetching manifests.
+ */
+export async function connectBootstrapPeers(libp2pNode: Libp2p): Promise<number> {
+    const addressesByPeer = new Map<string, string[]>()
+
+    for (const address of bootstrapConfig.list) {
+        const peerId = address.match(/\/p2p\/([^/]+)$/)?.[1] ?? address
+        const addresses = addressesByPeer.get(peerId) ?? []
+        addresses.push(address)
+        addressesByPeer.set(peerId, addresses)
+    }
+
+    let connectedPeers = 0
+
+    for (const [peerId, addresses] of addressesByPeer) {
+        if (libp2pNode.getConnections().some(connection => connection.remotePeer.toString() === peerId)) {
+            connectedPeers += 1
+            continue
+        }
+
+        for (const address of addresses) {
+            try {
+                await libp2pNode.dial(multiaddr(address), {
+                    signal: AbortSignal.timeout(10_000),
+                })
+                connectedPeers += 1
+                break
+            } catch (error) {
+                log.warn(`Failed bootstrap dial ${address}`, error)
+            }
+        }
+    }
+
+    return connectedPeers
 }
 
 export const libp2pOptions: Libp2pOptions = createLibp2pOptions()

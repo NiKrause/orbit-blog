@@ -1,5 +1,12 @@
 //add missing libs
-import { createHelia } from 'helia';
+import { createHeliaLight } from 'helia';
+import { withBitswap } from '@helia/bitswap';
+import { withHTTP } from '@helia/http';
+import { withLibp2p } from '@helia/libp2p';
+import * as dagCbor from '@ipld/dag-cbor';
+import * as dagJson from '@ipld/dag-json';
+import * as json from 'multiformats/codecs/json';
+import { sha512 } from 'multiformats/hashes/sha2';
 import { createLibp2p } from 'libp2p';
 import { LevelBlockstore } from 'blockstore-level';
 import { LevelDatastore } from 'datastore-level';
@@ -10,7 +17,7 @@ import { tcp } from '@libp2p/tcp';
 import { webSockets } from '@libp2p/websockets';
 import { yamux } from '@chainsafe/libp2p-yamux';
 import { noise } from '@chainsafe/libp2p-noise';
-import { gossipsub } from '@chainsafe/libp2p-gossipsub';
+import { gossipsub } from '@libp2p/gossipsub';
 import { identify, identifyPush } from '@libp2p/identify';
 import { webRTC, webRTCDirect } from '@libp2p/webrtc';
 import { circuitRelayTransport } from '@libp2p/circuit-relay-v2';
@@ -44,7 +51,17 @@ describe('OrbitDB Blog Data Access', function() {
           identifyPush: identifyPush()
         }
       });
-      helia = await createHelia({ libp2p: node, datastore, blockstore });
+      helia = await withBitswap(
+        withLibp2p(
+          withHTTP(createHeliaLight({
+            datastore,
+            blockstore,
+            codecs: [dagCbor, dagJson, json],
+            hashers: [sha512]
+          })),
+          node
+        )
+      ).start();
       orbitdb = await createOrbitDB({ ipfs: helia, directory: join(tempPath, 'orbitdb') });
   
       // Create settings DB
@@ -111,7 +128,7 @@ describe('OrbitDB Blog Data Access', function() {
       await mediaDb?.close();
       await aiDb?.close();
       await orbitdb?.stop();
-      await helia?.libp2p?.stop();
+      await helia?.stop();
     });
   
     it('should open settings DB and display blogName and blogDescription, and open posts/comments/media DBs', async () => {

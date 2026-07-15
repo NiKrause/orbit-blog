@@ -128,8 +128,9 @@ export async function addRemoteDBToStore(address: string, peerId: string, name?:
       };
     } else {
       // Handle remote database
-      if (peerId && heliaInstance && !heliaInstance.libp2p) {
-        await heliaInstance.libp2p.dial(peerId);
+      if (peerId && heliaInstance?.libp2p) {
+        const { peerIdFromString } = await import('@libp2p/peer-id');
+        await heliaInstance.libp2p.dial(peerIdFromString(peerId));
       }
 
       // Create the database entry for remote DB

@@ -3,6 +3,7 @@ import { writable } from 'svelte/store';
 import { info, debug, error } from './utils/logger.js'
 // Store for connected peers count
 export const connectedPeersCount = writable<number>(0);
+const trackedNodes = new WeakSet<object>();
 
 function getAddressStrings(multiaddrs: any): string[] {
   if (!Array.isArray(multiaddrs)) return [];
@@ -55,6 +56,15 @@ export function  setupPeerEventListeners(libp2p: Libp2p) {
 
   // Update connected peers count initially
   updateConnectedPeersCount(libp2p);
+  if (trackedNodes.has(libp2p)) return;
+  trackedNodes.add(libp2p);
+
+  const refreshConnectedPeers = () => {
+    // libp2p 3 emits connection events while its connection manager is still
+    // finishing bookkeeping. Refresh in the next microtask so getConnections()
+    // reflects the new state.
+    queueMicrotask(() => updateConnectedPeersCount(libp2p));
+  };
   
   // Set up peer discovery listener
   libp2p.addEventListener('peer:discovery', async (evt) => {
@@ -99,14 +109,15 @@ export function  setupPeerEventListeners(libp2p: Libp2p) {
   });
 
   // Set up peer connection listener
-  libp2p.addEventListener('peer:connect', (evt) => {
-    updateConnectedPeersCount(libp2p);
-  });
+  libp2p.addEventListener('peer:connect', refreshConnectedPeers);
   
   // Set up peer disconnection listener
-  libp2p.addEventListener('peer:disconnect', (_evt) => {
-    updateConnectedPeersCount(libp2p);
-  });
+  libp2p.addEventListener('peer:disconnect', refreshConnectedPeers);
+
+  // libp2p 3 can replace or upgrade a connection without changing the peer's
+  // connected/disconnected state, so also track the connection-level events.
+  libp2p.addEventListener('connection:open', refreshConnectedPeers);
+  libp2p.addEventListener('connection:close', refreshConnectedPeers);
 }
 
 /**

@@ -199,19 +199,18 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 	    info('initializeApp')
 
       const [
-        { createHelia },
+        { createHeliaWithLibp2p },
         { createLibp2p },
         { createOrbitDB, IPFSAccessController },
         { LevelDatastore },
         { LevelBlockstore },
         { generateKeyPairFromSeed, privateKeyFromProtobuf, privateKeyToProtobuf },
-        { createResolvedLibp2pOptions },
+        { connectBootstrapPeers, createResolvedLibp2pOptions },
         { default: createIdentityProvider },
         { unixfs },
         { mnemonicToSeedSync },
-        { createHash },
       ] = await Promise.all([
-        import('helia'),
+        import('$lib/helia.js'),
         import('libp2p'),
         import('@orbitdb/core'),
         import('datastore-level'),
@@ -221,7 +220,6 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
         import('$lib/identityProvider.js'),
         import('@helia/unixfs'),
         import('bip39'),
-        import('crypto'),
       ]);
 
       createAccessController = IPFSAccessController;
@@ -234,7 +232,14 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 	    const privKeyBuffer = uint8ArrayFromString(hex, 'hex');
 	    const _keyPair = await privateKeyFromProtobuf(privKeyBuffer);
 	    const resolvedLibp2pOptions = await createResolvedLibp2pOptions()
-	    const _libp2p = await createLibp2p({ privateKey: _keyPair, ...resolvedLibp2pOptions })
+	    // Let Helia start libp2p after the Helia 7 mixins have been composed.
+	    // Starting it here lets bootstrap peers connect before Bitswap is ready,
+	    // which can race the relay's first OrbitDB manifest/identity fetches.
+	    const _libp2p = await createLibp2p({
+	      privateKey: _keyPair,
+	      ...resolvedLibp2pOptions,
+	      start: false,
+	    })
 	    $libp2p = _libp2p
 	    ;(window as any).libp2p=_libp2p
     // for (const multiaddr of multiaddrs) { 
@@ -246,7 +251,8 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     //     warn('error dialing', err)
     //   }
     // }
-	    $helia = await createHelia({ libp2p: $libp2p, datastore, blockstore }) as any
+	    $helia = await createHeliaWithLibp2p($libp2p, { datastore, blockstore }).start() as any
+	    await connectBootstrapPeers($libp2p)
 	    //     const { valid, invalid, dialable, undialable } = await validateMultiaddrs(multiaddrs, $libp2p)
 	    // info('valid', valid)
 	    // info('invalid', invalid)
@@ -254,8 +260,16 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
 	    // info('undialable', undialable)
 	    // Deterministic OrbitDB identity from the seed phrase.
 	    // This is critical for headless agents: with the same seed phrase they can recreate the same writer identity.
-	    const identitySeed = createHash('sha256').update(masterSeed).digest()
-	    identitySeed32.set(new Uint8Array(identitySeed))
+	    // Use native Web Crypto here. The Node `crypto` browser polyfill can
+	    // coerce the Uint8Array seed incorrectly and produce the same digest in
+	    // isolated browser contexts, which would give different users the same
+	    // OrbitDB writer identity.
+	    const identitySeedInput = new Uint8Array(masterSeed.length)
+	    identitySeedInput.set(masterSeed)
+	    const identitySeed = new Uint8Array(
+	      await globalThis.crypto.subtle.digest('SHA-256', identitySeedInput),
+	    )
+	    identitySeed32.set(identitySeed)
 	    const idProvider = await createIdentityProvider('ed25519', identitySeed, $helia)
 	    $identities = idProvider.identities
 	    $identity = idProvider.identity
