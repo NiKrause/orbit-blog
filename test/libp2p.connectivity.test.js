@@ -11,6 +11,11 @@ import { webRTC, webRTCDirect } from '@libp2p/webrtc';
 import 'dotenv/config'
 import { circuitRelayTransport } from '@libp2p/circuit-relay-v2';
 import { pubsubPeerDiscovery } from '@libp2p/pubsub-peer-discovery';
+
+function getPeerIdFromMultiaddr(ma) {
+  return ma.getComponents().findLast((component) => component.name === 'p2p')?.value;
+}
+
 describe('Libp2p Connectivity Tests', function() {
   this.timeout(30000);
   
@@ -89,7 +94,9 @@ describe('Libp2p Connectivity Tests', function() {
         try {
           const ma = multiaddr(addr.trim());
           await node.dial(ma);
-          const connection = node.getConnections(ma.getPeerId());
+          const peerId = getPeerIdFromMultiaddr(ma);
+          expect(peerId).to.be.a('string');
+          const connection = node.getConnections(peerId);
           expect(connection.length).to.be.greaterThan(0);
         } catch (err) {
           console.warn(`Failed to connect to ${addr}: ${err.message}`);
@@ -107,7 +114,9 @@ describe('Libp2p Connectivity Tests', function() {
         try {
           const ma = multiaddr(addr.trim());
           await node.dial(ma);
-          const connection = node.getConnections(ma.getPeerId());
+          const peerId = getPeerIdFromMultiaddr(ma);
+          expect(peerId).to.be.a('string');
+          const connection = node.getConnections(peerId);
           expect(connection.length).to.be.greaterThan(0);
         } catch (err) {
           console.warn(`Failed to connect to ${addr}: ${err.message}`);
@@ -149,6 +158,8 @@ describe('Libp2p Connectivity Tests', function() {
             console.log(`  - Peer ID: ${peer.toString()}`);
           });
           if (peerCount > 0) {
+            clearInterval(interval);
+            clearTimeout(timeout);
             done();
           }
         }
@@ -158,7 +169,7 @@ describe('Libp2p Connectivity Tests', function() {
       const interval = setInterval(checkPeers, 5000);
       
       // Stop checking after timeout
-      setTimeout(() => {
+      const timeout = setTimeout(() => {
         clearInterval(interval);
         if (peerCount === 0) {
           done(new Error('No peers discovered within timeout'));
@@ -176,7 +187,7 @@ describe('Libp2p Connectivity Tests', function() {
       const ma = multiaddr(webrtcDirectAddr);
       await node.dial(ma);
 
-      const peerId = ma.getPeerId();
+      const peerId = getPeerIdFromMultiaddr(ma);
       expect(peerId).to.be.a('string');
 
       const conns = node.getConnections(peerId);
