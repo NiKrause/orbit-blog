@@ -18,10 +18,6 @@ jobs:
       METRICS_PORT: 0
       DEBUG: playwright:*
       PLAYWRIGHT_RELAY_MODE: ${{ matrix.relay_mode }}
-      PLAYWRIGHT_REMOTE_RELAY_NAME: mansion-old-afford-damp.2n6.me
-      PLAYWRIGHT_REMOTE_RELAY_ORIGIN: https://mansion-old-afford-damp.2n6.me
-      PLAYWRIGHT_REMOTE_RELAY_METRICS_ORIGIN: https://mansion-old-afford-damp.2n6.me
-      PLAYWRIGHT_REMOTE_SEED_NODES: /dns4/37-114-50-44.k51qzi5uqu5dirmjhgnwfimfdnpa4575o66r6ldgmtwue9nuci7etnctbzd68j.libp2p.direct/tcp/24029/tls/ws/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/dns4/mansion-old-afford-damp.2n6.me/tcp/443/tls/ws/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/dns6/2a0e-97c0-3e3-54b-3-8753-4011-9b91.k51qzi5uqu5dirmjhgnwfimfdnpa4575o66r6ldgmtwue9nuci7etnctbzd68j.libp2p.direct/tcp/24029/tls/ws/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/dns6/mansion-old-afford-damp.2n6.me/tcp/443/tls/ws/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/ip4/37.114.50.44/tcp/24029/tls/sni/37-114-50-44.k51qzi5uqu5dirmjhgnwfimfdnpa4575o66r6ldgmtwue9nuci7etnctbzd68j.libp2p.direct/ws/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/ip6/2a0e:97c0:3e3:54b:3:8753:4011:9b91/tcp/24029/tls/sni/2a0e-97c0-3e3-54b-3-8753-4011-9b91.k51qzi5uqu5dirmjhgnwfimfdnpa4575o66r6ldgmtwue9nuci7etnctbzd68j.libp2p.direct/ws/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/ip4/37.114.50.44/udp/24026/webrtc-direct/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv,/ip6/2a0e:97c0:3e3:54b:3:8753:4011:9b91/udp/24026/webrtc-direct/p2p/12D3KooWGo8L4Ykg7AGaxFZiqunbnPsq6bMjsfp7WP3wyHSk8tAv
     steps:
       - uses: actions/checkout@v6
 
@@ -39,8 +35,23 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Resolve current public OrbitDB relay
+        if: matrix.relay_mode == 'remote'
+        env:
+          RELAY_BOOTSTRAP_WRITE_PLAYWRIGHT_ENV: 'true'
+        run: node scripts/resolve-aleph-bootstrap.mjs
+
       - name: Install Playwright Browsers
         run: pnpm exec playwright install --with-deps
+
+      - name: Run public relay replication specs
+        if: matrix.relay_mode == 'remote'
+        run: >-
+          pnpm exec playwright test
+          tests/AiRelayPinning.spec.ts
+          tests/DBManagerRelayLeds.spec.ts
+          tests/PostsRelayReplication.spec.ts
+          --project=chromium --workers=1
 
       - name: Run WebRTC direct connectivity spec
         run: pnpm exec playwright test tests/WebRTCDirectConnectivity.spec.ts --project=chromium

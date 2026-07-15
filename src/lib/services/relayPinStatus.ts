@@ -397,10 +397,13 @@ export function startRelayDatabasePolling(options: RelayDatabasePollOptions): ()
 
     if (iteration === 0) emit('yellow', 'unknown');
 
-    let pinSyncOk: boolean | null = null;
     if (metricsBases.length > 0 && iteration === 0) {
-      pinSyncOk = await requestRelayDbPinSyncAny(metricsBases, dbAddress, signal);
-      pollLog('POST /pinning/sync', { dbAddress, metricsOrigins: metricsBases, ok: pinSyncOk });
+      // Sync is a best-effort hint. A public relay may keep a duplicate sync
+      // request open while work is queued, so it must not block the status GET.
+      const syncSignal = AbortSignal.any([signal, AbortSignal.timeout(10_000)]);
+      void requestRelayDbPinSyncAny(metricsBases, dbAddress, syncSignal).then((ok) => {
+        pollLog('POST /pinning/sync', { dbAddress, metricsOrigins: metricsBases, ok });
+      });
     }
 
     const listing =
@@ -439,7 +442,6 @@ export function startRelayDatabasePolling(options: RelayDatabasePollOptions): ()
       iteration,
       dbAddress,
       metricsOrigins: metricsBases,
-      pinSyncPostOk: pinSyncOk,
       listingProbe: listing.probe,
       lastSyncedAt,
       relayHealthOrigins: healthBases,

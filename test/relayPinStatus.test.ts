@@ -447,6 +447,50 @@ describe('startRelayDatabasePolling', () => {
     ac.abort();
   });
 
+  it('does not let a slow sync request block an already-listed database', async () => {
+    globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+      const u = String(input);
+      if (u.includes('/pinning/sync') && init?.method === 'POST') {
+        return new Promise<Response>(() => {});
+      }
+      if (u.includes('/pinning/databases')) {
+        return new Response(
+          JSON.stringify({
+            databases: [
+              { address: '/orbitdb/zdpuPublicRelay', lastSyncedAt: '2026-07-15T18:02:59.260Z' },
+            ],
+            total: 1,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      if (u.includes('/health')) return { ok: true, status: 200 } as Response;
+      return { ok: false, status: 404 } as Response;
+    };
+
+    const updates: RelayDatabasePollUpdate[] = [];
+    const ac = new AbortController();
+    const dispose = startRelayDatabasePolling({
+      dbAddress: '/orbitdb/zdpuPublicRelay',
+      signal: ac.signal,
+      metricsOrigin: 'https://relay.example',
+      healthOrigin: 'https://relay.example',
+      onUpdate: (update) => updates.push(update),
+    });
+
+    await sleep(120);
+    assert.ok(
+      updates.some(
+        (update) =>
+          update.state === 'green' && update.lastSyncedAt === '2026-07-15T18:02:59.260Z',
+      ),
+      `expected the listing GET to complete independently, got: ${JSON.stringify(updates)}`,
+    );
+
+    dispose();
+    ac.abort();
+  });
+
   it('does not regress back to yellow after a database was already confirmed on relay', async () => {
     let listingCalls = 0;
     globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {

@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import {
+  extractHttpsOriginFromBrowserMultiaddr,
   resolveBootstrapMultiaddrs,
   selectValidBrowserBootstrapMultiaddrs,
 } from '../scripts/lib/bootstrap-multiaddrs.mjs';
@@ -10,6 +11,24 @@ const secureAddress = `/dns4/relay.example/tcp/443/tls/ws/p2p/${peerA}`;
 const websocketAddress = `/ip4/127.0.0.1/tcp/4001/ws/p2p/${peerB}`;
 
 describe('deployment bootstrap multiaddresses', () => {
+  it('derives an HTTPS API origin only from secure port-443 DNS WebSockets', () => {
+    expect(
+      extractHttpsOriginFromBrowserMultiaddr(
+        '/dns4/relay.example/tcp/443/tls/ws/p2p/12D3KooWExample',
+      ),
+    ).to.equal('https://relay.example');
+    expect(
+      extractHttpsOriginFromBrowserMultiaddr(
+        '/dns6/relay.example/tcp/443/wss/p2p/12D3KooWExample',
+      ),
+    ).to.equal('https://relay.example');
+    expect(
+      extractHttpsOriginFromBrowserMultiaddr(
+        '/dns4/relay.example/tcp/9092/ws/p2p/12D3KooWExample',
+      ),
+    ).to.equal(null);
+  });
+
   it('filters invalid addresses, deduplicates, and ranks secure WebSockets first', () => {
     expect(
       selectValidBrowserBootstrapMultiaddrs([

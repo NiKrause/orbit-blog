@@ -6,6 +6,11 @@ export function extractPeerIdFromMultiaddr(address) {
   return peerIndex >= 0 ? parts[peerIndex + 1] || null : null;
 }
 
+export function extractHttpsOriginFromBrowserMultiaddr(address) {
+  const match = address.match(/^\/dns[46]\/([^/]+)\/tcp\/443\/(?:tls\/ws|wss)\/p2p\/[^/]+$/i);
+  return match ? `https://${match[1]}` : null;
+}
+
 export function isBrowserDialableBootstrapMultiaddr(address) {
   const normalized = address.toLowerCase();
   return (

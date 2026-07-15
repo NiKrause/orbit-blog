@@ -7,7 +7,10 @@ import { webRTCDirect } from '@libp2p/webrtc';
 import { webSockets } from '@libp2p/websockets';
 import { multiaddr } from '@multiformats/multiaddr';
 import { createLibp2p } from 'libp2p';
-import { resolveBootstrapMultiaddrs } from './lib/bootstrap-multiaddrs.mjs';
+import {
+  extractHttpsOriginFromBrowserMultiaddr,
+  resolveBootstrapMultiaddrs,
+} from './lib/bootstrap-multiaddrs.mjs';
 
 const PROBE_TIMEOUT_MS = Number(process.env.RELAY_BOOTSTRAP_PROBE_TIMEOUT_MS || 10_000);
 
@@ -75,6 +78,34 @@ async function verifyBootstrapMultiaddrs(addresses) {
   return results;
 }
 
+async function probePublicRelayHttpOrigin(origin) {
+  try {
+    const [health, databases] = await Promise.all([
+      fetch(new URL('/health', origin), { signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) }),
+      fetch(new URL('/pinning/databases', origin), { signal: AbortSignal.timeout(PROBE_TIMEOUT_MS) }),
+    ]);
+    return health.ok && databases.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function selectPublicRelayTarget(addresses) {
+  const checkedOrigins = new Set();
+
+  for (const address of addresses) {
+    const origin = extractHttpsOriginFromBrowserMultiaddr(address);
+    if (!origin || checkedOrigins.has(origin)) continue;
+    checkedOrigins.add(origin);
+
+    const httpReady = await probePublicRelayHttpOrigin(origin);
+    console.log(`${httpReady ? '✓' : '✗'} ${origin} (public HTTP + pinning API)`);
+    if (httpReady) return { address, origin };
+  }
+
+  return null;
+}
+
 const override = process.env.RELAY_BOOTSTRAP_OVERRIDE?.trim() || '';
 const fallback = process.env.RELAY_BOOTSTRAP_FALLBACK?.trim() || '';
 
@@ -105,6 +136,29 @@ if (resolution.addresses.length === 0) {
 const serialized = resolution.addresses.join(',');
 if (process.env.GITHUB_ENV) {
   await appendFile(process.env.GITHUB_ENV, `VITE_SEED_NODES=${serialized}\n`);
+}
+
+if (process.env.RELAY_BOOTSTRAP_WRITE_PLAYWRIGHT_ENV === 'true') {
+  const publicRelay = await selectPublicRelayTarget(resolution.addresses);
+  if (!publicRelay) {
+    throw new Error(
+      'No reachable Aleph relay exposes both the public /health and /pinning/databases APIs.',
+    );
+  }
+  if (!process.env.GITHUB_ENV) {
+    throw new Error('RELAY_BOOTSTRAP_WRITE_PLAYWRIGHT_ENV requires GITHUB_ENV.');
+  }
+
+  const playwrightEnv = [
+    'PLAYWRIGHT_RELAY_MODE=remote',
+    `PLAYWRIGHT_REMOTE_RELAY_NAME=${new URL(publicRelay.origin).hostname}`,
+    `PLAYWRIGHT_REMOTE_SEED_NODES=${publicRelay.address}`,
+    `PLAYWRIGHT_REMOTE_RELAY_ORIGIN=${publicRelay.origin}`,
+    `PLAYWRIGHT_REMOTE_RELAY_METRICS_ORIGIN=${publicRelay.origin}`,
+    'VITE_ALEPH_BOOTSTRAP_ENABLED=false',
+  ];
+  await appendFile(process.env.GITHUB_ENV, `${playwrightEnv.join('\n')}\n`);
+  console.log(`Selected ${publicRelay.origin} for public relay E2E.`);
 }
 
 if (process.env.GITHUB_STEP_SUMMARY) {
