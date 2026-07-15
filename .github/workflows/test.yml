@@ -13,6 +13,15 @@ jobs:
       TEST_PRIVATE_KEY: 08011240821cb6bc3d4547fcccb513e82e4d718089f8a166b23ffcd4a436754b6b0774cf07447d1693cd10ce11ef950d7517bad6e9472b41a927cd17fc3fb23f8c70cd99
       # Avoid flakes: GitHub runners can have 9090 occupied.
       METRICS_PORT: 0
+      # The local Mocha relay only needs WebSockets. Native UDP transports are not
+      # available on every hosted runner, and public discovery is unnecessary because
+      # the test peers dial the deterministic loopback relay directly.
+      RELAY_DISABLE_QUIC: 'true'
+      RELAY_DISABLE_WEBRTC: 'true'
+      RELAY_DISABLE_IPV6: 'true'
+      RELAY_DISABLE_BOOTSTRAP: 'true'
+      RELAY_DISABLE_DHT: 'true'
+      RELAY_DISABLE_AUTONAT: 'true'
     steps:
     - uses: actions/checkout@v6
 
