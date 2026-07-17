@@ -388,6 +388,9 @@ async function openOrCreateDB(
       
       // Set the store immediately so it's available
       config.store.set(dbInstance);
+      if (typeof window !== 'undefined' && config.name === 'posts') {
+        (window as any).postsDB = dbInstance;
+      }
       
       // Only wait for readiness if this is a blocking database (settings/posts)
       if (isRemoteDB && isBlocking) {

@@ -63,6 +63,7 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
   import { currentTheme, loadThemeState, persistThemeState, themeState, applyTheme } from '$lib/themes/themeStore.js';
   import { info, debug, warn, error } from '../utils/logger.js'
   import { startAiCapabilitiesPubsub } from '$lib/ai/aiCapabilitiesPubsub.js';
+  import { startRelayDatabasePolling } from '$lib/services/relayPinStatus.js';
 
   let blockstore: any;
   let datastore: any;
@@ -804,6 +805,58 @@ https://svelte.dev/e/store_invalid_scoped_subscription -->
     // Add the new event listener
     $postsDB.events.on('update', postsDBUpdateListener);
     }
+  });
+
+  // OrbitDB pubsub update notifications are best-effort. When a remote relay
+  // reports a newer posts DB sync but this viewer missed the notification,
+  // re-subscribing triggers OrbitDB's head exchange and repairs the local view.
+  $effect(() => {
+    const activePostsDB = $postsDB as any;
+    const activeIdentityId = $identity?.id;
+    const address = activePostsDB?.address?.toString?.() || '';
+    const writers = activePostsDB?.access?.write || [];
+
+    if (!activePostsDB || !activeIdentityId || !address) return;
+    if (writers.includes(activeIdentityId) || writers.includes('*')) return;
+
+    const abortController = new AbortController();
+    let lastRelaySync: string | null = null;
+    let resyncing = false;
+
+    const stopPolling = startRelayDatabasePolling({
+      dbAddress: address,
+      signal: abortController.signal,
+      pollDebugLabel: 'remote-posts-resync',
+      onUpdate: ({ lastSyncedAt }) => {
+        if (!lastSyncedAt) return;
+        if (lastRelaySync === null) {
+          lastRelaySync = lastSyncedAt;
+          return;
+        }
+        if (lastRelaySync === lastSyncedAt || resyncing) return;
+
+        lastRelaySync = lastSyncedAt;
+        resyncing = true;
+        void (async () => {
+          try {
+            info('Relay posts database advanced; refreshing OrbitDB heads:', address, lastSyncedAt);
+            await activePostsDB.sync?.stop?.();
+            if (!abortController.signal.aborted) {
+              await activePostsDB.sync?.start?.();
+            }
+          } catch (err) {
+            warn('Failed to refresh remote posts OrbitDB heads:', err);
+          } finally {
+            resyncing = false;
+          }
+        })();
+      },
+    });
+
+    return () => {
+      abortController.abort();
+      stopPolling();
+    };
   });
 
   $effect(() => {

@@ -152,7 +152,7 @@ test.describe('Blog Sharing between Alice and Bob', () => {
         test.slow();
         pageAlice = await contextAlice.newPage();
         pageAlice.on('console', msg => {
-            console.log('BROWSER LOG:', msg.text());
+            console.log('[alice] BROWSER LOG:', msg.text());
         });
         pageAlice.on('pageerror', err => {
             console.error('PAGE ERROR:', err.message);
@@ -276,7 +276,7 @@ test.describe('Blog Sharing between Alice and Bob', () => {
 
         pageBob = await contextBob.newPage();
         pageBob.on('console', msg => {
-            console.log('BROWSER LOG:', msg.text());
+            console.log('[bob] BROWSER LOG:', msg.text());
         }); 
         pageBob.on('pageerror', err => {
             console.error('PAGE ERROR:', err.message);
@@ -324,7 +324,7 @@ test.describe('Blog Sharing between Alice and Bob', () => {
 
     });
 
-    test.fixme('Alice edits a post and Bob sees the update while viewing', async () => {
+    test('Alice edits a post and Bob sees the update while viewing', async () => {
         await closeSidebarOverlayIfPresent(pageAlice);
         await closeSidebarOverlayIfPresent(pageBob);
 
@@ -352,9 +352,23 @@ test.describe('Blog Sharing between Alice and Bob', () => {
 
         await expect(pageAlice.getByTestId('blog-post').getByText(updatedContent)).toBeVisible({ timeout: 60000 });
 
-        await expect(async () => {
-            await expect(pageBob.getByTestId('blog-post').getByText(updatedContent)).toBeVisible({ timeout: 5000 });
-        }).toPass({ timeout: 60000 });
+        await expect
+            .poll(
+                () => pageBob.evaluate(async ({ title }) => {
+                    const db = (window as typeof window & {
+                        postsDB?: { all?: () => Promise<Array<{ value?: { title?: string; content?: string } }>> };
+                    }).postsDB;
+                    const entries = await db?.all?.() || [];
+                    return entries.find((entry) => entry.value?.title === title)?.value?.content || '';
+                }, { title: targetTitle }),
+                {
+                    timeout: 60000,
+                    message: 'wait for Bob postsDB to receive Alice post edit',
+                },
+            )
+            .toBe(updatedContent);
+
+        await expect(pageBob.getByTestId('post-content')).toContainText(updatedContent, { timeout: 30000 });
     });
 
     test.fixme('Alice deletes and restores her blog from OrbitDB address', async ({ browser }) => {
