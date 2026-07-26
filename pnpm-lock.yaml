@@ -179,8 +179,8 @@ importers:
         specifier: ^4.96.0
         version: 4.104.0(ws@8.13.0)
       orbitdb-relay:
-        specifier: ^0.10.0
-        version: 0.10.0(react-native@0.85.1(@babel/core@7.29.0)(react@19.2.5))(rollup@2.80.0)(vite@5.4.21(@types/node@25.6.0)(terser@5.46.2))
+        specifier: ^0.10.1
+        version: 0.10.1(react-native@0.85.1(@babel/core@7.29.0)(react@19.2.5))(rollup@2.80.0)(vite@5.4.21(@types/node@25.6.0)(terser@5.46.2))
       p-queue:
         specifier: ^8.1.0
         version: 8.1.1
@@ -4756,8 +4756,8 @@ packages:
       zod:
         optional: true
 
-  orbitdb-relay@0.10.0:
-    resolution: {integrity: sha512-d1hq4BHzTN4mTlpXZBVbSQNJIkvtfD6BGR5g/k9FTkQK8XYMXNZud/W0DQ0/k6Ii/7OH3zikPq657PvwpZFjJQ==}
+  orbitdb-relay@0.10.1:
+    resolution: {integrity: sha512-xPrrKbV2UOqOjRlCINsQT4iBlbsc7k7ax+Zu0I+Ky2gVFmgCLRx6I2BV7SVOtmFiRSY25K4RhwXoAUTC4pocaw==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -6974,7 +6974,7 @@ snapshots:
     dependencies:
       '@libp2p/crypto': 5.1.21
       '@libp2p/interface': 3.2.5
-      '@libp2p/peer-id': 6.0.12
+      '@libp2p/peer-id': 6.0.13
       '@libp2p/utils': 7.3.1
       '@multiformats/multiaddr': 13.0.3
       '@multiformats/multiaddr-matcher': 3.0.2
@@ -7827,7 +7827,7 @@ snapshots:
       '@ipld/dag-ucan': 3.4.5
       '@le-space/ucanto-principal': 9.1.2
       '@libp2p/crypto': 5.1.21
-      '@libp2p/logger': 6.2.10
+      '@libp2p/logger': 6.2.11
       '@orbitdb/core': 4.0.0
       '@simplewebauthn/browser': 13.3.0
       cbor-web: 9.0.2
@@ -12420,7 +12420,7 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  orbitdb-relay@0.10.0(react-native@0.85.1(@babel/core@7.29.0)(react@19.2.5))(rollup@2.80.0)(vite@5.4.21(@types/node@25.6.0)(terser@5.46.2)):
+  orbitdb-relay@0.10.1(react-native@0.85.1(@babel/core@7.29.0)(react@19.2.5))(rollup@2.80.0)(vite@5.4.21(@types/node@25.6.0)(terser@5.46.2)):
     dependencies:
       '@chainsafe/libp2p-noise': 17.0.0
       '@chainsafe/libp2p-quic': 2.1.1
@@ -12443,8 +12443,8 @@ snapshots:
       '@libp2p/identify': 4.1.11
       '@libp2p/interface': 3.2.5
       '@libp2p/kad-dht': 16.4.1
-      '@libp2p/keychain': 6.1.4
-      '@libp2p/logger': 6.2.10
+      '@libp2p/keychain': 6.1.5
+      '@libp2p/logger': 6.2.11
       '@libp2p/ping': 3.1.10
       '@libp2p/prometheus-metrics': 5.0.26
       '@libp2p/pubsub-peer-discovery': 12.0.0
