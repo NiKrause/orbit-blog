@@ -38,8 +38,8 @@ importers:
         specifier: ^11.0.0
         version: 11.0.0
       '@le-space/aleph-bootstrap':
-        specifier: ^0.7.0
-        version: 0.7.0(typescript@5.9.3)
+        specifier: ^0.9.3
+        version: 0.9.3(typescript@5.9.3)
       '@libp2p/autonat':
         specifier: ^3.0.22
         version: 3.0.23
@@ -1453,8 +1453,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.9':
     resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
 
-  '@le-space/aleph-bootstrap@0.7.0':
-    resolution: {integrity: sha512-6FhMU7PDXJPdL8X9Fag199kqUTG7CoTaqG94pW8L47ayLvk+GvmBxTJXatOYZ5lCAZPUOpG9FSCWQrkve/bR9w==}
+  '@le-space/aleph-bootstrap@0.9.3':
+    resolution: {integrity: sha512-BJMwTo/iNUWmC4GMEaAQtQvX36GxDGvbDRE2DRSHi3R+iy2MybVQecUCVsE9oOBF+f2fm9RPJvFfZOCxpdxtDQ==}
 
   '@le-space/iso-base@4.3.0':
     resolution: {integrity: sha512-aZerTomLgkGAAh6zAa8PWQu2rfMzrA5tiBIe4PWI8LDBJHwlgFwRsiDpdM/3eRjE7ocHi4rrPXdVfy+FH7knFA==}
@@ -1465,8 +1465,8 @@ packages:
   '@le-space/iso-passkeys@0.3.1':
     resolution: {integrity: sha512-/sgAJxcCkPfylWb3RNmy4wY5QaHBJP02lKnoLu8OC8YGSh9mOKhZ0g2+rkwMrqCIa7/J/Q81UA8k3NQ/24m3mw==}
 
-  '@le-space/iso-webauthn-varsig@0.2.0':
-    resolution: {integrity: sha512-8sVwcu5yvSKkGZhaXzCA8eSim+TKwMBvz25sNkqGZsUkRIh1s5/PszyjO3C/CZasowHLIouaaLb/xd5VQUNzNw==}
+  '@le-space/iso-webauthn-varsig@0.3.0':
+    resolution: {integrity: sha512-qU3ptOP8ew2ZVr506N8joGsDXQNGjRq7VYBkmNdQKuFmbpDtjYyaSH2qyy0x3M8heghVzbB6SxhQM7o3U06w6Q==}
 
   '@le-space/orbitdb-access-controller-delegated-todo@0.1.0':
     resolution: {integrity: sha512-IYqHNFWlwKWRXYXsxbw2pIdwRVe//YP1Y6VWmMkkl/BulOyDAkiV3Xz+CZRVAbyVscVPm5tQtjxb7fdqaLznKg==}
@@ -7781,7 +7781,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@le-space/aleph-bootstrap@0.7.0(typescript@5.9.3)':
+  '@le-space/aleph-bootstrap@0.9.3(typescript@5.9.3)':
     dependencies:
       '@libp2p/bootstrap': 11.0.47
       viem: 2.53.1(typescript@5.9.3)
@@ -7812,7 +7812,7 @@ snapshots:
       iso-base: '@le-space/iso-base@4.3.0'
       iso-did: '@le-space/iso-did@2.1.2'
 
-  '@le-space/iso-webauthn-varsig@0.2.0':
+  '@le-space/iso-webauthn-varsig@0.3.0':
     dependencies:
       iso-base: '@le-space/iso-base@4.3.0'
 
@@ -7835,7 +7835,7 @@ snapshots:
       iso-did: '@le-space/iso-did@2.1.2'
       iso-passkeys: '@le-space/iso-passkeys@0.3.1'
       iso-web: 2.2.1
-      iso-webauthn-varsig: '@le-space/iso-webauthn-varsig@0.2.0'
+      iso-webauthn-varsig: '@le-space/iso-webauthn-varsig@0.3.0'
       multiformats: 14.0.4
       vite-plugin-node-polyfills: 0.24.0(rollup@2.80.0)(vite@5.4.21(@types/node@25.6.0)(terser@5.46.2))
     transitivePeerDependencies:
