@@ -143,7 +143,8 @@
     "overrides": {
       "@ipshipyard/node-datachannel": "npm:node-datachannel@0.29.0",
       "orbitdb-relay>@orbitdb/core": "4.0.0",
-      "@libp2p/gossipsub": "16.1.0"
+      "@libp2p/gossipsub": "16.1.0",
+      "@libp2p/crypto@<5.1.22": "5.1.22"
     },
     "onlyBuiltDependencies": [
       "@le-space/orbitdb-identity-provider-webauthn-did",
